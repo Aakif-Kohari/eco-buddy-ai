@@ -49,13 +49,42 @@ for ch_id, ch_data in gf.CHALLENGES.items():
             if status == 'completed':
                 st.success("Challenge Completed! 🎉")
             else:
-                current_prog = [c['progress_value'] for c in user_challenges if c['challenge_id'] == ch_id][-1]
+                current_prog = [c["progress_value"] for c in user_challenges if c["challenge_id"] == ch_id][-1]
+                remaining = max(ch_data["target"] - current_prog, 0)
+
                 st.write(f"Progress: {current_prog} / {ch_data['target']}")
-                
-                prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
-                if st.button("Update", key=f"btn_prog_{ch_id}"):
-                    gf.update_challenge_progress(1, ch_id, progress_increment=prog_val)
+
+                prog_val = st.number_input(
+                    f"Update Progress for {ch_id}",
+                    min_value=0.0,
+                    step=1.0,
+                    value=0.0,
+                    key=f"prog_{ch_id}",
+                )
+
+                is_valid = True
+
+                if prog_val <= 0:
+                    st.warning("⚠️ Progress must be greater than zero.")
+                    is_valid = False
+                elif prog_val > remaining:
+                    st.warning(
+                        f"⚠️ You can only add up to {remaining} {ch_data['unit']} to complete this challenge."
+                    )
+                    is_valid = False
+
+                if st.button(
+                    "Update",
+                    key=f"btn_prog_{ch_id}",
+                    disabled=not is_valid,
+                ):
+                    gf.update_challenge_progress(
+                        1,
+                        ch_id,
+                        progress_increment=prog_val,
+                    )
                     gf.validate_challenge_progress(1, ch_id)
+                    st.success("Progress updated successfully!")
                     st.rerun()
         else:
             if st.button("Enroll", key=f"enroll_{ch_id}"):
