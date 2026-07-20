@@ -61,14 +61,50 @@ import_strategy = st.radio(
 
 uploaded_file = st.file_uploader("Upload JSON Export File", type=["json"])
 
+import json
+
 if uploaded_file is not None:
     if st.button("Restore Data"):
-        json_content = uploaded_file.read().decode("utf-8")
+
+        # Read uploaded file
+        file_bytes = uploaded_file.read()
+
+        # Empty file validation
+        if not file_bytes:
+            st.error("❌ The uploaded file is empty. Please upload a valid EcoBuddy JSON export.")
+            st.stop()
+
+        # Decode validation
+        try:
+            json_content = file_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            st.error("❌ Unable to read the file. Please upload a UTF-8 encoded JSON file.")
+            st.stop()
+
+        # Empty content validation
+        if not json_content.strip():
+            st.error("❌ The uploaded file contains no data.")
+            st.stop()
+
+        # JSON validation
+        try:
+            json.loads(json_content)
+        except json.JSONDecodeError as e:
+            st.error(f"❌ Invalid JSON file.\n\nDetails: {e}")
+            st.stop()
+
+        # Import only after validation passes
         with st.spinner("Importing data..."):
-            success, message = import_data_json(json_content, strategy=import_strategy.lower())
+            success, message = import_data_json(
+                json_content,
+                strategy=import_strategy.lower(),
+            )
+
             if success:
                 st.success(message)
-                st.info("Please refresh the page or navigate to another section to see the restored data.")
+                st.info(
+                    "Please refresh the page or navigate to another section "
+                    "to see the restored data."
+                )
             else:
                 st.error(message)
-
