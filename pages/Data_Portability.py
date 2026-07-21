@@ -5,6 +5,52 @@ from data_io import export_data_json, export_data_csv_zip, import_data_json
 from styles.theme import apply_theme
 
 apply_theme()
+from datetime import datetime
+
+
+def render_export_card(
+    title,
+    description,
+    button_label,
+    export_function,
+    session_key,
+    filename,
+    mime_type,
+    empty_check,
+    format_name,
+    download_key,
+):
+    st.subheader(title)
+    st.markdown(description)
+
+    if st.button(button_label):
+        with st.spinner(f"Generating {format_name}..."):
+            export_data = export_function()
+
+            if not empty_check(export_data):
+                st.session_state[session_key] = export_data
+            else:
+                st.warning(
+                    "⚠️ No data available to export. Add some data before exporting."
+                )
+
+    if st.session_state.get(session_key):
+        st.success("✅ Export generated successfully!")
+
+        st.markdown("#### Export Details")
+        st.markdown(f"**📄 File Name:** `{filename}`")
+        st.markdown(f"**🗂 Format:** {format_name}")
+        st.markdown(
+            f"**🕒 Generated At:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
+        st.download_button(
+            label=f"⬇️ Download {format_name}",
+            data=st.session_state[session_key],
+            file_name=filename,
+            mime=mime_type,
+            key=download_key,
+        )
 
 # -----------------------------
 # Session State Initialization
@@ -27,6 +73,7 @@ def show_export_details(file_name: str, export_format: str):
     )
 
 
+
 st.title("💾 Data Portability")
 st.markdown(
     "Manage your EcoBuddy data. You can export your data to take it with you, "
@@ -45,6 +92,23 @@ col1, col2 = st.columns(2)
 # CSV EXPORT
 # ======================================================
 with col1:
+
+    render_export_card(
+        title="CSV Export",
+        description=(
+            "Download your core data tables as CSV files bundled in a ZIP archive. "
+            "This format is great for analyzing your data in Excel or other tools."
+        ),
+        button_label="Generate CSV Archive",
+        export_function=export_data_csv_zip,
+        session_key="csv_export",
+        filename="ecobuddy_export.zip",
+        mime_type="application/zip",
+        empty_check=lambda data: not data,
+        format_name="ZIP (CSV Archive)",
+        download_key="download_csv_zip",
+    )
+
     st.subheader("CSV Export")
     st.markdown(
         "Download your core data tables as CSV files bundled in a ZIP archive. "
@@ -68,6 +132,7 @@ with col1:
             "ZIP (CSV Archive)"
         )
 
+
         st.download_button(
             label="⬇️ Download ZIP",
             data=st.session_state.csv_export,
@@ -81,6 +146,23 @@ with col1:
 # JSON EXPORT
 # ======================================================
 with col2:
+
+    render_export_card(
+        title="JSON Export",
+        description=(
+            "Download a full dump of your data in JSON format. "
+            "This format is required if you want to import your data back into EcoBuddy later."
+        ),
+        button_label="Generate JSON Export",
+        export_function=export_data_json,
+        session_key="json_export",
+        filename="ecobuddy_export.json",
+        mime_type="application/json",
+        empty_check=lambda data: data == "{}",
+        format_name="JSON",
+        download_key="download_json",
+    )
+
     st.subheader("JSON Export")
     st.markdown(
         "Download a full dump of your data in JSON format. "
@@ -111,6 +193,7 @@ with col2:
             mime="application/json",
             key="download_json",
         )
+
 
 
 st.markdown("---")
