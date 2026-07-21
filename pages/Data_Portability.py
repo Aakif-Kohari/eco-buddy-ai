@@ -1,70 +1,144 @@
 import streamlit as st
+from datetime import datetime
 from data_io import export_data_json, export_data_csv_zip, import_data_json
 
 from styles.theme import apply_theme
+
 apply_theme()
 
+# -----------------------------
+# Session State Initialization
+# -----------------------------
+if "csv_export" not in st.session_state:
+    st.session_state.csv_export = None
+
+if "json_export" not in st.session_state:
+    st.session_state.json_export = None
+
+
+def show_export_details(file_name: str, export_format: str):
+    st.success("✅ Export generated successfully!")
+
+    st.markdown("#### Export Details")
+    st.markdown(f"**📄 File Name:** `{file_name}`")
+    st.markdown(f"**🗂 Format:** {export_format}")
+    st.markdown(
+        f"**🕒 Generated At:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
+
 st.title("💾 Data Portability")
-st.markdown("Manage your EcoBuddy data. You can export your data to take it with you, or import previously exported data to restore your profile.")
+st.markdown(
+    "Manage your EcoBuddy data. You can export your data to take it with you, "
+    "or import previously exported data to restore your profile."
+)
 
 st.markdown("---")
 st.header("📤 Export Data")
-st.markdown("Export your assessments, appliances, gamification progress, and more.")
+st.markdown(
+    "Export your assessments, appliances, gamification progress, and more."
+)
 
 col1, col2 = st.columns(2)
 
+# ======================================================
+# CSV EXPORT
+# ======================================================
 with col1:
     st.subheader("CSV Export")
-    st.markdown("Download your core data tables as CSV files bundled in a ZIP archive. This format is great for analyzing your data in Excel or other tools.")
-    if st.button("Generate CSV Archive"):
-        with st.spinner("Generating CSV..."):
-            zip_data = export_data_csv_zip()
-            if zip_data:
-                st.download_button(
-                    label="⬇️ Download ZIP",
-                    data=zip_data,
-                    file_name="ecobuddy_export.zip",
-                    mime="application/zip",
-                    key="download_csv_zip"
-                )
-            else:
-                st.info("No data available to export.")
+    st.markdown(
+        "Download your core data tables as CSV files bundled in a ZIP archive. "
+        "This format is great for analyzing your data in Excel or other tools."
+    )
 
+    if st.button("Generate CSV Archive"):
+        with st.spinner("Generating CSV archive..."):
+            zip_data = export_data_csv_zip()
+
+            if zip_data:
+                st.session_state.csv_export = zip_data
+            else:
+                st.warning(
+                    "⚠️ No data available to export. Add some data before exporting."
+                )
+
+    if st.session_state.csv_export:
+        show_export_details(
+            "ecobuddy_export.zip",
+            "ZIP (CSV Archive)"
+        )
+
+        st.download_button(
+            label="⬇️ Download ZIP",
+            data=st.session_state.csv_export,
+            file_name="ecobuddy_export.zip",
+            mime="application/zip",
+            key="download_csv_zip",
+        )
+
+
+# ======================================================
+# JSON EXPORT
+# ======================================================
 with col2:
     st.subheader("JSON Export")
-    st.markdown("Download a full dump of your data in JSON format. This format is required if you want to import your data back into EcoBuddy later.")
+    st.markdown(
+        "Download a full dump of your data in JSON format. "
+        "This format is required if you want to import your data back into EcoBuddy later."
+    )
+
     if st.button("Generate JSON Export"):
-        with st.spinner("Generating JSON..."):
+        with st.spinner("Generating JSON export..."):
             json_data = export_data_json()
+
             if json_data != "{}":
-                st.download_button(
-                    label="⬇️ Download JSON",
-                    data=json_data,
-                    file_name="ecobuddy_export.json",
-                    mime="application/json",
-                    key="download_json"
-                )
+                st.session_state.json_export = json_data
             else:
-                st.info("No data available to export.")
+                st.warning(
+                    "⚠️ No data available to export. Add some data before exporting."
+                )
+
+    if st.session_state.json_export:
+        show_export_details(
+            "ecobuddy_export.json",
+            "JSON"
+        )
+
+        st.download_button(
+            label="⬇️ Download JSON",
+            data=st.session_state.json_export,
+            file_name="ecobuddy_export.json",
+            mime="application/json",
+            key="download_json",
+        )
 
 
 st.markdown("---")
 st.header("📥 Import Data")
-st.markdown("Restore your data from a previously exported JSON file.")
+st.markdown(
+    "Restore your data from a previously exported JSON file."
+)
 
 import_strategy = st.radio(
     "Import Strategy",
     options=["Merge", "Replace"],
     index=0,
-    help="Merge: Keeps your existing data and adds new non-duplicate entries. Replace: Deletes your current data and replaces it entirely with the imported data."
+    help=(
+        "Merge: Keeps your existing data and adds new non-duplicate entries. "
+        "Replace: Deletes your current data and replaces it entirely with the imported data."
+    ),
 )
 
-uploaded_file = st.file_uploader("Upload JSON Export File", type=["json"])
+uploaded_file = st.file_uploader(
+    "Upload JSON Export File",
+    type=["json"],
+)
 
 import json
 
 if uploaded_file is not None:
     if st.button("Restore Data"):
+
 
         # Read uploaded file
         file_bytes = uploaded_file.read()
@@ -94,6 +168,10 @@ if uploaded_file is not None:
             st.stop()
 
         # Import only after validation passes
+
+        json_content = uploaded_file.read().decode("utf-8")
+
+
         with st.spinner("Importing data..."):
             success, message = import_data_json(
                 json_content,
