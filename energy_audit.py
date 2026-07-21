@@ -31,10 +31,17 @@ def generate_hourly_energy_profile(appliances):
             profile[i] += stdby / 1000.0
             
         if hrs > 0:
-            start_hr = max(0, 18 - int(hrs/2))
-            for i in range(int(hrs)):
+            full_hours = int(hrs)
+            fraction = hrs - full_hours
+            start_hr = max(0, 18 - int(hrs / 2))
+            
+            for i in range(full_hours):
                 hr = (start_hr + i) % 24
                 profile[hr] += pwr / 1000.0
+            
+            if fraction > 0 and full_hours < 24:
+                hr = (start_hr + full_hours) % 24
+                profile[hr] += (pwr * fraction) / 1000.0
     return profile
 
 @st.cache_data
