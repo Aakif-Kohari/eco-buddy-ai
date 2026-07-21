@@ -25,13 +25,13 @@ BADGES = {
     'b4': {'name': 'Plant-Based Week', 'desc': 'Avoided non-vegetarian meals for 7 days', 'xp': 50}
 }
 
-@st.cache_data
+
 def calculate_level(total_xp):
     if total_xp < 0:
         return 1
     return math.floor(math.sqrt(total_xp / 100)) + 1
 
-@st.cache_data
+
 def calculate_level_progress(total_xp):
     current_level = calculate_level(total_xp)
     next_level = current_level + 1
@@ -47,6 +47,7 @@ def calculate_level_progress(total_xp):
          progress = xp_in_level / level_xp_req
          
     return progress
+
 
 @st.cache_data
 def calculate_streak(user_id, activities_dates):
@@ -96,6 +97,7 @@ def calculate_streak(user_id, activities_dates):
 
     return streak
 
+
 def validate_challenge_progress(user_id, challenge_id):
     challenges = get_user_challenges(user_id)
     for c in challenges:
@@ -107,6 +109,7 @@ def validate_challenge_progress(user_id, challenge_id):
             if c['progress_value'] >= ch_def['target']:
                 return is_challenge_complete(user_id, challenge_id)
     return False
+
 
 def is_challenge_complete(user_id, challenge_id):
     ch_def = CHALLENGES.get(challenge_id)
@@ -120,10 +123,12 @@ def is_challenge_complete(user_id, challenge_id):
         return True
     return False
 
+
 def award_challenge_xp(user_id, challenge_id):
     ch_def = CHALLENGES.get(challenge_id)
     if ch_def:
         award_xp(user_id, 'challenge', challenge_id, ch_def['xp'], f"Completed {ch_def['title']}")
+
 
 def check_badge_eligibility(user_id):
     # This would contain the logic to check if a user has met badge conditions
@@ -134,11 +139,13 @@ def check_badge_eligibility(user_id):
     if completed_count >= 5:
         unlock_badge(user_id, 'b3')
 
+
 def unlock_badge(user_id, badge_id):
     if unlock_badge_in_db(user_id, badge_id):
         badge_def = BADGES.get(badge_id)
         if badge_def and badge_def.get('xp'):
             award_xp(user_id, 'badge', badge_id, badge_def['xp'], f"Unlocked badge: {badge_def['name']}")
+
 
 def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
     badge_def = BADGES.get(badge_id)
@@ -158,33 +165,31 @@ def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
     
     try:
         title_font = ImageFont.truetype(font_path, 36)
-        desc_font = ImageFont.truetype(font_path, 24)
-        brand_font = ImageFont.truetype(font_path, 20)
+        desc_font = ImageFont.truetype(font_path, 20)
+        user_font = ImageFont.truetype(font_path, 16)
     except IOError:
-        try:
-            # Fallback to system Arial font if bundled font is somehow missing
-            title_font = ImageFont.truetype("arial.ttf", 36)
-            desc_font = ImageFont.truetype("arial.ttf", 24)
-            brand_font = ImageFont.truetype("arial.ttf", 20)
-        except IOError:
-            # Fallback to default font
-            title_font = ImageFont.load_default()
-            desc_font = ImageFont.load_default()
-            brand_font = ImageFont.load_default()
+        title_font = ImageFont.load_default()
+        desc_font = ImageFont.load_default()
+        user_font = ImageFont.load_default()
         
-    total_xp = get_total_xp(user_id)
-    level = calculate_level(total_xp)
-
-    # Draw Text
-    draw.text((40, 50), badge_def['name'], font=title_font, fill=(8, 11, 10))
-    draw.text((40, 110), badge_def['desc'], font=desc_font, fill=(102, 115, 106))
+    # Draw title
+    title_text = f"🏆 {badge_def['name']}"
+    draw.text((width/2, 100), title_text, fill=(46, 125, 50), font=title_font, anchor="mm")
     
-    draw.text((40, 200), f"Level {level}", font=desc_font, fill=(120, 169, 69))
-    draw.text((40, 240), f"Total XP: {total_xp}", font=desc_font, fill=(47, 94, 50))
+    # Draw description
+    desc_text = badge_def['desc']
+    draw.text((width/2, 180), desc_text, fill=(55, 71, 79), font=desc_font, anchor="mm")
     
-    draw.text((450, 350), "EcoBuddy AI", font=brand_font, fill=(120, 169, 69))
+    # Draw XP
+    xp_text = f"+{badge_def.get('xp', 0)} XP"
+    draw.text((width/2, 240), xp_text, fill=(230, 81, 0), font=title_font, anchor="mm")
     
-    # Save Image
-    filepath = os.path.join(os.getcwd(), filename)
-    img.save(filepath)
-    return filepath
+    # Draw user ID
+    footer_text = f"EcoBuddy AI • User #{user_id}"
+    draw.text((width/2, 340), footer_text, fill=(120, 144, 156), font=user_font, anchor="mm")
+    
+    # Draw border
+    draw.rectangle([10, 10, width-10, height-10], outline=(76, 175, 80), width=4)
+    
+    img.save(filename)
+    return filename

@@ -118,6 +118,8 @@ def generate_recommendations(
 
     return insight, recommendations
 
+
+@st.cache_data
 def generate_water_recommendations(contributors, total_daily, diet):
     recommendations = []
     

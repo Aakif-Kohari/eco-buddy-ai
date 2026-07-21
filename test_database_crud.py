@@ -8,6 +8,7 @@ db.DB_NAME = "test_eco_buddy.db"
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
+    db.DB_NAME = "test_eco_buddy.db"
     # Setup
     if os.path.exists(db.DB_NAME):
         os.remove(db.DB_NAME)

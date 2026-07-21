@@ -102,7 +102,7 @@ OFFSET_PROJECTS = [
     }
 ]
 
-@st.cache_data
+
 def calculate_trip_emissions(distance_km: float, transport_mode: str, passenger_count: int = 1) -> float:
     """Calculates emissions for a single trip in kg CO2e."""
     if distance_km < 0 or passenger_count < 1:
@@ -112,21 +112,13 @@ def calculate_trip_emissions(distance_km: float, transport_mode: str, passenger_
     if factor is None:
         raise ValueError(f"Unknown transport mode: {transport_mode}")
     
-    # The factor is per passenger-km. So total trip emission for this person is distance * factor.
-    # If the user input is a carpool, the factor already assumes sharing, but let's standardise:
-    # If it's a shared car, the factor in the dict is roughly half of single occupancy.
-    # To be precise, if the user explicitly provides passenger_count > 1 for a single-occupancy car, 
-    # it effectively becomes a carpool.
-    # For this simple model, we assume the factor is per person.
-    
-    # If it's a car and passenger count > 1, adjust factor if they chose 'Single-occupancy car'
     if transport_mode == "Single-occupancy car" and passenger_count > 1:
         factor = factor / passenger_count
         
     trip_emissions = distance_km * factor
     return round(trip_emissions, 2)
 
-@st.cache_data
+
 def calculate_recurring_trip_emissions(trip_emissions: float, trips_per_week: int) -> dict:
     """Calculates weekly, monthly, and annual emissions based on trip frequency."""
     weekly = trip_emissions * trips_per_week
@@ -138,6 +130,7 @@ def calculate_recurring_trip_emissions(trip_emissions: float, trips_per_week: in
         "monthly": round(monthly, 2),
         "annual": round(annual, 2)
     }
+
 
 @st.cache_data
 def compare_transit_modes(distance_km: float, passenger_count: int = 1) -> list:
@@ -157,9 +150,12 @@ def compare_transit_modes(distance_km: float, passenger_count: int = 1) -> list:
     results.sort(key=lambda x: x["emissions_kg"])
     return results
 
+
+@st.cache_data
 def get_offset_projects() -> list:
     """Returns the list of available simulated offset projects."""
     return OFFSET_PROJECTS
+
 
 def get_project_by_id(project_id: str) -> dict:
     """Helper to find a project by its ID."""
@@ -168,14 +164,14 @@ def get_project_by_id(project_id: str) -> dict:
             return p
     return None
 
-@st.cache_data
+
 def calculate_offset_cost(tonnes: float, cost_per_tonne: float) -> float:
     """Calculates the total cost for offsetting a given amount of carbon."""
     if tonnes < 0:
         raise ValueError("Offset amount cannot be negative.")
     return round(tonnes * cost_per_tonne, 2)
 
-@st.cache_data
+
 def validate_offset_transaction(tonnes: float, available_capacity: float = None) -> bool:
     """Validates if an offset transaction is valid."""
     if tonnes <= 0:
@@ -184,16 +180,16 @@ def validate_offset_transaction(tonnes: float, available_capacity: float = None)
         return False, f"Requested offset ({tonnes}t) exceeds project capacity ({available_capacity}t)."
     return True, "Valid transaction"
 
-@st.cache_data
+
 def calculate_net_emissions(estimated_lifetime_footprint: float, total_offsets_purchased: float) -> float:
     """Calculates remaining footprint after offsets."""
     net = estimated_lifetime_footprint - total_offsets_purchased
-    return round(max(0.0, net), 2) # Cannot be less than 0 for display purposes
+    return round(max(0.0, net), 2)
 
-@st.cache_data
+
 def calculate_net_zero_progress(estimated_lifetime_footprint: float, total_offsets_purchased: float) -> float:
     """Calculates percentage progress towards net-zero."""
     if estimated_lifetime_footprint <= 0:
         return 100.0 if total_offsets_purchased > 0 else 0.0
     progress = (total_offsets_purchased / estimated_lifetime_footprint) * 100
-    return round(min(100.0, progress), 2) # Cap at 100%
+    return round(min(100.0, progress), 2)
