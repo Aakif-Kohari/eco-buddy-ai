@@ -428,12 +428,18 @@ st.markdown("""
             linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
         border-color: var(--line);
         box-shadow: var(--shadow);
+        min-height: 230px;
+        display: flex;
+        flex-direction: column;
     }
 
     .card-highlight {
         background:
             linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
             linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
+            min-height: 230px;
+            display: flex;
+            flex-direction: column;
     }
 
     .metric-card::before,
@@ -696,10 +702,13 @@ st.markdown("---")
 
 # -------------------------
 # INPUTS SECTION
+# ------------------------
+
+
 # -------------------------
 
 st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
- main
+ 
  
 col1, col2, col3 = st.columns(3)
 
@@ -758,13 +767,12 @@ with col3:
     )
     st.info("💡 How many long-distance flights per year?")
 
- feature/standardize-statistics-card-dimensions
 
 
- 
-
+# ------------------------
+ # PDF REPORT GENERATION
 # -------------------------
-# PDF REPORT GENERATION
+
 # -------------------------
 # TABS CONFIGURATION
 # -------------------------
@@ -803,7 +811,6 @@ if reset_btn:
     st.rerun()
 
  
-
 
 
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
@@ -967,8 +974,7 @@ with tab1:
         st.info("💡 How many long-distance flights per year?")
         
 
- 
- 
+
 
     # -------------------------
     # PDF REPORT GENERATION
@@ -997,6 +1003,7 @@ with tab1:
     # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
+    
 
  
 
