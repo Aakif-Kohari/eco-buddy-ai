@@ -71,6 +71,21 @@ for key, value in DEFAULT_VALUES.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
+# -------------------------
+# DEFAULT FORM VALUES
+# -------------------------
+DEFAULT_VALUES = {
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
+
+for key, value in DEFAULT_VALUES.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 st.set_page_config(
     page_title="EcoBuddy",
     page_icon="🌱",
@@ -676,20 +691,149 @@ st.markdown("---")
 
 
 # -------------------------
+ feature/input-validation-and-error-handling
+# INPUTS SECTION
+# -------------------------
+ HEAD
+
+st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+ HEAD
+
+ 2590586 (feat: add reset assessment and improve analysis workflow)
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>🚗</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
+    </div>
+    """, unsafe_allow_html=True)
+    transport = st.selectbox(
+        "Primary Transport",
+        ["Car", "Public Transport", "Bike", "Walking"],
+        key="transport"
+    )
+    distance = st.number_input(
+        "Daily Distance (km)",
+        min_value=0.0,
+        value=10.0,
+        step=1.0,
+        key="distance"
+    )
+
+with col2:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>⚡</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
+    </div>
+    """, unsafe_allow_html=True)
+    electricity = st.number_input(
+        "Monthly Electricity (kWh)",
+        min_value=0.0,
+        value=200.0,
+        step=10.0,
+        key="electricity"
+    )
+    diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet"
+    )
+with col3:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>✈️</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
+    </div>
+    """, unsafe_allow_html=True)
+    flights = st.number_input(
+        "Annual Flights",
+        min_value=0,
+        value=0,
+        step=1,
+        key="flights"
+    )
+    st.info("💡 How many long-distance flights per year?")
+
+ 7430caf (feat: add reset assessment button with default form restoration)
+
+# -------------------------
+ HEAD
+
+# PDF REPORT GENERATION
+
+# -------------------------
+ 2590586 (feat: add reset assessment and improve analysis workflow)
 # TABS CONFIGURATION
 # -------------------------
+
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
 
 with col_btn1:
     reset_btn = st.button(
         "🔄 Reset Assessment",
-        use_container_width=True
+        use_container_width=True,
+        key="reset_btn"
     )
 
 with col_btn2:
+ HEAD
+HEAD
     st.caption("✔ All input fields are validated before analysis.")
+    analyze_btn = st.button("🌿 Analyze My Impact", use_container_width=True)
+
+2590586 (feat: add reset assessment and improve analysis workflow)
     analyze_btn = st.button(
         "🌿 Analyze My Impact",
+        use_container_width=True,
+        key="analyze_btn"
+    )
+
+if reset_btn:
+    for key in DEFAULT_VALUES:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.success("✅ Assessment form has been reset.")
+    st.rerun()
+
+ HEAD
+
+tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+
+
+st.caption("✔ All input fields are validated before analysis.")
+    
+ 
+
+tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+ 
+ 2590586 (feat: add reset assessment and improve analysis workflow)
+
+with tab1:
+    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+ HEAD
+ 
+    with st.spinner("🌍 Analyzing your carbon footprint..."):
+
+        progress_text = st.empty()
+        progress = st.progress(0)
+
+        progress_text.info("🔍 Validating user inputs...")
+        progress.progress(20)
+        time.sleep(0.5)  # Simulate validation delay
+
+# TABS CONFIGURATION
+# -------------------------
+col_btn1, col_btn2 = st.columns([1, 3])
+ main
+
+with col_btn1:
+    reset_btn = st.button(
+        "🔄 Reset Assessment",
         use_container_width=True
     )
 
@@ -747,6 +891,9 @@ with tab1:
                 st.rerun()
 
     col1, col2, col3 = st.columns(3)
+ feature/input-validation-and-error-handling
+
+ main
     with col1:
         st.markdown("""
         <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -809,7 +956,12 @@ with tab1:
         st.info("💡 How many long-distance flights per year?")
         
 
-    
+ feature/input-validation-and-error-handling
+ 2590586 (feat: add reset assessment and improve analysis workflow)
+
+    # -------------------------
+
+     main
     # PDF REPORT GENERATION
     # -------------------------
     def generate_pdf(total, eco_score, insight):
@@ -836,6 +988,9 @@ with tab1:
     # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
+feature/input-validation-and-error-handling
+    
+
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
@@ -852,6 +1007,7 @@ with tab1:
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
 
+ main
     if analyze_btn:
 
         with st.spinner("🌍 Analyzing your carbon footprint..."):
@@ -995,8 +1151,6 @@ with tab1:
 
             st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
 
-
-            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
 
         st.markdown("---")
 
@@ -1266,20 +1420,20 @@ with tab1:
         # HISTORY TABLE
         # -------------------------
         st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
+        with st.expander("📂 View Assessment History", expanded=False):
+            # Create a nice table display
+            display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
+            display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
+            display_df = display_df.iloc[::-1].reset_index(drop=True)
 
-        # Create a nice table display
-        display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
-        display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
-        display_df = display_df.iloc[::-1].reset_index(drop=True)
+            st.markdown(
+                "<div class='history-table-wrap'>"
+                + display_df.to_html(index=False, classes="history-table", border=0)
+                + "</div>",
+                unsafe_allow_html=True
+            )
 
-        st.markdown(
-            "<div class='history-table-wrap'>"
-            + display_df.to_html(index=False, classes="history-table", border=0)
-            + "</div>",
-            unsafe_allow_html=True
-        )
-
-        st.markdown("---")
+            st.markdown("---")
 
         # -------------------------
         # STATS & INSIGHTS
@@ -1481,7 +1635,9 @@ with tab3:
     total_xp = gf.get_total_xp(1)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
-    streak = gf.calculate_streak(1, [])
+    history = get_assessments()
+    activities_dates = [row[1] for row in history] if history else []
+    streak = gf.calculate_streak(1, activities_dates)
     
     g_col1, g_col2, g_col3 = st.columns(3)
     g_col1.metric("Current Level", f"Lvl {level}")
