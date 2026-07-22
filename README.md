@@ -172,12 +172,25 @@ EcoBuddy AI provides:
 
 # 🧪 Testing
 
-Run the following commands to execute the unit tests:
+Most tests use **pytest**. Run the full suite with:
+
+```bash
+pytest
+```
+
+A couple of legacy tests are plain scripts (no assertions) and are run directly:
 
 ```bash
 python test_db.py
-python test_emissions.py
 python test_recommendations.py
+```
+
+`test_emissions.py` is written with `unittest` and can be run either way:
+
+```bash
+pytest test_emissions.py
+# or
+python test_emissions.py
 ```
 
 ---
