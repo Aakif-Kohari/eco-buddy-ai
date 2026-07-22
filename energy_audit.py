@@ -1,7 +1,6 @@
-
 import streamlit as st
 
-@st.cache_data
+
 def calculate_appliance_energy(power_rating_watts, hours_used_per_day, standby_draw_watts, quantity):
     standby_hours = max(0, 24 - hours_used_per_day)
     active_energy_kwh = (power_rating_watts * hours_used_per_day * quantity) / 1000.0
@@ -9,15 +8,17 @@ def calculate_appliance_energy(power_rating_watts, hours_used_per_day, standby_d
     total_daily_kwh = active_energy_kwh + standby_energy_kwh
     return total_daily_kwh, active_energy_kwh, standby_energy_kwh
 
-@st.cache_data
+
 def calculate_appliance_cost(daily_kwh, rate_per_kwh):
     daily_cost = daily_kwh * rate_per_kwh
     return daily_cost, daily_cost * 30, daily_cost * 365
+
 
 @st.cache_data
 def calculate_home_energy_summary(appliances):
     total_daily_kwh = sum(calculate_appliance_energy(a['power_rating_watts'], a['hours_used_per_day'], a['standby_draw_watts'], a['quantity'])[0] for a in appliances)
     return total_daily_kwh, total_daily_kwh * 30, total_daily_kwh * 365
+
 
 @st.cache_data
 def generate_hourly_energy_profile(appliances):
@@ -44,22 +45,23 @@ def generate_hourly_energy_profile(appliances):
                 profile[hr] += (pwr * fraction) / 1000.0
     return profile
 
-@st.cache_data
+
 def calculate_solar_system_size(roof_space_m2, panel_efficiency_pct):
     return roof_space_m2 * (panel_efficiency_pct / 100.0)
 
-@st.cache_data
+
 def calculate_annual_solar_generation(system_size_kw, peak_sun_hours, performance_ratio=0.75):
     return system_size_kw * peak_sun_hours * 365 * performance_ratio
 
-@st.cache_data
+
 def calculate_solar_installation_cost(system_size_kw, cost_per_kw):
     return system_size_kw * cost_per_kw
 
-@st.cache_data
+
 def calculate_solar_payback_period(installation_cost, annual_savings):
     if annual_savings <= 0: return float('inf')
     return installation_cost / annual_savings
+
 
 @st.cache_data
 def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years, rate_increase_pct, maintenance_cost):
@@ -71,6 +73,6 @@ def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years
         current_rate *= (1 + rate_increase_pct / 100.0)
     return total_savings
 
-@st.cache_data
+
 def calculate_solar_carbon_offset(annual_generation_kwh, grid_carbon_intensity_kg_kwh=0.4):
     return annual_generation_kwh * grid_carbon_intensity_kg_kwh

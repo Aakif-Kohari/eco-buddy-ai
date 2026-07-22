@@ -13,6 +13,8 @@ io_mod.DB_NAME = "test_eco_buddy_io.db"
 @pytest.fixture(autouse=True)
 def setup_teardown():
     # Setup
+    db.DB_NAME = "test_eco_buddy_io.db"
+    io_mod.DB_NAME = "test_eco_buddy_io.db"
     if os.path.exists(db.DB_NAME):
         os.remove(db.DB_NAME)
     db.init_db()
