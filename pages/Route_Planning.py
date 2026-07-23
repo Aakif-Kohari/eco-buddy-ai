@@ -62,13 +62,20 @@ with route_col:
 with offset_col:
     st.subheader("🛒 Simulated Offset Marketplace")
     st.info("💡 Invest your simulated eco-points to offset carbon.")
-    
+
     projects = get_offset_projects()
-    proj_names = [p["name"] for p in projects]
-    selected_proj_name = st.selectbox("Select an Offset Project", proj_names)
-    
-    selected_proj = next(p for p in projects if p["name"] == selected_proj_name)
-    
+
+# Create a lookup dictionary for constant-time project retrieval
+    project_lookup = {project["name"]: project for project in projects}
+
+    proj_names = list(project_lookup.keys())
+
+    selected_proj_name = st.selectbox(
+        "Select an Offset Project",
+        proj_names,
+    )
+
+selected_proj = project_lookup[selected_proj_name]
     st.markdown(f"**{selected_proj['image']} {selected_proj['name']}**")
     st.write(f"*{selected_proj['description']}*")
     st.write(f"**Category:** {selected_proj['category']} | **Region:** {selected_proj['region']}")
