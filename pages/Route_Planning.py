@@ -17,6 +17,29 @@ import energy_audit as ea
 
 from styles.theme import apply_theme
 apply_theme()
+def get_portfolio_metrics(user_id):
+    """
+    Retrieve portfolio metrics for a user.
+    """
+    total_offsets = get_total_offsets(user_id)
+    total_spend = get_total_spend(user_id)
+
+    return {
+        "total_offsets": total_offsets,
+        "total_spend": total_spend,
+    }
+
+
+def get_net_zero_progress(user_id, estimated_footprint=50.0):
+    """
+    Calculate the estimated net-zero progress.
+    """
+    total_offsets = get_total_offsets(user_id)
+
+    return calculate_net_zero_progress(
+        estimated_footprint,
+        total_offsets,
+    )
 
 st.markdown("<div class='section-header'>🗺️ Route Planning & Carbon Offsets</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Compare transit modes, track your footprint, and build a simulated offset portfolio. Note: This is a simulation and does not process real financial transactions.</div>", unsafe_allow_html=True)
@@ -97,15 +120,25 @@ port_col1, port_col2 = st.columns([1, 2])
 
 with port_col1:
     st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-    total_offsets = get_total_offsets(1)
-    total_spend = get_total_spend(1)
-    st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
-    st.metric("Total Simulated Spend", f"${total_spend:.2f}")
-    
-    estimated_footprint = 50.0  # Just a placeholder lifetime footprint
-    net_progress = calculate_net_zero_progress(estimated_footprint, total_offsets)
-    st.metric("Net-Zero Progress (Estimated)", f"{net_progress:.1f}%")
-    st.progress(net_progress / 100)
+    metrics = get_portfolio_metrics(1)
+net_progress = get_net_zero_progress(1)
+
+st.metric(
+    "Total Tonnes Offset",
+    f"{metrics['total_offsets']:.2f}t",
+)
+
+st.metric(
+    "Total Simulated Spend",
+    f"${metrics['total_spend']:.2f}",
+)
+
+st.metric(
+    "Net-Zero Progress (Estimated)",
+    f"{net_progress:.1f}%",
+)
+
+st.progress(net_progress / 100)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with port_col2:
