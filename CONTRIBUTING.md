@@ -188,9 +188,22 @@ Feature requests should include:
 Run all tests before opening a pull request:
 
 ```bash
+pytest
+```
+
+A couple of legacy tests are plain scripts and are run directly:
+
+```bash
 python test_db.py
-python test_emissions.py
 python test_recommendations.py
+```
+
+`test_emissions.py` uses `unittest` and can be run with either `pytest` or directly:
+
+```bash
+pytest test_emissions.py
+# or
+python test_emissions.py
 ```
 
 If you add new functionality, include corresponding tests whenever possible.

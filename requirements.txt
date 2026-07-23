@@ -10,3 +10,4 @@ python-dotenv
 pytesseract
 pdfplumber
 statsmodels
+pytest
