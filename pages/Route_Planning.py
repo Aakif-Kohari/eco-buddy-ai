@@ -33,10 +33,12 @@ with route_col:
         
         calc_btn = st.form_submit_button("Compare Emissions")
         
-    if calc_btn:
-        try:
+   if calc_btn:
+    try:
+        with st.spinner("Calculating transit emissions..."):
             comparisons = compare_transit_modes(dist_val, pass_val)
-            st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
+
+        st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
             
             # Chart
             df_comp = pd.DataFrame(comparisons)
@@ -79,17 +81,34 @@ with offset_col:
         purchase_btn = st.form_submit_button("Purchase Simulated Offset")
         
         if purchase_btn:
-            is_valid, msg = validate_offset_transaction(tonnes, selected_proj["available_capacity"])
-            if is_valid:
-                cost = calculate_offset_cost(tonnes, selected_proj["cost_per_tonne"])
-                # Defaulting to user_id=1 for now as per instructions
-                if save_offset_transaction(1, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
-                    st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
-                else:
-                    st.error("Failed to save transaction.")
-            else:
-                st.error(msg)
+    with st.spinner("Processing simulated offset purchase..."):
+        is_valid, msg = validate_offset_transaction(
+            tonnes,
+            selected_proj["available_capacity"],
+        )
 
+        if is_valid:
+            cost = calculate_offset_cost(
+                tonnes,
+                selected_proj["cost_per_tonne"],
+            )
+
+            # Defaulting to user_id=1 for now as per instructions
+            if save_offset_transaction(
+                1,
+                selected_proj["id"],
+                selected_proj["name"],
+                tonnes,
+                selected_proj["cost_per_tonne"],
+                cost,
+            ):
+                st.success(
+                    f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}."
+                )
+            else:
+                st.error("Failed to save transaction.")
+        else:
+            st.error(msg)
 st.markdown("---")
 
 st.markdown("<div class='section-header'>📈 Your Offset Portfolio</div>", unsafe_allow_html=True)
@@ -110,6 +129,7 @@ with port_col1:
 
 with port_col2:
     st.subheader("Transaction History")
+    with st.spinner("Loading transaction history..."):
     transactions = get_offset_transactions(1)
     if transactions:
         df_trans = pd.DataFrame(transactions)
@@ -117,8 +137,11 @@ with port_col2:
         
         # Button to clear history for demo purposes
         if st.button("Clear History"):
-            for t in transactions:
-                delete_offset_transaction(t['id'])
-            st.rerun()
+    with st.spinner("Clearing portfolio history..."):
+        for transaction in transactions:
+            delete_offset_transaction(transaction["id"])
+
+        st.success("Portfolio history cleared successfully.")
+        st.rerun()
     else:
         st.info("No transactions yet. Visit the marketplace to start your portfolio!")
