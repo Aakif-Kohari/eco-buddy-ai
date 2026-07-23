@@ -14,9 +14,10 @@ from report import generate_pdf
 import gamification as gf
 from marketplace import *
 import energy_audit as ea
-
+import logging
 from styles.theme import apply_theme
 apply_theme()
+logger = logging.getLogger(__name__)
 
 st.markdown("<div class='section-header'>🗺️ Route Planning & Carbon Offsets</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Compare transit modes, track your footprint, and build a simulated offset portfolio. Note: This is a simulation and does not process real financial transactions.</div>", unsafe_allow_html=True)
@@ -97,28 +98,68 @@ port_col1, port_col2 = st.columns([1, 2])
 
 with port_col1:
     st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    try:
     total_offsets = get_total_offsets(1)
     total_spend = get_total_spend(1)
+
     st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
     st.metric("Total Simulated Spend", f"${total_spend:.2f}")
-    
-    estimated_footprint = 50.0  # Just a placeholder lifetime footprint
-    net_progress = calculate_net_zero_progress(estimated_footprint, total_offsets)
+
+    estimated_footprint = 50.0
+    net_progress = calculate_net_zero_progress(
+        estimated_footprint,
+        total_offsets,
+    )
+
     st.metric("Net-Zero Progress (Estimated)", f"{net_progress:.1f}%")
     st.progress(net_progress / 100)
+
+except Exception:
+    logger.exception("Failed to load portfolio metrics.")
+    st.error("Unable to load your portfolio summary. Please try again later.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with port_col2:
     st.subheader("Transaction History")
+    try:
     transactions = get_offset_transactions(1)
+
     if transactions:
         df_trans = pd.DataFrame(transactions)
-        st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
-        
-        # Button to clear history for demo purposes
+
+        st.dataframe(
+            df_trans[
+                [
+                    "created_at",
+                    "project_name",
+                    "offset_tonnes",
+                    "total_cost",
+                    "transaction_status",
+                ]
+            ]
+        )
+
         if st.button("Clear History"):
-            for t in transactions:
-                delete_offset_transaction(t['id'])
-            st.rerun()
+            try:
+                for transaction in transactions:
+                    delete_offset_transaction(transaction["id"])
+
+                    st.success("Transaction history cleared successfully.")
+                    st.rerun()
+
+    except Exception:
+        logger.exception("Failed to clear transaction history.")
+        st.error("Unable to clear transaction history. Please try again.")
+
+            
+
     else:
-        st.info("No transactions yet. Visit the marketplace to start your portfolio!")
+        st.info(
+            "No transactions yet. Visit the marketplace to start your portfolio!"
+        )
+
+except Exception:
+    logger.exception("Failed to load transaction history.")
+    st.error(
+        "Unable to load your transaction history. Please try again later."
+    )
