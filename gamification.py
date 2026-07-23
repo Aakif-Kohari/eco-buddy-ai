@@ -7,8 +7,9 @@ from PIL import Image, ImageDraw, ImageFont
 from database import (
     award_xp, get_total_xp, get_user_challenges, complete_challenge,
     get_unlocked_badges, unlock_badge_in_db, update_challenge_progress,
-    enroll_challenge
+    enroll_challenge, get_skill_tree_progress, update_skill_node_status
 )
+from skill_tree_data import SKILL_TREE_NODES
 
 CHALLENGES = {
     'c1': {'title': 'Walk or bike 20 km', 'category': 'Transport', 'target': 20, 'unit': 'km', 'xp': 50},
@@ -193,3 +194,45 @@ def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
     
     img.save(filename)
     return filename
+
+
+def evaluate_skill_tree(user_id):
+    """Evaluate prerequisites and unlock nodes if ready."""
+    progress = get_skill_tree_progress(user_id)
+    # Convert list of dicts to a map of node_id -> status
+    progress_map = {row['node_id']: row['status'] for row in progress}
+    
+    updates_made = False
+    
+    for node_id, node_data in SKILL_TREE_NODES.items():
+        current_status = progress_map.get(node_id, 'Locked')
+        
+        if current_status == 'Locked':
+            # Check if prerequisites are met
+            prereqs = node_data.get('prerequisites', [])
+            all_met = all(progress_map.get(p) == 'Completed' for p in prereqs)
+            
+            if all_met:
+                update_skill_node_status(user_id, node_id, 'Unlocked')
+                progress_map[node_id] = 'Unlocked'
+                updates_made = True
+                
+    if updates_made:
+        # Re-fetch if updates were made
+        progress = get_skill_tree_progress(user_id)
+        
+    return {row['node_id']: row['status'] for row in progress}
+
+
+def complete_skill_node(user_id, node_id):
+    node_data = SKILL_TREE_NODES.get(node_id)
+    if not node_data:
+        return False
+        
+    success = update_skill_node_status(user_id, node_id, 'Completed')
+    if success:
+        award_xp(user_id, 'skill_tree', node_id, node_data['xp_reward'], f"Completed Skill: {node_data['label']}")
+        # Evaluate to unlock next nodes
+        evaluate_skill_tree(user_id)
+        return True
+    return False

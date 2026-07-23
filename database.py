@@ -269,6 +269,19 @@ def init_gamification_db():
         """)
         
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_xp_user ON xp_transactions(user_id)")
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS skill_tree_progress (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                node_id TEXT NOT NULL,
+                status TEXT DEFAULT 'Locked',
+                completed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, node_id)
+            )
+        """)
+        
         conn.commit()
         return True
     except sqlite3.Error as e:
@@ -456,8 +469,68 @@ def get_unlocked_badges(user_id):
         columns = [column[0] for column in cursor.description]
         data = cursor.fetchall()
         return [dict(zip(columns, row)) for row in data]
-    except sqlite3.Error:
+    except sqlite3.Error as e:
         return []
+    finally:
+        if conn:
+            conn.close()
+
+
+@st.cache_data
+def get_skill_tree_progress(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM skill_tree_progress WHERE user_id = ?", (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error as e:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_skill_node_status(user_id, node_id, status):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id FROM skill_tree_progress WHERE user_id=? AND node_id=?", (user_id, node_id))
+        if cursor.fetchone():
+            if status == 'Completed':
+                cursor.execute("""
+                    UPDATE skill_tree_progress 
+                    SET status = ?, completed_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ? AND node_id = ?
+                """, (status, user_id, node_id))
+            else:
+                cursor.execute("""
+                    UPDATE skill_tree_progress 
+                    SET status = ?
+                    WHERE user_id = ? AND node_id = ?
+                """, (status, user_id, node_id))
+        else:
+            if status == 'Completed':
+                cursor.execute("""
+                    INSERT INTO skill_tree_progress (user_id, node_id, status, completed_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (user_id, node_id, status))
+            else:
+                cursor.execute("""
+                    INSERT INTO skill_tree_progress (user_id, node_id, status)
+                    VALUES (?, ?, ?)
+                """, (user_id, node_id, status))
+                
+        conn.commit()
+        get_skill_tree_progress.clear()
+        return True
+    except sqlite3.Error as e:
+        print(f"update_skill_node_status error: {e}")
+        return False
     finally:
         if conn:
             conn.close()
