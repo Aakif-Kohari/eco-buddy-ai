@@ -16,6 +16,11 @@ from marketplace import *
 import energy_audit as ea
 
 from styles.theme import apply_theme
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
 apply_theme()
 
 st.markdown("<div class='section-header'>🗺️ Route Planning & Carbon Offsets</div>", unsafe_allow_html=True)
@@ -83,7 +88,7 @@ with offset_col:
             if is_valid:
                 cost = calculate_offset_cost(tonnes, selected_proj["cost_per_tonne"])
                 # Defaulting to user_id=1 for now as per instructions
-                if save_offset_transaction(1, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
                     st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
                 else:
                     st.error("Failed to save transaction.")
@@ -97,8 +102,8 @@ port_col1, port_col2 = st.columns([1, 2])
 
 with port_col1:
     st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-    total_offsets = get_total_offsets(1)
-    total_spend = get_total_spend(1)
+    total_offsets = get_total_offsets(user_id)
+    total_spend = get_total_spend(user_id)
     st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
     st.metric("Total Simulated Spend", f"${total_spend:.2f}")
     
@@ -110,7 +115,7 @@ with port_col1:
 
 with port_col2:
     st.subheader("Transaction History")
-    transactions = get_offset_transactions(1)
+    transactions = get_offset_transactions(user_id)
     if transactions:
         df_trans = pd.DataFrame(transactions)
         st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])

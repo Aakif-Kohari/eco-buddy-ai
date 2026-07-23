@@ -14,7 +14,7 @@ load_dotenv()
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db
+from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 from llm_parser import parse_quick_log
@@ -40,6 +40,54 @@ def h(text):
     return html.escape(str(text))
 
 
+def render_sidebar_auth():
+    st.sidebar.title("Authentication")
+    if 'user_id' not in st.session_state:
+        st.session_state['user_id'] = None
+        st.session_state['username'] = None
+
+    if st.session_state['user_id'] is None:
+        auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
+        if auth_mode == "Login":
+            with st.sidebar.form("login_form"):
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Login"):
+                    user = verify_user(username, password)
+                    if user:
+                        st.session_state['user_id'] = user['id']
+                        st.session_state['username'] = user['username']
+                        st.sidebar.success("Logged in successfully!")
+                        st.rerun()
+                    else:
+                        st.sidebar.error("Invalid username or password")
+        elif auth_mode == "Register":
+            with st.sidebar.form("register_form"):
+                username = st.text_input("Username")
+                email = st.text_input("Email")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Register"):
+                    if create_user(username, email, password):
+                        st.sidebar.success("Registration successful! Please login.")
+                    else:
+                        st.sidebar.error("Username or email already exists")
+        elif auth_mode == "Guest":
+            if st.sidebar.button("Continue as Guest"):
+                st.session_state['user_id'] = 1
+                st.session_state['username'] = "Guest"
+                st.rerun()
+        
+        st.sidebar.warning("Please log in or continue as Guest to use the app.")
+        st.stop()
+    else:
+        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        if st.sidebar.button("Logout"):
+            st.session_state['user_id'] = None
+            st.session_state['username'] = None
+            st.rerun()
+
+    return st.session_state['user_id']
+
 # -------------------------
 # INIT
 # -------------------------
@@ -51,6 +99,7 @@ def run_db_initializations():
     init_marketplace_db()
 
 run_db_initializations()
+user_id = render_sidebar_auth()
 
 if 'extracted_kwh' not in st.session_state:
     st.session_state.extracted_kwh = 200.0
@@ -1038,7 +1087,7 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
-        save_assessment(
+        save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
 
@@ -1316,7 +1365,7 @@ with tab1:
     with st.expander("🕒 Assessment Timeline", expanded=False):
         st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
-        history = get_assessments()
+        history = get_assessments(user_id)
         st.write("History length:", len(history))
 
         if history:
@@ -1661,11 +1710,11 @@ with tab2:
 
             submit_app = st.form_submit_button("Add Appliance")
             if submit_app and app_name:
-                db.add_appliance(app_name, app_cat, app_qty, app_power, app_hours, app_standby)
+                db.add_appliance(user_id, app_name, app_cat, app_qty, app_power, app_hours, app_standby)
                 st.success(f"Added {app_name}")
                 st.rerun()
 
-    appliances = db.get_appliances()
+    appliances = db.get_appliances(user_id)
     if appliances:
         # Build a styled HTML table instead of st.dataframe
         category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
@@ -1773,10 +1822,10 @@ with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
     # Header: Level, XP, Streak
-    total_xp = gf.get_total_xp(1)
+    total_xp = gf.get_total_xp(user_id)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
-    history = get_assessments()
+    history = get_assessments(user_id)
     activities_dates = [row[1] for row in history] if history else []
     streak = gf.calculate_streak(1, activities_dates)
     
@@ -1790,7 +1839,7 @@ with tab3:
     st.markdown("---")
     st.markdown("### 🏆 Weekly Challenges")
     
-    user_challenges = gf.get_user_challenges(1)
+    user_challenges = gf.get_user_challenges(user_id)
     # Optimize primary evaluation loop by pre-computing challenge states
     challenge_states = {}
     for c in user_challenges:
@@ -1811,18 +1860,18 @@ with tab3:
                     
                     prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
                     if st.button("Update", key=f"btn_prog_{ch_id}"):
-                        gf.update_challenge_progress(1, ch_id, progress_increment=prog_val)
+                        gf.update_challenge_progress(user_id, ch_id, progress_increment=prog_val)
                         gf.validate_challenge_progress(1, ch_id)
                         st.rerun()
             else:
                 if st.button("Enroll", key=f"enroll_{ch_id}"):
-                    gf.enroll_challenge(1, ch_id)
+                    gf.enroll_challenge(user_id, ch_id)
                     st.rerun()
 
     st.markdown("---")
     st.markdown("### 🎖️ Achievement Badges")
     
-    unlocked = gf.get_unlocked_badges(1)
+    unlocked = gf.get_unlocked_badges(user_id)
     unlocked_ids = [b['badge_id'] for b in unlocked]
     
     cols = st.columns(len(gf.BADGES))
@@ -1907,7 +1956,7 @@ with tab4:
                 if is_valid:
                     cost = calculate_offset_cost(tonnes, selected_proj["cost_per_tonne"])
                     # Defaulting to user_id=1 for now as per instructions
-                    if save_offset_transaction(1, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                    if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
                         st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
                     else:
                         st.error("Failed to save transaction.")
@@ -1921,8 +1970,8 @@ with tab4:
     
     with port_col1:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-        total_offsets = get_total_offsets(1)
-        total_spend = get_total_spend(1)
+        total_offsets = get_total_offsets(user_id)
+        total_spend = get_total_spend(user_id)
         st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
         st.metric("Total Simulated Spend", f"${total_spend:.2f}")
         
@@ -1934,14 +1983,14 @@ with tab4:
 
     with port_col2:
         st.subheader("Transaction History")
-        transactions = get_offset_transactions(1)
+        transactions = get_offset_transactions(user_id)
         if transactions:
             df_trans = pd.DataFrame(transactions)
             st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
             
             # Button to clear history for demo purposes
             if st.button("Clear History"):
-                clear_offset_transactions(1)
+                clear_offset_transactions(user_id)
                 st.rerun()
         else:
             st.info("No transactions yet. Visit the marketplace to start your portfolio!")
