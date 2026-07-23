@@ -11,3 +11,8 @@ pytesseract
 pdfplumber
 statsmodels
 pytest
+gpxpy
+folium
+streamlit-folium
+geopy
+ijson
