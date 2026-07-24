@@ -18,6 +18,34 @@ import energy_audit as ea
 from styles.theme import apply_theme
 apply_theme()
 
+
+@st.cache_data(ttl=3600)
+def compute_arima_forecast(ts_data):
+    import warnings
+    from statsmodels.tsa.arima.model import ARIMA
+    import numpy as np
+
+    warnings.filterwarnings('ignore')
+    arr = np.array(ts_data)
+    model = ARIMA(arr, order=(1, 1, 0))
+    fitted_model = model.fit()
+
+    forecast_steps = 5
+    forecast = fitted_model.get_forecast(steps=forecast_steps)
+    forecast_mean = forecast.predicted_mean
+    conf_int = forecast.conf_int(alpha=0.05)
+
+    forecast_line = [float(arr[-1])] + [float(v) for v in forecast_mean]
+    conf_lower = [float(arr[-1])] + [float(v) for v in conf_int[:, 0]]
+    conf_upper = [float(arr[-1])] + [float(v) for v in conf_int[:, 1]]
+
+    return forecast_line, conf_lower, conf_upper
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
+
 tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
 
 with tab_assess:
@@ -111,6 +139,7 @@ with tab_assess:
         eco_score = calculate_eco_score(total, contributors)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
         save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
+        gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
@@ -329,11 +358,6 @@ with tab_forecast:
             import plotly.graph_objects as go
             from statsmodels.tsa.arima.model import ARIMA
             import warnings
-
-user_id = st.session_state.get('user_id')
-if not user_id:
-    st.warning('Please log in from the main application page.')
-    st.stop()
             warnings.filterwarnings('ignore')
             
             df = pd.DataFrame(assessments, columns=['id', 'date', 'transport', 'distance', 'electricity', 'diet', 'flights', 'footprint', 'eco_score'])
@@ -342,25 +366,15 @@ if not user_id:
             
             ts_data = df['footprint'].values
             
-            model = ARIMA(ts_data, order=(1, 1, 0))
-            fitted_model = model.fit()
-            
-            forecast_steps = 5
-            forecast = fitted_model.get_forecast(steps=forecast_steps)
-            forecast_mean = forecast.predicted_mean
-            conf_int = forecast.conf_int(alpha=0.05)
+            forecast_line, conf_lower, conf_upper = compute_arima_forecast(tuple(ts_data))
             
             hist_x = list(range(1, len(ts_data) + 1))
-            future_x = list(range(len(ts_data), len(ts_data) + forecast_steps + 1))
-            
-            forecast_line = [ts_data[-1]] + list(forecast_mean)
-            conf_lower = [ts_data[-1]] + list(conf_int[:, 0])
-            conf_upper = [ts_data[-1]] + list(conf_int[:, 1])
+            future_x = list(range(len(ts_data), len(ts_data) + len(forecast_line)))
             
             fig = go.Figure()
             
             fig.add_trace(go.Scatter(
-                x=hist_x, y=ts_data, mode='lines+markers', name='Historical Data',
+                x=hist_x, y=list(ts_data), mode='lines+markers', name='Historical Data',
                 line=dict(color='#4ade80', width=3)
             ))
             
@@ -371,7 +385,7 @@ if not user_id:
             
             fig.add_trace(go.Scatter(
                 x=future_x + future_x[::-1],
-                y=conf_upper + conf_lower[::-1],
+                y=list(conf_upper) + list(conf_lower)[::-1],
                 fill='toself',
                 fillcolor='rgba(244, 63, 94, 0.2)',
                 line=dict(color='rgba(255,255,255,0)'),

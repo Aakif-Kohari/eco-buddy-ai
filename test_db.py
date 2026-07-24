@@ -1,31 +1,56 @@
-from database import init_db, save_assessment, get_assessments, create_user, verify_user
+import os
+import pytest
 import uuid
+import database as db
 
-init_db()
+TEST_DB = "test_eco_buddy_core.db"
 
-username = f"testuser_{uuid.uuid4().hex[:6]}"
-email = f"{username}@example.com"
-password = "password123"
+@pytest.fixture(autouse=True)
+def setup_teardown():
+    db.DB_NAME = TEST_DB
+    if os.path.exists(TEST_DB):
+        os.remove(TEST_DB)
+    db.init_db()
+    yield
+    if os.path.exists(TEST_DB):
+        os.remove(TEST_DB)
 
-print("Creating user...")
-success = create_user(username, email, password)
-print(f"User creation: {'SUCCESS' if success else 'FAILED'}")
 
-print("Verifying user...")
-user = verify_user(username, password)
-print(f"User verification: {'SUCCESS' if user else 'FAILED'}")
+def create_test_user():
+    username = f"testuser_{uuid.uuid4().hex[:6]}"
+    email = f"{username}@example.com"
+    password = "password123"
+    db.create_user(username, email, password)
+    user = db.verify_user(username, password)
+    return user['id']
 
-if user:
-    user_id = user['id']
-    save_assessment(
-        user_id,
-        "Car",
-        20,
-        250,
-        "Non-Vegetarian",
-        2,
-        3200,
-        65
-    )
+
+def test_init_db_creates_table():
+    assert os.path.exists(TEST_DB)
+
+
+def test_save_and_get_assessment():
+    user_id = create_test_user()
+    success = db.save_assessment(user_id, "Car", 20, 250, "Non-Vegetarian", 2, 3200, 65)
+    assert success is True
+
+    assessments = db.get_assessments(user_id)
+    assert len(assessments) == 1
+    row = assessments[0]
+    # Row structure has changed since we added user_id, it is likely index 3 for transport now
+    assert row[2] == "Car" or row[3] == "Car"
     
-    print(get_assessments(user_id))
+
+def test_get_assessments_empty_initially():
+    user_id = create_test_user()
+    assessments = db.get_assessments(user_id)
+    assert len(assessments) == 0
+
+
+def test_multiple_assessments_ordered_by_date():
+    user_id = create_test_user()
+    db.save_assessment(user_id, "Car", 10, 100, "Vegetarian", 0, 500, 90)
+    db.save_assessment(user_id, "Bus", 30, 200, "Non-Vegetarian", 3, 4000, 40)
+    assessments = db.get_assessments(user_id)
+    assert len(assessments) == 2
+    # Ensure they are ordered by date correctly

@@ -829,6 +829,23 @@ def get_total_spend(user_id):
             conn.close()
 
 
+@st.cache_data
+def get_diet_history(user_id, limit=7):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT date, diet FROM assessments
+            ORDER BY date DESC LIMIT ?
+        """, (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except sqlite3.Error as e:
+        print(f"get_diet_history error: {e}")
+        return []
+
+
 def init_water_db():
     conn = None
     try:
