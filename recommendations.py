@@ -1,4 +1,5 @@
 import streamlit as st
+from config import normalize_diet
 
 @st.cache_data
 def generate_recommendations(
@@ -8,6 +9,7 @@ def generate_recommendations(
     flights,
     contributors
 ):
+    diet = normalize_diet(diet)
     recommendations = []
     priority = []
 
@@ -68,7 +70,7 @@ def generate_recommendations(
 
     # Diet Recommendations
 
-    if diet == "Non-Vegetarian":
+    if diet in ("Non-Vegetarian", "Omnivore", "Heavy Meat"):
         priority.append("🥩 Diet")
         recommendations.append(
             "🥗 Try replacing 1–2 meat meals every week with plant-based meals."
@@ -79,7 +81,7 @@ def generate_recommendations(
 
     else:
         recommendations.append(
-            "🥬 Great! A vegetarian diet generally has a lower carbon footprint."
+            "🥬 Great! A vegetarian or vegan diet generally has a lower carbon footprint."
         )
 
     # Flight Recommendations
@@ -121,6 +123,7 @@ def generate_recommendations(
 
 @st.cache_data
 def generate_water_recommendations(contributors, total_daily, diet):
+    diet = normalize_diet(diet)
     recommendations = []
     
     highest_category = max(contributors, key=contributors.get)

@@ -9,6 +9,7 @@ from database import (
     get_unlocked_badges, unlock_badge_in_db, update_challenge_progress,
     enroll_challenge, get_skill_tree_progress, update_skill_node_status
 )
+from config import normalize_diet
 from skill_tree_data import SKILL_TREE_NODES
 
 CHALLENGES = {
