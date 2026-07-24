@@ -2,7 +2,9 @@ import os
 import json
 import requests
 import re
+import streamlit as st
 
+@st.cache_data
 def parse_quick_log(text: str) -> dict:
     """
     Parses natural language into a structured JSON using Gemini 2.5 Flash,
