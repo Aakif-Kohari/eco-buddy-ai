@@ -10,6 +10,7 @@ from database import (
     enroll_challenge, get_skill_tree_progress, update_skill_node_status,
     get_assessments, get_diet_history
 )
+from config import normalize_diet
 from skill_tree_data import SKILL_TREE_NODES
 
 CHALLENGES = {
