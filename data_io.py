@@ -3,13 +3,17 @@ import json
 import csv
 import io
 import zipfile
+import streamlit as st
 from database import DB_NAME
+import database
+
 
 def _dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
+
 
 def _get_all_table_data(table_name):
     conn = None
@@ -30,6 +34,8 @@ def _get_all_table_data(table_name):
         if conn:
             conn.close()
 
+
+@st.cache_data
 def export_data_json():
     """Exports all user data as a JSON string."""
     tables = [
@@ -47,6 +53,8 @@ def export_data_json():
         data[table] = _get_all_table_data(table)
     return json.dumps(data, indent=4)
 
+
+@st.cache_data
 def export_data_csv_zip():
     """Exports assessments, appliances, and offset_transactions as CSVs in a ZIP archive."""
     tables_to_export = ["assessments", "appliances", "offset_transactions"]
@@ -66,6 +74,7 @@ def export_data_csv_zip():
             zip_file.writestr(f"{table}.csv", csv_buffer.getvalue())
             
     return zip_buffer.getvalue()
+
 
 def import_data_json(json_str, strategy='merge'):
     """Imports JSON data back into the database. Strategy can be 'merge' or 'replace'."""
@@ -135,6 +144,23 @@ def import_data_json(json_str, strategy='merge'):
                     continue
 
         conn.commit()
+
+        # Invalidate cached read methods across data_io and database
+        export_data_json.clear()
+        export_data_csv_zip.clear()
+        if hasattr(database, "get_assessments") and hasattr(database.get_assessments, "clear"):
+            database.get_assessments.clear()
+            database.get_appliances.clear()
+            database.get_solar_config.clear()
+            database.get_user_challenges.clear()
+            database.get_total_xp.clear()
+            database.get_unlocked_badges.clear()
+            database.get_journey_profiles.clear()
+            database.get_offset_transactions.clear()
+            database.get_total_offsets.clear()
+            database.get_total_spend.clear()
+            database.get_water_assessments.clear()
+
         return True, "Data imported successfully!"
     except Exception as e:
         if conn:
