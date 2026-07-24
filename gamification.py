@@ -7,7 +7,8 @@ from PIL import Image, ImageDraw, ImageFont
 from database import (
     award_xp, get_total_xp, get_user_challenges, complete_challenge,
     get_unlocked_badges, unlock_badge_in_db, update_challenge_progress,
-    enroll_challenge, get_skill_tree_progress, update_skill_node_status
+    enroll_challenge, get_skill_tree_progress, update_skill_node_status,
+    get_assessments, get_diet_history
 )
 from skill_tree_data import SKILL_TREE_NODES
 
@@ -131,14 +132,38 @@ def award_challenge_xp(user_id, challenge_id):
         award_xp(user_id, 'challenge', challenge_id, ch_def['xp'], f"Completed {ch_def['title']}")
 
 
-def check_badge_eligibility(user_id):
-    # This would contain the logic to check if a user has met badge conditions
-    # For now, it's a stub that can be expanded
-    challenges = get_user_challenges(user_id)
-    completed_count = sum(1 for c in challenges if c['status'] == 'completed')
-    
-    if completed_count >= 5:
-        unlock_badge(user_id, 'b3')
+def check_badge_eligibility(user_id, check_diet=False):
+    unlocked_ids = [b['badge_id'] for b in get_unlocked_badges(user_id)]
+
+    # b1: Completed at least one footprint assessment
+    if 'b1' not in unlocked_ids:
+        assessments = get_assessments()
+        if assessments and len(assessments) > 0:
+            unlock_badge(user_id, 'b1')
+
+    # b2: 7-day activity streak
+    if 'b2' not in unlocked_ids:
+        history = get_assessments()
+        activities_dates = [row[1] for row in history]
+        streak = calculate_streak(user_id, activities_dates)
+        if streak >= 7:
+            unlock_badge(user_id, 'b2')
+
+    # b3: Completed 5 challenges
+    if 'b3' not in unlocked_ids:
+        challenges = get_user_challenges(user_id)
+        completed_count = sum(1 for c in challenges if c['status'] == 'completed')
+        if completed_count >= 5:
+            unlock_badge(user_id, 'b3')
+
+    # b4: Plant-based diet for 7 consecutive days
+    if 'b4' not in unlocked_ids:
+        diet_logs = get_diet_history(user_id, limit=7)
+        plant_based = {"Vegetarian", "Vegan", "vegan", "vegetarian"}
+        if len(diet_logs) >= 7:
+            all_plant = all(row[1] in plant_based for row in diet_logs)
+            if all_plant:
+                unlock_badge(user_id, 'b4')
 
 
 def unlock_badge(user_id, badge_id):

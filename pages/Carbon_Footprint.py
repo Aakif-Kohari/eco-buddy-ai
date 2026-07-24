@@ -111,6 +111,7 @@ with tab_assess:
         eco_score = calculate_eco_score(total, contributors)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
         save_assessment(transport, distance, electricity, diet, flights, total, eco_score)
+        gf.check_badge_eligibility(1)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
