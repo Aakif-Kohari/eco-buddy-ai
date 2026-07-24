@@ -12,3 +12,4 @@ pdfplumber
 statsmodels
 pytest
 bcrypt
+streamlit-agraph
