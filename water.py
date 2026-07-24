@@ -1,4 +1,5 @@
 # water.py
+import streamlit as st
 
 GLOBAL_WATER_AVERAGE_LITERS = 3800.0
 
@@ -16,6 +17,7 @@ DIET_VIRTUAL_WATER = {
     "Heavy Meat": 5000.0
 }
 
+@st.cache_data
 def calculate_water_footprint(shower_mins_per_day, laundry_loads_per_week, dishwasher_runs_per_week, garden_mins_per_week, diet):
     """
     Calculates the estimated daily water footprint in liters.

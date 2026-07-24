@@ -585,3 +585,52 @@ def apply_theme():
 </style>
 
 """, unsafe_allow_html=True)
+    
+def render_empty_state(icon, title, message):
+    st.markdown(
+        f"""
+        <div style='text-align:center; padding:48px 24px; border:1px dashed rgba(134,239,172,0.3); border-radius:16px; background:rgba(15,23,42,0.5);'>
+            <div style='font-size:48px; margin-bottom:12px;'>{icon}</div>
+            <div style='font-size:18px; font-weight:600; color:#e5e7eb; margin-bottom:8px;'>{title}</div>
+            <div style='font-size:14px; color:#94a3b8;'>{message}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_info_card(message):
+    st.markdown(
+        f"""
+        <div style='padding:18px 24px; border-radius:14px; background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(74,222,128,0.08)); border:1px solid rgba(74,222,128,0.3); margin-top:8px;'>
+            <span style='font-size:18px;'>💡</span>
+            <span style='color:#e5e7eb; font-size:15px;'>{message}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_appliance_table(table_rows):
+    st.markdown(
+        f"""
+        <div style='border:1px solid rgba(134,239,172,0.24); border-radius:16px; overflow:hidden; background:#0f172a; box-shadow:0 24px 70px rgba(0,0,0,0.38);'>
+            <table style='width:100%; border-collapse:collapse; color:#fff; font-size:15px;'>
+                <thead>
+                    <tr style='background:#07130d;'>
+                        <th style='padding:14px 18px; text-align:left; font-weight:700; color:#86efac;'>Appliance</th>
+                        <th style='padding:14px 18px; text-align:left; font-weight:700; color:#86efac;'>Category</th>
+                        <th style='padding:14px 18px; text-align:center; font-weight:700; color:#86efac;'>Qty</th>
+                        <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Power</th>
+                        <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Hours/Day</th>
+                        <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Standby</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
