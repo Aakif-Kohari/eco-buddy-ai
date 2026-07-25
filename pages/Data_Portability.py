@@ -259,6 +259,11 @@ if uploaded_file is not None:
             success, message = import_data_json(
                 json_content,
                 strategy=import_strategy.lower(),
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
             )
 
             if success:

@@ -281,8 +281,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
   
 
 <div align="center">
-
- main
+ 
 ## ❤️ Made with Passion by [neeru24](https://github.com/neeru24)
 
 If you found this project useful, please consider giving it a ⭐ on GitHub.

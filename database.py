@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import streamlit as st
+import bcrypt
 
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
@@ -11,8 +12,19 @@ def init_db():
         cursor = conn.cursor()
 
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS assessments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER DEFAULT 1,
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 transport TEXT,
                 distance REAL,
@@ -23,6 +35,11 @@ def init_db():
                 eco_score INTEGER
             )
         """)
+        
+        try:
+            cursor.execute("ALTER TABLE assessments ADD COLUMN user_id INTEGER DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
 
         conn.commit()
         conn.close()
@@ -32,7 +49,60 @@ def init_db():
         return False
 
 
+def create_user(username, email, password):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, password_hash))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def verify_user(username, password):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        
+        if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+            return {"id": user[0], "username": user[1]}
+        return None
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+def get_user_by_username(username):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        if user:
+            return {"id": user[0], "username": user[1], "email": user[2]}
+        return None
+    except sqlite3.Error:
+        return None
+    finally:
+        if conn:
+            conn.close()
+
 def save_assessment(
+    user_id,
     transport,
     distance,
     electricity,
@@ -47,6 +117,7 @@ def save_assessment(
 
         cursor.execute("""
             INSERT INTO assessments (
+                user_id,
                 transport,
                 distance,
                 electricity,
@@ -55,8 +126,9 @@ def save_assessment(
                 footprint,
                 eco_score
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
+            user_id,
             transport,
             distance,
             electricity,
@@ -76,16 +148,17 @@ def save_assessment(
 
 
 @st.cache_data
-def get_assessments():
+def get_assessments(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT *
+            SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
+            WHERE user_id = ?
             ORDER BY date DESC
-        """)
+        """, (user_id,))
 
         data = cursor.fetchall()
 
@@ -141,14 +214,14 @@ def init_energy_db():
         return False
 
 
-def add_appliance(name, category, quantity, power_rating, hours_used, standby_draw):
+def add_appliance(user_id, name, category, quantity, power_rating, hours_used, standby_draw):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO appliances (user_id, name, category, quantity, power_rating_watts, hours_used_per_day, standby_draw_watts)
-            VALUES (1, ?, ?, ?, ?, ?, ?)
-        """, (name, category, quantity, power_rating, hours_used, standby_draw))
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, name, category, quantity, power_rating, hours_used, standby_draw))
         conn.commit()
         conn.close()
         get_appliances.clear()
@@ -172,11 +245,11 @@ def delete_appliance(app_id):
 
 
 @st.cache_data
-def get_appliances():
+def get_appliances(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM appliances ORDER BY created_at DESC")
+        cursor.execute("SELECT * FROM appliances WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
         columns = [column[0] for column in cursor.description]
         data = cursor.fetchall()
         conn.close()
@@ -185,19 +258,19 @@ def get_appliances():
         return []
 
 
-def save_solar_config(roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc):
+def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM solar_configs WHERE user_id = 1")
+        cursor.execute("DELETE FROM solar_configs WHERE user_id = ?", (user_id,))
         
         cursor.execute("""
             INSERT INTO solar_configs (
-                roof_space_m2, peak_sun_hours, utility_rate_per_kwh, panel_efficiency, 
+                user_id, roof_space_m2, peak_sun_hours, utility_rate_per_kwh, panel_efficiency, 
                 installation_cost_per_kw, maintenance_cost_per_year, annual_rate_increase
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc))
         conn.commit()
         conn.close()
         get_solar_config.clear()
@@ -207,11 +280,11 @@ def save_solar_config(roof_space, peak_sun_hours, utility_rate, panel_efficiency
 
 
 @st.cache_data
-def get_solar_config():
+def get_solar_config(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM solar_configs WHERE user_id = 1 LIMIT 1")
+        cursor.execute("SELECT * FROM solar_configs WHERE user_id = ? LIMIT 1", (user_id,))
         columns = [column[0] for column in cursor.description]
         row = cursor.fetchone()
         conn.close()
@@ -754,6 +827,23 @@ def get_total_spend(user_id):
     finally:
         if conn:
             conn.close()
+
+
+@st.cache_data
+def get_diet_history(user_id, limit=7):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT date, diet FROM assessments
+            ORDER BY date DESC LIMIT ?
+        """, (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except sqlite3.Error as e:
+        print(f"get_diet_history error: {e}")
+        return []
 
 
 def init_water_db():
