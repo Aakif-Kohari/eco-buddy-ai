@@ -18,6 +18,7 @@ if uploaded_file is not None:
     with st.spinner("Parsing location data..."):
         waypoints = []
 
+
         # Normalize filename for case-insensitive extension detection
         filename = uploaded_file.name.lower()
 
@@ -25,6 +26,12 @@ if uploaded_file is not None:
             content = uploaded_file.getvalue().decode("utf-8")
             waypoints = parse_gpx(content)
         elif filename.endswith(".json"):
+
+        if uploaded_file.name.endswith(".gpx"):
+            content = uploaded_file.getvalue().decode("utf-8")
+            waypoints = parse_gpx(content)
+        elif uploaded_file.name.endswith(".json"):
+
             waypoints = parse_google_takeout_json(uploaded_file)
 
     if not waypoints:
@@ -69,7 +76,10 @@ if uploaded_file is not None:
                     color=color,
                     weight=4,
                     opacity=0.8,
-                    tooltip=f"Trip {i+1}: {seg['mode']} ({seg['distance_km']:.2f} km)"
+                    tooltip=(
+                        f"Trip {i + 1}: {seg['mode']} "
+                        f"({seg['distance_km']:.2f} km)"
+                    )
                 ).add_to(m)
 
                 if seg["mode"] in [
@@ -87,6 +97,17 @@ if uploaded_file is not None:
                     )
 
                     emissions_kg = contributors["Transport"]
+
+                elif seg["mode"] == "Flying":
+                    _, contributors = calculate_footprint(
+                        "Walking",
+                        0,
+                        0,
+                        "Vegetarian",
+                        1
+                    )
+                    emissions_kg = contributors["Flights"]
+
                 else:
                     emissions_kg = 0.0
 
@@ -115,7 +136,12 @@ if uploaded_file is not None:
                         "Car",
                         "Bike",
                         "Public Transport",
+
                         "Walking"
+
+                        "Walking",
+                        "Flying"
+
                     ]:
                         transport = item["Mode"]
                         dist = item["Distance (km)"]
@@ -136,7 +162,12 @@ if uploaded_file is not None:
 
                 if success_count > 0:
                     st.success(
+
                         f"Successfully committed {success_count} trips to the emissions log!"
+
+                        f"Successfully committed {success_count} trips "
+                        "to the emissions log!"
+
                     )
                 else:
                     st.warning("No trips were committed.")
