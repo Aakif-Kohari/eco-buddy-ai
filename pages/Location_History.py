@@ -55,10 +55,20 @@ if uploaded_file is not None:
 
         waypoints = []
 
+
+        # Normalize filename for case-insensitive extension detection
+        filename = uploaded_file.name.lower()
+
+        if filename.endswith(".gpx"):
+            content = uploaded_file.getvalue().decode("utf-8")
+            waypoints = parse_gpx(content)
+        elif filename.endswith(".json"):
+
         if uploaded_file.name.endswith(".gpx"):
             content = uploaded_file.getvalue().decode("utf-8")
             waypoints = parse_gpx(content)
         elif uploaded_file.name.endswith(".json"):
+
             waypoints = parse_google_takeout_json(uploaded_file)
 
 
@@ -123,6 +133,7 @@ if uploaded_file is not None:
                         "Vegetarian",
                         0
                     )
+
                     emissions_kg = contributors["Transport"]
 
                 elif seg["mode"] == "Flying":
@@ -163,8 +174,12 @@ if uploaded_file is not None:
                         "Car",
                         "Bike",
                         "Public Transport",
+
+                        "Walking"
+
                         "Walking",
                         "Flying"
+
                     ]:
                         transport = item["Mode"]
                         dist = item["Distance (km)"]
@@ -185,8 +200,12 @@ if uploaded_file is not None:
 
                 if success_count > 0:
                     st.success(
+
+                        f"Successfully committed {success_count} trips to the emissions log!"
+
                         f"Successfully committed {success_count} trips "
                         "to the emissions log!"
+
                     )
                 else:
                     st.warning("No trips were committed.")
