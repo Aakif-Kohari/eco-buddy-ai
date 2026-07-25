@@ -5,6 +5,7 @@ from streamlit_folium import st_folium
 from location_parser import parse_gpx, parse_google_takeout_json, segment_trips
 from emissions import calculate_footprint
 from database import save_assessment
+import gamification as gf
 
 st.set_page_config(page_title="Location History", page_icon="🗺️", layout="wide")
 
@@ -91,6 +92,7 @@ if uploaded_file is not None:
                         
                         if save_assessment(transport, dist, 0, "Vegetarian", 0, footprint, eco_score):
                             success_count += 1
+                            gf.check_badge_eligibility(1)
                 
                 if success_count > 0:
                     st.success(f"Successfully committed {success_count} trips to the emissions log!")

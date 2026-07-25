@@ -14,9 +14,15 @@ from report import generate_pdf
 import gamification as gf
 from marketplace import *
 import energy_audit as ea
-
+import logging
 from styles.theme import apply_theme
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
 apply_theme()
+
 def get_portfolio_metrics(user_id):
     """
     Retrieve portfolio metrics for a user.
@@ -40,6 +46,9 @@ def get_net_zero_progress(user_id, estimated_footprint=50.0):
         estimated_footprint,
         total_offsets,
     )
+
+logger = logging.getLogger(__name__)
+
 
 
 def get_trip_frequency_multiplier(frequency):
@@ -152,17 +161,8 @@ with offset_col:
                 )
 
                 # Defaulting to user_id=1 for now as per instructions
-                if save_offset_transaction(
-                    1,
-                    selected_proj["id"],
-                    selected_proj["name"],
-                    tonnes,
-                    selected_proj["cost_per_tonne"],
-                    cost,
-                ):
-                    st.success(
-                        f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}."
-                    )
+                if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                    st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
                 else:
                     st.error("Failed to save transaction.")
             else:
@@ -179,6 +179,7 @@ port_col1, port_col2 = st.columns([1, 2])
 
 with port_col1:
     st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+
 
     metrics = get_portfolio_metrics(1)
 net_progress = get_net_zero_progress(1)
@@ -217,35 +218,46 @@ st.progress(net_progress / 100)
     st.progress(net_progress / 100)
 
 
+
+    try:
+        total_offsets = get_total_offsets(user_id)
+        total_spend = get_total_spend(user_id)
+        
+        st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
+        st.metric("Total Simulated Spend", f"${total_spend:.2f}")
+
+        estimated_footprint = 50.0  # Just a placeholder lifetime footprint
+        net_progress = calculate_net_zero_progress(estimated_footprint, total_offsets)
+
+        st.metric("Net-Zero Progress (Estimated)", f"{net_progress:.1f}%")
+        st.progress(net_progress / 100)
+    except Exception:
+        logger.exception("Failed to load portfolio metrics.")
+        st.error("Unable to load your portfolio summary. Please try again later.")
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 with port_col2:
     st.subheader("Transaction History")
+    try:
+        transactions = get_offset_transactions(user_id)
+        if transactions:
+            df_trans = pd.DataFrame(transactions)
+            st.dataframe(
+                df_trans[["created_at", "project_name", "offset_tonnes", "total_cost", "transaction_status"]]
+            )
 
-    transactions = get_offset_transactions(1)
-
-    if transactions:
-        df_trans = pd.DataFrame(transactions)
-
-        st.dataframe(
-            df_trans[
-                [
-                    "created_at",
-                    "project_name",
-                    "offset_tonnes",
-                    "total_cost",
-                    "transaction_status",
-                ]
-            ]
-        )
-
-        # Button to clear history for demo purposes
-        if st.button("Clear History"):
-            for t in transactions:
-                delete_offset_transaction(t["id"])
-            st.rerun()
-
-    else:
-        st.info(
-            "No transactions yet. Visit the marketplace to start your portfolio!"
-        )
+            if st.button("Clear History"):
+                try:
+                    for transaction in transactions:
+                        delete_offset_transaction(transaction["id"])
+                    st.success("Transaction history cleared successfully.")
+                    st.rerun()
+                except Exception:
+                    logger.exception("Failed to clear transaction history.")
+                    st.error("Unable to clear transaction history. Please try again.")
+        else:
+            st.info("No transactions yet. Visit the marketplace to start your portfolio!")
+    except Exception:
+        logger.exception("Failed to load transaction history.")
+        st.error("Unable to load your transaction history. Please try again later.")

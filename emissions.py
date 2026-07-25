@@ -2,9 +2,9 @@ import os
 import requests
 import streamlit as st
 import math
-from config import ECO_SCORE_BASELINE, ECO_SCORE_SENSITIVITY, CATEGORY_WEIGHTS
+from config import ECO_SCORE_BASELINE, ECO_SCORE_SENSITIVITY, CATEGORY_WEIGHTS, DIET_TYPES, normalize_diet
 VALID_TRANSPORT = {"Car", "Bike", "Public Transport", "Walking"}
-VALID_DIET = {"Vegetarian", "Non-Vegetarian"}
+VALID_DIET = set(DIET_TYPES)
 VALID_REGIONS = {"Global", "US", "UK", "EU"}
 MAX_DISTANCE = 500
 MAX_ELECTRICITY = 10000
@@ -70,6 +70,7 @@ def calculate_footprint(
     flights,
     region="Global"
 ):
+    diet = normalize_diet(diet)
     if transport not in VALID_TRANSPORT:
         raise ValueError(
             f"Invalid transport '{transport}'. Must be one of: {', '.join(sorted(VALID_TRANSPORT))}"
@@ -112,8 +113,11 @@ def calculate_footprint(
 
     # Diet (annual estimate)
     diet_factors = {
+        "Vegan": 800,
         "Vegetarian": 1000,
-        "Non-Vegetarian": 1800
+        "Non-Vegetarian": 1800,
+        "Omnivore": 2200,
+        "Heavy Meat": 3000,
     }
 
     diet_emission = diet_factors[diet]

@@ -7,6 +7,11 @@ from recommendations import generate_water_recommendations
 from database import save_water_assessment
 
 from styles.theme import apply_theme
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
 apply_theme()
 
 st.markdown("<div class='section-header'>💧 Water Footprint Tracker</div>", unsafe_allow_html=True)
@@ -36,7 +41,7 @@ if analyze_btn:
         )
         insight, recommendations = generate_water_recommendations(contributors, total_daily, diet)
         
-        save_water_assessment(1, shower_mins, laundry_loads, dishwasher_runs, garden_mins, diet, total_daily)
+        save_water_assessment(user_id, shower_mins, laundry_loads, dishwasher_runs, garden_mins, diet, total_daily)
         
         st.session_state.water_analysis = {
             "total_daily": total_daily,
