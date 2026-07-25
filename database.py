@@ -10,7 +10,21 @@ def init_db():
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-
+        cursor.execute("""
+    CREATE TABLE IF NOT EXISTS assessments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER DEFAULT 1,
+        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        transport TEXT,
+        distance REAL,
+        electricity REAL,
+        diet TEXT,
+        flights INTEGER,
+        footprint REAL,
+        eco_score INTEGER,
+        trip_id TEXT UNIQUE
+    )
+""")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -354,7 +368,16 @@ def init_gamification_db():
                 UNIQUE(user_id, node_id)
             )
         """)
-        
+        try:
+    cursor.execute("ALTER TABLE assessments ADD COLUMN trip_id TEXT")
+except sqlite3.OperationalError:
+    pass
+
+cursor.execute("""
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id
+    ON assessments(trip_id)
+    WHERE trip_id IS NOT NULL
+""")
         conn.commit()
         return True
     except sqlite3.Error as e:
@@ -915,3 +938,43 @@ def get_water_assessments(user_id):
     finally:
         if conn:
             conn.close()
+def save_assessment(
+    user_id,
+    transport,
+    distance,
+    electricity,
+    diet,
+    flights,
+    footprint,
+    eco_score,
+    trip_id=None
+):
+    cursor.execute("""
+    INSERT INTO assessments (
+        user_id,
+        transport,
+        distance,
+        electricity,
+        diet,
+        flights,
+        footprint,
+        eco_score,
+        trip_id
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+""", (
+    user_id,
+    transport,
+    distance,
+    electricity,
+    diet,
+    flights,
+    footprint,
+    eco_score,
+    trip_id
+))
+    except sqlite3.IntegrityError:
+    return False
+except sqlite3.Error as e:
+    print(f"Database save error: {e}")
+    return False
