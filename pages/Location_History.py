@@ -60,7 +60,13 @@ if uploaded_file is not None:
                 ).add_to(m)
                 
                 if seg["mode"] in ["Car", "Bike", "Public Transport", "Walking"]:
-                    _, contributors = calculate_footprint(seg["mode"], seg["distance_km"] / 365.0, 0, "Vegetarian", 0)
+                    _, contributors = calculate_footprint(
+                        seg["mode"],
+                        seg["distance_km"] / 365.0,
+                        0,
+                        "Vegetarian",
+                        0
+                    )
                     emissions_kg = contributors["Transport"]
                 else:
                     emissions_kg = 0.0
@@ -83,6 +89,8 @@ if uploaded_file is not None:
             
             if st.button("Commit to Permanent Emissions Log"):
                 success_count = 0
+                failed_count = 0
+
                 for item in segment_data:
                     if item["Mode"] in ["Car", "Bike", "Public Transport", "Walking"]:
                         transport = item["Mode"]
@@ -90,11 +98,34 @@ if uploaded_file is not None:
                         footprint = item["Emissions (kg CO2)"]
                         eco_score = 50 
                         
-                        if save_assessment(transport, dist, 0, "Vegetarian", 0, footprint, eco_score):
+                        if save_assessment(
+                            transport,
+                            dist,
+                            0,
+                            "Vegetarian",
+                            0,
+                            footprint,
+                            eco_score
+                        ):
                             success_count += 1
                             gf.check_badge_eligibility(1)
+                        else:
+                            failed_count += 1
                 
-                if success_count > 0:
-                    st.success(f"Successfully committed {success_count} trips to the emissions log!")
+                if success_count > 0 and failed_count == 0:
+                    st.success(
+                        f"Successfully committed all {success_count} trips "
+                        "to the emissions log!"
+                    )
+                elif success_count > 0 and failed_count > 0:
+                    st.warning(
+                        f"Partially committed trips: {success_count} succeeded "
+                        f"and {failed_count} failed."
+                    )
+                elif failed_count > 0:
+                    st.error(
+                        f"Failed to commit {failed_count} trips "
+                        "to the emissions log."
+                    )
                 else:
                     st.warning("No trips were committed.")
