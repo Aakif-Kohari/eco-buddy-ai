@@ -17,12 +17,23 @@ import gamification as gf
 from marketplace import *
 import energy_audit as ea
 
-from styles.theme import apply_theme
+from styles.theme import (
+    apply_theme,
+    render_empty_state,
+    render_info_card,
+    render_appliance_table,
+)
+
 apply_theme()
 
 import database as db
 import energy_audit as ea
 import plotly.graph_objects as go
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
 
 st.markdown("<div class='section-header'>⚡ Home Energy Audit</div>", unsafe_allow_html=True)
 
@@ -43,12 +54,60 @@ with st.expander("➕ Add New Appliance", expanded=False):
         app_standby = c6.number_input("Standby Draw (Watts)", min_value=0.0, value=0.0)
 
         submit_app = st.form_submit_button("Add Appliance")
-        if submit_app and app_name:
-            db.add_appliance(app_name, app_cat, app_qty, app_power, app_hours, app_standby)
-            st.success(f"Added {app_name}")
-            st.rerun()
 
-appliances = db.get_appliances()
+if submit_app:
+    errors = []
+
+    # Validate appliance name
+    if not app_name.strip():
+        errors.append("Please enter an appliance name.")
+
+    # Check for duplicate appliance
+    existing_appliances = db.get_appliances(user_id)
+    duplicate = any(
+        appliance["name"].strip().lower() == app_name.strip().lower()
+        for appliance in existing_appliances
+    )
+
+    if duplicate:
+        errors.append("An appliance with this name already exists.")
+
+    # Validate power rating
+    if app_power <= 0:
+        errors.append("Power rating must be greater than 0 W.")
+    elif app_power > 10000:
+        errors.append("Power rating cannot exceed 10,000 W.")
+
+    # Validate usage hours
+    if app_hours <= 0:
+        errors.append("Hours used per day must be greater than 0.")
+    elif app_hours > 24:
+        errors.append("Hours used per day cannot exceed 24.")
+
+    # Validate quantity
+    if app_qty <= 0:
+        errors.append("Quantity must be at least 1.")
+    elif app_qty > 100:
+        errors.append("Quantity cannot exceed 100.")
+
+    # Show errors or save appliance
+    if errors:
+        for error in errors:
+            st.error(error)
+    else:
+        db.add_appliance(user_id, 
+            app_name.strip(),
+            app_cat,
+            app_qty,
+            app_power,
+            app_hours,
+            app_standby
+        )
+        st.success(f"Added {app_name.strip()}")
+        st.rerun()
+
+appliances = db.get_appliances(user_id)
+df = pd.DataFrame(appliances)
 if appliances:
     # Build a styled HTML table instead of st.dataframe
     category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
@@ -64,24 +123,14 @@ if appliances:
             <td style='text-align:right;'>{a['hours_used_per_day']:.1f} h</td>
             <td style='text-align:right;'>{a['standby_draw_watts']:.1f} W</td>
         </tr>"""
+    st.download_button(
+        "📥 Download Appliance Inventory (CSV)",
+        data=df.to_csv(index=False),
+        file_name="appliance_inventory.csv",
+        mime="text/csv",
+    )
 
-    st.markdown(f"""
-    <div style='border:1px solid rgba(134,239,172,0.24); border-radius:16px; overflow:hidden; background:#0f172a; box-shadow:0 24px 70px rgba(0,0,0,0.38);'>
-        <table style='width:100%; border-collapse:collapse; color:#fff; font-size:15px;'>
-            <thead>
-                <tr style='background:#07130d;'>
-                    <th style='padding:14px 18px; text-align:left; font-weight:700; color:#86efac;'>Appliance</th>
-                    <th style='padding:14px 18px; text-align:left; font-weight:700; color:#86efac;'>Category</th>
-                    <th style='padding:14px 18px; text-align:center; font-weight:700; color:#86efac;'>Qty</th>
-                    <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Power</th>
-                    <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Hours/Day</th>
-                    <th style='padding:14px 18px; text-align:right; font-weight:700; color:#86efac;'>Standby</th>
-                </tr>
-            </thead>
-            <tbody>{table_rows}</tbody>
-        </table>
-    </div>
-    """, unsafe_allow_html=True)
+    render_appliance_table(table_rows)
 
     # Delete appliance controls
     st.markdown("")
@@ -95,6 +144,24 @@ if appliances:
 
     # Calculate summaries
     daily_kwh, monthly_kwh, yearly_kwh = ea.calculate_home_energy_summary(appliances)
+    summary_df = pd.DataFrame({
+    "Metric": [
+        "Daily Consumption",
+        "Monthly Consumption",
+        "Yearly Consumption"
+    ],
+    "Value": [
+        daily_kwh,
+        monthly_kwh,
+        yearly_kwh
+    ]
+})
+    st.download_button(
+    "📥 Download Energy Summary (CSV)",
+    summary_df.to_csv(index=False),
+    "energy_summary.csv",
+    "text/csv",
+)
 
     st.markdown("### 📊 Energy Patterns")
     sc1, sc2, sc3 = st.columns(3)
@@ -104,18 +171,26 @@ if appliances:
 
     # Hourly profile chart
     profile = ea.generate_hourly_energy_profile(appliances)
+    profile_df = pd.DataFrame({
+    "Hour": list(range(24)),
+    "Energy (kWh)": profile
+})
+    st.download_button(
+    "📥 Download Hourly Profile (CSV)",
+    profile_df.to_csv(index=False),
+    "hourly_profile.csv",
+    "text/csv",
+)
     fig_hr = go.Figure(data=[go.Bar(x=list(range(24)), y=profile, marker_color='#fbbf24')])
     fig_hr.update_layout(title="Hourly Energy Demand (kWh)", xaxis_title="Hour of Day", yaxis_title="kWh", template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig_hr, width="stretch")
 
 else:
-    st.markdown("""
-    <div style='text-align:center; padding:48px 24px; border:1px dashed rgba(134,239,172,0.3); border-radius:16px; background:rgba(15,23,42,0.5);'>
-        <div style='font-size:48px; margin-bottom:12px;'>🔌</div>
-        <div style='font-size:18px; font-weight:600; color:#e5e7eb; margin-bottom:8px;'>No Appliances Yet</div>
-        <div style='font-size:14px; color:#94a3b8;'>Click <b>"➕ Add New Appliance"</b> above to register your first household appliance and start tracking energy consumption.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    render_empty_state(
+    icon="🔌",
+    title="No Appliances Yet",
+    message='Click <b>"➕ Add New Appliance"</b> above to register your first household appliance and start tracking energy consumption.'
+)
 
 st.markdown("---")
 st.markdown("### ☀️ Solar ROI Calculator")
@@ -146,10 +221,32 @@ r2.metric("Annual Generation", f"{ann_gen:.0f} kWh")
 r3.metric("Est. Installation", f"${inst_cost:,.0f}")
 r4.metric("Payback Period", f"{payback:.1f} years" if payback != float('inf') else "N/A")
 
-st.markdown(f"""
-<div style='padding:18px 24px; border-radius:14px; background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(74,222,128,0.08)); border:1px solid rgba(74,222,128,0.3); margin-top:8px;'>
-    <span style='font-size:18px;'>💡</span>
-    <span style='color:#e5e7eb; font-size:15px;'>Over 20 years, you could save <b style="color:#4ade80;">${savings_20y:,.0f}</b> and offset <b style="color:#4ade80;">{carbon_offset:,.0f} kg CO₂</b> annually.</span>
-</div>
-""", unsafe_allow_html=True)
+render_info_card(
+    f'Over 20 years, you could save <b style="color:#4ade80;">${savings_20y:,.0f}</b> and offset <b style="color:#4ade80;">{carbon_offset:,.0f} kg CO₂</b> annually.'
+)
+
+solar_df = pd.DataFrame({
+    "Metric": [
+        "System Size",
+        "Annual Generation",
+        "Installation Cost",
+        "Payback Period",
+        "20-Year Savings",
+        "Carbon Offset"
+    ],
+    "Value": [
+        sys_size,
+        ann_gen,
+        inst_cost,
+        payback,
+        savings_20y,
+        carbon_offset
+    ]
+})
+st.download_button(
+    "📥 Download Solar ROI (CSV)",
+    solar_df.to_csv(index=False),
+    "solar_roi.csv",
+    "text/csv",
+)
 

@@ -1,8 +1,24 @@
 import os
 import json
+import time
 import requests
 import re
+import streamlit as st
 
+LLM_COOLDOWN_SECONDS = 2.0
+
+
+def _check_rate_limit(provider):
+    key = f"_llm_last_call_{provider}"
+    now = time.time()
+    last_call = st.session_state.get(key, 0.0)
+    if now - last_call < LLM_COOLDOWN_SECONDS:
+        return False
+    st.session_state[key] = now
+    return True
+
+
+@st.cache_data
 def parse_quick_log(text: str) -> dict:
     """
     Parses natural language into a structured JSON using Gemini 2.5 Flash,
@@ -22,7 +38,7 @@ Example Output:
     
     # Try Gemini First
     gemini_key = os.environ.get("GEMINI_API_KEY")
-    if gemini_key:
+    if gemini_key and _check_rate_limit("gemini"):
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
             payload = {
@@ -48,7 +64,7 @@ Example Output:
 
     # Fallback to Groq
     groq_key = os.environ.get("GROQ_API_KEY")
-    if groq_key:
+    if groq_key and _check_rate_limit("groq"):
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
