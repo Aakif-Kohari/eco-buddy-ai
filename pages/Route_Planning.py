@@ -66,10 +66,21 @@ with route_col:
 
         calc_btn = st.form_submit_button("Compare Emissions")
 
+        
+   if calc_btn:
+    try:
+        with st.spinner("Calculating transit emissions..."):
+            comparisons = compare_transit_modes(dist_val, pass_val)
+
+        st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
+            
+
+
     if calc_btn:
         try:
             comparisons = compare_transit_modes(dist_val, pass_val)
             st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
+
 
             # Chart
             df_comp = pd.DataFrame(comparisons)
@@ -123,6 +134,19 @@ with offset_col:
         purchase_btn = st.form_submit_button("Purchase Simulated Offset")
 
         if purchase_btn:
+
+    with st.spinner("Processing simulated offset purchase..."):
+        is_valid, msg = validate_offset_transaction(
+            tonnes,
+            selected_proj["available_capacity"],
+        )
+
+        if is_valid:
+            cost = calculate_offset_cost(
+                tonnes,
+                selected_proj["cost_per_tonne"],
+            )
+
             is_valid, msg = validate_offset_transaction(
                 tonnes,
                 selected_proj["available_capacity"],
@@ -142,6 +166,23 @@ with offset_col:
             else:
                 st.error(msg)
 
+
+            # Defaulting to user_id=1 for now as per instructions
+            if save_offset_transaction(
+                1,
+                selected_proj["id"],
+                selected_proj["name"],
+                tonnes,
+                selected_proj["cost_per_tonne"],
+                cost,
+            ):
+                st.success(
+                    f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}."
+                )
+            else:
+                st.error("Failed to save transaction.")
+        else:
+            st.error(msg)
 st.markdown("---")
 
 st.markdown(
@@ -180,6 +221,48 @@ with port_col2:
                 df_trans[["created_at", "project_name", "offset_tonnes", "total_cost", "transaction_status"]]
             )
 
+
+    with st.spinner("Loading transaction history..."):
+
+
+
+    transactions = get_offset_transactions(1)
+
+    if transactions:
+        df_trans = pd.DataFrame(transactions)
+
+        st.dataframe(
+            df_trans[
+                [
+                    "created_at",
+                    "project_name",
+                    "offset_tonnes",
+                    "total_cost",
+                    "transaction_status",
+                ]
+            ]
+        )
+
+        # Button to clear history for demo purposes
+        if st.button("Clear History"):
+
+    with st.spinner("Clearing portfolio history..."):
+        for transaction in transactions:
+            delete_offset_transaction(transaction["id"])
+
+        st.success("Portfolio history cleared successfully.")
+        st.rerun()
+
+            for t in transactions:
+                delete_offset_transaction(t["id"])
+            st.rerun()
+
+
+    else:
+        st.info(
+            "No transactions yet. Visit the marketplace to start your portfolio!"
+        )
+
             if st.button("Clear History"):
                 try:
                     for transaction in transactions:
@@ -194,3 +277,4 @@ with port_col2:
     except Exception:
         logger.exception("Failed to load transaction history.")
         st.error("Unable to load your transaction history. Please try again later.")
+
