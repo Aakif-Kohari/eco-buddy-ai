@@ -15,7 +15,44 @@ st.write("Upload your GPX or Google Takeout JSON files to automatically parse tr
 uploaded_file = st.file_uploader("Upload Location File (.gpx, .json)", type=["gpx", "json"])
 
 if uploaded_file is not None:
+    waypoints = []
+    parse_error = None
+
     with st.spinner("Parsing location data..."):
+
+        try:
+            if uploaded_file.name.lower().endswith(".gpx"):
+                content = uploaded_file.getvalue().decode("utf-8")
+                waypoints = parse_gpx(content)
+            elif uploaded_file.name.lower().endswith(".json"):
+                waypoints = parse_google_takeout_json(uploaded_file)
+        except UnicodeDecodeError:
+            parse_error = (
+                "Unable to read the uploaded GPX file. "
+                "Please ensure it is a valid UTF-8 encoded GPX file."
+            )
+        except (ValueError, KeyError, TypeError):
+            parse_error = (
+                "Unable to parse the uploaded location file. "
+                "Please ensure it contains valid GPX or Google Takeout data."
+            )
+        except Exception:
+            parse_error = (
+                "An unexpected error occurred while parsing the location file. "
+                "Please verify the file and try again."
+            )
+
+    if parse_error:
+        st.error(parse_error)
+    elif not waypoints:
+        st.error(
+            "No valid waypoints found in the file. "
+            "Ensure it's a valid GPX or Google Takeout JSON."
+        )
+    else:
+        # existing successful-processing code continues here
+            
+
         waypoints = []
 
         if uploaded_file.name.endswith(".gpx"):
@@ -23,6 +60,7 @@ if uploaded_file is not None:
             waypoints = parse_gpx(content)
         elif uploaded_file.name.endswith(".json"):
             waypoints = parse_google_takeout_json(uploaded_file)
+
 
     if not waypoints:
         st.error("No valid waypoints found in the file. Ensure it's a valid GPX or Google Takeout JSON.")
