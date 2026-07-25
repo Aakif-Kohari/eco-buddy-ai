@@ -16,15 +16,20 @@ from marketplace import *
 import energy_audit as ea
 
 from styles.theme import apply_theme
+
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
 apply_theme()
 
 st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
 
 # Header: Level, XP, Streak
-total_xp = gf.get_total_xp(1)
+total_xp = gf.get_total_xp(user_id)
 level = gf.calculate_level(total_xp)
 progress = gf.calculate_level_progress(total_xp)
-history = get_assessments()
+history = get_assessments(user_id)
 activities_dates = [row[1] for row in history]
 streak = gf.calculate_streak(1, activities_dates)
 
@@ -94,11 +99,11 @@ def render_challenge_card(ch_id, ch_data, user_challenges, enrolled_ids):
                 "Enroll",
                 key=f"enroll_{ch_id}",
             ):
-                gf.enroll_challenge(1, ch_id)
+                gf.enroll_challenge(user_id, ch_id)
                 st.rerun()
 st.markdown("### 🏆 Weekly Challenges")
 
-user_challenges = gf.get_user_challenges(1)
+user_challenges = gf.get_user_challenges(user_id)
 enrolled_ids = [c['challenge_id'] for c in user_challenges if c['status'] != 'expired']
 
 for ch_id, ch_data in gf.CHALLENGES.items():
@@ -112,7 +117,7 @@ for ch_id, ch_data in gf.CHALLENGES.items():
 st.markdown("---")
 st.markdown("### 🎖️ Achievement Badges")
 
-unlocked = gf.get_unlocked_badges(1)
+unlocked = gf.get_unlocked_badges(user_id)
 unlocked_ids = [b['badge_id'] for b in unlocked]
 
 cols = st.columns(len(gf.BADGES))

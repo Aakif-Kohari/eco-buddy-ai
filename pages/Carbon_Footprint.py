@@ -41,6 +41,11 @@ def compute_arima_forecast(ts_data):
 
     return forecast_line, conf_lower, conf_upper
 
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
+
 tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
 
 with tab_assess:
@@ -133,8 +138,8 @@ with tab_assess:
             total, contributors = calculate_footprint(transport, distance, electricity, diet, flights, region)
         eco_score = calculate_eco_score(total, contributors)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        save_assessment(transport, distance, electricity, diet, flights, total, eco_score)
-        gf.check_badge_eligibility(1)
+        save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
+        gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
@@ -344,13 +349,16 @@ with tab_forecast:
     st.markdown("<div class='section-header'>📈 Carbon Emissions Forecasting</div>", unsafe_allow_html=True)
     st.write("Based on your historical logs, here is a projection of your future carbon footprint.")
     
-    assessments = get_assessments()
+    assessments = get_assessments(user_id)
     if len(assessments) < 5:
         st.info("We need at least 5 logs to generate a reliable forecast. Keep logging your footprint!")
     else:
         try:
             import pandas as pd
             import plotly.graph_objects as go
+            from statsmodels.tsa.arima.model import ARIMA
+            import warnings
+            warnings.filterwarnings('ignore')
             
             df = pd.DataFrame(assessments, columns=['id', 'date', 'transport', 'distance', 'electricity', 'diet', 'flights', 'footprint', 'eco_score'])
             df['date'] = pd.to_datetime(df['date'])
