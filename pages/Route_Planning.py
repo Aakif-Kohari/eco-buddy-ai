@@ -140,10 +140,25 @@ with offset_col:
     st.info("💡 Invest your simulated eco-points to offset carbon.")
 
     projects = get_offset_projects()
+
+
+# Create a lookup dictionary for constant-time project retrieval
+    project_lookup = {project["name"]: project for project in projects}
+
+    proj_names = list(project_lookup.keys())
+
+    selected_proj_name = st.selectbox(
+        "Select an Offset Project",
+        proj_names,
+    )
+
+selected_proj = project_lookup[selected_proj_name]
+
     proj_names = [p["name"] for p in projects]
     selected_proj_name = st.selectbox("Select an Offset Project", proj_names)
 
     selected_proj = next(p for p in projects if p["name"] == selected_proj_name)
+
 
     st.markdown(f"**{selected_proj['image']} {selected_proj['name']}**")
     st.write(f"*{selected_proj['description']}*")
