@@ -1,4 +1,6 @@
 import streamlit as st
+import json
+import sys
 from data_io import export_data_json, export_data_csv_zip, import_data_json
 
 from styles.theme import apply_theme
@@ -60,6 +62,35 @@ import_strategy = st.radio(
 )
 
 uploaded_file = st.file_uploader("Upload JSON Export File", type=["json"])
+
+
+if uploaded_file is not None:
+
+    try:
+        json_content = uploaded_file.read().decode("utf-8")
+        preview = json.loads(json_content)
+
+        st.success("✅ Valid backup file detected")
+
+        st.subheader("📋 Backup Preview")
+
+        total_records = 0
+
+        for key, value in preview.items():
+            if isinstance(value, list):
+                total_records += len(value)
+                st.write(f"**{key.replace('_',' ').title()}** : {len(value)} records")
+
+        st.info(f"📦 Total Records: {total_records}")
+
+        file_size = uploaded_file.size / 1024
+
+        st.caption(f"File Size: {file_size:.2f} KB")
+
+        uploaded_file.seek(0)
+
+    except Exception:
+        st.error("❌ Invalid JSON file.")
 
 if uploaded_file is not None:
     if st.button("Restore Data"):
