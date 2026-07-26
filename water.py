@@ -1,6 +1,8 @@
 # water.py
 import streamlit as st
 from config import GLOBAL_WATER_AVERAGE_LITERS, WATER_FACTORS, DIET_VIRTUAL_WATER, normalize_diet
+from cache import cached
+from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 
 def validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mins):
     warnings = []
@@ -15,7 +17,7 @@ def validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mi
     return warnings
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def calculate_water_footprint(shower_mins_per_day, laundry_loads_per_week, dishwasher_runs_per_week, garden_mins_per_week, diet):
     """
     Calculates the estimated daily water footprint in liters.
