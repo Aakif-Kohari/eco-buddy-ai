@@ -104,19 +104,7 @@ def calculate_footprint(
     contributors["Electricity"] = round(electricity_emission, 2)
 
     # Diet (annual estimate)
-<<<<<<< HEAD
-    diet_factors = {
-        "Vegan": 800,
-        "Vegetarian": 1000,
-        "Non-Vegetarian": 1800,
-        "Omnivore": 2200,
-        "Heavy Meat": 3000,
-    }
-
-    diet_emission = diet_factors[diet]
-=======
     diet_emission = DIET_EMISSION_FACTORS[diet]
->>>>>>> 2f77655 (refactor: centralize hardcoded constants from emissions.py, water.py, and energy_audit.py into config.py)
     contributors["Diet"] = diet_emission
 
     # Flights
