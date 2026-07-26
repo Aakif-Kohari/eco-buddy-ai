@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 from data_io import export_data_json, export_data_csv_zip, import_data_json
+from database import get_assessments
 
 from styles.theme import apply_theme
 
@@ -79,6 +80,16 @@ st.markdown(
     "Manage your EcoBuddy data. You can export your data to take it with you, "
     "or import previously exported data to restore your profile."
 )
+
+user_id = st.session_state.get('user_id')
+assessments = get_assessments(user_id=user_id) if user_id else get_assessments()
+assessment_count = len(assessments) if assessments else 0
+
+if assessment_count >= 5:
+    st.warning(
+        f"⚠️ **Backup Recommended:** You have accumulated **{assessment_count} saved assessments**. "
+        "Consider exporting a backup copy below to ensure your data is safe."
+    )
 
 st.markdown("---")
 st.header("📤 Export Data")
