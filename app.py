@@ -14,7 +14,7 @@ load_dotenv()
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db
+from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 from llm_parser import parse_quick_log
@@ -25,7 +25,7 @@ from ocr_utils import extract_text_from_file, parse_energy_consumption
 # Added for Route Planning & Offsets
 from database import (
     init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
-    save_offset_transaction, get_offset_transactions, delete_offset_transaction,
+    save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
     get_total_offsets, get_total_spend
 )
 from marketplace import (
@@ -40,17 +40,85 @@ def h(text):
     return html.escape(str(text))
 
 
+def render_sidebar_auth():
+    st.sidebar.title("Authentication")
+    if 'user_id' not in st.session_state:
+        st.session_state['user_id'] = None
+        st.session_state['username'] = None
+
+    if st.session_state['user_id'] is None:
+        auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
+        if auth_mode == "Login":
+            with st.sidebar.form("login_form"):
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Login"):
+                    user = verify_user(username, password)
+                    if user:
+                        st.session_state['user_id'] = user['id']
+                        st.session_state['username'] = user['username']
+                        st.sidebar.success("Logged in successfully!")
+                        st.rerun()
+                    else:
+                        st.sidebar.error("Invalid username or password")
+        elif auth_mode == "Register":
+            with st.sidebar.form("register_form"):
+                username = st.text_input("Username")
+                email = st.text_input("Email")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Register"):
+                    if create_user(username, email, password):
+                        st.sidebar.success("Registration successful! Please login.")
+                    else:
+                        st.sidebar.error("Username or email already exists")
+        elif auth_mode == "Guest":
+            if st.sidebar.button("Continue as Guest"):
+                st.session_state['user_id'] = 1
+                st.session_state['username'] = "Guest"
+                st.rerun()
+        
+        st.sidebar.warning("Please log in or continue as Guest to use the app.")
+        st.stop()
+    else:
+        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        if st.sidebar.button("Logout"):
+            st.session_state['user_id'] = None
+            st.session_state['username'] = None
+            st.rerun()
+
+    return st.session_state['user_id']
+
 # -------------------------
 # INIT
 # -------------------------
 
-init_db()
-init_gamification_db()
-init_marketplace_db()
+@st.cache_resource
+def run_db_initializations():
+    init_db()
+    init_gamification_db()
+    init_marketplace_db()
+
+run_db_initializations()
+user_id = render_sidebar_auth()
 
 if 'extracted_kwh' not in st.session_state:
     st.session_state.extracted_kwh = 200.0
 
+
+# -------------------------
+# DEFAULT FORM VALUES
+# -------------------------
+DEFAULT_VALUES = {
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
+
+for key, value in DEFAULT_VALUES.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 # -------------------------
 # DEFAULT FORM VALUES
@@ -84,7 +152,7 @@ st.markdown("""
 
     :root {
         --ink: #111827;
-        --muted: #6b7280;
+        --muted: #1f2937;
         --paper: rgba(255,255,255,0.75);
         --paper-strong: rgba(255,255,255,0.95);
         --line: rgba(0,0,0,0.08);
@@ -174,13 +242,16 @@ st.markdown("""
         border-radius: var(--radius);
         background: rgba(255,255,255,0.9);
         border: 1px solid #e5e7eb;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
         backdrop-filter: blur(18px);
         position: relative;
         overflow: hidden;
         animation: fadeUp 700ms ease both;
         transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+
+        min-height: 170px;
+        display: flex;
+        flex-direction: column;
     }
 
     .input-section {
@@ -193,6 +264,7 @@ st.markdown("""
     .metric-card {
         padding: 26px;
         margin-bottom: 16px;
+        justify-content: space-between;
     }
 
     .metric-card::before,
@@ -342,7 +414,8 @@ st.markdown("""
         background: rgba(172, 214, 111, 0.26) !important;
     }
 
-    /* DARK PREMIUM THEME OVERRIDES 
+    @media (prefers-color-scheme: dark) {
+    /* DARK PREMIUM THEME OVERRIDES */
     :root {
         --sky: #8ec5ff;
         --sky-soft: #18273a;
@@ -404,12 +477,18 @@ st.markdown("""
             linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
         border-color: var(--line);
         box-shadow: var(--shadow);
+        min-height: 230px;
+        display: flex;
+        flex-direction: column;
     }
 
     .card-highlight {
         background:
             linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
             linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
+            min-height: 230px;
+            display: flex;
+            flex-direction: column;
     }
 
     .metric-card::before,
@@ -478,8 +557,8 @@ st.markdown("""
         border-color: var(--line) !important;
     }
 
-    [style*="#d1d5db"],
-    [style*="#9ca3af"],
+    [style*="#374151"],
+    [style*="#4b5563"],
     [style*="rgb(209, 213, 219)"],
     [style*="rgb(156, 163, 175)"] {
         color: var(--muted) !important;
@@ -608,7 +687,7 @@ st.markdown("""
     }
 
     button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
-        color: #d1d5db !important;
+        color: #374151 !important;
         font-weight: 600 !important;
     }
     
@@ -647,8 +726,9 @@ st.markdown("""
     
     [data-testid="stExpanderDetails"] {
         background-color: #0f172a !important;
-        color: #d1d5db !important;
-    }*/
+        color: #374151 !important;
+    }
+    } /* end @media (prefers-color-scheme: dark) */
 </style>
 """, unsafe_allow_html=True)
 
@@ -670,8 +750,140 @@ st.markdown("---")
 
 
 # -------------------------
+# INPUTS SECTION
+# ------------------------
+
+
+# -------------------------
+
+st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+ 
+ 
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>🚗</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
+    </div>
+    """, unsafe_allow_html=True)
+    transport = st.selectbox(
+        "Primary Transport",
+        ["Car", "Public Transport", "Bike", "Walking"],
+        key="transport"
+    )
+    distance = st.number_input(
+        "Daily Distance (km)",
+        min_value=0.0,
+        value=10.0,
+        step=1.0,
+        key="distance"
+    )
+
+with col2:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>⚡</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
+    </div>
+    """, unsafe_allow_html=True)
+    electricity = st.number_input(
+        "Monthly Electricity (kWh)",
+        min_value=0.0,
+        value=200.0,
+        step=10.0,
+        key="electricity"
+    )
+    diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet"
+    )
+with col3:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>✈️</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
+    </div>
+    """, unsafe_allow_html=True)
+    flights = st.number_input(
+        "Annual Flights",
+        min_value=0,
+        value=0,
+        step=1,
+        key="flights"
+    )
+    st.info("💡 How many long-distance flights per year?")
+
+
+
+# ------------------------
+ # PDF REPORT GENERATION
+# -------------------------
+
+# -------------------------
 # TABS CONFIGURATION
 # -------------------------
+
+col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
+
+with col_btn1:
+    reset_btn = st.button(
+        "🔄 Reset Assessment",
+        use_container_width=True,
+        key="reset_btn"
+    )
+
+with col_btn2:
+    analyze_btn = st.button(
+        "🌿 Analyze My Impact",
+        use_container_width=True,
+        key="analyze_btn"
+    )
+    st.caption("✔ All input fields are validated before analysis.")
+
+if reset_btn:
+    for key in DEFAULT_VALUES:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.success("✅ Assessment form has been reset.")
+    st.rerun()
+
+ 
+
+
+tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+
+with tab1:
+    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True) 
+    with st.spinner("🌍 Analyzing your carbon footprint..."):
+
+        progress_text = st.empty()
+        progress = st.progress(0)
+
+        progress_text.info("🔍 Validating user inputs...")
+        progress.progress(20)
+        time.sleep(0.5)  # Simulate validation delay
+
+# TABS CONFIGURATION
+# -------------------------
+col_btn1, col_btn2 = st.columns([1, 3])
+
+
+with col_btn1:
+    reset_btn = st.button(
+        "🔄 Reset Assessment",
+        use_container_width=True
+    )
+
+if reset_btn:
+    for key in DEFAULT_VALUES:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.success("✅ Assessment form has been reset.")
+    st.rerun()
 
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
 
@@ -720,6 +932,8 @@ with tab1:
                 st.rerun()
 
     col1, col2, col3 = st.columns(3)
+ 
+
     with col1:
         st.markdown("""
         <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -732,7 +946,24 @@ with tab1:
 
     with col2:
         st.markdown("""
-        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <style>
+            div[data-testid="stFileUploader"] button {
+                width: 110px !important;
+                min-width: 110px !important;
+                padding: 6px 12px !important;
+                margin-left: 16px !important;
+                border-radius: 8px !important;
+            }
+
+            div[data-testid="stFileUploader"] section {
+                display: flex !important;
+                align-items: center !important;
+                gap: 16px !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 10px; margin-bottom: 16px;'>
             <span style='font-size: 24px;'>⚡</span>
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span>
         </div>
@@ -765,7 +996,9 @@ with tab1:
         st.info("💡 How many long-distance flights per year?")
         
 
-    
+
+
+    # -------------------------
     # PDF REPORT GENERATION
     # -------------------------
     def generate_pdf(total, eco_score, insight):
@@ -792,10 +1025,15 @@ with tab1:
     # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
+    
+
+ 
+
+
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
-    col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment")
         if reset_btn:
@@ -807,6 +1045,7 @@ with tab1:
 
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
+
 
     if analyze_btn:
 
@@ -821,7 +1060,7 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
-        save_assessment(
+        save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
 
@@ -836,36 +1075,36 @@ with tab1:
         with met1:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🌍 Total Footprint</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🌍 Total Footprint</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>kg CO₂/year</div>
+                <div style='font-size: 12px; color: #4b5563;'>kg CO₂/year</div>
             </div>
             """.format(total), unsafe_allow_html=True)
 
         with met2:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🏆 Eco Score</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🏆 Eco Score</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>out of 100</div>
+                <div style='font-size: 12px; color: #4b5563;'>out of 100</div>
             </div>
             """.format(eco_score), unsafe_allow_html=True)
 
         with met3:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>📈 Biggest Impact</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>📈 Biggest Impact</div>
                 <div style='font-size: 24px; font-weight: 700; color: #4ade80;'>{}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>{:.0f} kg CO₂</div>
+                <div style='font-size: 12px; color: #4b5563;'>{:.0f} kg CO₂</div>
             </div>
             """.format(max(contributors, key=contributors.get), max(contributors.values())), unsafe_allow_html=True)
 
         with met4:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🎯 Status</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🎯 Status</div>
                 <div style='font-size: 18px; font-weight: 700; color: #4ade80;'>Active</div>
-                <div style='font-size: 12px; color: #9ca3af;'>Tracking enabled</div>
+                <div style='font-size: 12px; color: #4b5563;'>Tracking enabled</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -898,7 +1137,7 @@ with tab1:
             st.markdown(f"""
             <div style='margin-top: 16px;'>
                 <div style='display: flex; justify-content: space-between; margin-bottom: 6px;'>
-                    <span style='color: #d1d5db; font-size: 14px;'>Score Progress</span>
+                    <span style='color: #374151; font-size: 14px;'>Score Progress</span>
                     <span style='color: #4ade80; font-weight: 700;'>{eco_score}%</span>
                 </div>
                 <div class='progress-bar'>
@@ -939,7 +1178,7 @@ with tab1:
                 margin=dict(l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#d1d5db', size=12),
+                font=dict(color='#374151', size=12),
                 legend=dict(
                     x=-0.15,
                     y=1,
@@ -950,6 +1189,7 @@ with tab1:
             )
 
             st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
+
 
         st.markdown("---")
 
@@ -978,18 +1218,18 @@ with tab1:
             margin=dict(l=40, r=20, t=20, b=40),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#d1d5db', size=12),
+            font=dict(color='#374151', size=12),
             xaxis=dict(
                 showgrid=False,
                 zeroline=False,
-                color='#9ca3af'
+                color='#4b5563'
             ),
             yaxis=dict(
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='rgba(74, 222, 128, 0.1)',
                 zeroline=False,
-                color='#9ca3af'
+                color='#4b5563'
             ),
             showlegend=False
         )
@@ -1012,7 +1252,7 @@ with tab1:
                     <div style='font-size: 32px;'>💡</div>
                     <div style='flex: 1;'>
                         <div style='font-size: 16px; font-weight: 800; color: #4ade80; margin-bottom: 12px;'>Key Finding</div>
-                        <div style='font-size: 15px; color: #d1d5db; line-height: 1.8;'>{h(insight)}</div>
+                        <div style='font-size: 15px; color: #374151; line-height: 1.8;'>{h(insight)}</div>
                     </div>
                 </div>
             </div>
@@ -1025,7 +1265,7 @@ with tab1:
                     <div style='font-size: 32px;'>🎯</div>
                     <div style='flex: 1;'>
                         <div style='font-size: 16px; font-weight: 800; color: #4ade80; margin-bottom: 12px;'>Quick Tips</div>
-                        <ul style='color: #d1d5db; font-size: 14px; line-height: 2.2; padding-left: 20px; margin: 0;'>
+                        <ul style='color: #374151; font-size: 14px; line-height: 2.2; padding-left: 20px; margin: 0;'>
                             <li>Start with small daily changes</li>
                             <li>Track progress regularly</li>
                             <li>Share with friends & family</li>
@@ -1050,7 +1290,7 @@ with tab1:
                     <div style='display: flex; gap: 12px;'>
                         <div style='font-size: 24px;'>💚</div>
                         <div style='flex: 1;'>
-                            <div style='font-size: 15px; line-height: 1.8; color: #d1d5db;'>{h(r)}</div>
+                            <div style='font-size: 15px; line-height: 1.8; color: #374151;'>{h(r)}</div>
                         </div>
                     </div>
                 </div>
@@ -1062,7 +1302,7 @@ with tab1:
                     <div style='font-size: 48px;'>🌟</div>
                     <div>
                         <div style='font-size: 18px; font-weight: 700; color: #4ade80; margin-bottom: 4px;'>Excellent Work!</div>
-                        <div style='color: #d1d5db;'>Your lifestyle is already very eco-friendly. Keep maintaining these amazing habits!</div>
+                        <div style='color: #374151;'>Your lifestyle is already very eco-friendly. Keep maintaining these amazing habits!</div>
                     </div>
                 </div>
             </div>
@@ -1095,204 +1335,221 @@ with tab1:
     # HISTORY & TRACKING
     # -------------------------
     st.markdown("---")
+    with st.expander("🕒 Assessment Timeline", expanded=False):
+        st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
+        history = get_assessments(user_id)
+        st.write("History length:", len(history))
 
-    history = get_assessments()
+        if history:
 
-    if history:
+            df = pd.DataFrame(history, columns=[
+                "id", "date", "transport", "distance",
+                "electricity", "diet", "flights",
+                "footprint", "eco_score"
+            ])
 
-        df = pd.DataFrame(history, columns=[
-            "id", "date", "transport", "distance",
-            "electricity", "diet", "flights",
-            "footprint", "eco_score"
-        ])
+            latest = history[0]
 
-        latest = history[0]
+            # Latest stats
+            stat1, stat2, stat3, stat4 = st.columns(4)
 
-        # Latest stats
-        stat1, stat2, stat3, stat4 = st.columns(4)
 
-        with stat1:
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Latest Footprint</div>
-                <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[7]:.0f}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>kg CO₂</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with stat2:
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Latest Score</div>
-                <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[8]}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>out of 100</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if len(history) >= 2:
-            prev = history[1][7]
-            change = ((prev - latest[7]) / prev) * 100 if prev else 0
-
-            with stat3:
-                if change > 0:
-                    color = "#4ade80"
-                    emoji = "📉"
-                    label = "Reduced"
-                elif change < 0:
-                    color = "#f87171"
-                    emoji = "📈"
-                    label = "Increased"
-                else:
-                    color = "#60a5fa"
-                    emoji = "→"
-                    label = "No Change"
-
+            with stat1:
                 st.markdown(f"""
                 <div class='card'>
-                    <div style='font-size: 12px; color: #9ca3af;'>{emoji} {label}</div>
-                    <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
-                    <div style='font-size: 11px; color: #9ca3af;'>vs previous</div>
+                    <div style='font-size: 12px; color: #4b5563;'>Latest Footprint</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[7]:.0f}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>kg CO₂</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-        with stat4:
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Total Records</div>
-                <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{len(history)}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>assessments</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with stat2:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 12px; color: #4b5563;'>Latest Score</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[8]}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>out of 100</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        st.markdown("---")
+            if len(history) >= 2:
+                prev = history[1][7]
+                change = ((prev - latest[7]) / prev) * 100 if prev else 0
 
-        # -------------------------
-        # TREND VISUALIZATION
-        # -------------------------
-        st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📉 Carbon Footprint Trend</div>", unsafe_allow_html=True)
+                with stat3:
+                    if change > 0:
+                        color = "#4ade80"
+                        emoji = "📉"
+                        label = "Reduced"
+                    elif change < 0:
+                        color = "#f87171"
+                        emoji = "📈"
+                        label = "Increased"
+                    else:
+                        color = "#60a5fa"
+                        emoji = "→"
+                        label = "No Change"
 
-        trend_df = df[["date", "footprint"]].iloc[::-1].reset_index(drop=True)
-        trend_df['date'] = pd.to_datetime(trend_df['date'])
+                    st.markdown(f"""
+                    <div class='card'>
+                        <div style='font-size: 12px; color: #4b5563;'>{emoji} {label}</div>
+                        <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
+                        <div style='font-size: 11px; color: #4b5563;'>vs previous</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-        trend_fig = go.Figure()
-        trend_fig.add_trace(go.Scatter(
-            x=trend_df['date'],
-            y=trend_df['footprint'],
-            mode='lines+markers',
-            name='Carbon Footprint',
-            line=dict(color='#4ade80', width=3),
-            marker=dict(size=8, color='#4ade80', line=dict(color='#86efac', width=2)),
-            fill='tozeroy',
-            fillcolor='rgba(74, 222, 128, 0.2)',
-            hovertemplate='<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>'
-        ))
+            with stat4:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 12px; color: #4b5563;'>Total Records</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{len(history)}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>assessments</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        trend_fig.update_layout(
-            height=320,
-            margin=dict(l=40, r=20, t=20, b=40),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#d1d5db', size=12),
-            xaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                color='#9ca3af'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(74, 222, 128, 0.1)',
-                zeroline=False,
-                color='#9ca3af'
-            ),
-            showlegend=False,
-            hovermode='x unified'
-        )
 
-        st.plotly_chart(trend_fig, width="stretch", config={'displayModeBar': False})
 
-        st.markdown("---")
+            st.markdown("---")
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # -------------------------
+            # TREND VISUALIZATION
+            # -------------------------
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📉 Carbon Footprint Trend</div>", unsafe_allow_html=True)
+
+            trend_df = df[["date", "footprint"]].iloc[::-1].reset_index(drop=True)
+            trend_df['date'] = pd.to_datetime(trend_df['date'])
+
+            trend_fig = go.Figure()
+            trend_fig.add_trace(go.Scatter(
+                x=trend_df['date'],
+                y=trend_df['footprint'],
+                mode='lines+markers',
+                name='Carbon Footprint',
+                line=dict(color='#4ade80', width=3),
+                marker=dict(size=8, color='#4ade80', line=dict(color='#86efac', width=2)),
+                fill='tozeroy',
+                fillcolor='rgba(74, 222, 128, 0.2)',
+                hovertemplate='<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+            ))
+
+            trend_fig.update_layout(
+                title="Carbon Footprint Over Time",
+                height=320,
+                margin=dict(l=40, r=20, t=20, b=40),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(55, 65, 81, 0.2)',
+                font=dict(color='#d1d5db', size=12),
+                xaxis=dict(
+                    showgrid=False,
+                    zeroline=False,
+                    color='#9ca3af'
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(74, 222, 128, 0.1)',
+                    zeroline=False,
+                    color='#9ca3af'
+                ),
+                showlegend=False,
+                hovermode='x unified'
+            )
+
+
+            st.plotly_chart(
+                trend_fig,
+                width="stretch",
+                config={
+                    "displayModeBar": False,
+                    "scrollZoom": False,
+                    "responsive": True
+                }
+            )
+
+            st.markdown("---")
 
         # -------------------------
         # HISTORY TABLE
         # -------------------------
-        st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
+            with st.expander("📂 View Assessment History", expanded=True):
+                # Create a nice table display
+                display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
+                display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
+                display_df = display_df.iloc[::-1].reset_index(drop=True)
 
-        # Create a nice table display
-        display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
-        display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
-        display_df = display_df.iloc[::-1].reset_index(drop=True)
+                st.markdown(
+                    "<div class='history-table-wrap'>"
+                    + display_df.to_html(index=False, classes="history-table", border=0)
+                    + "</div>",
+                    unsafe_allow_html=True
+                )
 
-        st.markdown(
-            "<div class='history-table-wrap'>"
-            + display_df.to_html(index=False, classes="history-table", border=0)
-            + "</div>",
-            unsafe_allow_html=True
-        )
+                st.markdown("---")
 
-        st.markdown("---")
+            # -------------------------
+            # STATS & INSIGHTS
+            # -------------------------
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📊 Your Statistics</div>", unsafe_allow_html=True)
 
-        # -------------------------
-        # STATS & INSIGHTS
-        # -------------------------
-        st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📊 Your Statistics</div>", unsafe_allow_html=True)
+            stats_col1, stats_col2, stats_col3 = st.columns([1.2, 1.2, 1])
 
-        stats_col1, stats_col2, stats_col3 = st.columns(3)
+            avg_footprint = df['footprint'].mean()
+            avg_score = df['eco_score'].mean()
+            max_footprint = df['footprint'].max()
+            min_footprint = df['footprint'].min()
 
-        avg_footprint = df['footprint'].mean()
-        avg_score = df['eco_score'].mean()
-        max_footprint = df['footprint'].max()
-        min_footprint = df['footprint'].min()
+            with stats_col1:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
+                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_footprint:.0f}</div>
+                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        with stats_col1:
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
-                <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_footprint:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with stats_col2:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
+                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_score:.0f}</div>
+                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>out of 100 points</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        with stats_col2:
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
-                <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_score:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af; margin-top: 8px;'>out of 100 points</div>
-            </div>
-            """, unsafe_allow_html=True)
+            with stats_col3:
+                range_val = max_footprint - min_footprint
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
+                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{min_footprint:.0f}</div>
+                    <div style='font-size: 14px; color: #4b5563;'>to</div>
+                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{max_footprint:.0f}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        with stats_col3:
-            range_val = max_footprint - min_footprint
-            st.markdown(f"""
-            <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
-                <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{min_footprint:.0f}</div>
-                <div style='font-size: 14px; color: #9ca3af;'>to</div>
-                <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{max_footprint:.0f}</div>
-            </div>
-            """, unsafe_allow_html=True)
 
-    else:
-        st.markdown("""
-        <div class='card-highlight'>
-            <div style='text-align: center; padding: 48px 32px;'>
-                <div style='font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite;'>🌱</div>
-                <div style='font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #22c55e, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;'>No Data Yet</div>
-                <div style='color: #d1d5db; font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto;'>
-                    Start your eco journey! Complete the lifestyle profile above and click "Analyze My Impact" to generate your personalized carbon footprint report.
+
+        else:
+            st.markdown("""
+            <div class='card-highlight'>
+                <div style='text-align: center; padding: 48px 32px;'>
+                    <div style='font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite;'>🌱</div>
+                    <div style='font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #22c55e, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;'>No Data Yet</div>
+                    <div style='color: #374151; font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto;'>
+                        Start your eco journey! Complete the lifestyle profile above and click "Analyze My Impact" to generate your personalized carbon footprint report.
+                    </div>
                 </div>
             </div>
-        </div>
-        <style>
-            @keyframes bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-10px); }
-            }
-        </style>
-        """, unsafe_allow_html=True)
+            <style>
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-10px); }
+                }
+            </style>
+            """, unsafe_allow_html=True)
 
 with tab2:
     import database as db
@@ -1319,26 +1576,25 @@ with tab2:
 
             submit_app = st.form_submit_button("Add Appliance")
             if submit_app and app_name:
-                db.add_appliance(app_name, app_cat, app_qty, app_power, app_hours, app_standby)
+                db.add_appliance(user_id, app_name, app_cat, app_qty, app_power, app_hours, app_standby)
                 st.success(f"Added {app_name}")
                 st.rerun()
 
-    appliances = db.get_appliances()
+    appliances = db.get_appliances(user_id)
     if appliances:
         # Build a styled HTML table instead of st.dataframe
         category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
-        table_rows = ""
-        for a in appliances:
-            icon = category_icons.get(a['category'], '🔌')
-            table_rows += f"""
+        table_rows = "".join([
+            f"""
             <tr>
-                <td>{icon} {h(a['name'])}</td>
+                <td>{category_icons.get(a['category'], '🔌')} {h(a['name'])}</td>
                 <td><span style='background:rgba(74,222,128,0.15); padding:4px 10px; border-radius:8px; font-size:13px;'>{h(a['category'])}</span></td>
                 <td style='text-align:center;'>{a['quantity']}</td>
                 <td style='text-align:right;'>{a['power_rating_watts']:.0f} W</td>
                 <td style='text-align:right;'>{a['hours_used_per_day']:.1f} h</td>
                 <td style='text-align:right;'>{a['standby_draw_watts']:.1f} W</td>
-            </tr>"""
+            </tr>""" for a in appliances
+        ])
 
         st.markdown(f"""
         <div style='border:1px solid rgba(134,239,172,0.24); border-radius:16px; overflow:hidden; background:#0f172a; box-shadow:0 24px 70px rgba(0,0,0,0.38);'>
@@ -1432,10 +1688,12 @@ with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
     # Header: Level, XP, Streak
-    total_xp = gf.get_total_xp(1)
+    total_xp = gf.get_total_xp(user_id)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
-    streak = gf.calculate_streak(1, [])
+    history = get_assessments(user_id)
+    activities_dates = [row[1] for row in history] if history else []
+    streak = gf.calculate_streak(1, activities_dates)
     
     g_col1, g_col2, g_col3 = st.columns(3)
     g_col1.metric("Current Level", f"Lvl {level}")
@@ -1447,34 +1705,39 @@ with tab3:
     st.markdown("---")
     st.markdown("### 🏆 Weekly Challenges")
     
-    user_challenges = gf.get_user_challenges(1)
-    enrolled_ids = [c['challenge_id'] for c in user_challenges if c['status'] != 'expired']
-    
+    user_challenges = gf.get_user_challenges(user_id)
+    # Optimize primary evaluation loop by pre-computing challenge states
+    challenge_states = {}
+    for c in user_challenges:
+        if c['status'] != 'expired':
+            challenge_states[c['challenge_id']] = c
+            
     for ch_id, ch_data in gf.CHALLENGES.items():
         with st.expander(f"{ch_data['title']} ({ch_data['xp']} XP) - {ch_data['category']}"):
             st.write(f"Target: {ch_data['target']} {ch_data['unit']}")
-            if ch_id in enrolled_ids:
-                status = [c['status'] for c in user_challenges if c['challenge_id'] == ch_id][-1]
+            if ch_id in challenge_states:
+                state = challenge_states[ch_id]
+                status = state['status']
                 if status == 'completed':
                     st.success("Challenge Completed! 🎉")
                 else:
-                    current_prog = [c['progress_value'] for c in user_challenges if c['challenge_id'] == ch_id][-1]
+                    current_prog = state['progress_value']
                     st.write(f"Progress: {current_prog} / {ch_data['target']}")
                     
                     prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
                     if st.button("Update", key=f"btn_prog_{ch_id}"):
-                        gf.update_challenge_progress(1, ch_id, progress_increment=prog_val)
+                        gf.update_challenge_progress(user_id, ch_id, progress_increment=prog_val)
                         gf.validate_challenge_progress(1, ch_id)
                         st.rerun()
             else:
                 if st.button("Enroll", key=f"enroll_{ch_id}"):
-                    gf.enroll_challenge(1, ch_id)
+                    gf.enroll_challenge(user_id, ch_id)
                     st.rerun()
 
     st.markdown("---")
     st.markdown("### 🎖️ Achievement Badges")
     
-    unlocked = gf.get_unlocked_badges(1)
+    unlocked = gf.get_unlocked_badges(user_id)
     unlocked_ids = [b['badge_id'] for b in unlocked]
     
     cols = st.columns(len(gf.BADGES))
@@ -1559,7 +1822,7 @@ with tab4:
                 if is_valid:
                     cost = calculate_offset_cost(tonnes, selected_proj["cost_per_tonne"])
                     # Defaulting to user_id=1 for now as per instructions
-                    if save_offset_transaction(1, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                    if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
                         st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
                     else:
                         st.error("Failed to save transaction.")
@@ -1573,8 +1836,8 @@ with tab4:
     
     with port_col1:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-        total_offsets = get_total_offsets(1)
-        total_spend = get_total_spend(1)
+        total_offsets = get_total_offsets(user_id)
+        total_spend = get_total_spend(user_id)
         st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
         st.metric("Total Simulated Spend", f"${total_spend:.2f}")
         
@@ -1586,15 +1849,14 @@ with tab4:
 
     with port_col2:
         st.subheader("Transaction History")
-        transactions = get_offset_transactions(1)
+        transactions = get_offset_transactions(user_id)
         if transactions:
             df_trans = pd.DataFrame(transactions)
             st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
             
             # Button to clear history for demo purposes
             if st.button("Clear History"):
-                for t in transactions:
-                    delete_offset_transaction(t['id'])
+                clear_offset_transactions(user_id)
                 st.rerun()
         else:
             st.info("No transactions yet. Visit the marketplace to start your portfolio!")
@@ -1768,3 +2030,79 @@ st.success(
     "Complete the lifestyle form above and click **Analyze My Impact** "
     "to generate your first carbon footprint assessment."
 )
+st.markdown("""
+<style>
+.footer{
+    margin-top:60px;
+
+    /* Stretch outside Streamlit container */
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
+    margin-bottom:-60px;
+
+    padding:50px 30px 25px;
+
+    background:linear-gradient(135deg,#010b07 0%,#04140d 45%,#071c13 100%);
+    color:white;
+    text-align:center;
+
+    box-shadow:0 -12px 35px rgba(0,0,0,.35);
+}
+
+.footer h2{
+    color:white;
+    font-size:38px;
+    font-weight:800;
+    margin-bottom:12px;
+}
+
+.footer p{
+    margin:12px 0;
+    color:#d1fae5;
+    font-size:16px;
+}
+
+.footer hr{
+    border:none;
+    height:1px;
+    background:rgba(255,255,255,.12);
+    margin:28px auto 18px;
+    width:90%;
+}
+
+.footer-bottom{
+    color:#4b5563;
+    font-size:14px;
+}
+</style>
+
+<div class="footer">
+
+<h2>🌱 EcoBuddy AI+</h2>
+
+<p>
+Your Personal AI-Powered Carbon Footprint Tracker &amp; Eco Assistant.
+</p>
+
+<p>
+💚 <b>Track</b> &nbsp; • &nbsp;
+📊 <b>Analyze</b> &nbsp; • &nbsp;
+💡 <b>Improve</b>
+</p>
+
+<p>
+Built with ❤️ using <b>Streamlit</b>,
+<b>Google Gemini</b>,
+<b>Python</b>,
+and <b>Pandas</b>.
+</p>
+
+<hr>
+
+<div class="footer-bottom">
+© 2026 EcoBuddy AI+. Encouraging sustainable living, one step at a time.
+</div>
+
+</div>
+""", unsafe_allow_html=True)

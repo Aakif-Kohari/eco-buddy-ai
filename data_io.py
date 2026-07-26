@@ -3,13 +3,20 @@ import json
 import csv
 import io
 import zipfile
+import streamlit as st
 from database import DB_NAME
+import database
+from cache import cached
+from cache_config import CACHE_CATEGORY_SESSION
+from invalidation import invalidate_all_db_caches, invalidate_export_caches
+
 
 def _dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
+
 
 def _get_all_table_data(table_name):
     conn = None
@@ -30,6 +37,8 @@ def _get_all_table_data(table_name):
         if conn:
             conn.close()
 
+
+@cached(category=CACHE_CATEGORY_SESSION)
 def export_data_json():
     """Exports all user data as a JSON string."""
     tables = [
@@ -47,6 +56,8 @@ def export_data_json():
         data[table] = _get_all_table_data(table)
     return json.dumps(data, indent=4)
 
+
+@cached(category=CACHE_CATEGORY_SESSION)
 def export_data_csv_zip():
     """Exports assessments, appliances, and offset_transactions as CSVs in a ZIP archive."""
     tables_to_export = ["assessments", "appliances", "offset_transactions"]
@@ -66,6 +77,7 @@ def export_data_csv_zip():
             zip_file.writestr(f"{table}.csv", csv_buffer.getvalue())
             
     return zip_buffer.getvalue()
+
 
 def import_data_json(json_str, strategy='merge'):
     """Imports JSON data back into the database. Strategy can be 'merge' or 'replace'."""
@@ -135,6 +147,10 @@ def import_data_json(json_str, strategy='merge'):
                     continue
 
         conn.commit()
+
+        invalidate_export_caches()
+        invalidate_all_db_caches()
+
         return True, "Data imported successfully!"
     except Exception as e:
         if conn:

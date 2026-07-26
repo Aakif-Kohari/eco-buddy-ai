@@ -12,9 +12,12 @@ TEST_DB = "test_eco_buddy.db"
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
+    original_db_name = db.DB_NAME
     db.DB_NAME = TEST_DB
+    db.init_db()
     db.init_gamification_db()
     yield
+    db.DB_NAME = original_db_name
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
 
@@ -39,16 +42,24 @@ def test_streak_calculation():
     today = datetime.date.today()
     d1 = today - datetime.timedelta(days=2)
     d2 = today - datetime.timedelta(days=1)
-    
+
     dates = [d1, d2, today]
     assert gf.calculate_streak(1, dates) == 3
 
-    # Broken streak
+    # Broken streak (gap between d_broken and d2)
     d_broken = today - datetime.timedelta(days=3)
     dates_broken = [d_broken, d2, today]
-    # diff for d_broken is 3. streak is 2 at that point. diff (3) > streak (2), so breaks.
     assert gf.calculate_streak(1, dates_broken) == 2
-    
+
+    # Active streak — logged yesterday but NOT today yet (#86 fix)
+    dates_active = [d1, d2]
+    assert gf.calculate_streak(1, dates_active) == 2
+
+    # Broken streak — last log was 2 days ago, nothing logged since
+    d3 = today - datetime.timedelta(days=3)
+    dates_broken_old = [d3, d1]
+    assert gf.calculate_streak(1, dates_broken_old) == 0
+
 def test_challenges():
     # Enroll
     success = db.enroll_challenge(1, 'c1')
