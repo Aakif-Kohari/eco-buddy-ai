@@ -1,5 +1,24 @@
 import os
 import sqlite3
+from cache import cached
+from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
+from invalidation import (
+    invalidate_on_assessment_save,
+    invalidate_on_appliance_change,
+    invalidate_on_solar_config_save,
+    invalidate_on_challenge_enroll,
+    invalidate_on_challenge_progress,
+    invalidate_on_challenge_complete,
+    invalidate_on_xp_award,
+    invalidate_on_badge_unlock,
+    invalidate_on_skill_tree_update,
+    invalidate_on_journey_save,
+    invalidate_on_journey_delete,
+    invalidate_on_offset_save,
+    invalidate_on_offset_delete,
+    invalidate_on_offset_clear,
+    invalidate_on_water_assessment_save,
+)
 import streamlit as st
 import bcrypt
 
@@ -154,14 +173,14 @@ def save_assessment(
 
         conn.commit()
         conn.close()
-        get_assessments.clear()
+        invalidate_on_assessment_save()
         return True
     except sqlite3.Error as e:
         print(f"Database save error: {e}")
         return False
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_assessments(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -238,7 +257,7 @@ def add_appliance(user_id, name, category, quantity, power_rating, hours_used, s
         """, (user_id, name, category, quantity, power_rating, hours_used, standby_draw))
         conn.commit()
         conn.close()
-        get_appliances.clear()
+        invalidate_on_appliance_change()
         return True
     except sqlite3.Error as e:
         print(f"Appliance save error: {e}")
@@ -252,13 +271,13 @@ def delete_appliance(app_id):
         cursor.execute("DELETE FROM appliances WHERE id = ?", (app_id,))
         conn.commit()
         conn.close()
-        get_appliances.clear()
+        invalidate_on_appliance_change()
         return True
     except sqlite3.Error as e:
         return False
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_appliances(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -287,13 +306,13 @@ def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_e
         """, (user_id, roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc))
         conn.commit()
         conn.close()
-        get_solar_config.clear()
+        invalidate_on_solar_config_save()
         return True
     except sqlite3.Error as e:
         return False
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_solar_config(user_id=1):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -403,7 +422,7 @@ def enroll_challenge(user_id, challenge_id):
             VALUES (?, ?, 'enrolled')
         """, (user_id, challenge_id))
         conn.commit()
-        get_user_challenges.clear()
+        invalidate_on_challenge_enroll()
         return True
     except sqlite3.Error as e:
         print(f"enroll_challenge error: {e}")
@@ -433,7 +452,7 @@ def update_challenge_progress(user_id, challenge_id, progress_increment=None, se
             """, (set_progress, user_id, challenge_id))
             
         conn.commit()
-        get_user_challenges.clear()
+        invalidate_on_challenge_enroll()
         return True
     except sqlite3.Error as e:
         print(f"update_challenge_progress error: {e}")
@@ -456,7 +475,7 @@ def complete_challenge(user_id, challenge_id):
         """, (user_id, challenge_id))
         
         conn.commit()
-        get_user_challenges.clear()
+        invalidate_on_challenge_enroll()
         return True
     except sqlite3.Error as e:
         print(f"complete_challenge error: {e}")
@@ -466,7 +485,7 @@ def complete_challenge(user_id, challenge_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_user_challenges(user_id):
     conn = None
     try:
@@ -496,13 +515,13 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
         
         if source_type == 'challenge':
             cursor.execute("UPDATE user_challenges SET xp_awarded = 1 WHERE user_id = ? AND challenge_id = ?", (user_id, source_id))
-            get_user_challenges.clear()
+            invalidate_on_challenge_enroll()
         elif source_type == 'badge':
             cursor.execute("UPDATE unlocked_badges SET xp_awarded = 1 WHERE user_id = ? AND badge_id = ?", (user_id, source_id))
-            get_unlocked_badges.clear()
+            invalidate_on_badge_unlock()
             
         conn.commit()
-        get_total_xp.clear()
+        invalidate_on_xp_award()
         return True
     except sqlite3.IntegrityError:
         return False
@@ -514,7 +533,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_xp(user_id):
     conn = None
     try:
@@ -542,8 +561,8 @@ def unlock_badge_in_db(user_id, badge_id):
         """, (user_id, badge_id))
         
         conn.commit()
-        get_unlocked_badges.clear()
-        get_total_xp.clear()
+        invalidate_on_badge_unlock()
+        invalidate_on_xp_award()
         return True
     except sqlite3.IntegrityError:
         return False
@@ -555,7 +574,7 @@ def unlock_badge_in_db(user_id, badge_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_unlocked_badges(user_id):
     conn = None
     try:
@@ -572,7 +591,7 @@ def get_unlocked_badges(user_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_skill_tree_progress(user_id):
     conn = None
     try:
@@ -622,7 +641,7 @@ def update_skill_node_status(user_id, node_id, status):
                 """, (user_id, node_id, status))
                 
         conn.commit()
-        get_skill_tree_progress.clear()
+        invalidate_on_skill_tree_update()
         return True
     except sqlite3.Error as e:
         print(f"update_skill_node_status error: {e}")
@@ -692,7 +711,7 @@ def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_c
         ''', (user_id, name, distance_km, transport_mode, passenger_count, trips_per_week, is_commute))
         
         conn.commit()
-        get_journey_profiles.clear()
+        invalidate_on_journey_save()
         return True
     except Exception as e:
         print(f'save_journey_profile error: {e}')
@@ -702,7 +721,7 @@ def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_c
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_journey_profiles(user_id):
     conn = None
     try:
@@ -728,7 +747,7 @@ def delete_journey_profile(profile_id):
         cursor = conn.cursor()
         cursor.execute('DELETE FROM journey_profiles WHERE id = ?', (profile_id,))
         conn.commit()
-        get_journey_profiles.clear()
+        invalidate_on_journey_save()
         return True
     except Exception:
         return False
@@ -750,9 +769,9 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
         ''', (user_id, project_id, project_name, offset_tonnes, cost_per_tonne, total_cost, transaction_status))
         
         conn.commit()
-        get_offset_transactions.clear()
-        get_total_offsets.clear()
-        get_total_spend.clear()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
         return True
     except Exception as e:
         print(f'save_offset_transaction error: {e}')
@@ -762,7 +781,7 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_offset_transactions(user_id):
     conn = None
     try:
@@ -788,9 +807,9 @@ def delete_offset_transaction(transaction_id):
         cursor = conn.cursor()
         cursor.execute('DELETE FROM offset_transactions WHERE id = ?', (transaction_id,))
         conn.commit()
-        get_offset_transactions.clear()
-        get_total_offsets.clear()
-        get_total_spend.clear()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
         return True
     except Exception:
         return False
@@ -807,9 +826,9 @@ def clear_offset_transactions(user_id):
         cursor = conn.cursor()
         cursor.execute('DELETE FROM offset_transactions WHERE user_id = ?', (user_id,))
         conn.commit()
-        get_offset_transactions.clear()
-        get_total_offsets.clear()
-        get_total_spend.clear()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
+        invalidate_on_offset_save()
         return True
     except Exception:
         return False
@@ -818,7 +837,7 @@ def clear_offset_transactions(user_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_offsets(user_id):
     conn = None
     try:
@@ -835,7 +854,7 @@ def get_total_offsets(user_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_spend(user_id):
     conn = None
     try:
@@ -852,7 +871,7 @@ def get_total_spend(user_id):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_diet_history(user_id, limit=7):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -912,7 +931,7 @@ def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, to
         ''', (user_id, shower, laundry, dishwasher, garden, diet, total_liters))
         
         conn.commit()
-        get_water_assessments.clear()
+        invalidate_on_water_assessment_save()
         return True
     except Exception as e:
         print(f'save_water_assessment error: {e}')
@@ -922,7 +941,7 @@ def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, to
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_water_assessments(user_id):
     conn = None
     try:
@@ -978,7 +997,7 @@ def save_assessment(
         ))
         conn.commit()
         conn.close()
-        get_assessments.clear()
+        invalidate_on_assessment_save()
         return True
     except sqlite3.IntegrityError:
         return False

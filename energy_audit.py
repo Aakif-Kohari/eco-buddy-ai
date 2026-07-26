@@ -1,5 +1,7 @@
 import streamlit as st
 from config import HOURS_PER_DAY, WATTS_TO_KW, DAYS_PER_YEAR, MONTHS_PER_YEAR
+from cache import cached
+from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 
 
 def calculate_appliance_energy(power_rating_watts, hours_used_per_day, standby_draw_watts, quantity):
@@ -15,13 +17,13 @@ def calculate_appliance_cost(daily_kwh, rate_per_kwh):
     return daily_cost, daily_cost * MONTHS_PER_YEAR, daily_cost * DAYS_PER_YEAR
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def calculate_home_energy_summary(appliances):
     total_daily_kwh = sum(calculate_appliance_energy(a['power_rating_watts'], a['hours_used_per_day'], a['standby_draw_watts'], a['quantity'])[0] for a in appliances)
     return total_daily_kwh, total_daily_kwh * MONTHS_PER_YEAR, total_daily_kwh * DAYS_PER_YEAR
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def generate_hourly_energy_profile(appliances):
     profile = [0.0] * HOURS_PER_DAY
     for app in appliances:
@@ -64,7 +66,7 @@ def calculate_solar_payback_period(installation_cost, annual_savings):
     return installation_cost / annual_savings
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years, rate_increase_pct, maintenance_cost):
     total_savings = 0
     current_rate = utility_rate

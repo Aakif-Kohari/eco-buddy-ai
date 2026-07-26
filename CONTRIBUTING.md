@@ -159,6 +159,71 @@ Please follow these guidelines:
 
 ---
 
+# Caching Strategy
+
+EcoBuddy AI uses a centralized caching layer for predictable and maintainable cache behavior.
+
+## Architecture
+
+- **`cache_config.py`** — TTL policies and cache categories (single source of truth)
+- **`cache.py`** — Reusable `@cached()` decorator wrapping `st.cache_data`
+- **`invalidation.py`** — Dependency-aware cache invalidation registry
+- **`cache_metrics.py`** — Cache performance metrics (hits, misses, invalidations)
+
+## Using the Cache Decorator
+
+```python
+from cache import cached
+from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_data(user_id):
+    # ... database query ...
+    return data
+```
+
+## Cache Categories
+
+| Category | Default TTL | Use Case |
+|----------|-------------|----------|
+| `db_reads` | 60s | Database read queries |
+| `api` | 24h | External API results (Climatiq) |
+| `computed` | 5min | Computed analytics (summaries, forecasts) |
+| `static` | None | Static/constant data |
+| `session` | None | Session-scoped data (OCR, exports) |
+
+## Cache Invalidation
+
+Write operations use centralized invalidation helpers from `invalidation.py`:
+
+```python
+from invalidation import invalidate_on_assessment_save
+
+def save_assessment(...):
+    # ... database write ...
+    invalidate_on_assessment_save()  # Clears dependent caches
+```
+
+**Never call `.clear()` directly on cached functions.** Always use the invalidation helpers.
+
+## Adding a New Cached Function
+
+1. Choose the appropriate category from `cache_config.py`
+2. Use the `@cached()` decorator with the category and TTL
+3. If this function's cache needs invalidation, add a helper to `invalidation.py`
+4. Call the invalidation helper from all write operations that affect this data
+
+## Cache Metrics
+
+Enable metrics display in the Streamlit sidebar:
+
+```python
+from cache_metrics import render_metrics_sidebar
+render_metrics_sidebar()
+```
+
+---
+
 # Adding a Calculator Plugin
 
 EcoBuddy AI uses a plugin-based architecture for sustainability calculators. You can add a new calculator without modifying the application's core logic.

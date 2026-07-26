@@ -19,7 +19,10 @@ from styles.theme import apply_theme
 apply_theme()
 
 
-@st.cache_data(ttl=3600)
+from cache import cached
+from cache_config import TTL_LLM_RESPONSE
+
+@cached(ttl=TTL_LLM_RESPONSE)
 def compute_arima_forecast(ts_data):
     import warnings
     from statsmodels.tsa.arima.model import ARIMA

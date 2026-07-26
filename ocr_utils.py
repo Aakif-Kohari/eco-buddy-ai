@@ -4,8 +4,10 @@ import pytesseract
 from PIL import Image
 import io
 import streamlit as st
+from cache import cached
+from cache_config import CACHE_CATEGORY_SESSION
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_SESSION)
 def extract_text_from_file(uploaded_file):
     """Extracts text from a Streamlit UploadedFile object."""
     text = ""
@@ -30,7 +32,7 @@ def extract_text_from_file(uploaded_file):
 
     return text
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_SESSION)
 def parse_energy_consumption(text):
     """
     Parses energy consumption values from text.

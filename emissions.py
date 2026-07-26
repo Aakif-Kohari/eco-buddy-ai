@@ -9,9 +9,11 @@ from config import (
     TRANSPORT_EMISSION_FACTORS, DIET_EMISSION_FACTORS,
     normalize_diet,
 )
+from cache import cached
+from cache_config import TTL_EXTERNAL_API, CACHE_CATEGORY_API
 
 
-@st.cache_data(ttl=86400)
+@cached(ttl=TTL_EXTERNAL_API, category=CACHE_CATEGORY_API)
 def fetch_emission_factors(region: str) -> dict:
     """
     Fetches dynamic emission factors from a third-party Carbon API.
