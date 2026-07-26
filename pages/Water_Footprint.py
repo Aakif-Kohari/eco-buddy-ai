@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from water import calculate_water_footprint, GLOBAL_WATER_AVERAGE_LITERS
+from water import calculate_water_footprint, validate_water_inputs, GLOBAL_WATER_AVERAGE_LITERS
 from recommendations import generate_water_recommendations
 from database import save_water_assessment
 
@@ -21,20 +21,41 @@ st.markdown("---")
 
 st.markdown("### 🚰 Your Daily Habits")
 
+st.info(
+    "Typical ranges — Shower: 5–15 min/day · Laundry: 2–7 loads/week "
+    "· Dishwasher: 3–14 runs/week · Garden: 0–60 min/week"
+)
+
 col1, col2 = st.columns(2)
 with col1:
-    shower_mins = st.number_input("Average Shower Duration (minutes/day)", min_value=0.0, value=10.0, step=1.0)
-    laundry_loads = st.number_input("Laundry Loads (per week)", min_value=0, value=2, step=1)
-    dishwasher_runs = st.number_input("Dishwasher Runs (per week)", min_value=0, value=3, step=1)
+    shower_mins = st.number_input(
+        "Average Shower Duration (minutes/day)",
+        min_value=0.0, max_value=180.0, value=10.0, step=1.0
+    )
+    laundry_loads = st.number_input(
+        "Laundry Loads (per week)",
+        min_value=0, max_value=50, value=2, step=1
+    )
+    dishwasher_runs = st.number_input(
+        "Dishwasher Runs (per week)",
+        min_value=0, max_value=50, value=3, step=1
+    )
 
 with col2:
-    garden_mins = st.number_input("Garden Watering (minutes/week)", min_value=0.0, value=0.0, step=5.0)
+    garden_mins = st.number_input(
+        "Garden Watering (minutes/week)",
+        min_value=0.0, max_value=600.0, value=0.0, step=5.0
+    )
     diet = st.selectbox("Diet Type (Virtual Water)", ["Vegan", "Vegetarian", "Omnivore", "Heavy Meat"], index=2)
 
 st.markdown("---")
 analyze_btn = st.button("💧 Calculate Water Footprint", use_container_width=True)
 
 if analyze_btn:
+    warnings = validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mins)
+    for w in warnings:
+        st.warning(w)
+
     with st.spinner("Calculating your water footprint..."):
         total_daily, contributors = calculate_water_footprint(
             shower_mins, laundry_loads, dishwasher_runs, garden_mins, diet
