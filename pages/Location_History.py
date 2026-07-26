@@ -121,12 +121,16 @@ if uploaded_file is not None:
                     )
                 ).add_to(m)
 
+                
+                if seg["mode"] in ["Car", "Bike", "Public Transport", "Walking"]:
+
                 if seg["mode"] in [
                     "Car",
                     "Bike",
                     "Public Transport",
                     "Walking"
                 ]:
+
                     _, contributors = calculate_footprint(
                         seg["mode"],
                         seg["distance_km"] / 365.0,
@@ -170,6 +174,9 @@ if uploaded_file is not None:
             if st.button("Commit to Permanent Emissions Log"):
                 success_count = 0
 
+                failed_count = 0
+
+
                 for item in segment_data:
                     if item["Mode"] in [
                         "Car",
@@ -185,6 +192,10 @@ if uploaded_file is not None:
                         transport = item["Mode"]
                         dist = item["Distance (km)"]
                         footprint = item["Emissions (kg CO2)"]
+
+                        eco_score = 50 
+                        
+
                         eco_score = 50
 
                         if save_assessment(
@@ -199,6 +210,25 @@ if uploaded_file is not None:
                             success_count += 1
                             gf.check_badge_eligibility(1)
 
+                        else:
+                            failed_count += 1
+                
+                if success_count > 0 and failed_count == 0:
+                    st.success(
+                        f"Successfully committed all {success_count} trips "
+                        "to the emissions log!"
+                    )
+                elif success_count > 0 and failed_count > 0:
+                    st.warning(
+                        f"Partially committed trips: {success_count} succeeded "
+                        f"and {failed_count} failed."
+                    )
+                elif failed_count > 0:
+                    st.error(
+                        f"Failed to commit {failed_count} trips "
+                        "to the emissions log."
+
+
                 if success_count > 0:
                     st.success(
 
@@ -206,6 +236,7 @@ if uploaded_file is not None:
 
                         f"Successfully committed {success_count} trips "
                         "to the emissions log!"
+
 
                     )
                 else:
