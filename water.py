@@ -1,22 +1,6 @@
 # water.py
 import streamlit as st
-from config import normalize_diet
-
-GLOBAL_WATER_AVERAGE_LITERS = 3800.0
-
-WATER_FACTORS = {
-    "shower_liter_per_min": 10.0,
-    "laundry_liter_per_load": 50.0,
-    "dishwasher_liter_per_run": 15.0,
-    "garden_liter_per_min": 20.0,
-}
-
-DIET_VIRTUAL_WATER = {
-    "Vegan": 2000.0,
-    "Vegetarian": 2500.0,
-    "Omnivore": 4000.0,
-    "Heavy Meat": 5000.0
-}
+from config import GLOBAL_WATER_AVERAGE_LITERS, WATER_FACTORS, DIET_VIRTUAL_WATER, normalize_diet
 
 def validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mins):
     warnings = []
