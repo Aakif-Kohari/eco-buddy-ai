@@ -225,6 +225,11 @@ import_strategy = st.radio(
     ),
 )
 
+if import_strategy == "Replace":
+    st.warning(
+        "⚠ **Warning:** Replace will permanently delete your current EcoBuddy data before importing the new backup."
+    )
+
 uploaded_file = st.file_uploader(
     "Upload JSON Export File",
     type=["json"],
