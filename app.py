@@ -610,18 +610,12 @@ with tab1:
                     borderwidth=1
                 )
             )
-
-            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
-
-
-        st.markdown("---")
-
         # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart
+        # Bar chart creation
         breakdown_fig = go.Figure(data=[
             go.Bar(
                 x=list(contributors.keys()),
@@ -657,7 +651,37 @@ with tab1:
             showlegend=False
         )
 
-        st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
+        # Render Chart
+        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+
+        # -------------------------
+        # CHART EXPORT BUTTONS (#277)
+        # -------------------------
+        try:
+            col_exp1, col_exp2 = st.columns(2)
+
+            # Export PNG (High Quality Scale = 3)
+            png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+            col_exp1.download_button(
+                label="📥 Export Chart as PNG",
+                data=png_bytes,
+                file_name="breakdown_chart.png",
+                mime="image/png",
+                use_container_width=True
+            )
+
+            # Export SVG (Vector Quality)
+            svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+            col_exp2.download_button(
+                label="📥 Export Chart as SVG",
+                data=svg_bytes,
+                file_name="breakdown_chart.svg",
+                mime="image/svg+xml",
+                use_container_width=True
+            )
+        except Exception:
+            # Fallback if kaleido or required engine is not available
+            pass
 
         st.markdown("---")
 
