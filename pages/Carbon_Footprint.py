@@ -127,10 +127,23 @@ with tab_assess:
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment", use_container_width=True)
         if reset_btn:
-            st.session_state.pop("extracted_kwh", None)
-            st.session_state.pop("analysis", None)
-            st.success("✅ Assessment form has been reset.")
+            st.session_state.show_reset_confirm_cf = True
             st.rerun()
+
+    if st.session_state.get("show_reset_confirm_cf", False):
+        st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
+        confirm_col, cancel_col, _ = st.columns([1, 1, 3])
+        with confirm_col:
+            if st.button("✅ Confirm Reset", key="confirm_reset_cf"):
+                st.session_state.pop("extracted_kwh", None)
+                st.session_state.pop("analysis", None)
+                st.session_state.show_reset_confirm_cf = False
+                st.success("✅ Assessment form has been reset.")
+                st.rerun()
+        with cancel_col:
+            if st.button("❌ Cancel", key="cancel_reset_cf"):
+                st.session_state.show_reset_confirm_cf = False
+                st.rerun()
 
     with col_btn2:
         st.caption("✔ All input fields are validated before analysis.")
