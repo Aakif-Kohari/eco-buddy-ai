@@ -4,11 +4,10 @@ import sys
 from datetime import datetime
 from data_io import export_data_json, export_data_csv_zip, import_data_json
 from database import get_assessments
-
+from background_tasks import submit_background_task, render_task_progress, clear_background_task
 from styles.theme import apply_theme
 
 apply_theme()
-from datetime import datetime
 
 
 def render_export_card(
@@ -26,20 +25,28 @@ def render_export_card(
     st.subheader(title)
     st.markdown(description)
 
-    if st.button(button_label):
-        with st.spinner(f"Generating {format_name}..."):
-            export_data = export_function()
+    task_key = f"bg_export_{session_key}"
 
-            if not empty_check(export_data):
-                st.session_state[session_key] = export_data
-            else:
-                st.warning(
-                    "⚠️ No data available to export. Add some data before exporting."
-                )
+    if st.button(button_label, key=f"btn_bg_{session_key}"):
+        submit_background_task(
+            task_key,
+            export_function,
+            task_name=f"Generating {format_name}"
+        )
+
+    is_done, export_data = render_task_progress(
+        task_key,
+        success_msg=f"{format_name} generated successfully!"
+    )
+
+    if is_done and export_data is not None:
+        if not empty_check(export_data):
+            st.session_state[session_key] = export_data
+        else:
+            st.warning("⚠️ No data available to export. Add some data before exporting.")
+        clear_background_task(task_key)
 
     if st.session_state.get(session_key):
-        st.success("✅ Export generated successfully!")
-
         st.markdown("#### Export Details")
         st.markdown(f"**📄 File Name:** `{filename}`")
         st.markdown(f"**🗂 Format:** {format_name}")
@@ -55,6 +62,7 @@ def render_export_card(
             key=download_key,
         )
 
+
 # -----------------------------
 # Session State Initialization
 # -----------------------------
@@ -63,18 +71,6 @@ if "csv_export" not in st.session_state:
 
 if "json_export" not in st.session_state:
     st.session_state.json_export = None
-
-
-def show_export_details(file_name: str, export_format: str):
-    st.success("✅ Export generated successfully!")
-
-    st.markdown("#### Export Details")
-    st.markdown(f"**📄 File Name:** `{file_name}`")
-    st.markdown(f"**🗂 Format:** {export_format}")
-    st.markdown(
-        f"**🕒 Generated At:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-
 
 
 st.title("💾 Data Portability")
@@ -105,7 +101,6 @@ col1, col2 = st.columns(2)
 # CSV EXPORT
 # ======================================================
 with col1:
-
     render_export_card(
         title="CSV Export",
         description=(
@@ -122,44 +117,10 @@ with col1:
         download_key="download_csv_zip",
     )
 
-    st.subheader("CSV Export")
-    st.markdown(
-        "Download your core data tables as CSV files bundled in a ZIP archive. "
-        "This format is great for analyzing your data in Excel or other tools."
-    )
-
-    if st.button("Generate CSV Archive"):
-        with st.spinner("Generating CSV archive..."):
-            zip_data = export_data_csv_zip()
-
-            if zip_data:
-                st.session_state.csv_export = zip_data
-            else:
-                st.warning(
-                    "⚠️ No data available to export. Add some data before exporting."
-                )
-
-    if st.session_state.csv_export:
-        show_export_details(
-            "ecobuddy_export.zip",
-            "ZIP (CSV Archive)"
-        )
-
-
-        st.download_button(
-            label="⬇️ Download ZIP",
-            data=st.session_state.csv_export,
-            file_name="ecobuddy_export.zip",
-            mime="application/zip",
-            key="download_csv_zip",
-        )
-
-
 # ======================================================
 # JSON EXPORT
 # ======================================================
 with col2:
-
     render_export_card(
         title="JSON Export",
         description=(
@@ -175,38 +136,6 @@ with col2:
         format_name="JSON",
         download_key="download_json",
     )
-
-    st.subheader("JSON Export")
-    st.markdown(
-        "Download a full dump of your data in JSON format. "
-        "This format is required if you want to import your data back into EcoBuddy later."
-    )
-
-    if st.button("Generate JSON Export"):
-        with st.spinner("Generating JSON export..."):
-            json_data = export_data_json()
-
-            if json_data != "{}":
-                st.session_state.json_export = json_data
-            else:
-                st.warning(
-                    "⚠️ No data available to export. Add some data before exporting."
-                )
-
-    if st.session_state.json_export:
-        show_export_details(
-            "ecobuddy_export.json",
-            "JSON"
-        )
-
-        st.download_button(
-            label="⬇️ Download JSON",
-            data=st.session_state.json_export,
-            file_name="ecobuddy_export.json",
-            mime="application/json",
-            key="download_json",
-        )
-
 
 
 st.markdown("---")
@@ -235,19 +164,15 @@ uploaded_file = st.file_uploader(
     type=["json"],
 )
 
-import json
-
-
 if uploaded_file is not None:
-
     try:
-        json_content = uploaded_file.read().decode("utf-8")
+        json_bytes = uploaded_file.read()
+        json_content = json_bytes.decode("utf-8")
         preview = json.loads(json_content)
 
         st.success("✅ Valid backup file detected")
 
         st.subheader("📋 Backup Preview")
-
         total_records = 0
 
         for key, value in preview.items():
@@ -256,74 +181,43 @@ if uploaded_file is not None:
                 st.write(f"**{key.replace('_',' ').title()}** : {len(value)} records")
 
         st.info(f"📦 Total Records: {total_records}")
-
         file_size = uploaded_file.size / 1024
-
         st.caption(f"File Size: {file_size:.2f} KB")
 
-        uploaded_file.seek(0)
+        confirm_replace = True
+        if import_strategy == "Replace":
+            confirm_replace = st.checkbox(
+                "I understand that my existing data will be permanently deleted."
+            )
+
+        if st.button("Restore Data") and confirm_replace:
+            if not json_content.strip():
+                st.error("❌ The uploaded file contains no data.")
+            else:
+                submit_background_task(
+                    "bg_import_json",
+                    import_data_json,
+                    json_content,
+                    strategy=import_strategy.lower(),
+                    task_name="Restoring Backup Data"
+                )
 
     except Exception:
         st.error("❌ Invalid JSON file.")
 
-if uploaded_file is not None:
-    confirm_replace = True
+is_done, import_result = render_task_progress(
+    "bg_import_json",
+    success_msg="Import operation completed!"
+)
 
-    if import_strategy == "Replace":
-
-        confirm_replace = st.checkbox(
-        "I understand that my existing data will be permanently deleted.")
-
-    if st.button("Restore Data") and confirm_replace:
-        
-        # Read uploaded file
-        file_bytes = uploaded_file.read()
-
-        # Empty file validation
-        if not file_bytes:
-            st.error("❌ The uploaded file is empty. Please upload a valid EcoBuddy JSON export.")
-            st.stop()
-
-        # Decode validation
-        try:
-            json_content = file_bytes.decode("utf-8")
-        except UnicodeDecodeError:
-            st.error("❌ Unable to read the file. Please upload a UTF-8 encoded JSON file.")
-            st.stop()
-
-        # Empty content validation
-        if not json_content.strip():
-            st.error("❌ The uploaded file contains no data.")
-            st.stop()
-
-        # JSON validation
-        try:
-            json.loads(json_content)
-        except json.JSONDecodeError as e:
-            st.error(f"❌ Invalid JSON file.\n\nDetails: {e}")
-            st.stop()
-
-        # Import only after validation passes
-
-        json_content = uploaded_file.read().decode("utf-8")
-
-
-        with st.spinner("Importing data..."):
-            success, message = import_data_json(
-                json_content,
-                strategy=import_strategy.lower(),
-
-user_id = st.session_state.get('user_id')
-if not user_id:
-    st.warning('Please log in from the main application page.')
-    st.stop()
-            )
-
-            if success:
-                st.success(message)
-                st.info(
-                    "Please refresh the page or navigate to another section "
-                    "to see the restored data."
-                )
-            else:
-                st.error(message)
+if is_done and import_result is not None:
+    success, message = import_result
+    if success:
+        st.success(message)
+        st.info(
+            "Please refresh the page or navigate to another section "
+            "to see the restored data."
+        )
+    else:
+        st.error(message)
+    clear_background_task("bg_import_json")

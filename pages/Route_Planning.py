@@ -17,38 +17,10 @@ import energy_audit as ea
 import logging
 from styles.theme import apply_theme
 
-user_id = st.session_state.get('user_id')
-if not user_id:
-    st.warning('Please log in from the main application page.')
-    st.stop()
+user_id = st.session_state.get('user_id', 1)
 apply_theme()
 
-def get_portfolio_metrics(user_id):
-    """
-    Retrieve portfolio metrics for a user.
-    """
-    total_offsets = get_total_offsets(user_id)
-    total_spend = get_total_spend(user_id)
-
-    return {
-        "total_offsets": total_offsets,
-        "total_spend": total_spend,
-    }
-
-
-def get_net_zero_progress(user_id, estimated_footprint=50.0):
-    """
-    Calculate the estimated net-zero progress.
-    """
-    total_offsets = get_total_offsets(user_id)
-
-    return calculate_net_zero_progress(
-        estimated_footprint,
-        total_offsets,
-    )
-
 logger = logging.getLogger(__name__)
-
 
 
 def get_trip_frequency_multiplier(frequency):
@@ -66,7 +38,6 @@ def get_trip_frequency_multiplier(frequency):
             "*Calculated for 14 trips per week*",
         ),
     }
-
     return frequency_map.get(frequency, (1, None))
 
 
@@ -92,26 +63,14 @@ with route_col:
 
         calc_btn = st.form_submit_button("Compare Emissions")
 
-        
-   if calc_btn:
-    try:
-        with st.spinner("Calculating transit emissions..."):
-            comparisons = compare_transit_modes(dist_val, pass_val)
-
-        st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
-            
-
-
     if calc_btn:
         try:
-            comparisons = compare_transit_modes(dist_val, pass_val)
+            with st.spinner("Calculating transit emissions..."):
+                comparisons = compare_transit_modes(dist_val, pass_val)
+
             st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
 
-
-            # Chart
             df_comp = pd.DataFrame(comparisons)
-
-            # Apply trip frequency multiplier
             multiplier, message = get_trip_frequency_multiplier(freq)
 
             if multiplier > 1:
@@ -140,25 +99,11 @@ with offset_col:
     st.info("💡 Invest your simulated eco-points to offset carbon.")
 
     projects = get_offset_projects()
-
-
-# Create a lookup dictionary for constant-time project retrieval
     project_lookup = {project["name"]: project for project in projects}
-
     proj_names = list(project_lookup.keys())
 
-    selected_proj_name = st.selectbox(
-        "Select an Offset Project",
-        proj_names,
-    )
-
-selected_proj = project_lookup[selected_proj_name]
-
-    proj_names = [p["name"] for p in projects]
     selected_proj_name = st.selectbox("Select an Offset Project", proj_names)
-
-    selected_proj = next(p for p in projects if p["name"] == selected_proj_name)
-
+    selected_proj = project_lookup[selected_proj_name]
 
     st.markdown(f"**{selected_proj['image']} {selected_proj['name']}**")
     st.write(f"*{selected_proj['description']}*")
@@ -175,55 +120,25 @@ selected_proj = project_lookup[selected_proj_name]
         purchase_btn = st.form_submit_button("Purchase Simulated Offset")
 
         if purchase_btn:
-
-    with st.spinner("Processing simulated offset purchase..."):
-        is_valid, msg = validate_offset_transaction(
-            tonnes,
-            selected_proj["available_capacity"],
-        )
-
-        if is_valid:
-            cost = calculate_offset_cost(
-                tonnes,
-                selected_proj["cost_per_tonne"],
-            )
-
-            is_valid, msg = validate_offset_transaction(
-                tonnes,
-                selected_proj["available_capacity"],
-            )
-
-            if is_valid:
-                cost = calculate_offset_cost(
+            with st.spinner("Processing simulated offset purchase..."):
+                is_valid, msg = validate_offset_transaction(
                     tonnes,
-                    selected_proj["cost_per_tonne"],
+                    selected_proj["available_capacity"],
                 )
 
-                # Defaulting to user_id=1 for now as per instructions
-                if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
-                    st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
+                if is_valid:
+                    cost = calculate_offset_cost(
+                        tonnes,
+                        selected_proj["cost_per_tonne"],
+                    )
+
+                    if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                        st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
+                    else:
+                        st.error("Failed to save transaction.")
                 else:
-                    st.error("Failed to save transaction.")
-            else:
-                st.error(msg)
+                    st.error(msg)
 
-
-            # Defaulting to user_id=1 for now as per instructions
-            if save_offset_transaction(
-                1,
-                selected_proj["id"],
-                selected_proj["name"],
-                tonnes,
-                selected_proj["cost_per_tonne"],
-                cost,
-            ):
-                st.success(
-                    f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}."
-                )
-            else:
-                st.error("Failed to save transaction.")
-        else:
-            st.error(msg)
 st.markdown("---")
 
 st.markdown(
@@ -235,54 +150,14 @@ port_col1, port_col2 = st.columns([1, 2])
 
 with port_col1:
     st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-
-
-    metrics = get_portfolio_metrics(1)
-net_progress = get_net_zero_progress(1)
-
-st.metric(
-    "Total Tonnes Offset",
-    f"{metrics['total_offsets']:.2f}t",
-)
-
-st.metric(
-    "Total Simulated Spend",
-    f"${metrics['total_spend']:.2f}",
-)
-
-st.metric(
-    "Net-Zero Progress (Estimated)",
-    f"{net_progress:.1f}%",
-)
-
-st.progress(net_progress / 100)
-
-
-    total_offsets = get_total_offsets(1)
-    total_spend = get_total_spend(1)
-
-    st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
-    st.metric("Total Simulated Spend", f"${total_spend:.2f}")
-
-    estimated_footprint = 50.0  # Just a placeholder lifetime footprint
-    net_progress = calculate_net_zero_progress(
-        estimated_footprint,
-        total_offsets,
-    )
-
-    st.metric("Net-Zero Progress (Estimated)", f"{net_progress:.1f}%")
-    st.progress(net_progress / 100)
-
-
-
     try:
         total_offsets = get_total_offsets(user_id)
         total_spend = get_total_spend(user_id)
-        
+
         st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
         st.metric("Total Simulated Spend", f"${total_spend:.2f}")
 
-        estimated_footprint = 50.0  # Just a placeholder lifetime footprint
+        estimated_footprint = 50.0  # Placeholder lifetime footprint
         net_progress = calculate_net_zero_progress(estimated_footprint, total_offsets)
 
         st.metric("Net-Zero Progress (Estimated)", f"{net_progress:.1f}%")
@@ -302,49 +177,6 @@ with port_col2:
             st.dataframe(
                 df_trans[["created_at", "project_name", "offset_tonnes", "total_cost", "transaction_status"]]
             )
-
-
-    with st.spinner("Loading transaction history..."):
-
-
-
-    transactions = get_offset_transactions(1)
-
-    if transactions:
-        df_trans = pd.DataFrame(transactions)
-
-        st.dataframe(
-            df_trans[
-                [
-                    "created_at",
-                    "project_name",
-                    "offset_tonnes",
-                    "total_cost",
-                    "transaction_status",
-                ]
-            ]
-        )
-
-        # Button to clear history for demo purposes
-        if st.button("Clear History"):
-
-    with st.spinner("Clearing portfolio history..."):
-        for transaction in transactions:
-            delete_offset_transaction(transaction["id"])
-
-        st.success("Portfolio history cleared successfully.")
-        st.rerun()
-
-            for t in transactions:
-                delete_offset_transaction(t["id"])
-            st.rerun()
-
-
-    else:
-        st.info(
-            "No transactions yet. Visit the marketplace to start your portfolio!"
-        )
-
             if st.button("Clear History"):
                 try:
                     for transaction in transactions:
@@ -359,4 +191,3 @@ with port_col2:
     except Exception:
         logger.exception("Failed to load transaction history.")
         st.error("Unable to load your transaction history. Please try again later.")
-

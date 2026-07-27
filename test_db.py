@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import pytest
 import uuid
 import database as db
@@ -7,17 +8,26 @@ TEST_DB = "test_eco_buddy_core.db"
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
-    original_db_name = db.DB_NAME
+    old_db = db.DB_NAME
     db.DB_NAME = TEST_DB
-    if os.path.exists(TEST_DB):
-        os.remove(TEST_DB)
     db.init_db()
-    db.get_assessments.clear()
+    conn = sqlite3.connect(TEST_DB)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assessments")
+    cursor.execute("DELETE FROM users")
+    conn.commit()
+    conn.close()
+    if hasattr(db.get_assessments, 'clear'):
+        db.get_assessments.clear()
     yield
-    db.get_assessments.clear()
-    db.DB_NAME = original_db_name
+    if hasattr(db.get_assessments, 'clear'):
+        db.get_assessments.clear()
+    db.DB_NAME = old_db
     if os.path.exists(TEST_DB):
-        os.remove(TEST_DB)
+        try:
+            os.remove(TEST_DB)
+        except OSError:
+            pass
 
 
 def create_test_user():
@@ -43,7 +53,7 @@ def test_save_and_get_assessment():
     row = assessments[0]
     # Row structure has changed since we added user_id, it is likely index 3 for transport now
     assert row[2] == "Car" or row[3] == "Car"
-    
+
 
 def test_get_assessments_empty_initially():
     user_id = create_test_user()
@@ -57,4 +67,3 @@ def test_multiple_assessments_ordered_by_date():
     db.save_assessment(user_id, "Bus", 30, 200, "Non-Vegetarian", 3, 4000, 40)
     assessments = db.get_assessments(user_id)
     assert len(assessments) == 2
-    # Ensure they are ordered by date correctly

@@ -1,11 +1,17 @@
 import os
 import tempfile
 import uuid
-import streamlit as st
+import logging
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
+logger = logging.getLogger(__name__)
+
 def generate_pdf(total, eco_score, insight):
+    """
+    Generates a PDF report summarizing carbon footprint and eco score.
+    Thread-safe implementation returning the file path of the generated PDF.
+    """
     try:
         file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
         doc = SimpleDocTemplate(file_name)
@@ -21,6 +27,6 @@ def generate_pdf(total, eco_score, insight):
 
         doc.build(content)
         return file_name
-    except Exception:
-        st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
-        return None
+    except Exception as e:
+        logger.exception("Could not generate PDF report.")
+        raise RuntimeError(f"PDF generation failed: {e}")
