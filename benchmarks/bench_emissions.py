@@ -29,8 +29,8 @@ class EmissionsBenchmark(BaseBenchmark):
                 return em.calculate_footprint(transport, distance, electricity, diet, flights)
 
         self.measure("calculate_footprint – Car/Non-Veg",       fp, "Car",             20,    250, "Non-Vegetarian", 2)
-        self.measure("calculate_footprint – Walking/Vegan",     fp, "Walking",          5,     50, "Vegan",          0)
-        self.measure("calculate_footprint – max values",        fp, "Car",            500,  10000, "Heavy Meat",   365)
+        self.measure("calculate_footprint – Walking/Vegetarian", fp, "Walking",          5,     50, "Vegetarian",     0)
+        self.measure("calculate_footprint – max values",        fp, "Car",            500,  10000, "Non-Vegetarian", 365)
         self.measure("calculate_footprint – Public Transport",  fp, "Public Transport", 15,   200, "Vegetarian",     1)
 
         fps = [500, 2000, 4000, 6000, 8000]
