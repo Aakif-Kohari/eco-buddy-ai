@@ -99,6 +99,13 @@ def _accepts_progress_callback(func: Callable[..., Any]) -> bool:
         return False
 
 
+try:
+    from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
+except ImportError:
+    add_script_run_ctx = None
+    get_script_run_ctx = None
+
+
 def submit_background_task(
     task_key: str,
     func: Callable[..., Any],
@@ -137,7 +144,14 @@ def submit_background_task(
     with _REGISTRY_LOCK:
         _GLOBAL_TASKS[task_key] = task
 
+    ctx = get_script_run_ctx() if get_script_run_ctx else None
+
     def _worker_wrapper():
+        if ctx is not None and add_script_run_ctx is not None:
+            try:
+                add_script_run_ctx(threading.current_thread(), ctx)
+            except Exception:
+                pass
         try:
             # Safely pass progress callback if function accepts progress_callback
             if _accepts_progress_callback(func):
