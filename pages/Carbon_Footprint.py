@@ -49,12 +49,56 @@ if not user_id:
     st.warning('Please log in from the main application page.')
     st.stop()
 
+# -------------------------
+# DRAFT RECOVERY & DEFAULT FORM VALUES
+# -------------------------
+from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+
+DEFAULT_VALUES = {
+    "region": "Global",
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
+
+if 'draft_status' not in st.session_state:
+    st.session_state.draft_status = None
+
+draft = None
+if user_id and st.session_state.draft_status is None:
+    draft = get_assessment_draft(user_id)
+
+for key, value in DEFAULT_VALUES.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
 
 with tab_assess:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+    # Draft recovery prompt
+    if user_id and draft:
+        st.info("📝 We found an unfinished assessment from your previous session. Would you like to restore it?")
+        col_rest, col_disc, _ = st.columns([1, 1, 4])
+        with col_rest:
+            if st.button("✅ Restore Session", key="restore_session_cf_btn"):
+                st.session_state.draft_status = 'restored'
+                for key, val in draft.items():
+                    st.session_state[key] = val
+                st.success("Session restored successfully!")
+                st.rerun()
+        with col_disc:
+            if st.button("🗑️ Discard Draft", key="discard_draft_cf_btn"):
+                delete_assessment_draft(user_id)
+                st.session_state.draft_status = 'discarded'
+                st.success("Draft discarded.")
+                st.rerun()
+
     st.markdown("### Region Setting")
-    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"])
+    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"], key="region")
 
     # -------------------------
     # QUICK LOG (AI)
@@ -87,6 +131,8 @@ with tab_assess:
                 st.session_state.distance = float(tp.get('distance', 10.0))
                 st.session_state.diet = tp.get('diet', 'Vegetarian')
                 del st.session_state.temp_parsed
+                if user_id:
+                    save_assessment_draft(user_id, st.session_state.transport, st.session_state.distance, st.session_state.get("electricity", 200.0), st.session_state.diet, st.session_state.get("flights", 0), st.session_state.get("region", "Global"))
                 st.rerun()
         with c_no:
             if st.button("❌ No, cancel", key="confirm_no"):
@@ -98,8 +144,8 @@ with tab_assess:
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>🚗</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Transportation</span></div>", unsafe_allow_html=True)
-        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"])
-        distance = st.number_input("Daily Distance (km)", min_value=0.0, value=10.0, step=1.0)
+        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"], key="transport")
+        distance = st.number_input("Daily Distance (km)", min_value=0.0, key="distance", step=1.0)
 
     with col2:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>⚡</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span></div>", unsafe_allow_html=True)
@@ -111,17 +157,39 @@ with tab_assess:
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
+                        st.session_state.electricity = float(parsed_val)
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
 
-        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, value=float(st.session_state.get('extracted_kwh', 0.0)), step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"])
+        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
+        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
 
     with col3:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>✈️</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span></div>", unsafe_allow_html=True)
-        flights = st.number_input("Annual Flights", min_value=0, value=0, step=1)
+        flights = st.number_input("Annual Flights", min_value=0, key="flights", step=1)
         st.info("💡 How many long-distance flights per year?")
+
+    # Auto-save draft inputs on change
+    if user_id and (st.session_state.draft_status in ['restored', 'discarded'] or not get_assessment_draft(user_id)):
+        is_modified = (
+            st.session_state.get("region") != "Global" or
+            st.session_state.get("transport") != "Car" or
+            st.session_state.get("distance") != 10.0 or
+            st.session_state.get("electricity") != 200.0 or
+            st.session_state.get("diet") != "Vegetarian" or
+            st.session_state.get("flights") != 0
+        )
+        if is_modified:
+            save_assessment_draft(
+                user_id,
+                st.session_state.get("transport", "Car"),
+                st.session_state.get("distance", 10.0),
+                st.session_state.get("electricity", 200.0),
+                st.session_state.get("diet", "Vegetarian"),
+                st.session_state.get("flights", 0),
+                st.session_state.get("region", "Global")
+            )
 
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     with col_btn1:
@@ -135,9 +203,13 @@ with tab_assess:
         confirm_col, cancel_col, _ = st.columns([1, 1, 3])
         with confirm_col:
             if st.button("✅ Confirm Reset", key="confirm_reset_cf"):
+                for key in DEFAULT_VALUES:
+                    st.session_state[key] = DEFAULT_VALUES[key]
                 st.session_state.pop("extracted_kwh", None)
                 st.session_state.pop("analysis", None)
                 st.session_state.show_reset_confirm_cf = False
+                if user_id:
+                    delete_assessment_draft(user_id)
                 st.success("✅ Assessment form has been reset.")
                 st.rerun()
         with cancel_col:
@@ -155,6 +227,8 @@ with tab_assess:
         eco_score = calculate_eco_score(total, contributors)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
         save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
+        if user_id:
+            delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,

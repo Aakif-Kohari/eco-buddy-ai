@@ -74,6 +74,19 @@ def init_db():
         except sqlite3.OperationalError:
             pass
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS assessment_drafts (
+                user_id INTEGER PRIMARY KEY,
+                transport TEXT,
+                distance REAL,
+                electricity REAL,
+                diet TEXT,
+                flights INTEGER,
+                region TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         conn.close()
         return True
@@ -200,6 +213,69 @@ def get_assessments(user_id=1):
     except sqlite3.Error as e:
         print(f"Database read error: {e}")
         return []
+
+
+def save_assessment_draft(user_id, transport, distance, electricity, diet, flights, region):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM assessment_drafts WHERE user_id = ?", (user_id,))
+        if cursor.fetchone():
+            cursor.execute("""
+                UPDATE assessment_drafts
+                SET transport = ?, distance = ?, electricity = ?, diet = ?, flights = ?, region = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            """, (transport, distance, electricity, diet, flights, region, user_id))
+        else:
+            cursor.execute("""
+                INSERT INTO assessment_drafts (user_id, transport, distance, electricity, diet, flights, region)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, transport, distance, electricity, diet, flights, region))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database draft save error: {e}")
+        return False
+
+
+def get_assessment_draft(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT transport, distance, electricity, diet, flights, region
+            FROM assessment_drafts
+            WHERE user_id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "transport": row[0],
+                "distance": row[1],
+                "electricity": row[2],
+                "diet": row[3],
+                "flights": row[4],
+                "region": row[5]
+            }
+        return None
+    except sqlite3.Error as e:
+        print(f"Database draft read error: {e}")
+        return None
+
+
+def delete_assessment_draft(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM assessment_drafts WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database draft delete error: {e}")
+        return False
 
 
 def init_energy_db():
