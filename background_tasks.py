@@ -83,6 +83,22 @@ def get_task(task_key: str) -> Optional[BackgroundTask]:
         return _GLOBAL_TASKS.get(task_key)
 
 
+import inspect
+
+
+def _accepts_progress_callback(func: Callable[..., Any]) -> bool:
+    """
+    Safely inspects whether a callable accepts a 'progress_callback' argument.
+    Compatible with normal functions, Streamlit CachedFunc wrappers, partials, and classes.
+    """
+    try:
+        unwrapped = getattr(func, "__wrapped__", func)
+        sig = inspect.signature(unwrapped)
+        return "progress_callback" in sig.parameters
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
 def submit_background_task(
     task_key: str,
     func: Callable[..., Any],
@@ -123,8 +139,8 @@ def submit_background_task(
 
     def _worker_wrapper():
         try:
-            # Pass progress callback if function accepts progress_callback
-            if "progress_callback" in func.__code__.co_varnames:
+            # Safely pass progress callback if function accepts progress_callback
+            if _accepts_progress_callback(func):
                 kwargs["progress_callback"] = task.update_progress
 
             res = func(*args, **kwargs)
