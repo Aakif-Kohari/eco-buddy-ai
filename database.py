@@ -50,29 +50,27 @@ def init_db():
                 username TEXT UNIQUE NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                anonymous_leaderboard INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS assessments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER DEFAULT 1,
-                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                transport TEXT,
-                distance REAL,
-                electricity REAL,
-                diet TEXT,
-                flights INTEGER,
-                footprint REAL,
-                eco_score INTEGER
-            )
-        """)
-        
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
         try:
             cursor.execute("ALTER TABLE assessments ADD COLUMN user_id INTEGER DEFAULT 1")
         except sqlite3.OperationalError:
             pass
+        try:
+           cursor.execute(
+        "ALTER TABLE users ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0"
+    )
+        except sqlite3.OperationalError:
+            pass
+
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS assessment_drafts (
@@ -95,13 +93,16 @@ def init_db():
         return False
 
 
-def create_user(username, email, password):
+def create_user(username, email, password, anonymous_leaderboard=False):
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, password_hash))
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, anonymous_leaderboard) VALUES (?, ?, ?, ?)",
+            (username, email, password_hash, int(bool(anonymous_leaderboard)))
+        )
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -118,11 +119,15 @@ def verify_user(username, password):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password_hash, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         
         if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-            return {"id": user[0], "username": user[1]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -136,16 +141,38 @@ def get_user_by_username(username):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, email, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         if user:
-            return {"id": user[0], "username": user[1], "email": user[2]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "email": user[2],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error:
         return None
     finally:
         if conn:
             conn.close()
+
+
+def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET anonymous_leaderboard = ? WHERE id = ?",
+            (int(bool(anonymous_leaderboard)), user_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database update user preference error: {e}")
+        return False
+
 
 def save_assessment(
     user_id,
@@ -269,6 +296,61 @@ def get_assessments(user_id=1):
         return data
     except sqlite3.Error as e:
         print(f"Database read error: {e}")
+        return []
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_leaderboard(period="all"):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        assessment_filter = ""
+        xp_filter = ""
+        challenge_filter = ""
+
+        if period == "weekly":
+            assessment_filter = "AND date >= datetime('now', '-7 days')"
+            xp_filter = "AND created_at >= datetime('now', '-7 days')"
+            challenge_filter = "AND completed_at >= datetime('now', '-7 days')"
+        elif period == "monthly":
+            assessment_filter = "AND date >= datetime('now', '-30 days')"
+            xp_filter = "AND created_at >= datetime('now', '-30 days')"
+            challenge_filter = "AND completed_at >= datetime('now', '-30 days')"
+
+        cursor.execute(f"""
+            SELECT CASE WHEN u.anonymous_leaderboard = 1 THEN 'Anonymous User' ELSE u.username END AS username,
+                   COALESCE(a.max_eco_score, 0) AS eco_score,
+                   COALESCE(x.total_xp, 0) AS xp,
+                   COALESCE(c.completed_challenges, 0) AS completed_challenges
+            FROM users u
+            LEFT JOIN (
+                SELECT user_id, MAX(eco_score) AS max_eco_score
+                FROM assessments
+                WHERE 1=1 {assessment_filter}
+                GROUP BY user_id
+            ) a ON a.user_id = u.id
+            LEFT JOIN (
+                SELECT user_id, SUM(xp_amount) AS total_xp
+                FROM xp_transactions
+                WHERE 1=1 {xp_filter}
+                GROUP BY user_id
+            ) x ON x.user_id = u.id
+            LEFT JOIN (
+                SELECT user_id, COUNT(*) AS completed_challenges
+                FROM user_challenges
+                WHERE status = 'completed' {challenge_filter}
+                GROUP BY user_id
+            ) c ON c.user_id = u.id
+            ORDER BY eco_score DESC, xp DESC
+            LIMIT 25
+        """)
+
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except sqlite3.Error as e:
+        print(f"Database leaderboard read error: {e}")
         return []
 
 
@@ -668,6 +750,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_xp(user_id):
+    
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
