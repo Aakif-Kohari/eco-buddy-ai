@@ -25,56 +25,119 @@ import bcrypt
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
-def init_db():
+def get_db_version(conn):
+    """Get the current database schema version using PRAGMA user_version."""
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA user_version")
+    return cursor.fetchone()[0]
+
+
+def set_db_version(conn, version):
+    """Set the database schema version using PRAGMA user_version."""
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA user_version = {version}")
+    conn.commit()
+
+
+def migrate():
+    """
+    Apply pending database migrations.
+    
+    This function is called on application startup to ensure the database
+    schema is up to date. It should be called once before any other
+    database operations.
+    
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    # Import migrations module to get version info
+    import migrations
+    
     try:
         conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-    CREATE TABLE IF NOT EXISTS assessments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER DEFAULT 1,
-        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        transport TEXT,
-        distance REAL,
-        electricity REAL,
-        diet TEXT,
-        flights INTEGER,
-        footprint REAL,
-        eco_score INTEGER,
-        trip_id TEXT UNIQUE
-    )
-""")
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS assessments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER DEFAULT 1,
-                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                transport TEXT,
-                distance REAL,
-                electricity REAL,
-                diet TEXT,
-                flights INTEGER,
-                footprint REAL,
-                eco_score INTEGER
-            )
-        """)
+        current_version = get_db_version(conn)
         
-        try:
-            cursor.execute("ALTER TABLE assessments ADD COLUMN user_id INTEGER DEFAULT 1")
-        except sqlite3.OperationalError:
-            pass
+        if current_version >= migrations.CURRENT_VERSION:
+            conn.close()
+            return True, f"Database is already at version {current_version}"
+        
+        # Apply migrations sequentially
+        migrations_to_apply = range(current_version + 1, migrations.CURRENT_VERSION + 1)
+        for version in migrations_to_apply:
+            migration_file = f"migrations/migrate_v{version}.py"
+            if os.path.exists(migration_file):
+                module = __import__(f"migrations.migrate_v{version}", fromlist=['migrate'])
+                if hasattr(module, 'migrate'):
+                    module.migrate(conn)
+                    set_db_version(conn, version)
+                    print(f"Applied migration v{version}")
+        
+        conn.close()
+        return True, f"Database migrated to version {migrations.CURRENT_VERSION}"
+        
+    except Exception as e:
+        return False, f"Migration failed: {str(e)}"
 
-        conn.commit()
+
+def init_db():
+    """
+    Initialize the database with core tables.
+    
+    This function should only be called once during application startup,
+    BEFORE any other database operations. It will automatically run
+    pending migrations if the database exists but is outdated.
+    
+    Returns:
+        bool: True if initialization succeeded, False otherwise
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        
+        # Run migrations first to ensure schema is up to date
+        migrate()
+        
+        # For new databases (version 0), create all tables
+        current_version = get_db_version(conn)
+        if current_version == 0:
+            cursor = conn.cursor()
+            
+            # Create users table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create assessments table with trip_id
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS assessments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER DEFAULT 1,
+                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    transport TEXT,
+                    distance REAL,
+                    electricity REAL,
+                    diet TEXT,
+                    flights INTEGER,
+                    footprint REAL,
+                    eco_score INTEGER,
+                    trip_id TEXT
+                )
+            """)
+            
+            # Create unique index on trip_id (NULL-safe)
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
+                ON assessments(trip_id) 
+                WHERE trip_id IS NOT NULL
+            """)
+            
+            conn.commit()
+        
         conn.close()
         return True
     except sqlite3.Error as e:
@@ -142,12 +205,12 @@ def save_assessment(
     diet,
     flights,
     footprint,
-    eco_score
+    eco_score,
+    trip_id=None
 ):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-
         cursor.execute("""
             INSERT INTO assessments (
                 user_id,
@@ -157,9 +220,10 @@ def save_assessment(
                 diet,
                 flights,
                 footprint,
-                eco_score
+                eco_score,
+                trip_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             user_id,
             transport,
@@ -168,13 +232,15 @@ def save_assessment(
             diet,
             flights,
             footprint,
-            eco_score
+            eco_score,
+            trip_id
         ))
-
         conn.commit()
         conn.close()
         invalidate_on_assessment_save()
         return True
+    except sqlite3.IntegrityError:
+        return False
     except sqlite3.Error as e:
         print(f"Database save error: {e}")
         return False
@@ -202,9 +268,35 @@ def get_assessments(user_id=1):
         return []
 
 
-def init_energy_db():
+def get_diet_history(user_id, limit=7):
     try:
         conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT date, diet FROM assessments
+            ORDER BY date DESC LIMIT ?
+        """, (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    except sqlite3.Error as e:
+        print(f"get_diet_history error: {e}")
+        return []
+
+
+def init_energy_db():
+    """
+    Initialize energy-related tables (appliances, solar_configs).
+    
+    Returns:
+        bool: True if initialization succeeded, False otherwise
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        
+        # Run migrations to ensure schema is up to date
+        migrate()
+        
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -329,9 +421,19 @@ def get_solar_config(user_id=1):
 
 
 def init_gamification_db():
+    """
+    Initialize gamification-related tables.
+    
+    Returns:
+        bool: True if initialization succeeded, False otherwise
+    """
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
+        
+        # Run migrations to ensure schema is up to date
+        migrate()
+        
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -386,16 +488,6 @@ def init_gamification_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, node_id)
             )
-        """)
-        try:
-            cursor.execute("ALTER TABLE assessments ADD COLUMN trip_id TEXT")
-        except sqlite3.OperationalError:
-            pass
-
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id
-            ON assessments(trip_id)
-            WHERE trip_id IS NOT NULL
         """)
         conn.commit()
         return True
@@ -652,10 +744,19 @@ def update_skill_node_status(user_id, node_id, status):
 
 
 def init_marketplace_db():
+    """
+    Initialize marketplace-related tables (journey_profiles, offset_transactions).
+    
+    Returns:
+        bool: True if initialization succeeded, False otherwise
+    """
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
+        
+        # Run migrations to ensure schema is up to date
+        migrate()
+        
         cursor = conn.cursor()
 
         cursor.execute('''
@@ -701,7 +802,6 @@ def init_marketplace_db():
 def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_count, trips_per_week, is_commute):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
@@ -725,7 +825,6 @@ def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_c
 def get_journey_profiles(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM journey_profiles WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
@@ -742,7 +841,6 @@ def get_journey_profiles(user_id):
 def delete_journey_profile(profile_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM journey_profiles WHERE id = ?', (profile_id,))
@@ -759,7 +857,6 @@ def delete_journey_profile(profile_id):
 def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, cost_per_tonne, total_cost, transaction_status='completed'):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
@@ -769,8 +866,6 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
         ''', (user_id, project_id, project_name, offset_tonnes, cost_per_tonne, total_cost, transaction_status))
         
         conn.commit()
-        invalidate_on_offset_save()
-        invalidate_on_offset_save()
         invalidate_on_offset_save()
         return True
     except Exception as e:
@@ -785,7 +880,6 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
 def get_offset_transactions(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM offset_transactions WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
@@ -802,13 +896,10 @@ def get_offset_transactions(user_id):
 def delete_offset_transaction(transaction_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM offset_transactions WHERE id = ?', (transaction_id,))
         conn.commit()
-        invalidate_on_offset_save()
-        invalidate_on_offset_save()
         invalidate_on_offset_save()
         return True
     except Exception:
@@ -821,13 +912,10 @@ def delete_offset_transaction(transaction_id):
 def clear_offset_transactions(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM offset_transactions WHERE user_id = ?', (user_id,))
         conn.commit()
-        invalidate_on_offset_save()
-        invalidate_on_offset_save()
         invalidate_on_offset_save()
         return True
     except Exception:
@@ -841,7 +929,6 @@ def clear_offset_transactions(user_id):
 def get_total_offsets(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT SUM(offset_tonnes) FROM offset_transactions WHERE user_id = ? AND transaction_status != "reversed"', (user_id,))
@@ -858,7 +945,6 @@ def get_total_offsets(user_id):
 def get_total_spend(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT SUM(total_cost) FROM offset_transactions WHERE user_id = ? AND transaction_status != "reversed"', (user_id,))
@@ -871,28 +957,20 @@ def get_total_spend(user_id):
             conn.close()
 
 
-@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_diet_history(user_id, limit=7):
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT date, diet FROM assessments
-            ORDER BY date DESC LIMIT ?
-        """, (limit,))
-        rows = cursor.fetchall()
-        conn.close()
-        return rows
-    except sqlite3.Error as e:
-        print(f"get_diet_history error: {e}")
-        return []
-
-
 def init_water_db():
+    """
+    Initialize water consumption table.
+    
+    Returns:
+        bool: True if initialization succeeded, False otherwise
+    """
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
+        
+        # Run migrations to ensure schema is up to date
+        migrate()
+        
         cursor = conn.cursor()
 
         cursor.execute('''
@@ -921,7 +999,6 @@ def init_water_db():
 def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, total_liters):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
@@ -945,7 +1022,6 @@ def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, to
 def get_water_assessments(user_id):
     conn = None
     try:
-        import sqlite3
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM water_consumption WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
@@ -957,50 +1033,3 @@ def get_water_assessments(user_id):
     finally:
         if conn:
             conn.close()
-def save_assessment(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    footprint,
-    eco_score,
-    trip_id=None
-):
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO assessments (
-                user_id,
-                transport,
-                distance,
-                electricity,
-                diet,
-                flights,
-                footprint,
-                eco_score,
-                trip_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            transport,
-            distance,
-            electricity,
-            diet,
-            flights,
-            footprint,
-            eco_score,
-            trip_id
-        ))
-        conn.commit()
-        conn.close()
-        invalidate_on_assessment_save()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-    except sqlite3.Error as e:
-        print(f"Database save error: {e}")
-        return False

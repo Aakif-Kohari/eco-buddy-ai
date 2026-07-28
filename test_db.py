@@ -11,6 +11,11 @@ def setup_teardown():
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
     db.init_db()
+    
+    # Clear cached function results after database is reset
+    from invalidation import invalidate_all_db_caches
+    invalidate_all_db_caches()
+    
     yield
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
