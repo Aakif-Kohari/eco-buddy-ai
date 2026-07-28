@@ -7,7 +7,7 @@ import plotly.express as px
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments
+from database import init_db, save_assessment, get_assessments, get_assessments_df
 from emissions import calculate_footprint, calculate_eco_score
 from recommendations import generate_recommendations
 
@@ -1046,6 +1046,20 @@ if history:
     display_df = display_df.iloc[::-1].reset_index(drop=True)
     
     st.dataframe(display_df)
+
+    # -------------------------
+    # CSV EXPORT
+    # -------------------------
+    export_df = get_assessments_df()
+    csv_data = export_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="📥 Download Assessment History (CSV)",
+        data=csv_data,
+        file_name="EcoBuddy_Assessment_History.csv",
+        mime="text/csv",
+        help="Export your complete assessment history as a CSV file for analysis in Excel or Google Sheets."
+    )
 
     st.markdown("---")
 

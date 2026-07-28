@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 
 DB_NAME = "eco_buddy.db"
 
@@ -76,3 +77,19 @@ def get_assessments():
 
     conn.close()
     return data
+
+
+def get_assessments_df():
+    """Return all assessment history as a labelled pandas DataFrame.
+
+    Columns preserve the original database names so that downstream CSV
+    consumers (e.g. Excel / Google Sheets) get self-documenting headers.
+    Returns an empty DataFrame with the correct columns when no records exist.
+    """
+    columns = [
+        "id", "date", "transport", "distance_km",
+        "electricity_kwh", "diet", "flights",
+        "footprint_kg_co2", "eco_score"
+    ]
+    data = get_assessments()
+    return pd.DataFrame(data, columns=columns)
