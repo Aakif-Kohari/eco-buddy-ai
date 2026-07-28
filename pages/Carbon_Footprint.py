@@ -4,7 +4,6 @@ import time
 from database import *
 from emissions import *
 from recommendations import *
-from ocr_utils import *
 import os
 import tempfile
 import uuid
@@ -13,6 +12,9 @@ import plotly.express as px
 from report import generate_pdf
 import gamification as gf
 from marketplace import *
+from llm_parser import parse_quick_log
+from ocr_utils import extract_text_from_bytes, parse_energy_consumption
+from background_tasks import submit_background_task, render_task_progress, clear_background_task
 import energy_audit as ea
 
 from styles.theme import apply_theme
@@ -112,14 +114,19 @@ with tab_assess:
     
     if parse_btn:
         if quick_log_text.strip():
-            with st.spinner("Analyzing text..."):
-                parsed_data = parse_quick_log(quick_log_text)
-                if parsed_data:
-                    st.session_state.temp_parsed = parsed_data
-                else:
-                    st.error("Could not parse the text. Please try again.")
+            submit_background_task(
+                "quick_log_parse",
+                parse_quick_log,
+                quick_log_text,
+                task_name="Parsing with AI"
+            )
         else:
             st.warning("Please enter some text first.")
+
+    is_done_ai, parsed_data = render_task_progress("quick_log_parse", success_msg="Text analyzed successfully!")
+    if is_done_ai and parsed_data:
+        st.session_state.temp_parsed = parsed_data
+        clear_background_task("quick_log_parse")
 
     if "temp_parsed" in st.session_state:
         tp = st.session_state.temp_parsed
@@ -152,15 +159,26 @@ with tab_assess:
         uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_bill is not None:
             if st.button("Extract Energy Usage"):
-                with st.spinner("Extracting data from bill..."):
-                    extracted_text = extract_text_from_file(uploaded_bill)
-                    parsed_val = parse_energy_consumption(extracted_text)
-                    if parsed_val is not None:
-                        st.session_state.extracted_kwh = float(parsed_val)
-                        st.session_state.electricity = float(parsed_val)
-                        st.success(f"Extracted {parsed_val} kWh from bill!")
-                    else:
-                        st.warning("Could not extract energy consumption. Please enter manually.")
+                file_bytes = uploaded_bill.getvalue()
+                file_type = uploaded_bill.type
+                submit_background_task(
+                    "ocr_bill_extract",
+                    extract_text_from_bytes,
+                    file_bytes,
+                    file_type,
+                    task_name="Extracting Energy Usage"
+                )
+
+        is_done_ocr, extracted_text = render_task_progress("ocr_bill_extract", success_msg="Bill OCR complete!")
+        if is_done_ocr and extracted_text:
+            parsed_val = parse_energy_consumption(extracted_text)
+            if parsed_val is not None:
+                st.session_state.extracted_kwh = float(parsed_val)
+                st.session_state.electricity = float(parsed_val)
+                st.success(f"Extracted {parsed_val} kWh from bill!")
+            else:
+                st.warning("Could not extract energy consumption. Please enter manually.")
+            clear_background_task("ocr_bill_extract")
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
         diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")

@@ -155,14 +155,80 @@ def save_assessment(
     diet,
     flights,
     footprint,
-    eco_score
+    eco_score,
+    trip_id=None,
+    date=None
 ):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
 
-        cursor.execute("""
-            INSERT INTO assessments (
+        if date is not None:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    date,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score,
+                    trip_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                date,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                footprint,
+                eco_score,
+                trip_id
+            ))
+        elif trip_id is not None:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score,
+                    trip_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                footprint,
+                eco_score,
+                trip_id
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
                 user_id,
                 transport,
                 distance,
@@ -171,23 +237,14 @@ def save_assessment(
                 flights,
                 footprint,
                 eco_score
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            transport,
-            distance,
-            electricity,
-            diet,
-            flights,
-            footprint,
-            eco_score
-        ))
+            ))
 
         conn.commit()
         conn.close()
         invalidate_on_assessment_save()
         return True
+    except sqlite3.IntegrityError:
+        return False
     except sqlite3.Error as e:
         print(f"Database save error: {e}")
         return False
@@ -203,7 +260,7 @@ def get_assessments(user_id=1):
             SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC
+            ORDER BY date DESC, id DESC
         """, (user_id,))
 
         data = cursor.fetchall()
@@ -1033,50 +1090,3 @@ def get_water_assessments(user_id):
     finally:
         if conn:
             conn.close()
-def save_assessment(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    footprint,
-    eco_score,
-    trip_id=None
-):
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO assessments (
-                user_id,
-                transport,
-                distance,
-                electricity,
-                diet,
-                flights,
-                footprint,
-                eco_score,
-                trip_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            transport,
-            distance,
-            electricity,
-            diet,
-            flights,
-            footprint,
-            eco_score,
-            trip_id
-        ))
-        conn.commit()
-        conn.close()
-        invalidate_on_assessment_save()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-    except sqlite3.Error as e:
-        print(f"Database save error: {e}")
-        return False
