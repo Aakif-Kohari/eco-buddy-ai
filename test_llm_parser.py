@@ -10,8 +10,18 @@ Tests:
 
 import pytest
 import json
+import time
 from unittest.mock import patch, MagicMock
-from llm_parser import parse_quick_log, LLM_COOLDOWN_SECONDS
+from llm_parser import parse_quick_log, LLM_COOLDOWN_SECONDS, _check_rate_limit
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment(monkeypatch):
+    """Autouse fixture to set dummy API keys and bypass rate limiting in unit tests."""
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
+    monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
+    with patch('llm_parser._check_rate_limit', return_value=True):
+        yield
 
 
 class TestParseQuickLog:
@@ -136,17 +146,8 @@ class TestParseQuickLog:
             calls = [mock_gemini_error, mock_groq_success]
             mock_post.side_effect = calls
             
-            # Mock environment variables
-            with patch('llm_parser.os.environ.get') as mock_env:
-                mock_env.side_effect = lambda key, default=None: {
-                    'GEMINI_API_KEY': 'dummy_key',
-                    'GROQ_API_KEY': 'dummy_groq_key'
-                }.get(key, default)
-                
-                with patch('llm_parser.st.session_state', {}):
-                    # Need to patch _check_rate_limit to allow multiple calls
-                    with patch('llm_parser._check_rate_limit', return_value=True):
-                        result = parse_quick_log(text)
+            with patch('llm_parser.st.session_state', {}):
+                result = parse_quick_log(text)
             
             assert result is not None
             assert result['transport'] == 'Car'
@@ -240,24 +241,15 @@ class TestRateLimiting:
 
     def test_rate_limit_cooldown(self):
         """Test that rate limiting enforces cooldown period."""
-        from llm_parser import _check_rate_limit
-        import time
-        
-        # First call should succeed
-        with patch('llm_parser.st.session_state', {}):
+        mock_state = {}
+        with patch('llm_parser.st.session_state', mock_state):
             assert _check_rate_limit("test_provider") is True
-            
-            # Second call immediately should fail
             assert _check_rate_limit("test_provider") is False
 
     def test_rate_limit_allows_after_cooldown(self):
         """Test that rate limit resets after cooldown period."""
-        from llm_parser import _check_rate_limit
-        
-        with patch('llm_parser.st.session_state', {}) as mock_state:
-            mock_state.get.return_value = time.time() - LLM_COOLDOWN_SECONDS - 1
-            
-            # After cooldown, should succeed
+        mock_state = {"_llm_last_call_test_provider": time.time() - LLM_COOLDOWN_SECONDS - 1}
+        with patch('llm_parser.st.session_state', mock_state):
             assert _check_rate_limit("test_provider") is True
 
 
@@ -306,4 +298,3 @@ class TestEdgeCases:
                 result = parse_quick_log(text)
             
             assert result is not None
-            # Note: The LLM might interpret "vegan" as Vegetarian (the closest valid option)
