@@ -138,6 +138,20 @@ def init_db():
             
             conn.commit()
         
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS assessment_drafts (
+                user_id INTEGER PRIMARY KEY,
+                transport TEXT,
+                distance REAL,
+                electricity REAL,
+                diet TEXT,
+                flights INTEGER,
+                region TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        conn.commit()
         conn.close()
         return True
     except sqlite3.Error as e:
@@ -207,12 +221,81 @@ def save_assessment(
     footprint,
     eco_score,
     trip_id=None
+    trip_id=None,
+    date=None
 ):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO assessments (
+
+        if date is not None:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    date,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score,
+                    trip_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                date,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                footprint,
+                eco_score,
+                trip_id
+            ))
+        elif trip_id is not None:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score,
+                    trip_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                user_id,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                footprint,
+                eco_score,
+                trip_id
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO assessments (
+                    user_id,
+                    transport,
+                    distance,
+                    electricity,
+                    diet,
+                    flights,
+                    footprint,
+                    eco_score
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
                 user_id,
                 transport,
                 distance,
@@ -235,6 +318,9 @@ def save_assessment(
             eco_score,
             trip_id
         ))
+                eco_score
+            ))
+
         conn.commit()
         conn.close()
         invalidate_on_assessment_save()
@@ -256,7 +342,7 @@ def get_assessments(user_id=1):
             SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC
+            ORDER BY date DESC, id DESC
         """, (user_id,))
 
         data = cursor.fetchall()
@@ -269,6 +355,31 @@ def get_assessments(user_id=1):
 
 
 def get_diet_history(user_id, limit=7):
+def save_assessment_draft(user_id, transport, distance, electricity, diet, flights, region):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM assessment_drafts WHERE user_id = ?", (user_id,))
+        if cursor.fetchone():
+            cursor.execute("""
+                UPDATE assessment_drafts
+                SET transport = ?, distance = ?, electricity = ?, diet = ?, flights = ?, region = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            """, (transport, distance, electricity, diet, flights, region, user_id))
+        else:
+            cursor.execute("""
+                INSERT INTO assessment_drafts (user_id, transport, distance, electricity, diet, flights, region)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, transport, distance, electricity, diet, flights, region))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database draft save error: {e}")
+        return False
+
+
+def get_assessment_draft(user_id):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -282,6 +393,38 @@ def get_diet_history(user_id, limit=7):
     except sqlite3.Error as e:
         print(f"get_diet_history error: {e}")
         return []
+            SELECT transport, distance, electricity, diet, flights, region
+            FROM assessment_drafts
+            WHERE user_id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "transport": row[0],
+                "distance": row[1],
+                "electricity": row[2],
+                "diet": row[3],
+                "flights": row[4],
+                "region": row[5]
+            }
+        return None
+    except sqlite3.Error as e:
+        print(f"Database draft read error: {e}")
+        return None
+
+
+def delete_assessment_draft(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM assessment_drafts WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database draft delete error: {e}")
+        return False
 
 
 def init_energy_db():
@@ -1032,4 +1175,5 @@ def get_water_assessments(user_id):
         return []
     finally:
         if conn:
+            conn.close()
             conn.close()

@@ -1,6 +1,13 @@
 import html
 import time
 import streamlit as st
+
+st.set_page_config(
+    page_title="EcoBuddy",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -36,6 +43,15 @@ from marketplace import (
 from styles.theme import apply_theme, render_theme_selector
 
 
+
+DEFAULT_VALUES = {
+    "region": "Global",
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
 
 def h(text):
     return html.escape(str(text))
@@ -85,6 +101,9 @@ def render_sidebar_auth():
         if st.sidebar.button("Logout"):
             st.session_state['user_id'] = None
             st.session_state['username'] = None
+            st.session_state.pop('draft_status', None)
+            for key, val in DEFAULT_VALUES.items():
+                st.session_state[key] = val
             st.rerun()
 
     return st.session_state['user_id']
@@ -116,41 +135,23 @@ if 'extracted_kwh' not in st.session_state:
 
 
 # -------------------------
-# DEFAULT FORM VALUES
+# DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
+from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+
+if 'draft_status' not in st.session_state:
+    st.session_state.draft_status = None
+
+# Check for draft
+draft = None
+if user_id and st.session_state.draft_status is None:
+    draft = get_assessment_draft(user_id)
 
 for key, value in DEFAULT_VALUES.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-# -------------------------
-# DEFAULT FORM VALUES
-# -------------------------
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
-
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-st.set_page_config(
-    page_title="EcoBuddy",
-    page_icon="🌱",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# page config moved to top
 
 
 # -------------------------
@@ -182,150 +183,31 @@ st.markdown("---")
 
 # -------------------------
 
-st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
- 
- 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>🚗</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
-    </div>
-    """, unsafe_allow_html=True)
-    transport = st.selectbox(
-        "Primary Transport",
-        ["Car", "Public Transport", "Bike", "Walking"],
-        key="transport"
-    )
-    distance = st.number_input(
-        "Daily Distance (km)",
-        min_value=0.0,
-        value=10.0,
-        step=1.0,
-        key="distance"
-    )
-
-with col2:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>⚡</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
-    </div>
-    """, unsafe_allow_html=True)
-    electricity = st.number_input(
-        "Monthly Electricity (kWh)",
-        min_value=0.0,
-        value=200.0,
-        step=10.0,
-        key="electricity"
-    )
-    diet = st.selectbox(
-        "Diet Type",
-        ["Vegetarian", "Non-Vegetarian"],
-        key="diet"
-    )
-with col3:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>✈️</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
-    </div>
-    """, unsafe_allow_html=True)
-    flights = st.number_input(
-        "Annual Flights",
-        min_value=0,
-        value=0,
-        step=1,
-        key="flights"
-    )
-    st.info("💡 How many long-distance flights per year?")
-
-
-
-# ------------------------
- # PDF REPORT GENERATION
-# -------------------------
-
-# -------------------------
-# TABS CONFIGURATION
-# -------------------------
-
-col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
-
-with col_btn1:
-    reset_btn = st.button(
-        "🔄 Reset Assessment",
-        use_container_width=True,
-        key="reset_btn"
-    )
-
-with col_btn2:
-    analyze_btn = st.button(
-        "🌿 Analyze My Impact",
-        use_container_width=True,
-        key="analyze_btn"
-    )
-    st.caption("✔ All input fields are validated before analysis.")
-
-if reset_btn:
-    st.session_state.show_reset_confirm = True
-    st.rerun()
-
-if st.session_state.get("show_reset_confirm", False):
-    st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
-    confirm_col, cancel_col, _ = st.columns([1, 1, 3])
-    with confirm_col:
-        if st.button("✅ Confirm Reset", key="confirm_reset_clear"):
-            for key in DEFAULT_VALUES:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.session_state.show_reset_confirm = False
-            st.success("✅ Assessment form has been reset.")
-            st.rerun()
-    with cancel_col:
-        if st.button("❌ Cancel", key="cancel_reset_clear"):
-            st.session_state.show_reset_confirm = False
-            st.rerun()
-
-
-
-tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
-
-with tab1:
-    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True) 
-    with st.spinner("🌍 Analyzing your carbon footprint..."):
-
-        progress_text = st.empty()
-        progress = st.progress(0)
-
-        progress_text.info("🔍 Validating user inputs...")
-        progress.progress(20)
-        time.sleep(0.5)  # Simulate validation delay
-
-# TABS CONFIGURATION
-# -------------------------
-col_btn1, col_btn2 = st.columns([1, 3])
-
-
-with col_btn1:
-    reset_btn = st.button(
-        "🔄 Reset Assessment",
-        use_container_width=True
-    )
-
-if reset_btn:
-    st.session_state.show_reset_confirm = True
-    st.rerun()
-
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+    # Draft recovery prompt
+    if user_id and draft:
+        st.info("📝 We found an unfinished assessment from your previous session. Would you like to restore it?")
+        col_rest, col_disc, _ = st.columns([1, 1, 4])
+        with col_rest:
+            if st.button("✅ Restore Session", key="restore_session_btn"):
+                st.session_state.draft_status = 'restored'
+                for key, val in draft.items():
+                    st.session_state[key] = val
+                st.success("Session restored successfully!")
+                st.rerun()
+        with col_disc:
+            if st.button("🗑️ Discard Draft", key="discard_draft_btn"):
+                delete_assessment_draft(user_id)
+                st.session_state.draft_status = 'discarded'
+                st.success("Draft discarded.")
+                st.rerun()
     
     st.markdown("### Region Setting")
-    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"])
+    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"], key="region")
 
     # -------------------------
     # QUICK LOG (AI)
@@ -359,6 +241,8 @@ with tab1:
                 st.session_state.distance = float(tp.get('distance', 10.0))
                 st.session_state.diet = tp.get('diet', 'Vegetarian')
                 del st.session_state.temp_parsed
+                if user_id:
+                    save_assessment_draft(user_id, st.session_state.transport, st.session_state.distance, st.session_state.get("electricity", 200.0), st.session_state.diet, st.session_state.get("flights", 0), st.session_state.get("region", "Global"))
                 st.rerun()
         with c_no:
             if st.button("❌ No, cancel", key="confirm_no"):
@@ -367,7 +251,7 @@ with tab1:
 
     col1, col2, col3 = st.columns(3)
  
-
+ 
     with col1:
         st.markdown("""
         <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -375,8 +259,8 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Transportation</span>
         </div>
         """, unsafe_allow_html=True)
-        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"])
-        distance = st.number_input("Daily Distance (km)", min_value=0.0, value=10.0, step=1.0)
+        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"], key="transport")
+        distance = st.number_input("Daily Distance (km)", min_value=0.0, key="distance", step=1.0)
 
     with col2:
         st.markdown("""
@@ -411,12 +295,13 @@ with tab1:
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
+                        st.session_state.electricity = float(parsed_val)
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
 
-        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, value=float(st.session_state.extracted_kwh), step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"])
+        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
+        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
     
         col1, col2 = st.columns(2)
     with col3:
@@ -426,7 +311,7 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span>
         </div>
         """, unsafe_allow_html=True)
-        flights = st.number_input("Annual Flights", min_value=0, value=0, step=1)
+        flights = st.number_input("Annual Flights", min_value=0, key="flights", step=1)
         st.info("💡 How many long-distance flights per year?")
         
 
@@ -467,12 +352,51 @@ with tab1:
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
+    # Auto-save draft inputs on change
+    if user_id and (st.session_state.draft_status in ['restored', 'discarded'] or not get_assessment_draft(user_id)):
+        is_modified = (
+            st.session_state.get("region") != "Global" or
+            st.session_state.get("transport") != "Car" or
+            st.session_state.get("distance") != 10.0 or
+            st.session_state.get("electricity") != 200.0 or
+            st.session_state.get("diet") != "Vegetarian" or
+            st.session_state.get("flights") != 0
+        )
+        if is_modified:
+            save_assessment_draft(
+                user_id,
+                st.session_state.get("transport", "Car"),
+                st.session_state.get("distance", 10.0),
+                st.session_state.get("electricity", 200.0),
+                st.session_state.get("diet", "Vegetarian"),
+                st.session_state.get("flights", 0),
+                st.session_state.get("region", "Global")
+            )
+
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment")
         if reset_btn:
             st.session_state.show_reset_confirm = True
             st.rerun()
+
+    if st.session_state.get("show_reset_confirm", False):
+        st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
+        confirm_col, cancel_col, _ = st.columns([1, 1, 3])
+        with confirm_col:
+            if st.button("✅ Confirm Reset", key="confirm_reset_clear"):
+                for key in DEFAULT_VALUES:
+                    st.session_state[key] = DEFAULT_VALUES[key]
+                st.session_state.pop("extracted_kwh", None)
+                st.session_state.show_reset_confirm = False
+                if user_id:
+                    delete_assessment_draft(user_id)
+                st.success("✅ Assessment form has been reset.")
+                st.rerun()
+        with cancel_col:
+            if st.button("❌ Cancel", key="cancel_reset_clear"):
+                st.session_state.show_reset_confirm = False
+                st.rerun()
 
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
@@ -494,6 +418,8 @@ with tab1:
         save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
+        if user_id:
+            delete_assessment_draft(user_id)
 
         st.success("✅ Analysis completed!")
 
@@ -618,18 +544,12 @@ with tab1:
                     borderwidth=1
                 )
             )
-
-            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
-
-
-        st.markdown("---")
-
         # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart
+        # Bar chart creation
         breakdown_fig = go.Figure(data=[
             go.Bar(
                 x=list(contributors.keys()),
@@ -665,7 +585,37 @@ with tab1:
             showlegend=False
         )
 
-        st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
+        # Render Chart
+        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+
+        # -------------------------
+        # CHART EXPORT BUTTONS (#277)
+        # -------------------------
+        try:
+            col_exp1, col_exp2 = st.columns(2)
+
+            # Export PNG (High Quality Scale = 3)
+            png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+            col_exp1.download_button(
+                label="📥 Export Chart as PNG",
+                data=png_bytes,
+                file_name="breakdown_chart.png",
+                mime="image/png",
+                use_container_width=True
+            )
+
+            # Export SVG (Vector Quality)
+            svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+            col_exp2.download_button(
+                label="📥 Export Chart as SVG",
+                data=svg_bytes,
+                file_name="breakdown_chart.svg",
+                mime="image/svg+xml",
+                use_container_width=True
+            )
+        except Exception:
+            # Fallback if kaleido or required engine is not available
+            pass
 
         st.markdown("---")
 
