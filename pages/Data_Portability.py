@@ -270,6 +270,11 @@ if uploaded_file is not None:
     if st.button("Restore Data"):
 
 
+        confirm_replace = st.checkbox(
+        "I understand that my existing data will be permanently deleted.")
+
+    if st.button("Restore Data") and confirm_replace:
+        
         # Read uploaded file
         file_bytes = uploaded_file.read()
 
