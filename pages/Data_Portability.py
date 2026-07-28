@@ -267,7 +267,6 @@ if uploaded_file is not None:
         st.error("❌ Invalid JSON file.")
 
 if uploaded_file is not None:
-    if st.button("Restore Data"):
     confirm_replace = True
 
     if import_strategy == "Replace":
