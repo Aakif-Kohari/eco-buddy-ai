@@ -212,7 +212,8 @@ is_done, import_result = render_task_progress(
 if is_done and import_result is not None:
     success, message = import_result
     if success:
-                st.success(message)
+                st.success("✅ Data restored successfully!")
+                st.balloons()
                 st.info(
                     "Please refresh the page or navigate to another section "
                     "to see the restored data."
