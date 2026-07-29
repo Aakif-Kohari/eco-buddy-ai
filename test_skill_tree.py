@@ -77,3 +77,41 @@ def test_multiple_prerequisites():
     
     node_status = evaluate_skill_tree(1)
     assert node_status.get('plant_based_diet') == 'Unlocked'
+def test_successful_node_completion():
+    evaluate_skill_tree(1)
+
+    success = complete_skill_node(1, "start_composting")
+
+    assert success is True
+
+    node_status = evaluate_skill_tree(1)
+
+    assert node_status["start_composting"] == "Completed"
+def test_cannot_complete_locked_node():
+    evaluate_skill_tree(1)
+
+    success = complete_skill_node(1, "solar_panels")
+
+    assert success is False
+
+    node_status = evaluate_skill_tree(1)
+
+    assert node_status.get("solar_panels", "Locked") == "Locked"
+def test_complete_invalid_node():
+    success = complete_skill_node(1, "invalid_node")
+
+    assert success is False
+def test_xp_awarded_after_completion():
+    evaluate_skill_tree(1)
+
+    complete_skill_node(1, "start_composting")
+
+    xp = get_total_xp(1)
+
+    assert xp == SKILL_TREE_NODES["start_composting"]["xp_reward"]
+def test_child_remains_locked_without_prerequisites():
+    evaluate_skill_tree(1)
+
+    node_status = evaluate_skill_tree(1)
+
+    assert node_status.get("grow_herbs") == "Locked"
