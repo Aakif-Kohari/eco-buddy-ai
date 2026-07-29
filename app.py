@@ -114,6 +114,14 @@ def render_sidebar_auth():
 
 @st.cache_resource
 def run_db_initializations():
+    # Run migrations first to ensure database schema is up to date
+    from database import migrate
+    success, message = migrate()
+    if not success:
+        print(f"Warning: Migration failed: {message}")
+    else:
+        print(f"Database: {message}")
+    
     init_db()
     init_gamification_db()
     init_marketplace_db()
