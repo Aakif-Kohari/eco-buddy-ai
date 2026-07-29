@@ -650,6 +650,20 @@ def apply_theme():
         box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
     }}
 
+    /* Hide spreadsheet editor options: Statistics and Format from dataframe toolbars and popovers */
+    [data-testid="stDataFrameToolBar"] button[aria-label*="Statistics"],
+    [data-testid="stDataFrameToolBar"] button[aria-label*="Format"],
+    [data-testid="stElementToolbar"] button[aria-label*="Statistics"],
+    [data-testid="stElementToolbar"] button[aria-label*="Format"],
+    div[data-baseweb="popover"] [role="menuitem"]:has(*:contains("Statistics")),
+    div[data-baseweb="popover"] [role="menuitem"]:has(*:contains("Format")),
+    div[data-baseweb="popover"] li:has(*:contains("Statistics")),
+    div[data-baseweb="popover"] li:has(*:contains("Format")),
+    div[data-baseweb="popover"] button:has(*:contains("Statistics")),
+    div[data-baseweb="popover"] button:has(*:contains("Format")) {
+        display: none !important;
+    }
+
     @keyframes fadeUp {{
         from {{
             opacity: 0;

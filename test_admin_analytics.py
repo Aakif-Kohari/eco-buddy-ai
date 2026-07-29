@@ -31,6 +31,7 @@ def test_calculate_platform_stats_empty():
     assert stats["average_eco_score"] == 0.0
     assert stats["active_users"] == 0
     assert stats["popular_recommendations"] == []
+    assert stats["recommendation_breakdown"] == []
 
 
 def test_calculate_platform_stats_single_user():
@@ -46,6 +47,7 @@ def test_calculate_platform_stats_single_user():
     assert stats["average_eco_score"] == 60.0  # (40 + 80) / 2
     assert stats["active_users"] == 1
     assert len(stats["popular_recommendations"]) > 0
+    assert len(stats["recommendation_breakdown"]) > 0
 
 
 def test_calculate_platform_stats_multiple_users():
@@ -79,6 +81,27 @@ def test_popular_recommendations_ranking():
     assert all(c >= 1 for c in counts)
 
 
+def test_recommendation_breakdown_metrics():
+    """Test that recommendation breakdown provides domain, trigger rate %, and target average score."""
+    mock_assessments = [
+        (1, 1, "2026-07-28", "Car", 20.0, 400.0, "Non-Vegetarian", 6, 8000.0, 20),
+        (2, 2, "2026-07-28", "Car", 30.0, 450.0, "Non-Vegetarian", 6, 9000.0, 40),
+    ]
+
+    stats = calculate_platform_stats(mock_assessments)
+    breakdown = stats["recommendation_breakdown"]
+    assert len(breakdown) > 0
+
+    first_item = breakdown[0]
+    assert "domain" in first_item
+    assert "recommendation" in first_item
+    assert "count" in first_item
+    assert "trigger_rate" in first_item
+    assert "target_avg_score" in first_item
+    assert first_item["trigger_rate"] == 100.0  # Triggered in both assessments
+    assert first_item["target_avg_score"] == 30.0  # (20 + 40) / 2
+
+
 def test_anonymization_no_pii():
     """Verify that statistics dictionaries contain zero user personal information (no usernames or emails)."""
     mock_assessments = [
@@ -86,13 +109,13 @@ def test_anonymization_no_pii():
     ]
     stats = calculate_platform_stats(mock_assessments)
     
-    allowed_keys = {"total_assessments", "average_eco_score", "active_users", "popular_recommendations"}
+    allowed_keys = {"total_assessments", "average_eco_score", "active_users", "popular_recommendations", "recommendation_breakdown"}
     assert set(stats.keys()) == allowed_keys
     
-    for rec_text, count in stats["popular_recommendations"]:
-        assert isinstance(rec_text, str)
-        assert isinstance(count, int)
-        assert "@" not in rec_text
+    for item in stats["recommendation_breakdown"]:
+        assert "@" not in item["recommendation"]
+        assert "email" not in item
+        assert "username" not in item
 
 
 def test_get_admin_platform_stats_with_db():

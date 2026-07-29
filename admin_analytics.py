@@ -16,7 +16,7 @@ def calculate_platform_stats(assessments):
 
     Returns:
         dict: Anonymized platform metrics (total_assessments, average_eco_score,
-              active_users, popular_recommendations).
+              active_users, popular_recommendations, recommendation_breakdown).
     """
     if not assessments:
         return {
@@ -24,12 +24,14 @@ def calculate_platform_stats(assessments):
             "average_eco_score": 0.0,
             "active_users": 0,
             "popular_recommendations": [],
+            "recommendation_breakdown": [],
         }
 
     total_assessments = len(assessments)
     eco_scores = []
     user_ids = set()
     rec_counter = Counter()
+    rec_scores = {}
 
     for row in assessments:
         if isinstance(row, dict):
@@ -62,6 +64,10 @@ def calculate_platform_stats(assessments):
             for r in recs:
                 if not r.startswith("🎯 Priority Focus:") and not r.startswith("🌱 Excellent!"):
                     rec_counter[r] += 1
+                    if r not in rec_scores:
+                        rec_scores[r] = []
+                    if score is not None:
+                        rec_scores[r].append(score)
         except Exception as err:
             print(f"Error deriving recommendations for admin stats: {err}")
 
@@ -69,11 +75,39 @@ def calculate_platform_stats(assessments):
     active_users = len(user_ids)
     popular_recommendations = rec_counter.most_common()
 
+    # Build complementary analytical breakdown
+    recommendation_breakdown = []
+    for r, count in popular_recommendations:
+        r_lower = r.lower()
+        if any(icon in r for icon in ["🚗", "🚌", "🚴", "🚶"]) or "transport" in r_lower:
+            domain = "🚗 Transport"
+        elif any(icon in r for icon in ["💡", "🔌", "⚡"]) or "electricity" in r_lower:
+            domain = "⚡ Electricity"
+        elif any(icon in r for icon in ["🥗", "🥩", "🥬"]) or "meat" in r_lower or "plant" in r_lower:
+            domain = "🥩 Diet"
+        elif any(icon in r for icon in ["✈️", "🛫", "🌍", "🌎"]) or "flight" in r_lower or "air travel" in r_lower:
+            domain = "✈️ Flights"
+        else:
+            domain = "🌿 Lifestyle"
+
+        scores_list = rec_scores.get(r, [])
+        target_avg_score = round(sum(scores_list) / len(scores_list), 1) if scores_list else 0.0
+        trigger_rate = round((count / total_assessments) * 100, 1)
+
+        recommendation_breakdown.append({
+            "domain": domain,
+            "recommendation": r,
+            "count": count,
+            "trigger_rate": trigger_rate,
+            "target_avg_score": target_avg_score
+        })
+
     return {
         "total_assessments": total_assessments,
         "average_eco_score": average_eco_score,
         "active_users": active_users,
         "popular_recommendations": popular_recommendations,
+        "recommendation_breakdown": recommendation_breakdown,
     }
 
 
