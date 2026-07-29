@@ -49,6 +49,11 @@ from dashboard_widgets import render_customizable_dashboard, render_widget_custo
 from environmental_timeline import render_environmental_timeline
 from report import generate_pdf
 from report_validation import validate_report_data
+from session_recovery import (
+    autosave_session_draft,
+    discard_current_draft,
+    render_draft_recovery_prompt,
+)
 
 
 
@@ -121,7 +126,6 @@ def render_sidebar_auth():
         if st.sidebar.button("Logout"):
             st.session_state['user_id'] = None
             st.session_state['username'] = None
-            st.session_state.pop('draft_status', None)
             st.session_state.pop('anonymous_leaderboard', None)
             for key, val in DEFAULT_VALUES.items():
                 st.session_state[key] = val
@@ -163,16 +167,6 @@ if 'extracted_kwh' not in st.session_state:
 # -------------------------
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
-
-if 'draft_status' not in st.session_state:
-    st.session_state.draft_status = None
-
-# Check for draft
-draft = None
-if user_id and st.session_state.draft_status is None:
-    draft = get_assessment_draft(user_id)
-
 for key, value in DEFAULT_VALUES.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -951,24 +945,8 @@ with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
     # Draft recovery prompt
-    if user_id and draft:
-        st.info("📝 We found an unfinished assessment from your previous session. Would you like to restore it?")
-        col_rest, col_disc, _ = st.columns([1, 1, 4])
-        with col_rest:
-            if st.button("✅ Restore Session", key="restore_session_btn"):
-                st.session_state.draft_status = 'restored'
-                for key, val in draft.items():
-                    st.session_state[key] = val
-                st.success("Session restored successfully!")
-                st.rerun()
-        with col_disc:
-            if st.button("🗑️ Discard Draft", key="discard_draft_btn"):
-                delete_assessment_draft(user_id)
-                st.session_state.draft_status = 'discarded'
-                st.success("Draft discarded.")
-                st.rerun()
+    render_draft_recovery_prompt(user_id, DEFAULT_VALUES)
 
-    
     st.markdown("### Region Setting")
     region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"], key="region")
 
@@ -1095,26 +1073,8 @@ with tab1:
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
-    # Auto-save draft inputs on change
-    if user_id and (st.session_state.draft_status in ['restored', 'discarded'] or not get_assessment_draft(user_id)):
-        is_modified = (
-            st.session_state.get("region") != "Global" or
-            st.session_state.get("transport") != "Car" or
-            st.session_state.get("distance") != 10.0 or
-            st.session_state.get("electricity") != 200.0 or
-            st.session_state.get("diet") != "Vegetarian" or
-            st.session_state.get("flights") != 0
-        )
-        if is_modified:
-            save_assessment_draft(
-                user_id,
-                st.session_state.get("transport", "Car"),
-                st.session_state.get("distance", 10.0),
-                st.session_state.get("electricity", 200.0),
-                st.session_state.get("diet", "Vegetarian"),
-                st.session_state.get("flights", 0),
-                st.session_state.get("region", "Global")
-            )
+    # Auto-save after every Streamlit rerun caused by form changes.
+    autosave_session_draft(user_id, DEFAULT_VALUES)
 
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn1:
@@ -1132,8 +1092,10 @@ with tab1:
                     st.session_state[key] = DEFAULT_VALUES[key]
                 st.session_state.pop("extracted_kwh", None)
                 st.session_state.show_reset_confirm = False
-                if user_id:
-                    delete_assessment_draft(user_id)
+                discard_current_draft(
+                    user_id,
+                    st.session_state,
+                )
                 st.success("✅ Assessment form has been reset.")
                 st.rerun()
         with cancel_col:
@@ -1161,8 +1123,10 @@ with tab1:
         save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
-        if user_id:
-            delete_assessment_draft(user_id)
+        discard_current_draft(
+            user_id,
+            st.session_state,
+        )
 
         st.success("✅ Analysis completed!")
 
