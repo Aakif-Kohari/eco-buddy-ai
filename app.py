@@ -1,9 +1,13 @@
 import html
 import time
+import logging
 import streamlit as st
+from logging_config import setup_logging
 
-st.set_page_config(
-    page_title="EcoBuddy",
+setup_logging()
+logger = logging.getLogger(__name__)
+
+st.set_page_config(    page_title="EcoBuddy",
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="expanded",
