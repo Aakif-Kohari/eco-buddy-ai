@@ -320,21 +320,35 @@ with tab1:
     # -------------------------
     # PDF REPORT GENERATION
     # -------------------------
+
+    # Optimized PDF generation for improved performance with larger reports
+    
     def generate_pdf(total, eco_score, insight):
         try:
             file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
-            doc = SimpleDocTemplate(file_name)
+            doc = SimpleDocTemplate(
+                file_name,
+                leftMargin=36,
+                rightMargin=36,
+                topMargin=36,
+                bottomMargin=36
+            )
             styles = getSampleStyleSheet()
 
-            content = [
-                Paragraph("EcoBuddy AI Report", styles["Title"]),
-                Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", styles["Normal"]),
-                Paragraph(f"Eco Score: {eco_score}/100", styles["Normal"]),
-                Paragraph("Key Insight:", styles["Heading2"]),
-                Paragraph(insight, styles["Normal"])
-            ]
+            title_style = styles["Title"]
+            normal_style = styles["Normal"]
+            heading_style = styles["Heading2"]
+
+            content = []
+
+            content.append(Paragraph("EcoBuddy AI Report", title_style))
+            content.append(Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", normal_style))
+            content.append(Paragraph(f"Eco Score: {eco_score}/100", normal_style))
+            content.append(Paragraph("Key Insight:", heading_style))
+            content.append(Paragraph(insight, normal_style))
 
             doc.build(content)
+            content.clear()
             return file_name
         except Exception:
             st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
