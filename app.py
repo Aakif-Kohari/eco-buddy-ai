@@ -47,6 +47,8 @@ from marketplace import (
 from styles.theme import apply_theme, render_theme_selector
 from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
 from environmental_timeline import render_environmental_timeline
+from report import generate_pdf
+from report_validation import validate_report_data
 
 
 
@@ -1083,44 +1085,6 @@ with tab1:
 
 
     # -------------------------
-    # PDF REPORT GENERATION
-    # -------------------------
-
-    # Optimized PDF generation for improved performance with larger reports
-    
-    def generate_pdf(total, eco_score, insight):
-        try:
-            file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
-            doc = SimpleDocTemplate(
-                file_name,
-                leftMargin=36,
-                rightMargin=36,
-                topMargin=36,
-                bottomMargin=36
-            )
-            styles = getSampleStyleSheet()
-
-            title_style = styles["Title"]
-            normal_style = styles["Normal"]
-            heading_style = styles["Heading2"]
-
-            content = []
-
-            content.append(Paragraph("EcoBuddy AI Report", title_style))
-            content.append(Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", normal_style))
-            content.append(Paragraph(f"Eco Score: {eco_score}/100", normal_style))
-            content.append(Paragraph("Key Insight:", heading_style))
-            content.append(Paragraph(insight, normal_style))
-
-            doc.build(content)
-            content.clear()
-            return file_name
-        except Exception:
-            st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
-            return None
-
-
-    # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
 
@@ -1491,23 +1455,46 @@ with tab1:
         # -------------------------
         # PDF DOWNLOAD
         # -------------------------
-        report = generate_pdf(total, eco_score, insight)
+        report_validation = validate_report_data(
+            total,
+            eco_score,
+            insight,
+        )
 
-        if report:
-            with open(report, "rb") as f:
-                pdf_bytes = f.read()
-                
-            try:
-                os.remove(report)
-            except OSError:
-                pass
-                
-            st.download_button(
-                "📄 Download Eco Report (PDF)",
-                pdf_bytes,
-                file_name="EcoBuddy_Report.pdf"
+        if not report_validation.is_valid:
+            st.error(
+                "The report could not be generated because the assessment "
+                "contains invalid or incomplete data."
+            )
+            for validation_error in report_validation.errors:
+                st.warning(f"• {validation_error}")
+        else:
+            report = generate_pdf(
+                report_validation.cleaned_data["total"],
+                report_validation.cleaned_data["eco_score"],
+                report_validation.cleaned_data["insight"],
             )
 
+            if report:
+                with open(report, "rb") as report_file:
+                    pdf_bytes = report_file.read()
+
+                try:
+                    os.remove(report)
+                except OSError:
+                    pass
+
+                st.download_button(
+                    "📄 Download Eco Report (PDF)",
+                    pdf_bytes,
+                    file_name="EcoBuddy_Report.pdf",
+                    mime="application/pdf",
+                )
+            else:
+                st.error(
+                    "The assessment data is valid, but the PDF could not be "
+                    "created. Please try again."
+                )
 
     # -------------------------
     # HISTORY & TRACKING
