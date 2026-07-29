@@ -1,6 +1,17 @@
 import html
 import time
+import logging
 import streamlit as st
+from logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
+st.set_page_config(    page_title="EcoBuddy",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
@@ -14,7 +25,7 @@ load_dotenv()
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db
+from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 from llm_parser import parse_quick_log
@@ -33,12 +44,86 @@ from marketplace import (
     calculate_offset_cost, validate_offset_transaction, get_offset_projects,
     calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
 )
+from styles.theme import apply_theme, render_theme_selector
 
 
+
+DEFAULT_VALUES = {
+    "region": "Global",
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
 
 def h(text):
     return html.escape(str(text))
 
+
+def render_sidebar_auth():
+    st.sidebar.title("Authentication")
+    if 'user_id' not in st.session_state:
+        st.session_state['user_id'] = None
+        st.session_state['username'] = None
+
+    if st.session_state['user_id'] is None:
+        auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
+        if auth_mode == "Login":
+            with st.sidebar.form("login_form"):
+                username = st.text_input("Username")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Login"):
+                    user = verify_user(username, password)
+                    if user:
+                        st.session_state['user_id'] = user['id']
+                        st.session_state['username'] = user['username']
+                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
+                        st.sidebar.success("Logged in successfully!")
+                        st.rerun()
+                    else:
+                        st.sidebar.error("Invalid username or password")
+        elif auth_mode == "Register":
+            with st.sidebar.form("register_form"):
+                username = st.text_input("Username")
+                email = st.text_input("Email")
+                password = st.text_input("Password", type="password")
+                anonymous = st.checkbox("Appear anonymously on leaderboard")
+                if st.form_submit_button("Register"):
+                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
+                        st.sidebar.success("Registration successful! Please login.")
+                    else:
+                        st.sidebar.error("Username or email already exists")
+        elif auth_mode == "Guest":
+            if st.sidebar.button("Continue as Guest"):
+                st.session_state['user_id'] = 1
+                st.session_state['username'] = "Guest"
+                st.rerun()
+        
+        st.sidebar.warning("Please log in or continue as Guest to use the app.")
+        st.stop()
+    else:
+        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        anon_pref = st.sidebar.checkbox(
+            "Appear anonymously on leaderboard",
+            value=st.session_state.get("anonymous_leaderboard", False)
+        )
+        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+            st.session_state['anonymous_leaderboard'] = anon_pref
+            st.sidebar.success("Leaderboard preference saved.")
+            st.experimental_rerun()
+
+        if st.sidebar.button("Logout"):
+            st.session_state['user_id'] = None
+            st.session_state['username'] = None
+            st.session_state.pop('draft_status', None)
+            st.session_state.pop('anonymous_leaderboard', None)
+            for key, val in DEFAULT_VALUES.items():
+                st.session_state[key] = val
+            st.rerun()
+
+    return st.session_state['user_id']
 
 # -------------------------
 # INIT
@@ -46,57 +131,50 @@ def h(text):
 
 @st.cache_resource
 def run_db_initializations():
+    # Run migrations first to ensure database schema is up to date
+    from database import migrate
+    success, message = migrate()
+    if not success:
+        print(f"Warning: Migration failed: {message}")
+    else:
+        print(f"Database: {message}")
+    
     init_db()
     init_gamification_db()
     init_marketplace_db()
 
 run_db_initializations()
+user_id = render_sidebar_auth()
+render_theme_selector()
 
 if 'extracted_kwh' not in st.session_state:
     st.session_state.extracted_kwh = 200.0
 
 
 # -------------------------
-# DEFAULT FORM VALUES
+# DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
+from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+
+if 'draft_status' not in st.session_state:
+    st.session_state.draft_status = None
+
+# Check for draft
+draft = None
+if user_id and st.session_state.draft_status is None:
+    draft = get_assessment_draft(user_id)
 
 for key, value in DEFAULT_VALUES.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-# -------------------------
-# DEFAULT FORM VALUES
-# -------------------------
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
-
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-st.set_page_config(
-    page_title="EcoBuddy",
-    page_icon="🌱",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# page config moved to top
 
 
 # -------------------------
-# REFERENCE-INSPIRED ADVANCED STYLING
+# THEME APPLICATION
 # -------------------------
+
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -673,6 +751,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+apply_theme()
+
+
 
 # -------------------------
 # HEADER
@@ -808,9 +889,23 @@ st.caption("✔ All input fields are validated before analysis.")
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
  
  
+# ------------------------
+
+
+# -------------------------
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🌍 Carbon Footprint",
+    "⚡ Home Energy Audit",
+    "🎮 Gamification",
+    "🗺️ Route Planning & Offsets",
+    "🏆 Community Leaderboard"
+])
+
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
 
  
  
@@ -845,9 +940,28 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+    # Draft recovery prompt
+    if user_id and draft:
+        st.info("📝 We found an unfinished assessment from your previous session. Would you like to restore it?")
+        col_rest, col_disc, _ = st.columns([1, 1, 4])
+        with col_rest:
+            if st.button("✅ Restore Session", key="restore_session_btn"):
+                st.session_state.draft_status = 'restored'
+                for key, val in draft.items():
+                    st.session_state[key] = val
+                st.success("Session restored successfully!")
+                st.rerun()
+        with col_disc:
+            if st.button("🗑️ Discard Draft", key="discard_draft_btn"):
+                delete_assessment_draft(user_id)
+                st.session_state.draft_status = 'discarded'
+                st.success("Draft discarded.")
+                st.rerun()
+
     
     st.markdown("### Region Setting")
-    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"])
+    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"], key="region")
 
     # -------------------------
     # QUICK LOG (AI)
@@ -881,6 +995,8 @@ with tab1:
                 st.session_state.distance = float(tp.get('distance', 10.0))
                 st.session_state.diet = tp.get('diet', 'Vegetarian')
                 del st.session_state.temp_parsed
+                if user_id:
+                    save_assessment_draft(user_id, st.session_state.transport, st.session_state.distance, st.session_state.get("electricity", 200.0), st.session_state.diet, st.session_state.get("flights", 0), st.session_state.get("region", "Global"))
                 st.rerun()
         with c_no:
             if st.button("❌ No, cancel", key="confirm_no"):
@@ -898,8 +1014,8 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Transportation</span>
         </div>
         """, unsafe_allow_html=True)
-        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"])
-        distance = st.number_input("Daily Distance (km)", min_value=0.0, value=10.0, step=1.0)
+        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"], key="transport")
+        distance = st.number_input("Daily Distance (km)", min_value=0.0, key="distance", step=1.0)
 
     with col2:
         st.markdown("""
@@ -938,12 +1054,13 @@ with tab1:
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
+                        st.session_state.electricity = float(parsed_val)
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
 
-        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, value=float(st.session_state.extracted_kwh), step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"])
+        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
+        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
     
         col1, col2 = st.columns(2)
     with col3:
@@ -953,28 +1070,43 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span>
         </div>
         """, unsafe_allow_html=True)
-        flights = st.number_input("Annual Flights", min_value=0, value=0, step=1)
+        flights = st.number_input("Annual Flights", min_value=0, key="flights", step=1)
         st.info("💡 How many long-distance flights per year?")
         
+
 
     # -------------------------
     # PDF REPORT GENERATION
     # -------------------------
+
+    # Optimized PDF generation for improved performance with larger reports
+    
     def generate_pdf(total, eco_score, insight):
         try:
             file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
-            doc = SimpleDocTemplate(file_name)
+            doc = SimpleDocTemplate(
+                file_name,
+                leftMargin=36,
+                rightMargin=36,
+                topMargin=36,
+                bottomMargin=36
+            )
             styles = getSampleStyleSheet()
 
-            content = [
-                Paragraph("EcoBuddy AI Report", styles["Title"]),
-                Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", styles["Normal"]),
-                Paragraph(f"Eco Score: {eco_score}/100", styles["Normal"]),
-                Paragraph("Key Insight:", styles["Heading2"]),
-                Paragraph(insight, styles["Normal"])
-            ]
+            title_style = styles["Title"]
+            normal_style = styles["Normal"]
+            heading_style = styles["Heading2"]
+
+            content = []
+
+            content.append(Paragraph("EcoBuddy AI Report", title_style))
+            content.append(Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", normal_style))
+            content.append(Paragraph(f"Eco Score: {eco_score}/100", normal_style))
+            content.append(Paragraph("Key Insight:", heading_style))
+            content.append(Paragraph(insight, normal_style))
 
             doc.build(content)
+            content.clear()
             return file_name
         except Exception:
             st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
@@ -985,25 +1117,63 @@ with tab1:
     # CALCULATE & ANALYZE
     # -------------------------
 
-    
+
+ 
+
 
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
+    # Auto-save draft inputs on change
+    if user_id and (st.session_state.draft_status in ['restored', 'discarded'] or not get_assessment_draft(user_id)):
+        is_modified = (
+            st.session_state.get("region") != "Global" or
+            st.session_state.get("transport") != "Car" or
+            st.session_state.get("distance") != 10.0 or
+            st.session_state.get("electricity") != 200.0 or
+            st.session_state.get("diet") != "Vegetarian" or
+            st.session_state.get("flights") != 0
+        )
+        if is_modified:
+            save_assessment_draft(
+                user_id,
+                st.session_state.get("transport", "Car"),
+                st.session_state.get("distance", 10.0),
+                st.session_state.get("electricity", 200.0),
+                st.session_state.get("diet", "Vegetarian"),
+                st.session_state.get("flights", 0),
+                st.session_state.get("region", "Global")
+            )
+
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment")
         if reset_btn:
-            for key in DEFAULT_VALUES:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.success("✅ Assessment form has been reset.")
+            st.session_state.show_reset_confirm = True
             st.rerun()
+
+    if st.session_state.get("show_reset_confirm", False):
+        st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
+        confirm_col, cancel_col, _ = st.columns([1, 1, 3])
+        with confirm_col:
+            if st.button("✅ Confirm Reset", key="confirm_reset_clear"):
+                for key in DEFAULT_VALUES:
+                    st.session_state[key] = DEFAULT_VALUES[key]
+                st.session_state.pop("extracted_kwh", None)
+                st.session_state.show_reset_confirm = False
+                if user_id:
+                    delete_assessment_draft(user_id)
+                st.success("✅ Assessment form has been reset.")
+                st.rerun()
+        with cancel_col:
+            if st.button("❌ Cancel", key="cancel_reset_clear"):
+                st.session_state.show_reset_confirm = False
+                st.rerun()
 
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
 
- 
+
     if analyze_btn:
 
         with st.spinner("🌍 Analyzing your carbon footprint..."):
@@ -1017,9 +1187,11 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
-        save_assessment(
+        save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
+        if user_id:
+            delete_assessment_draft(user_id)
 
         st.success("✅ Analysis completed!")
 
@@ -1032,36 +1204,36 @@ with tab1:
         with met1:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🌍 Total Footprint</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🌍 Total Footprint</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>kg CO₂/year</div>
+                <div style='font-size: 12px; color: #4b5563;'>kg CO₂/year</div>
             </div>
             """.format(total), unsafe_allow_html=True)
 
         with met2:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🏆 Eco Score</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🏆 Eco Score</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>out of 100</div>
+                <div style='font-size: 12px; color: #4b5563;'>out of 100</div>
             </div>
             """.format(eco_score), unsafe_allow_html=True)
 
         with met3:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>📈 Biggest Impact</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>📈 Biggest Impact</div>
                 <div style='font-size: 24px; font-weight: 700; color: #4ade80;'>{}</div>
-                <div style='font-size: 12px; color: #9ca3af;'>{:.0f} kg CO₂</div>
+                <div style='font-size: 12px; color: #4b5563;'>{:.0f} kg CO₂</div>
             </div>
             """.format(max(contributors, key=contributors.get), max(contributors.values())), unsafe_allow_html=True)
 
         with met4:
             st.markdown("""
             <div class='metric-card'>
-                <div style='font-size: 14px; color: #d1d5db; margin-bottom: 8px;'>🎯 Status</div>
+                <div style='font-size: 14px; color: #374151; margin-bottom: 8px;'>🎯 Status</div>
                 <div style='font-size: 18px; font-weight: 700; color: #4ade80;'>Active</div>
-                <div style='font-size: 12px; color: #9ca3af;'>Tracking enabled</div>
+                <div style='font-size: 12px; color: #4b5563;'>Tracking enabled</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1094,7 +1266,7 @@ with tab1:
             st.markdown(f"""
             <div style='margin-top: 16px;'>
                 <div style='display: flex; justify-content: space-between; margin-bottom: 6px;'>
-                    <span style='color: #d1d5db; font-size: 14px;'>Score Progress</span>
+                    <span style='color: #374151; font-size: 14px;'>Score Progress</span>
                     <span style='color: #4ade80; font-weight: 700;'>{eco_score}%</span>
                 </div>
                 <div class='progress-bar'>
@@ -1113,20 +1285,30 @@ with tab1:
             else:
                 st.warning("🔥 Your carbon footprint is above average. Let's work on reducing it!")
 
-        with col_badge2:
+with col_badge2:
             st.markdown("<div class='section-header' style='margin-top: 0;'>📊 Emission Sources</div>", unsafe_allow_html=True)
+
+            selected_categories = st.multiselect(
+                "Filter categories",
+                options=list(contributors.keys()),
+                default=list(contributors.keys()),
+                key="emission_category_filter"
+            )
+            filtered_contributors = {
+                k: v for k, v in contributors.items() if k in selected_categories
+            } or contributors
 
             # Pie chart with Plotly
             fig = go.Figure(data=[go.Pie(
-                labels=list(contributors.keys()),
-                values=list(contributors.values()),
+                labels=list(filtered_contributors.keys()),
+                values=list(filtered_contributors.values()),
                 hole=0.4,
                 marker=dict(
                     colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(0,0,0,0.1)', width=2)
                 ),
                 textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂<br>%{percent}<extra></extra>'
+                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
             )])
 
             fig.update_layout(
@@ -1135,65 +1317,95 @@ with tab1:
                 margin=dict(l=0, r=0, t=0, b=0),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#d1d5db', size=12),
+                font=dict(color='#374151', size=12),
                 legend=dict(
-                    x=-0.15,
-                    y=1,
-                    bgcolor='rgba(0,0,0,0.3)',
+                    orientation='h',
+                    x=0.5,
+                    xanchor='center',
+                    y=-0.15,
+                    bgcolor='rgba(255,255,255,0.9)',
                     bordercolor='rgba(74, 222, 128, 0.3)',
                     borderwidth=1
                 )
             )
 
-            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
-
-
-        st.markdown("---")
-
-        # -------------------------
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart
+# Bar chart creation
+        total_filtered = sum(filtered_contributors.values()) or 1
         breakdown_fig = go.Figure(data=[
             go.Bar(
-                x=list(contributors.keys()),
-                y=list(contributors.values()),
+                x=list(filtered_contributors.keys()),
+                y=list(filtered_contributors.values()),
                 marker=dict(
                     color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(255,255,255,0.2)', width=2)
                 ),
-                text=[f'{v:.0f} kg' for v in contributors.values()],
+                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
                 textposition='auto',
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
+                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
             )
         ])
-
         breakdown_fig.update_layout(
             height=350,
             margin=dict(l=40, r=20, t=20, b=40),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#d1d5db', size=12),
+            font=dict(color='#374151', size=12),
             xaxis=dict(
                 showgrid=False,
                 zeroline=False,
-                color='#9ca3af'
+                color='#4b5563'
             ),
             yaxis=dict(
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='rgba(74, 222, 128, 0.1)',
                 zeroline=False,
-                color='#9ca3af'
+                color='#4b5563'
             ),
             showlegend=False
         )
 
+
         st.caption("This chart shows the breakdown of your carbon footprint by activity.")
         st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
         st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
+        # Render Chart
+        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+
+        # -------------------------
+        # CHART EXPORT BUTTONS (#277)
+        # -------------------------
+        try:
+            col_exp1, col_exp2 = st.columns(2)
+
+            # Export PNG (High Quality Scale = 3)
+            png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+            col_exp1.download_button(
+                label="📥 Export Chart as PNG",
+                data=png_bytes,
+                file_name="breakdown_chart.png",
+                mime="image/png",
+                use_container_width=True
+            )
+
+            # Export SVG (Vector Quality)
+            svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+            col_exp2.download_button(
+                label="📥 Export Chart as SVG",
+                data=svg_bytes,
+                file_name="breakdown_chart.svg",
+                mime="image/svg+xml",
+                use_container_width=True
+            )
+        except Exception:
+            # Fallback if kaleido or required engine is not available
+            pass
 
         st.markdown("---")
 
@@ -1211,7 +1423,7 @@ with tab1:
                     <div style='font-size: 32px;'>💡</div>
                     <div style='flex: 1;'>
                         <div style='font-size: 16px; font-weight: 800; color: #4ade80; margin-bottom: 12px;'>Key Finding</div>
-                        <div style='font-size: 15px; color: #d1d5db; line-height: 1.8;'>{h(insight)}</div>
+                        <div style='font-size: 15px; color: #374151; line-height: 1.8;'>{h(insight)}</div>
                     </div>
                 </div>
             </div>
@@ -1224,7 +1436,7 @@ with tab1:
                     <div style='font-size: 32px;'>🎯</div>
                     <div style='flex: 1;'>
                         <div style='font-size: 16px; font-weight: 800; color: #4ade80; margin-bottom: 12px;'>Quick Tips</div>
-                        <ul style='color: #d1d5db; font-size: 14px; line-height: 2.2; padding-left: 20px; margin: 0;'>
+                        <ul style='color: #374151; font-size: 14px; line-height: 2.2; padding-left: 20px; margin: 0;'>
                             <li>Start with small daily changes</li>
                             <li>Track progress regularly</li>
                             <li>Share with friends & family</li>
@@ -1249,7 +1461,7 @@ with tab1:
                     <div style='display: flex; gap: 12px;'>
                         <div style='font-size: 24px;'>💚</div>
                         <div style='flex: 1;'>
-                            <div style='font-size: 15px; line-height: 1.8; color: #d1d5db;'>{h(r)}</div>
+                            <div style='font-size: 15px; line-height: 1.8; color: #374151;'>{h(r)}</div>
                         </div>
                     </div>
                 </div>
@@ -1261,7 +1473,7 @@ with tab1:
                     <div style='font-size: 48px;'>🌟</div>
                     <div>
                         <div style='font-size: 18px; font-weight: 700; color: #4ade80; margin-bottom: 4px;'>Excellent Work!</div>
-                        <div style='color: #d1d5db;'>Your lifestyle is already very eco-friendly. Keep maintaining these amazing habits!</div>
+                        <div style='color: #374151;'>Your lifestyle is already very eco-friendly. Keep maintaining these amazing habits!</div>
                     </div>
                 </div>
             </div>
@@ -1294,23 +1506,26 @@ with tab1:
     # HISTORY & TRACKING
     # -------------------------
     st.markdown("---")
+    with st.expander("🕒 Assessment Timeline", expanded=False):
+        st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
+        history = get_assessments(user_id)
+        st.write("History length:", len(history))
 
-    history = get_assessments()
+        if history:
 
-    if history:
+            df = pd.DataFrame(history, columns=[
+                "id", "date", "transport", "distance",
+                "electricity", "diet", "flights",
+                "footprint", "eco_score"
+            ])
 
-        df = pd.DataFrame(history, columns=[
-            "id", "date", "transport", "distance",
-            "electricity", "diet", "flights",
-            "footprint", "eco_score"
-        ])
+            latest = history[0]
 
-        latest = history[0]
+            # Latest stats
+            stat1, stat2, stat3, stat4 = st.columns(4)
 
-        # Latest stats
-        stat1, stat2, stat3, stat4 = st.columns(4)
+
 
         with stat1:
             st.markdown(f"""
@@ -1329,27 +1544,56 @@ with tab1:
                 <div style='font-size: 11px; color: #6b7280;'>out of 100</div>
             </div>
             """, unsafe_allow_html=True)
-
-        if len(history) >= 2:
-            prev = history[1][7]
-            change = ((prev - latest[7]) / prev) * 100 if prev else 0
-
-            with stat3:
-                if change > 0:
-                    color = "#4ade80"
-                    emoji = "📉"
-                    label = "Reduced"
-                elif change < 0:
-                    color = "#f87171"
-                    emoji = "📈"
-                    label = "Increased"
-                else:
-                    color = "#60a5fa"
-                    emoji = "→"
-                    label = "No Change"
-
+            
+            with stat1:
                 st.markdown(f"""
                 <div class='card'>
+                    <div style='font-size: 12px; color: #4b5563;'>Latest Footprint</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[7]:.0f}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>kg CO₂</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with stat2:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 12px; color: #4b5563;'>Latest Score</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[8]}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>out of 100</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+            if len(history) >= 2:
+                prev = history[1][7]
+                change = ((prev - latest[7]) / prev) * 100 if prev else 0
+
+                with stat3:
+                    if change > 0:
+                        color = "#4ade80"
+                        emoji = "📉"
+                        label = "Reduced"
+                    elif change < 0:
+                        color = "#f87171"
+                        emoji = "📈"
+                        label = "Increased"
+                    else:
+                        color = "#60a5fa"
+                        emoji = "→"
+                        label = "No Change"
+
+                    st.markdown(f"""
+                    <div class='card'>
+                        <div style='font-size: 12px; color: #4b5563;'>{emoji} {label}</div>
+                        <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
+                        <div style='font-size: 11px; color: #4b5563;'>vs previous</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with stat4:
+                st.markdown(f"""
+                <div class='card'>
+
                     <div style='font-size: 12px; color: #6b7280;'>{emoji} {label}</div>
                     <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
                     <div style='font-size: 11px; color: #6b7280;'>vs previous</div>
@@ -1365,7 +1609,14 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("---")
+                    <div style='font-size: 12px; color: #4b5563;'>Total Records</div>
+                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{len(history)}</div>
+                    <div style='font-size: 11px; color: #4b5563;'>assessments</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+
 
         # -------------------------
         # TREND VISUALIZATION
@@ -1410,40 +1661,119 @@ with tab1:
             hovermode='x unified'
         )
 
-        st.plotly_chart(trend_fig, width="stretch", config={'displayModeBar': False})
+            st.markdown("---")
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("---")
+            # -------------------------
+            # TREND VISUALIZATION
+            # -------------------------
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📉 Carbon Footprint Trend</div>", unsafe_allow_html=True)
+
+            trend_df = df[["date", "footprint"]].iloc[::-1].reset_index(drop=True)
+            trend_df['date'] = pd.to_datetime(trend_df['date'])
+
+            trend_fig = go.Figure()
+            trend_fig.add_trace(go.Scatter(
+                x=trend_df['date'],
+                y=trend_df['footprint'],
+                mode='lines+markers',
+                name='Carbon Footprint',
+                line=dict(color='#4ade80', width=3),
+                marker=dict(size=8, color='#4ade80', line=dict(color='#86efac', width=2)),
+                fill='tozeroy',
+                fillcolor='rgba(74, 222, 128, 0.2)',
+                hovertemplate='<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+            ))
+
+            trend_fig.update_layout(
+                title="Carbon Footprint Over Time",
+                height=320,
+                margin=dict(l=40, r=20, t=20, b=40),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(55, 65, 81, 0.2)',
+                font=dict(color='#d1d5db', size=12),
+                xaxis=dict(
+                    showgrid=False,
+                    zeroline=False,
+                    color='#9ca3af'
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridwidth=1,
+                    gridcolor='rgba(74, 222, 128, 0.1)',
+                    zeroline=False,
+                    color='#9ca3af'
+                ),
+                showlegend=False,
+                hovermode='x unified'
+            )
+
+
+
+st.plotly_chart(
+                trend_fig,
+                width="stretch",
+                config={
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+                    "toImageButtonOptions": {"format": "png", "filename": "carbon_footprint_trend"},
+                    "scrollZoom": False,
+                    "responsive": True
+                }
+            )
+            st.markdown("---")
 
         # -------------------------
         # HISTORY TABLE
         # -------------------------
-        st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
-        with st.expander("📂 View Assessment History", expanded=False):
-            # Create a nice table display
-            display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
-            display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
-            display_df = display_df.iloc[::-1].reset_index(drop=True)
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
+            with st.expander("📂 View Assessment History", expanded=True):
+                # Create a nice table display
+                display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
+                display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
+                display_df = display_df.iloc[::-1].reset_index(drop=True)
 
-            st.markdown(
-                "<div class='history-table-wrap'>"
-                + display_df.to_html(index=False, classes="history-table", border=0)
-                + "</div>",
-                unsafe_allow_html=True
-            )
+                search_text = st.text_input(
+                    "🔍 Search by Date",
+                    placeholder="Enter date..."
+                )
 
-            st.markdown("---")
+                min_score, max_score = st.slider(
+                    "🌱 Eco Score Range",
+                    0,
+                    100,
+                    (0, 100)
+                )
 
-        # -------------------------
-        # STATS & INSIGHTS
-        # -------------------------
-        st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📊 Your Statistics</div>", unsafe_allow_html=True)
+                max_footprint = st.number_input(
+                    "🌍 Maximum Carbon Footprint (kg CO₂)",
+                    min_value=0.0,
+                    value=float(display_df["🌍 Footprint (kg CO₂)"].max())
+                )
 
-        stats_col1, stats_col2, stats_col3 = st.columns(3)
+                if search_text:
+                    display_df = display_df[
+                        display_df["📅 Date"].astype(str).str.contains(search_text, case=False)
+                    ]
 
-        avg_footprint = df['footprint'].mean()
-        avg_score = df['eco_score'].mean()
-        max_footprint = df['footprint'].max()
-        min_footprint = df['footprint'].min()
+                display_df = display_df[
+                    (display_df["🌱 Eco Score"] >= min_score) &
+                    (display_df["🌱 Eco Score"] <= max_score)
+                ]
+
+                display_df = display_df[
+                    display_df["🌍 Footprint (kg CO₂)"] <= max_footprint
+                ]
+
+                st.markdown(
+                    "<div class='history-table-wrap'>"
+                    + display_df.to_html(index=False, classes="history-table", border=0)
+                    + "</div>",
+                    unsafe_allow_html=True
+                )
+
+                st.markdown("---")
+
 
         with stats_col1:
             st.markdown(f"""
@@ -1474,24 +1804,68 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-    else:
-        st.markdown("""
-        <div class='card-highlight'>
-            <div style='text-align: center; padding: 48px 32px;'>
-                <div style='font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite;'>🌱</div>
-                <div style='font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #22c55e, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;'>No Data Yet</div>
-                <div style='color: #d1d5db; font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto;'>
-                    Start your eco journey! Complete the lifestyle profile above and click "Analyze My Impact" to generate your personalized carbon footprint report.
+            # -------------------------
+            # STATS & INSIGHTS
+            # -------------------------
+            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📊 Your Statistics</div>", unsafe_allow_html=True)
+
+            stats_col1, stats_col2, stats_col3 = st.columns([1.2, 1.2, 1])
+
+            avg_footprint = df['footprint'].mean()
+            avg_score = df['eco_score'].mean()
+            max_footprint = df['footprint'].max()
+            min_footprint = df['footprint'].min()
+
+
+            with stats_col1:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
+                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_footprint:.0f}</div>
+                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with stats_col2:
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
+                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_score:.0f}</div>
+                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>out of 100 points</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with stats_col3:
+                range_val = max_footprint - min_footprint
+                st.markdown(f"""
+                <div class='card'>
+                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
+                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{min_footprint:.0f}</div>
+                    <div style='font-size: 14px; color: #4b5563;'>to</div>
+                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{max_footprint:.0f}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+
+        else:
+            st.markdown("""
+            <div class='card-highlight'>
+                <div style='text-align: center; padding: 48px 32px;'>
+                    <div style='font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite;'>🌱</div>
+                    <div style='font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #22c55e, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;'>No Data Yet</div>
+                    <div style='color: #374151; font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto;'>
+                        Start your eco journey! Complete the lifestyle profile above and click "Analyze My Impact" to generate your personalized carbon footprint report.
+                    </div>
                 </div>
             </div>
-        </div>
-        <style>
-            @keyframes bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-10px); }
-            }
-        </style>
-        """, unsafe_allow_html=True)
+            <style>
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-10px); }
+                }
+            </style>
+            """, unsafe_allow_html=True)
 
 with tab2:
     import database as db
@@ -1518,11 +1892,11 @@ with tab2:
 
             submit_app = st.form_submit_button("Add Appliance")
             if submit_app and app_name:
-                db.add_appliance(app_name, app_cat, app_qty, app_power, app_hours, app_standby)
+                db.add_appliance(user_id, app_name, app_cat, app_qty, app_power, app_hours, app_standby)
                 st.success(f"Added {app_name}")
                 st.rerun()
 
-    appliances = db.get_appliances()
+    appliances = db.get_appliances(user_id)
     if appliances:
         # Build a styled HTML table instead of st.dataframe
         category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
@@ -1634,10 +2008,10 @@ with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
     # Header: Level, XP, Streak
-    total_xp = gf.get_total_xp(1)
+    total_xp = gf.get_total_xp(user_id)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
-    history = get_assessments()
+    history = get_assessments(user_id)
     activities_dates = [row[1] for row in history] if history else []
     streak = gf.calculate_streak(1, activities_dates)
     
@@ -1651,7 +2025,7 @@ with tab3:
     st.markdown("---")
     st.markdown("### 🏆 Weekly Challenges")
     
-    user_challenges = gf.get_user_challenges(1)
+    user_challenges = gf.get_user_challenges(user_id)
     # Optimize primary evaluation loop by pre-computing challenge states
     challenge_states = {}
     for c in user_challenges:
@@ -1672,18 +2046,18 @@ with tab3:
                     
                     prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
                     if st.button("Update", key=f"btn_prog_{ch_id}"):
-                        gf.update_challenge_progress(1, ch_id, progress_increment=prog_val)
+                        gf.update_challenge_progress(user_id, ch_id, progress_increment=prog_val)
                         gf.validate_challenge_progress(1, ch_id)
                         st.rerun()
             else:
                 if st.button("Enroll", key=f"enroll_{ch_id}"):
-                    gf.enroll_challenge(1, ch_id)
+                    gf.enroll_challenge(user_id, ch_id)
                     st.rerun()
 
     st.markdown("---")
     st.markdown("### 🎖️ Achievement Badges")
     
-    unlocked = gf.get_unlocked_badges(1)
+    unlocked = gf.get_unlocked_badges(user_id)
     unlocked_ids = [b['badge_id'] for b in unlocked]
     
     cols = st.columns(len(gf.BADGES))
@@ -1768,7 +2142,7 @@ with tab4:
                 if is_valid:
                     cost = calculate_offset_cost(tonnes, selected_proj["cost_per_tonne"])
                     # Defaulting to user_id=1 for now as per instructions
-                    if save_offset_transaction(1, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
+                    if save_offset_transaction(user_id, selected_proj["id"], selected_proj["name"], tonnes, selected_proj["cost_per_tonne"], cost):
                         st.success(f"Simulated purchase successful! Offset {tonnes}t for ${cost:.2f}.")
                     else:
                         st.error("Failed to save transaction.")
@@ -1782,8 +2156,8 @@ with tab4:
     
     with port_col1:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
-        total_offsets = get_total_offsets(1)
-        total_spend = get_total_spend(1)
+        total_offsets = get_total_offsets(user_id)
+        total_spend = get_total_spend(user_id)
         st.metric("Total Tonnes Offset", f"{total_offsets:.2f}t")
         st.metric("Total Simulated Spend", f"${total_spend:.2f}")
         
@@ -1795,14 +2169,14 @@ with tab4:
 
     with port_col2:
         st.subheader("Transaction History")
-        transactions = get_offset_transactions(1)
+        transactions = get_offset_transactions(user_id)
         if transactions:
             df_trans = pd.DataFrame(transactions)
             st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
             
             # Button to clear history for demo purposes
             if st.button("Clear History"):
-                clear_offset_transactions(1)
+                clear_offset_transactions(user_id)
                 st.rerun()
         else:
             st.info("No transactions yet. Visit the marketplace to start your portfolio!")
@@ -2018,7 +2392,7 @@ st.markdown("""
 }
 
 .footer-bottom{
-    color:#9CA3AF;
+    color:#4b5563;
     font-size:14px;
 }
 </style>

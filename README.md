@@ -120,15 +120,41 @@ After launching, open the local Streamlit URL displayed in your terminal (typica
 eco-buddy-ai/
 │
 ├── app.py                     # Main Streamlit application
+├── config.py                  # Eco score baseline, sensitivity, and category weights
 ├── database.py                # SQLite database operations
+├── data_io.py                 # Export/import assessment data as JSON or CSV
 ├── emissions.py               # Carbon emission calculations
+├── energy_audit.py            # Home appliance energy, cost, and solar ROI calculations
+├── gamification.py            # XP, levels, streaks, challenges, and achievement badges
+├── llm_parser.py              # Parses natural-language quick-log entries (Gemini/Groq)
+├── marketplace.py             # Trip emissions, transit comparisons, and carbon offsets
+├── ocr_utils.py               # OCR text extraction from uploaded bills/receipts
 ├── recommendations.py         # Personalized recommendation engine
+├── report.py                  # PDF report generation
 ├── requirements.txt           # Project dependencies
+├── water.py                   # Household water footprint calculations
 ├── eco_buddy.db               # Local SQLite database (auto-generated)
 │
+├── pages/                      # Streamlit multi-page app sections
+│   ├── Carbon_Footprint.py
+│   ├── Data_Portability.py
+│   ├── Gamification.py
+│   ├── Home_Energy_Audit.py
+│   ├── Route_Planning.py
+│   └── Water_Footprint.py
+│
+├── styles/
+│   └── theme.py                # Shared custom CSS theme applied across pages
+│
+├── test_data_io.py
+├── test_database_crud.py
 ├── test_db.py
 ├── test_emissions.py
-└── test_recommendations.py
+├── test_energy_audit.py
+├── test_gamification.py
+├── test_marketplace.py
+├── test_recommendations.py
+└── test_water.py
 ```
 
 ---
@@ -150,9 +176,20 @@ eco-buddy-ai/
 | Module               | Description                                        |
 | -------------------- | -------------------------------------------------- |
 | `app.py`             | Main Streamlit interface and dashboard             |
+| `config.py`          | Central configuration for eco-score baseline and category weights |
 | `database.py`        | Initializes SQLite database and stores assessments |
+| `data_io.py`         | Exports/imports assessment data as JSON or CSV     |
 | `emissions.py`       | Calculates annual carbon emissions                 |
+| `energy_audit.py`    | Calculates appliance energy use, cost, and solar payback/ROI |
+| `gamification.py`    | Manages XP, levels, streaks, challenges, and badges |
+| `llm_parser.py`      | Parses natural-language quick-log text into structured data |
+| `marketplace.py`     | Calculates trip emissions, transit comparisons, and carbon offsets |
+| `ocr_utils.py`       | Extracts text from uploaded PDFs/images for auto data entry |
 | `recommendations.py` | Generates personalized eco-friendly suggestions    |
+| `report.py`          | Generates downloadable PDF footprint reports       |
+| `water.py`           | Calculates household water footprint from daily habits |
+| `styles/theme.py`    | Applies the shared custom CSS theme across pages   |
+| `pages/*.py`         | Streamlit multi-page sections (Carbon Footprint, Water Footprint, Home Energy Audit, Route Planning, Gamification, Data Portability) |
 
 ---
 
@@ -172,12 +209,25 @@ EcoBuddy AI provides:
 
 # 🧪 Testing
 
-Run the following commands to execute the unit tests:
+Most tests use **pytest**. Run the full suite with:
+
+```bash
+pytest
+```
+
+A couple of legacy tests are plain scripts (no assertions) and are run directly:
 
 ```bash
 python test_db.py
-python test_emissions.py
 python test_recommendations.py
+```
+
+`test_emissions.py` is written with `unittest` and can be run either way:
+
+```bash
+pytest test_emissions.py
+# or
+python test_emissions.py
 ```
 
 ---
@@ -231,8 +281,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
   
 
 <div align="center">
-
- main
+ 
 ## ❤️ Made with Passion by [neeru24](https://github.com/neeru24)
 
 If you found this project useful, please consider giving it a ⭐ on GitHub.

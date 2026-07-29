@@ -30,6 +30,11 @@ import database as db
 import energy_audit as ea
 import plotly.graph_objects as go
 
+user_id = st.session_state.get('user_id')
+if not user_id:
+    st.warning('Please log in from the main application page.')
+    st.stop()
+
 st.markdown("<div class='section-header'>⚡ Home Energy Audit</div>", unsafe_allow_html=True)
 
 # Init energy db
@@ -58,7 +63,7 @@ if submit_app:
         errors.append("Please enter an appliance name.")
 
     # Check for duplicate appliance
-    existing_appliances = db.get_appliances()
+    existing_appliances = db.get_appliances(user_id)
     duplicate = any(
         appliance["name"].strip().lower() == app_name.strip().lower()
         for appliance in existing_appliances
@@ -90,7 +95,7 @@ if submit_app:
         for error in errors:
             st.error(error)
     else:
-        db.add_appliance(
+        db.add_appliance(user_id, 
             app_name.strip(),
             app_cat,
             app_qty,
@@ -101,7 +106,7 @@ if submit_app:
         st.success(f"Added {app_name.strip()}")
         st.rerun()
 
-appliances = db.get_appliances()
+appliances = db.get_appliances(user_id)
 df = pd.DataFrame(appliances)
 if appliances:
     # Build a styled HTML table instead of st.dataframe
