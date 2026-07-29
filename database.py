@@ -367,6 +367,27 @@ def get_assessments(user_id=1):
         return []
 
 
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_all_assessments():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            FROM assessments
+            ORDER BY date DESC, id DESC
+        """)
+
+        data = cursor.fetchall()
+
+        conn.close()
+        return data
+    except sqlite3.Error as e:
+        print(f"Database read error: {e}")
+        return []
+
+
 def save_assessment_draft(
     user_id,
     transport,
@@ -377,7 +398,6 @@ def save_assessment_draft(
     region,
 ):
     """Insert or update one unfinished assessment per user."""
-    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
