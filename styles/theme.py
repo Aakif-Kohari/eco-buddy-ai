@@ -279,15 +279,49 @@ DARK_CSS = """
     }
 
     [data-testid="stDataFrame"] button,
-    [data-testid="stDataFrame"] [role="button"] {
-        background: rgba(255, 255, 255, 0.8) !important;
-        color: var(--ink) !important;
-        border-color: var(--line) !important;
+    [data-testid="stDataFrame"] [role="button"],
+    [data-testid="stElementToolbar"] button {
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(148, 163, 184, 0.28) !important;
     }
 
-    [data-testid="stDataFrame"] svg {
-        color: var(--ink) !important;
-        fill: var(--ink) !important;
+    [data-testid="stDataFrame"] button:hover,
+    [data-testid="stDataFrame"] [role="button"]:hover,
+    [data-testid="stElementToolbar"] button:hover {
+        background: #1e293b !important;
+        border-color: rgba(74, 222, 128, 0.5) !important;
+    }
+
+    [data-testid="stDataFrame"] svg,
+    [data-testid="stElementToolbar"] svg {
+        color: #f8fafc !important;
+        fill: #f8fafc !important;
+    }
+
+    /* Dark mode tooltips, popovers, and toolbar menus */
+    div[data-baseweb="popover"],
+    div[role="tooltip"],
+    div[data-baseweb="tooltip"],
+    [data-testid="stTooltipContent"] {
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(134, 239, 172, 0.3) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    div[data-baseweb="popover"] *,
+    div[role="tooltip"] *,
+    div[data-baseweb="tooltip"] *,
+    [data-testid="stTooltipContent"] * {
+        color: #ffffff !important;
+    }
+
+    div[data-baseweb="popover"] li:hover,
+    div[data-baseweb="popover"] [role="option"]:hover,
+    div[data-baseweb="popover"] [role="menuitem"]:hover {
+        background-color: rgba(34, 197, 94, 0.2) !important;
     }
 
     [data-testid="stDataFrame"] [role="grid"],

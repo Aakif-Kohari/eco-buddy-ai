@@ -99,6 +99,13 @@ if popular_recs:
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # 2. Complementary Analytical Table: Domain Breakdown & Target Eco Scores
+    st.markdown("#### 🔍 Domain Impact & Platform Trigger Rates")
+    st.markdown(
+        "Complementary analytical breakdown showing category domain classification, platform trigger rates, "
+        "and the average Eco Score of users triggering each recommendation."
+    )
+
     df_table = pd.DataFrame(rec_breakdown)
     df_table_display = df_table.rename(columns={
         "domain": "Domain",
@@ -106,24 +113,6 @@ if popular_recs:
         "trigger_rate": "Platform Trigger Rate (%)",
         "target_avg_score": "Recipient Avg Eco Score"
     })[["Domain", "Recommendation Tip", "Platform Trigger Rate (%)", "Recipient Avg Eco Score"]]
-
-    col_title, col_export = st.columns([3, 1])
-    with col_title:
-        st.markdown("#### 🔍 Domain Impact & Platform Trigger Rates")
-    with col_export:
-        csv_data = df_table_display.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Export CSV",
-            data=csv_data,
-            file_name="platform_recommendation_analytics.csv",
-            mime="text/csv",
-            key="download_admin_recs_csv"
-        )
-
-    st.markdown(
-        "Complementary analytical breakdown showing category domain classification, platform trigger rates, "
-        "and the average Eco Score of users triggering each recommendation."
-    )
 
     st.dataframe(
         df_table_display,
