@@ -18,6 +18,7 @@ class TestExtractTextFromFile:
 
     def test_extract_text_from_pdf(self):
         """Test extracting text from a PDF file."""
+        extract_text_from_file.clear()
         # Create a mock PDF-like uploaded file
         mock_pdf = MagicMock()
         mock_pdf.type = "application/pdf"
@@ -40,6 +41,7 @@ class TestExtractTextFromFile:
 
     def test_extract_text_from_image(self):
         """Test extracting text from an image file."""
+        extract_text_from_file.clear()
         # Create a mock image uploaded file
         mock_image = MagicMock()
         mock_image.type = "image/png"
@@ -59,6 +61,7 @@ class TestExtractTextFromFile:
 
     def test_extract_text_from_empty_pdf(self):
         """Test extracting text from PDF with no content."""
+        extract_text_from_file.clear()
         mock_pdf = MagicMock()
         mock_pdf.type = "application/pdf"
         
@@ -75,6 +78,7 @@ class TestExtractTextFromFile:
 
     def test_extract_text_handles_exception(self):
         """Test that exceptions are handled gracefully."""
+        extract_text_from_file.clear()
         mock_file = MagicMock()
         mock_file.type = "application/pdf"
         
@@ -88,6 +92,7 @@ class TestExtractTextFromFile:
 
     def test_extract_text_with_unknown_file_type(self):
         """Test extracting text from unknown file type."""
+        extract_text_from_file.clear()
         mock_file = MagicMock()
         mock_file.type = "application/unknown"
         
@@ -220,3 +225,50 @@ class TestEdgeCases:
         result = parse_energy_consumption(text)
         
         assert result == 450.0
+
+
+class TestMemoryOptimization:
+    """Tests for memory optimization and resource releasing during OCR."""
+
+    def test_optimize_image_resizes_large_images(self):
+        from PIL import Image
+        from ocr_utils import optimize_image_for_ocr
+        large_img = Image.new("RGBA", (3000, 2000), (255, 0, 0, 255))
+        opt_img = optimize_image_for_ocr(large_img, max_dim=1800)
+        assert opt_img.size[0] <= 1800
+        assert opt_img.size[1] <= 1800
+        assert opt_img.mode in ("L", "RGB")
+
+    def test_optimize_image_none(self):
+        from ocr_utils import optimize_image_for_ocr
+        assert optimize_image_for_ocr(None) is None
+
+    def test_extract_text_from_bytes_image_optimization(self):
+        from PIL import Image
+        import io
+        from ocr_utils import extract_text_from_bytes
+        img = Image.new("RGB", (2000, 2000), (255, 255, 255))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        img_bytes = buf.getvalue()
+        
+        with patch('ocr_utils.pytesseract.image_to_string') as mock_ocr:
+            mock_ocr.return_value = "Total: 500 kWh"
+            res = extract_text_from_bytes(img_bytes, "image/png")
+            assert "500" in res
+
+    def test_benchmark_ocr_memory(self):
+        from PIL import Image
+        import io
+        from ocr_utils import benchmark_ocr_memory
+        img = Image.new("RGB", (100, 100), (255, 255, 255))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        img_bytes = buf.getvalue()
+
+        with patch('ocr_utils.pytesseract.image_to_string') as mock_ocr:
+            mock_ocr.return_value = "350 kWh"
+            res = benchmark_ocr_memory(img_bytes)
+            assert res["status"] == "success"
+            assert "allocated_kb" in res
+

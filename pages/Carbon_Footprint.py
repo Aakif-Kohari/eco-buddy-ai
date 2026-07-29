@@ -241,8 +241,9 @@ with tab_assess:
 
     if analyze_btn:
         with st.spinner("🌍 Analyzing your carbon footprint..."):
-            total, contributors = calculate_footprint(transport, distance, electricity, diet, flights, region)
+            total, contributors, footprint_audit = calculate_footprint(transport, distance, electricity, diet, flights, region, return_audit=True)
         eco_score = calculate_eco_score(total, contributors)
+        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
         save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
         if user_id:
@@ -252,6 +253,7 @@ with tab_assess:
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
             "contributors": contributors, "insight": insight, "recommendations": recommendations,
+            "audit_log": audit_log,
         }
 
     if "analysis" in st.session_state:
@@ -281,6 +283,34 @@ with tab_assess:
         st.markdown("### 🌱 Recommendations")
         for rec in data["recommendations"]:
             st.success(rec)
+
+        st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+        with st.expander("📋 View Calculation Audit Log"):
+            audit = data.get("audit_log", {})
+            fp_audit = audit.get("footprint_audit", {})
+            steps = fp_audit.get("intermediate_calculations", {})
+            factors = fp_audit.get("emission_factors", {})
+            
+            st.markdown("#### 1. Category Emission Calculations")
+            for cat, details in steps.items():
+                st.markdown(f"**{cat}**: `{details.get('formula')}`")
+                st.markdown(f"↳ *Calculation*: `{details.get('expression')}` = **{details.get('rounded_result_kg')} kg CO₂**")
+                
+            st.markdown("#### 2. Emission Factors Used")
+            st.json(factors)
+            
+            st.markdown("#### 3. Eco Score Continuous Sigmoid Audit")
+            score_audit = audit.get("eco_score_audit", {})
+            st.json(score_audit.get("category_scores", {}))
+            
+            audit_json = export_audit_log_json(audit) if audit else "{}"
+            st.download_button(
+                label="📥 Export Calculation Audit Log (JSON)",
+                data=audit_json,
+                file_name="carbon_calculation_audit_log.json",
+                mime="application/json",
+                key="download_audit_log_btn"
+            )
     else:
         st.markdown("""
         <style>

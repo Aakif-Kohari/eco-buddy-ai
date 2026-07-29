@@ -21,7 +21,9 @@ from invalidation import (
 )
 import streamlit as st
 import bcrypt
+import logging
 
+logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
@@ -92,6 +94,7 @@ def init_db():
     """
     try:
         conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
         
         # Run migrations first to ensure schema is up to date
         migrate()
@@ -99,7 +102,6 @@ def init_db():
         # For new databases (version 0), create all tables
         current_version = get_db_version(conn)
         if current_version == 0:
-            cursor = conn.cursor()
             
             # Create users table
             cursor.execute("""
@@ -155,17 +157,20 @@ def init_db():
         conn.close()
         return True
     except sqlite3.Error as e:
-        print(f"Database init error: {e}")
-        return False
+logger.error("Database init error: %s", e)        
+return False
 
 
-def create_user(username, email, password):
+def create_user(username, email, password, anonymous_leaderboard=False):
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, password_hash))
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, anonymous_leaderboard) VALUES (?, ?, ?, ?)",
+            (username, email, password_hash, int(bool(anonymous_leaderboard)))
+        )
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -182,11 +187,15 @@ def verify_user(username, password):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password_hash, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         
         if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-            return {"id": user[0], "username": user[1]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -200,16 +209,38 @@ def get_user_by_username(username):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, email, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         if user:
-            return {"id": user[0], "username": user[1], "email": user[2]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "email": user[2],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error:
         return None
     finally:
         if conn:
             conn.close()
+
+
+def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET anonymous_leaderboard = ? WHERE id = ?",
+            (int(bool(anonymous_leaderboard)), user_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database update user preference error: {e}")
+        return False
+
 
 def save_assessment(
     user_id,
@@ -219,16 +250,13 @@ def save_assessment(
     diet,
     flights,
     footprint,
-    eco_score,
-    trip_id=None
+    eco_score=0,
     trip_id=None,
     date=None
 ):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO assessments (
 
         if date is not None:
             cursor.execute("""
@@ -303,21 +331,6 @@ def save_assessment(
                 diet,
                 flights,
                 footprint,
-                eco_score,
-                trip_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            transport,
-            distance,
-            electricity,
-            diet,
-            flights,
-            footprint,
-            eco_score,
-            trip_id
-        ))
                 eco_score
             ))
 
@@ -354,7 +367,6 @@ def get_assessments(user_id=1):
         return []
 
 
-def get_diet_history(user_id, limit=7):
 def save_assessment_draft(user_id, transport, distance, electricity, diet, flights, region):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -379,20 +391,28 @@ def save_assessment_draft(user_id, transport, distance, electricity, diet, fligh
         return False
 
 
-def get_assessment_draft(user_id):
+def get_diet_history(user_id, limit=7):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
             SELECT date, diet FROM assessments
+            WHERE user_id = ?
             ORDER BY date DESC LIMIT ?
-        """, (limit,))
+        """, (user_id, limit))
         rows = cursor.fetchall()
         conn.close()
         return rows
     except sqlite3.Error as e:
         print(f"get_diet_history error: {e}")
         return []
+
+
+def get_assessment_draft(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
             SELECT transport, distance, electricity, diet, flights, region
             FROM assessment_drafts
             WHERE user_id = ?
@@ -770,6 +790,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_xp(user_id):
+    
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)

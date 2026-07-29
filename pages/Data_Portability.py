@@ -2,8 +2,7 @@ import streamlit as st
 import json
 import sys
 from datetime import datetime
-from data_io import export_data_json, export_data_csv_zip, import_data_json
-from database import get_assessments
+from data_io import export_data_json, export_data_csv_zip, import_data_json, import_assessments_bulkfrom database import get_assessments
 from background_tasks import submit_background_task, render_task_progress, clear_background_task
 from styles.theme import apply_theme
 
@@ -213,11 +212,49 @@ is_done, import_result = render_task_progress(
 if is_done and import_result is not None:
     success, message = import_result
     if success:
-        st.success(message)
-        st.info(
-            "Please refresh the page or navigate to another section "
-            "to see the restored data."
-        )
-    else:
-        st.error(message)
+                st.success(message)
+                st.info(
+                    "Please refresh the page or navigate to another section "
+                    "to see the restored data."
+                )
+            else:
+                st.error(message)
+
+st.markdown("---")
+st.header("📥 Bulk Import Historical Assessments")
+st.markdown(
+    "Import multiple past assessments at once from a CSV or JSON file. "
+    "Duplicate and invalid rows are skipped automatically and reported below."
+)
+
+bulk_file = st.file_uploader(
+    "Upload Assessments File",
+    type=["csv", "json"],
+    key="bulk_assessments_uploader",
+)
+
+if bulk_file is not None and st.button("Import Assessments"):
+    user_id = st.session_state.get("user_id")
+    if not user_id:
+        st.warning("Please log in from the main application page.")
+        st.stop()
+
+    file_type = "csv" if bulk_file.name.lower().endswith(".csv") else "json"
+
+    with st.spinner("Validating and importing assessments..."):
+        content = bulk_file.read().decode("utf-8")
+        summary = import_assessments_bulk(content, file_type, user_id)
+
+    st.subheader("📋 Import Summary")
+    sum_col1, sum_col2, sum_col3 = st.columns(3)
+    sum_col1.metric("Imported", summary["imported"])
+    sum_col2.metric("Duplicates Skipped", summary["duplicates"])
+    sum_col3.metric("Invalid Rows", summary["invalid"])
+
+    if summary["imported"] > 0:
+        st.success(f"Successfully imported {summary['imported']} assessment(s).")
+    if summary["errors"]:
+        with st.expander(f"View details for {len(summary['errors'])} skipped row(s)"):
+            for err in summary["errors"]:
+                st.write(f"- {err}")
     clear_background_task("bg_import_json")

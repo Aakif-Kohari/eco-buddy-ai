@@ -1,8 +1,11 @@
 import os
+import logging
 import requests
-import streamlit as st
+import json
+import datetime
 import math
-from config import (
+
+logger = logging.getLogger(__name__)from config import (
     ECO_SCORE_BASELINE, ECO_SCORE_SENSITIVITY, CATEGORY_WEIGHTS,
     VALID_TRANSPORT, VALID_DIET, VALID_REGIONS,
     MAX_DISTANCE, MAX_ELECTRICITY, MAX_FLIGHTS,
@@ -22,7 +25,8 @@ def fetch_emission_factors(region: str) -> dict:
     # Static fallbacks
     factors = {
         "electricity": 0.82, # kg CO2 per kWh
-        "flight": 250.0      # kg CO2 per flight
+        "flight": 250.0,     # kg CO2 per flight
+        "is_dynamic": False
     }
     
     api_key = os.environ.get("CARBON_API_KEY")
@@ -45,6 +49,7 @@ def fetch_emission_factors(region: str) -> dict:
         if response.status_code == 200:
             data = response.json()
             factors["electricity"] = data.get("co2e", factors["electricity"])
+            factors["is_dynamic"] = True
             
         flight_payload = {
             "emission_factor": {
@@ -57,10 +62,10 @@ def fetch_emission_factors(region: str) -> dict:
         if f_response.status_code == 200:
             f_data = f_response.json()
             factors["flight"] = f_data.get("co2e", factors["flight"])
+            factors["is_dynamic"] = True
             
-    except Exception as e:
-        print(f"API Error, falling back to static factors: {e}")
-        
+except Exception:
+        logger.exception("API Error, falling back to static factors")        
     return factors
 
 
@@ -70,7 +75,8 @@ def calculate_footprint(
     electricity,
     diet,
     flights,
-    region="Global"
+    region="Global",
+    return_audit=False
 ):
     diet = normalize_diet(diet)
     if transport not in VALID_TRANSPORT:
@@ -91,38 +97,96 @@ def calculate_footprint(
     contributors = {}
 
     # Transport emissions (kg CO₂ per km)
-    transport_emission = (
-        TRANSPORT_EMISSION_FACTORS[transport] *
-        distance * 365
-    )
-
+    transport_factor = TRANSPORT_EMISSION_FACTORS[transport]
+    transport_emission = transport_factor * distance * 365
     contributors["Transport"] = round(transport_emission, 2)
 
     # Fetch dynamic factors (with fallback and caching)
     dynamic_factors = fetch_emission_factors(region)
+    elec_factor = dynamic_factors["electricity"]
+    flight_factor = dynamic_factors["flight"]
 
     # Electricity
-    electricity_emission = electricity * dynamic_factors["electricity"] * 12
+    electricity_emission = electricity * elec_factor * 12
     contributors["Electricity"] = round(electricity_emission, 2)
 
     # Diet (annual estimate)
-    diet_emission = DIET_EMISSION_FACTORS[diet]
+    diet_factor = DIET_EMISSION_FACTORS[diet]
+    diet_emission = diet_factor
     contributors["Diet"] = diet_emission
 
     # Flights
-    flight_emission = flights * dynamic_factors["flight"]
+    flight_emission = flights * flight_factor
     contributors["Flights"] = flight_emission
 
     total = sum(contributors.values())
+    total_rounded = round(total, 2)
 
-    return round(total, 2), contributors
+    audit_log = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "region": region,
+        "is_dynamic_api_used": dynamic_factors.get("is_dynamic", False),
+        "inputs": {
+            "transport": transport,
+            "daily_distance_km": distance,
+            "monthly_electricity_kwh": electricity,
+            "diet": diet,
+            "annual_flights": flights,
+        },
+        "emission_factors": {
+            "transport_kg_co2_per_km": transport_factor,
+            "electricity_kg_co2_per_kwh": elec_factor,
+            "diet_kg_co2_per_year": diet_factor,
+            "flight_kg_co2_per_flight": flight_factor,
+        },
+        "intermediate_calculations": {
+            "Transport": {
+                "formula": "daily_distance_km * transport_factor * 365 days",
+                "expression": f"{distance} km * {transport_factor} kg/km * 365",
+                "raw_result": transport_emission,
+                "rounded_result_kg": contributors["Transport"]
+            },
+            "Electricity": {
+                "formula": "monthly_kwh * electricity_factor * 12 months",
+                "expression": f"{electricity} kWh * {elec_factor} kg/kWh * 12",
+                "raw_result": electricity_emission,
+                "rounded_result_kg": contributors["Electricity"]
+            },
+            "Diet": {
+                "formula": "annual_diet_emission_factor",
+                "expression": f"{diet_factor} kg/year ({diet})",
+                "raw_result": diet_emission,
+                "rounded_result_kg": contributors["Diet"]
+            },
+            "Flights": {
+                "formula": "annual_flights * flight_factor",
+                "expression": f"{flights} flights * {flight_factor} kg/flight",
+                "raw_result": flight_emission,
+                "rounded_result_kg": contributors["Flights"]
+            }
+        },
+        "total_emissions_kg_co2": total_rounded
+    }
 
-def calculate_eco_score(total_footprint, contributors=None):
+    if return_audit:
+        return total_rounded, contributors, audit_log
+    return total_rounded, contributors
+
+
+def calculate_eco_score(total_footprint, contributors=None, return_audit=False):
     """
     Higher score = better sustainability
     Calculates a continuous score based on a sigmoid function.
     Supports per-category weighting if contributors are provided.
+    Optionally returns audit log for score calculation.
     """
+    audit = {
+        "baseline": ECO_SCORE_BASELINE,
+        "sensitivity": ECO_SCORE_SENSITIVITY,
+        "category_weights": CATEGORY_WEIGHTS,
+        "category_scores": {}
+    }
+
     if contributors:
         weighted_score = 0.0
         for category, cat_total in contributors.items():
@@ -132,8 +196,49 @@ def calculate_eco_score(total_footprint, contributors=None):
                 cat_sensitivity = ECO_SCORE_SENSITIVITY * weight
                 cat_score = 100 / (1 + math.exp((cat_total - cat_baseline) / cat_sensitivity))
                 weighted_score += weight * cat_score
-        return int(round(weighted_score))
+                audit["category_scores"][category] = {
+                    "cat_total_kg": cat_total,
+                    "weight": weight,
+                    "cat_baseline": cat_baseline,
+                    "cat_sensitivity": cat_sensitivity,
+                    "raw_cat_score": cat_score,
+                    "weighted_component": weight * cat_score
+                }
+        final_score = int(round(weighted_score))
+        audit["final_weighted_score"] = weighted_score
+        audit["final_score"] = final_score
     else:
-        # Fallback to overall continuous score
         score = 100 / (1 + math.exp((total_footprint - ECO_SCORE_BASELINE) / ECO_SCORE_SENSITIVITY))
-        return int(round(score))
+        final_score = int(round(score))
+        audit["unweighted_raw_score"] = score
+        audit["final_score"] = final_score
+
+    if return_audit:
+        return final_score, audit
+    return final_score
+
+
+def generate_full_audit_log(transport, distance, electricity, diet, flights, region="Global") -> dict:
+    """
+    Generates a comprehensive audit log dictionary including both carbon footprint
+    and eco score intermediate calculation steps.
+    """
+    total, contributors, footprint_audit = calculate_footprint(
+        transport, distance, electricity, diet, flights, region, return_audit=True
+    )
+    eco_score, eco_score_audit = calculate_eco_score(total, contributors, return_audit=True)
+    
+    return {
+        "footprint_audit": footprint_audit,
+        "eco_score_audit": eco_score_audit,
+        "summary": {
+            "total_footprint_kg_co2": total,
+            "eco_score": eco_score,
+            "contributors": contributors
+        }
+    }
+
+
+def export_audit_log_json(audit_log: dict, indent: int = 2) -> str:
+    """Exports an audit log dictionary into a formatted JSON string."""
+    return json.dumps(audit_log, indent=indent)

@@ -1,9 +1,13 @@
 import html
 import time
+import logging
 import streamlit as st
+from logging_config import setup_logging
 
-st.set_page_config(
-    page_title="EcoBuddy",
+setup_logging()
+logger = logging.getLogger(__name__)
+
+st.set_page_config(    page_title="EcoBuddy",
     page_icon="🌱",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -21,7 +25,7 @@ load_dotenv()
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user
+from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 from llm_parser import parse_quick_log
@@ -74,6 +78,7 @@ def render_sidebar_auth():
                     if user:
                         st.session_state['user_id'] = user['id']
                         st.session_state['username'] = user['username']
+                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
                         st.sidebar.success("Logged in successfully!")
                         st.rerun()
                     else:
@@ -83,8 +88,9 @@ def render_sidebar_auth():
                 username = st.text_input("Username")
                 email = st.text_input("Email")
                 password = st.text_input("Password", type="password")
+                anonymous = st.checkbox("Appear anonymously on leaderboard")
                 if st.form_submit_button("Register"):
-                    if create_user(username, email, password):
+                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
                         st.sidebar.success("Registration successful! Please login.")
                     else:
                         st.sidebar.error("Username or email already exists")
@@ -98,10 +104,21 @@ def render_sidebar_auth():
         st.stop()
     else:
         st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        anon_pref = st.sidebar.checkbox(
+            "Appear anonymously on leaderboard",
+            value=st.session_state.get("anonymous_leaderboard", False)
+        )
+        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+            st.session_state['anonymous_leaderboard'] = anon_pref
+            st.sidebar.success("Leaderboard preference saved.")
+            st.experimental_rerun()
+
         if st.sidebar.button("Logout"):
             st.session_state['user_id'] = None
             st.session_state['username'] = None
             st.session_state.pop('draft_status', None)
+            st.session_state.pop('anonymous_leaderboard', None)
             for key, val in DEFAULT_VALUES.items():
                 st.session_state[key] = val
             st.rerun()
@@ -183,7 +200,13 @@ st.markdown("---")
 
 # -------------------------
 
-tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🌍 Carbon Footprint",
+    "⚡ Home Energy Audit",
+    "🎮 Gamification",
+    "🗺️ Route Planning & Offsets",
+    "🏆 Community Leaderboard"
+])
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
@@ -320,21 +343,35 @@ with tab1:
     # -------------------------
     # PDF REPORT GENERATION
     # -------------------------
+
+    # Optimized PDF generation for improved performance with larger reports
+    
     def generate_pdf(total, eco_score, insight):
         try:
             file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
-            doc = SimpleDocTemplate(file_name)
+            doc = SimpleDocTemplate(
+                file_name,
+                leftMargin=36,
+                rightMargin=36,
+                topMargin=36,
+                bottomMargin=36
+            )
             styles = getSampleStyleSheet()
 
-            content = [
-                Paragraph("EcoBuddy AI Report", styles["Title"]),
-                Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", styles["Normal"]),
-                Paragraph(f"Eco Score: {eco_score}/100", styles["Normal"]),
-                Paragraph("Key Insight:", styles["Heading2"]),
-                Paragraph(insight, styles["Normal"])
-            ]
+            title_style = styles["Title"]
+            normal_style = styles["Normal"]
+            heading_style = styles["Heading2"]
+
+            content = []
+
+            content.append(Paragraph("EcoBuddy AI Report", title_style))
+            content.append(Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", normal_style))
+            content.append(Paragraph(f"Eco Score: {eco_score}/100", normal_style))
+            content.append(Paragraph("Key Insight:", heading_style))
+            content.append(Paragraph(insight, normal_style))
 
             doc.build(content)
+            content.clear()
             return file_name
         except Exception:
             st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
@@ -513,20 +550,30 @@ with tab1:
             else:
                 st.warning("🔥 Your carbon footprint is above average. Let's work on reducing it!")
 
-        with col_badge2:
+with col_badge2:
             st.markdown("<div class='section-header' style='margin-top: 0;'>📊 Emission Sources</div>", unsafe_allow_html=True)
+
+            selected_categories = st.multiselect(
+                "Filter categories",
+                options=list(contributors.keys()),
+                default=list(contributors.keys()),
+                key="emission_category_filter"
+            )
+            filtered_contributors = {
+                k: v for k, v in contributors.items() if k in selected_categories
+            } or contributors
 
             # Pie chart with Plotly
             fig = go.Figure(data=[go.Pie(
-                labels=list(contributors.keys()),
-                values=list(contributors.values()),
+                labels=list(filtered_contributors.keys()),
+                values=list(filtered_contributors.values()),
                 hole=0.4,
                 marker=dict(
                     colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(0,0,0,0.1)', width=2)
                 ),
                 textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂<br>%{percent}<extra></extra>'
+                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
             )])
 
             fig.update_layout(
@@ -537,33 +584,37 @@ with tab1:
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#374151', size=12),
                 legend=dict(
-                    x=-0.15,
-                    y=1,
-                    bgcolor='rgba(0,0,0,0.3)',
+                    orientation='h',
+                    x=0.5,
+                    xanchor='center',
+                    y=-0.15,
+                    bgcolor='rgba(255,255,255,0.9)',
                     bordercolor='rgba(74, 222, 128, 0.3)',
                     borderwidth=1
                 )
             )
-        # -------------------------
+
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart creation
+# Bar chart creation
+        total_filtered = sum(filtered_contributors.values()) or 1
         breakdown_fig = go.Figure(data=[
             go.Bar(
-                x=list(contributors.keys()),
-                y=list(contributors.values()),
+                x=list(filtered_contributors.keys()),
+                y=list(filtered_contributors.values()),
                 marker=dict(
                     color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(255,255,255,0.2)', width=2)
                 ),
-                text=[f'{v:.0f} kg' for v in contributors.values()],
+                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
                 textposition='auto',
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
+                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
             )
         ])
-
         breakdown_fig.update_layout(
             height=350,
             margin=dict(l=40, r=20, t=20, b=40),
@@ -839,16 +890,17 @@ with tab1:
             )
 
 
-            st.plotly_chart(
+st.plotly_chart(
                 trend_fig,
                 width="stretch",
                 config={
-                    "displayModeBar": False,
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+                    "toImageButtonOptions": {"format": "png", "filename": "carbon_footprint_trend"},
                     "scrollZoom": False,
                     "responsive": True
                 }
             )
-
             st.markdown("---")
 
         # -------------------------
@@ -860,6 +912,7 @@ with tab1:
                 display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
                 display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
                 display_df = display_df.iloc[::-1].reset_index(drop=True)
+
 
 
                 # =========================
@@ -916,6 +969,39 @@ with tab1:
 
                     else:
                         st.info("ℹ️ Eco Score is unchanged.")
+
+                search_text = st.text_input(
+                    "🔍 Search by Date",
+                    placeholder="Enter date..."
+                )
+
+                min_score, max_score = st.slider(
+                    "🌱 Eco Score Range",
+                    0,
+                    100,
+                    (0, 100)
+                )
+
+                max_footprint = st.number_input(
+                    "🌍 Maximum Carbon Footprint (kg CO₂)",
+                    min_value=0.0,
+                    value=float(display_df["🌍 Footprint (kg CO₂)"].max())
+                )
+
+                if search_text:
+                    display_df = display_df[
+                        display_df["📅 Date"].astype(str).str.contains(search_text, case=False)
+                    ]
+
+                display_df = display_df[
+                    (display_df["🌱 Eco Score"] >= min_score) &
+                    (display_df["🌱 Eco Score"] <= max_score)
+                ]
+
+                display_df = display_df[
+                    display_df["🌍 Footprint (kg CO₂)"] <= max_footprint
+                ]
+
 
                 st.markdown(
                     "<div class='history-table-wrap'>"
