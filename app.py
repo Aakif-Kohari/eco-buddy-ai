@@ -46,6 +46,7 @@ from marketplace import (
 )
 from styles.theme import apply_theme, render_theme_selector
 from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
+from environmental_timeline import render_environmental_timeline
 
 
 
@@ -149,6 +150,9 @@ user_id = render_sidebar_auth()
 render_theme_selector()
 selected_dashboard_widgets = render_widget_customizer(user_id)
 render_customizable_dashboard(user_id, selected_dashboard_widgets)
+
+with st.expander("🌍 Environmental Impact Timeline", expanded=False):
+    render_environmental_timeline(user_id)
 
 if 'extracted_kwh' not in st.session_state:
     st.session_state.extracted_kwh = 200.0

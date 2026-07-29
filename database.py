@@ -1269,3 +1269,105 @@ def get_dashboard_widget_preferences(user_id):
     finally:
         if 'conn' in locals():
             conn.close()
+
+
+def record_environmental_milestone(
+    user_id,
+    milestone_type,
+    title,
+    description,
+    icon="🌱",
+    achieved_at=None,
+    metadata=None,
+):
+    """Persist a milestone once per user and milestone type.
+
+    Returns True only when a new milestone is inserted.
+    """
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO environmental_milestones (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            )
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            """,
+            (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                json.dumps(metadata or {}, sort_keys=True),
+            ),
+        )
+        conn.commit()
+        return cursor.rowcount == 1
+    except sqlite3.Error as exc:
+        logger.error("Unable to record environmental milestone: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_environmental_milestones(user_id):
+    """Return a user's milestones from newest to oldest."""
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            FROM environmental_milestones
+            WHERE user_id = ?
+            ORDER BY datetime(achieved_at) DESC, id DESC
+            """,
+            (user_id,),
+        )
+        milestones = []
+        for row in cursor.fetchall():
+            try:
+                metadata = json.loads(row[6] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                metadata = {}
+            milestones.append(
+                {
+                    "id": row[0],
+                    "milestone_type": row[1],
+                    "title": row[2],
+                    "description": row[3],
+                    "icon": row[4],
+                    "achieved_at": row[5],
+                    "metadata": metadata,
+                }
+            )
+        return milestones
+    except sqlite3.Error as exc:
+        logger.error("Unable to load environmental milestones: %s", exc)
+        return []
+    finally:
+        if conn:
+            conn.close()
