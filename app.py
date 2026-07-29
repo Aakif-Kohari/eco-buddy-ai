@@ -12,26 +12,18 @@ st.set_page_config(    page_title="EcoBuddy",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-import plotly.express as px
 import tempfile
 import uuid
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
 
 from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
-from llm_parser import parse_quick_log
 
 from recommendations import generate_recommendations
-from ocr_utils import extract_text_from_file, parse_energy_consumption
 
 # Added for Route Planning & Offsets
 from database import (
@@ -47,7 +39,6 @@ from marketplace import (
 from styles.theme import apply_theme, render_theme_selector
 from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
 from environmental_timeline import render_environmental_timeline
-from report import generate_pdf
 from report_validation import validate_report_data
 from session_recovery import (
     autosave_session_draft,
@@ -964,6 +955,7 @@ with tab1:
     if parse_btn:
         if quick_log_text.strip():
             with st.spinner("Analyzing text..."):
+                from llm_parser import parse_quick_log
                 parsed_data = parse_quick_log(quick_log_text)
                 if parsed_data:
                     st.session_state.temp_parsed = parsed_data
@@ -1037,6 +1029,7 @@ with tab1:
             # We use a button to trigger extraction so it doesn't re-run infinitely on every interaction
             if st.button("Extract Energy Usage"):
                 with st.spinner("Extracting data from bill..."):
+                    from ocr_utils import extract_text_from_file, parse_energy_consumption
                     extracted_text = extract_text_from_file(uploaded_bill)
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
@@ -1234,6 +1227,7 @@ with tab1:
             } or contributors
 
             # Pie chart with Plotly
+            import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
                 labels=list(filtered_contributors.keys()),
                 values=list(filtered_contributors.values()),
@@ -1433,6 +1427,7 @@ with tab1:
             for validation_error in report_validation.errors:
                 st.warning(f"• {validation_error}")
         else:
+            from report import generate_pdf
             report = generate_pdf(
                 report_validation.cleaned_data["total"],
                 report_validation.cleaned_data["eco_score"],
@@ -1470,6 +1465,8 @@ with tab1:
         history = get_assessments(user_id)
 
         if history:
+            import pandas as pd
+            import plotly.graph_objects as go
             df = pd.DataFrame(
                 history,
                 columns=[
@@ -1830,6 +1827,8 @@ with tab4:
                 st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
                 
                 # Chart
+                import pandas as pd
+                import plotly.express as px
                 df_comp = pd.DataFrame(comparisons)
                 
                 # Handle frequency
@@ -1903,6 +1902,7 @@ with tab4:
         st.subheader("Transaction History")
         transactions = get_offset_transactions(user_id)
         if transactions:
+            import pandas as pd
             df_trans = pd.DataFrame(transactions)
             st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
             
