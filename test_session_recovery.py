@@ -1,66 +1,165 @@
-import os
-import pytest
-import database as db
+"""Tests for automatic assessment session recovery."""
 
-TEST_DB = "test_eco_buddy_draft.db"
+import sqlite3
 
-@pytest.fixture(autouse=True)
-def setup_teardown():
-    original_db_name = db.DB_NAME
-    db.DB_NAME = TEST_DB
-    if os.path.exists(TEST_DB):
-        os.remove(TEST_DB)
-    db.init_db()
-    yield
-    db.DB_NAME = original_db_name
-    if os.path.exists(TEST_DB):
-        os.remove(TEST_DB)
+import database
+import session_recovery
+
+DEFAULTS = {
+    "region": "Global",
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
 
 
-def test_save_and_get_draft():
-    user_id = 99
-    success = db.save_assessment_draft(user_id, "Public Transport", 15.5, 180.0, "Vegetarian", 1, "US")
-    assert success is True
+def test_normalise_draft_returns_complete_typed_values():
+    draft = session_recovery.normalise_draft(
+        {
+            "transport": "Bike",
+            "distance": "12.5",
+            "flights": "2",
+        },
+        DEFAULTS,
+    )
 
-    draft = db.get_assessment_draft(user_id)
-    assert draft is not None
-    assert draft["transport"] == "Public Transport"
-    assert draft["distance"] == 15.5
-    assert draft["electricity"] == 180.0
-    assert draft["diet"] == "Vegetarian"
-    assert draft["flights"] == 1
-    assert draft["region"] == "US"
-
-
-def test_save_updates_existing_draft():
-    user_id = 99
-    db.save_assessment_draft(user_id, "Car", 10.0, 200.0, "Non-Vegetarian", 0, "Global")
-    
-    # Update draft
-    success = db.save_assessment_draft(user_id, "Bike", 5.0, 150.0, "Vegetarian", 0, "EU")
-    assert success is True
-
-    draft = db.get_assessment_draft(user_id)
-    assert draft is not None
-    assert draft["transport"] == "Bike"
-    assert draft["distance"] == 5.0
-    assert draft["electricity"] == 150.0
-    assert draft["diet"] == "Vegetarian"
-    assert draft["flights"] == 0
-    assert draft["region"] == "EU"
+    assert draft == {
+        "region": "Global",
+        "transport": "Bike",
+        "distance": 12.5,
+        "electricity": 200.0,
+        "diet": "Vegetarian",
+        "flights": 2,
+    }
 
 
-def test_delete_draft():
-    user_id = 99
-    db.save_assessment_draft(user_id, "Car", 10.0, 200.0, "Vegetarian", 0, "Global")
-    
-    success = db.delete_assessment_draft(user_id)
-    assert success is True
+def test_default_form_is_not_saved(monkeypatch):
+    called = []
+    monkeypatch.setattr(
+        session_recovery,
+        "save_assessment_draft",
+        lambda *args: called.append(args) or True,
+    )
 
-    draft = db.get_assessment_draft(user_id)
-    assert draft is None
+    result = session_recovery.save_draft_if_changed(
+        1,
+        DEFAULTS,
+        DEFAULTS,
+    )
+
+    assert result.saved is False
+    assert result.reason == "unchanged-defaults"
+    assert called == []
 
 
-def test_get_non_existent_draft():
-    draft = db.get_assessment_draft(12345)
-    assert draft is None
+def test_changed_draft_is_saved_once(monkeypatch):
+    called = []
+    monkeypatch.setattr(
+        session_recovery,
+        "save_assessment_draft",
+        lambda *args: called.append(args) or True,
+    )
+    values = {**DEFAULTS, "transport": "Bike"}
+
+    first = session_recovery.save_draft_if_changed(
+        1,
+        values,
+        DEFAULTS,
+    )
+    second = session_recovery.save_draft_if_changed(
+        1,
+        values,
+        DEFAULTS,
+        first.fingerprint,
+    )
+
+    assert first.saved is True
+    assert second.saved is False
+    assert second.reason == "already-saved"
+    assert len(called) == 1
+
+
+def test_restore_populates_session_state():
+    state = {}
+
+    session_recovery.restore_draft_into_session(
+        {
+            "region": "UK",
+            "transport": "Public Transport",
+            "distance": 8,
+            "electricity": 150,
+            "diet": "Vegetarian",
+            "flights": 1,
+        },
+        state,
+        DEFAULTS,
+    )
+
+    assert state["region"] == "UK"
+    assert state["transport"] == "Public Transport"
+    assert state["distance"] == 8.0
+    assert state["flights"] == 1
+
+
+def test_database_draft_is_updated_and_user_scoped(tmp_path, monkeypatch):
+    db_path = tmp_path / "drafts.db"
+    monkeypatch.setattr(database, "DB_NAME", str(db_path))
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        CREATE TABLE assessment_drafts (
+            user_id INTEGER PRIMARY KEY,
+            transport TEXT,
+            distance REAL,
+            electricity REAL,
+            diet TEXT,
+            flights INTEGER,
+            region TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    assert database.save_assessment_draft(
+        1,
+        "Car",
+        10,
+        200,
+        "Vegetarian",
+        0,
+        "Global",
+    )
+    assert database.save_assessment_draft(
+        1,
+        "Bike",
+        4,
+        150,
+        "Vegetarian",
+        0,
+        "EU",
+    )
+    assert database.save_assessment_draft(
+        2,
+        "Walking",
+        2,
+        100,
+        "Vegetarian",
+        0,
+        "UK",
+    )
+
+    user_one = database.get_assessment_draft(1)
+    user_two = database.get_assessment_draft(2)
+
+    assert user_one["transport"] == "Bike"
+    assert user_one["region"] == "EU"
+    assert user_two["transport"] == "Walking"
+
+    assert database.delete_assessment_draft(1)
+    assert database.get_assessment_draft(1) is None
+    assert database.get_assessment_draft(2) is not None

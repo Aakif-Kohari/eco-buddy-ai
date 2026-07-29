@@ -367,28 +367,60 @@ def get_assessments(user_id=1):
         return []
 
 
-def save_assessment_draft(user_id, transport, distance, electricity, diet, flights, region):
+def save_assessment_draft(
+    user_id,
+    transport,
+    distance,
+    electricity,
+    diet,
+    flights,
+    region,
+):
+    """Insert or update one unfinished assessment per user."""
+    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM assessment_drafts WHERE user_id = ?", (user_id,))
-        if cursor.fetchone():
-            cursor.execute("""
-                UPDATE assessment_drafts
-                SET transport = ?, distance = ?, electricity = ?, diet = ?, flights = ?, region = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE user_id = ?
-            """, (transport, distance, electricity, diet, flights, region, user_id))
-        else:
-            cursor.execute("""
-                INSERT INTO assessment_drafts (user_id, transport, distance, electricity, diet, flights, region)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, transport, distance, electricity, diet, flights, region))
+        cursor.execute(
+            """
+            INSERT INTO assessment_drafts (
+                user_id,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                region,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                transport = excluded.transport,
+                distance = excluded.distance,
+                electricity = excluded.electricity,
+                diet = excluded.diet,
+                flights = excluded.flights,
+                region = excluded.region,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                user_id,
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                region,
+            ),
+        )
         conn.commit()
-        conn.close()
         return True
-    except sqlite3.Error as e:
-        print(f"Database draft save error: {e}")
+    except sqlite3.Error as exc:
+        logger.error("Database draft save error: %s", exc)
         return False
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_diet_history(user_id, limit=7):
@@ -409,42 +441,65 @@ def get_diet_history(user_id, limit=7):
 
 
 def get_assessment_draft(user_id):
+    """Return the active user's unfinished assessment, if one exists."""
+    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT transport, distance, electricity, diet, flights, region
+        cursor.execute(
+            """
+            SELECT
+                transport,
+                distance,
+                electricity,
+                diet,
+                flights,
+                region,
+                updated_at
             FROM assessment_drafts
             WHERE user_id = ?
-        """, (user_id,))
+            """,
+            (user_id,),
+        )
         row = cursor.fetchone()
-        conn.close()
-        if row:
-            return {
-                "transport": row[0],
-                "distance": row[1],
-                "electricity": row[2],
-                "diet": row[3],
-                "flights": row[4],
-                "region": row[5]
-            }
+        if not row:
+            return None
+
+        return {
+            "transport": row[0],
+            "distance": row[1],
+            "electricity": row[2],
+            "diet": row[3],
+            "flights": row[4],
+            "region": row[5],
+            "updated_at": row[6],
+        }
+    except sqlite3.Error as exc:
+        logger.error("Database draft read error: %s", exc)
         return None
-    except sqlite3.Error as e:
-        print(f"Database draft read error: {e}")
-        return None
+    finally:
+        if conn:
+            conn.close()
 
 
 def delete_assessment_draft(user_id):
+    """Delete the active user's unfinished assessment."""
+    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM assessment_drafts WHERE user_id = ?", (user_id,))
+        cursor.execute(
+            "DELETE FROM assessment_drafts WHERE user_id = ?",
+            (user_id,),
+        )
         conn.commit()
-        conn.close()
         return True
-    except sqlite3.Error as e:
-        print(f"Database draft delete error: {e}")
+    except sqlite3.Error as exc:
+        logger.error("Database draft delete error: %s", exc)
         return False
+    finally:
+        if conn:
+            conn.close()
 
 
 def init_energy_db():
@@ -1268,4 +1323,106 @@ def get_dashboard_widget_preferences(user_id):
         return None
     finally:
         if 'conn' in locals():
+            conn.close()
+
+
+def record_environmental_milestone(
+    user_id,
+    milestone_type,
+    title,
+    description,
+    icon="🌱",
+    achieved_at=None,
+    metadata=None,
+):
+    """Persist a milestone once per user and milestone type.
+
+    Returns True only when a new milestone is inserted.
+    """
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO environmental_milestones (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            )
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            """,
+            (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                json.dumps(metadata or {}, sort_keys=True),
+            ),
+        )
+        conn.commit()
+        return cursor.rowcount == 1
+    except sqlite3.Error as exc:
+        logger.error("Unable to record environmental milestone: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_environmental_milestones(user_id):
+    """Return a user's milestones from newest to oldest."""
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            FROM environmental_milestones
+            WHERE user_id = ?
+            ORDER BY datetime(achieved_at) DESC, id DESC
+            """,
+            (user_id,),
+        )
+        milestones = []
+        for row in cursor.fetchall():
+            try:
+                metadata = json.loads(row[6] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                metadata = {}
+            milestones.append(
+                {
+                    "id": row[0],
+                    "milestone_type": row[1],
+                    "title": row[2],
+                    "description": row[3],
+                    "icon": row[4],
+                    "achieved_at": row[5],
+                    "metadata": metadata,
+                }
+            )
+        return milestones
+    except sqlite3.Error as exc:
+        logger.error("Unable to load environmental milestones: %s", exc)
+        return []
+    finally:
+        if conn:
             conn.close()
