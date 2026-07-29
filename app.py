@@ -499,7 +499,7 @@ st.markdown("""
     }
 
     [style*="#d1d5db"],
-    [style*="#9ca3af"],
+    [style*="#6b7280"],
     [style*="rgb(209, 213, 219)"],
     [style*="rgb(156, 163, 175)"] {
         color: var(--muted) !important;
@@ -691,15 +691,14 @@ st.markdown("---")
 
 
 # -------------------------
- feature/input-validation-and-error-handling
 # INPUTS SECTION
 # -------------------------
- HEAD
+
 
 st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
- HEAD
 
- 2590586 (feat: add reset assessment and improve analysis workflow)
+
+ 
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -712,14 +711,14 @@ with col1:
     transport = st.selectbox(
         "Primary Transport",
         ["Car", "Public Transport", "Bike", "Walking"],
-        key="transport"
+        key="transport",
+        help="Select the transport mode you use most often."
     )
-    distance = st.number_input(
-        "Daily Distance (km)",
-        min_value=0.0,
-        value=10.0,
-        step=1.0,
-        key="distance"
+    diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet",
+        help="Choose the diet that best matches your eating habits."
     )
 
 with col2:
@@ -734,8 +733,10 @@ with col2:
         min_value=0.0,
         value=200.0,
         step=10.0,
-        key="electricity"
+        key="electricity",
+        help="Enter your average monthly electricity consumption in kWh."
     )
+
     diet = st.selectbox(
         "Diet Type",
         ["Vegetarian", "Non-Vegetarian"],
@@ -753,19 +754,18 @@ with col3:
         min_value=0,
         value=0,
         step=1,
-        key="flights"
+        key="flights",
+        help="Enter the number of long-distance flights you take each year."
     )
     st.info("💡 How many long-distance flights per year?")
 
- 7430caf (feat: add reset assessment button with default form restoration)
+ 
 
 # -------------------------
- HEAD
-
 # PDF REPORT GENERATION
+# -------------------------
 
 # -------------------------
- 2590586 (feat: add reset assessment and improve analysis workflow)
 # TABS CONFIGURATION
 # -------------------------
 
@@ -779,12 +779,9 @@ with col_btn1:
     )
 
 with col_btn2:
- HEAD
-HEAD
+ 
     st.caption("✔ All input fields are validated before analysis.")
-    analyze_btn = st.button("🌿 Analyze My Impact", use_container_width=True)
-
-2590586 (feat: add reset assessment and improve analysis workflow)
+    
     analyze_btn = st.button(
         "🌿 Analyze My Impact",
         use_container_width=True,
@@ -799,7 +796,7 @@ if reset_btn:
     st.success("✅ Assessment form has been reset.")
     st.rerun()
 
- HEAD
+ 
 
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
 
@@ -810,12 +807,12 @@ st.caption("✔ All input fields are validated before analysis.")
 
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
  
- 2590586 (feat: add reset assessment and improve analysis workflow)
+ 
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
- HEAD
+ 
  
     with st.spinner("🌍 Analyzing your carbon footprint..."):
 
@@ -829,7 +826,7 @@ with tab1:
 # TABS CONFIGURATION
 # -------------------------
 col_btn1, col_btn2 = st.columns([1, 3])
- main
+
 
 with col_btn1:
     reset_btn = st.button(
@@ -891,9 +888,9 @@ with tab1:
                 st.rerun()
 
     col1, col2, col3 = st.columns(3)
- feature/input-validation-and-error-handling
+ 
 
- main
+ 
     with col1:
         st.markdown("""
         <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -928,7 +925,11 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span>
         </div>
         """, unsafe_allow_html=True)
-        uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
+        uploaded_bill = st.file_uploader(
+            "Upload Utility Bill (PDF/Image)",
+            type=["pdf", "png", "jpg", "jpeg"],
+            help="Upload your latest electricity bill to automatically extract usage information."
+        )
         if uploaded_bill is not None:
             # We use a button to trigger extraction so it doesn't re-run infinitely on every interaction
             if st.button("Extract Energy Usage"):
@@ -956,12 +957,7 @@ with tab1:
         st.info("💡 How many long-distance flights per year?")
         
 
- feature/input-validation-and-error-handling
- 2590586 (feat: add reset assessment and improve analysis workflow)
-
     # -------------------------
-
-     main
     # PDF REPORT GENERATION
     # -------------------------
     def generate_pdf(total, eco_score, insight):
@@ -988,7 +984,7 @@ with tab1:
     # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
-feature/input-validation-and-error-handling
+
     
 
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
@@ -1007,7 +1003,7 @@ feature/input-validation-and-error-handling
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
 
- main
+ 
     if analyze_btn:
 
         with st.spinner("🌍 Analyzing your carbon footprint..."):
@@ -1195,6 +1191,8 @@ feature/input-validation-and-error-handling
             showlegend=False
         )
 
+        st.caption("This chart shows the breakdown of your carbon footprint by activity.")
+        st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
         st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
 
         st.markdown("---")
@@ -1317,18 +1315,18 @@ feature/input-validation-and-error-handling
         with stat1:
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Latest Footprint</div>
+                <div style='font-size: 12px; color: #6b7280;'>Latest Footprint</div>
                 <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[7]:.0f}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>kg CO₂</div>
+                <div style='font-size: 11px; color: #6b7280;'>kg CO₂</div>
             </div>
             """, unsafe_allow_html=True)
 
         with stat2:
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Latest Score</div>
+                <div style='font-size: 12px; color: #6b7280;'>Latest Score</div>
                 <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[8]}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>out of 100</div>
+                <div style='font-size: 11px; color: #6b7280;'>out of 100</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1352,18 +1350,18 @@ feature/input-validation-and-error-handling
 
                 st.markdown(f"""
                 <div class='card'>
-                    <div style='font-size: 12px; color: #9ca3af;'>{emoji} {label}</div>
+                    <div style='font-size: 12px; color: #6b7280;'>{emoji} {label}</div>
                     <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
-                    <div style='font-size: 11px; color: #9ca3af;'>vs previous</div>
+                    <div style='font-size: 11px; color: #6b7280;'>vs previous</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         with stat4:
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 12px; color: #9ca3af;'>Total Records</div>
+                <div style='font-size: 12px; color: #6b7280;'>Total Records</div>
                 <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{len(history)}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>assessments</div>
+                <div style='font-size: 11px; color: #6b7280;'>assessments</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1399,14 +1397,14 @@ feature/input-validation-and-error-handling
             xaxis=dict(
                 showgrid=False,
                 zeroline=False,
-                color='#9ca3af'
+                color='#6b7280'
             ),
             yaxis=dict(
                 showgrid=True,
                 gridwidth=1,
                 gridcolor='rgba(74, 222, 128, 0.1)',
                 zeroline=False,
-                color='#9ca3af'
+                color='#6b7280'
             ),
             showlegend=False,
             hovermode='x unified'
@@ -1450,18 +1448,18 @@ feature/input-validation-and-error-handling
         with stats_col1:
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
+                <div style='font-size: 13px; color: #6b7280; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_footprint:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
+                <div style='font-size: 12px; color: #6b7280; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
             </div>
             """, unsafe_allow_html=True)
 
         with stats_col2:
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
+                <div style='font-size: 13px; color: #6b7280; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
                 <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_score:.0f}</div>
-                <div style='font-size: 12px; color: #9ca3af; margin-top: 8px;'>out of 100 points</div>
+                <div style='font-size: 12px; color: #6b7280; margin-top: 8px;'>out of 100 points</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1469,9 +1467,9 @@ feature/input-validation-and-error-handling
             range_val = max_footprint - min_footprint
             st.markdown(f"""
             <div class='card'>
-                <div style='font-size: 13px; color: #9ca3af; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
+                <div style='font-size: 13px; color: #6b7280; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
                 <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{min_footprint:.0f}</div>
-                <div style='font-size: 14px; color: #9ca3af;'>to</div>
+                <div style='font-size: 14px; color: #6b7280;'>to</div>
                 <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{max_footprint:.0f}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -1564,7 +1562,11 @@ with tab2:
         with del_cols[0]:
             del_id = st.selectbox("Select appliance to remove", options=[(a['id'], a['name']) for a in appliances], format_func=lambda x: x[1], label_visibility="collapsed")
         with del_cols[1]:
-            if st.button("🗑️ Remove", key="del_app"):
+            if st.button(
+                "🗑️ Remove",
+                key="del_app",
+                help="Remove the selected appliance."
+            ):
                 db.delete_appliance(del_id[0])
                 st.rerun()
 
