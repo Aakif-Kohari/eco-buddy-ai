@@ -660,9 +660,9 @@ def apply_theme():
     div[data-baseweb="popover"] li:has(*:contains("Statistics")),
     div[data-baseweb="popover"] li:has(*:contains("Format")),
     div[data-baseweb="popover"] button:has(*:contains("Statistics")),
-    div[data-baseweb="popover"] button:has(*:contains("Format")) {
+    div[data-baseweb="popover"] button:has(*:contains("Format")) {{
         display: none !important;
-    }
+    }}
 
     @keyframes fadeUp {{
         from {{
