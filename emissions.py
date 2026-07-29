@@ -78,21 +78,41 @@ def calculate_footprint(
     region="Global",
     return_audit=False
 ):
+    # Normalize diet input early
     diet = normalize_diet(diet)
-    if transport not in VALID_TRANSPORT:
+
+    # Validate categorical inputs to avoid KeyError and provide clear errors
+    if transport not in TRANSPORT_EMISSION_FACTORS:
         raise ValueError(
-            f"Invalid transport '{transport}'. Must be one of: {', '.join(sorted(VALID_TRANSPORT))}"
+            f"Invalid transport '{transport}'. Must be one of: {', '.join(sorted(TRANSPORT_EMISSION_FACTORS.keys()))}"
         )
-    if diet not in VALID_DIET:
+    if diet not in DIET_EMISSION_FACTORS:
         raise ValueError(
-            f"Invalid diet '{diet}'. Must be one of: {', '.join(sorted(VALID_DIET))}"
+            f"Invalid diet '{diet}'. Must be one of: {', '.join(sorted(DIET_EMISSION_FACTORS.keys()))}"
         )
+
+    # Validate region; fall back to Global when unknown
     if region not in VALID_REGIONS:
         region = "Global"
 
-    distance = max(0.0, min(float(distance), MAX_DISTANCE))
-    electricity = max(0.0, min(float(electricity), MAX_ELECTRICITY))
-    flights = max(0, min(int(flights), MAX_FLIGHTS))
+    # Coerce and clamp numeric inputs to reasonable ranges
+    try:
+        distance = float(distance)
+    except (TypeError, ValueError):
+        raise ValueError("distance must be a number")
+    distance = max(0.0, min(distance, MAX_DISTANCE))
+
+    try:
+        electricity = float(electricity)
+    except (TypeError, ValueError):
+        raise ValueError("electricity must be a number")
+    electricity = max(0.0, min(electricity, MAX_ELECTRICITY))
+
+    try:
+        flights = int(flights)
+    except (TypeError, ValueError):
+        raise ValueError("flights must be an integer")
+    flights = max(0, min(flights, MAX_FLIGHTS))
 
     contributors = {}
 
