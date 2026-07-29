@@ -151,7 +151,7 @@ def import_data_json(json_str, strategy='merge'):
         invalidate_export_caches()
         invalidate_all_db_caches()
 
-return True, "Data imported successfully!"
+        return True, "Data imported successfully!"
     except Exception as e:
         if conn:
             conn.rollback()
