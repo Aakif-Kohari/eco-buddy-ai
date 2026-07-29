@@ -1,8 +1,10 @@
 import os
+import logging
 import requests
 import streamlit as st
 import math
-from config import (
+
+logger = logging.getLogger(__name__)from config import (
     ECO_SCORE_BASELINE, ECO_SCORE_SENSITIVITY, CATEGORY_WEIGHTS,
     VALID_TRANSPORT, VALID_DIET, VALID_REGIONS,
     MAX_DISTANCE, MAX_ELECTRICITY, MAX_FLIGHTS,
@@ -58,9 +60,8 @@ def fetch_emission_factors(region: str) -> dict:
             f_data = f_response.json()
             factors["flight"] = f_data.get("co2e", factors["flight"])
             
-    except Exception as e:
-        print(f"API Error, falling back to static factors: {e}")
-        
+except Exception:
+        logger.exception("API Error, falling back to static factors")        
     return factors
 
 

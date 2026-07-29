@@ -21,7 +21,9 @@ from invalidation import (
 )
 import streamlit as st
 import bcrypt
+import logging
 
+logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
@@ -155,8 +157,8 @@ def init_db():
         conn.close()
         return True
     except sqlite3.Error as e:
-        print(f"Database init error: {e}")
-        return False
+logger.error("Database init error: %s", e)        
+return False
 
 
 def create_user(username, email, password):
