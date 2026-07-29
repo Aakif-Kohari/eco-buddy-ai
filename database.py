@@ -248,16 +248,12 @@ def save_assessment(
     diet,
     flights,
     footprint,
-    eco_score,
-    trip_id=None
     trip_id=None,
     date=None
 ):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO assessments (
 
         if date is not None:
             cursor.execute("""
