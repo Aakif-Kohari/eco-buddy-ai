@@ -1,3 +1,9 @@
+import streamlit as st
+from config import normalize_diet
+from cache import cached
+from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
+
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def generate_recommendations(
     transport,
     electricity,
@@ -5,7 +11,9 @@ def generate_recommendations(
     flights,
     contributors
 ):
+    diet = normalize_diet(diet)
     recommendations = []
+    priority = []
 
     # Find the biggest contributor
     highest_category = max(contributors, key=contributors.get)
@@ -15,34 +23,131 @@ def generate_recommendations(
         f"({contributors[highest_category]:.0f} kg CO₂/year)."
     )
 
-    # Transport suggestions
+    # Transport Recommendations
+
     if transport == "Car":
+        priority.append("🚗 Transportation")
         recommendations.append(
-            "🚗 Try using public transport or carpooling 1–2 days a week."
+            "🚗 Switch to public transport for at least 2–3 days every week."
+        )
+        recommendations.append(
+            "🚶 Walk or cycle for nearby trips under 2 km."
         )
 
-    # Electricity suggestions
-    if electricity > 250:
+    elif transport == "Public Transport":
         recommendations.append(
-            "💡 Reduce electricity use by switching to LED bulbs and turning off unused appliances."
+            "🚌 Great choice! Continue using public transport whenever possible."
         )
 
-    # Diet suggestions
-    if diet == "Non-Vegetarian":
+    elif transport == "Bike":
         recommendations.append(
-            "🥗 Consider adding 1–2 plant-based meals each week."
+            "🚴 Excellent! Cycling is one of the most eco-friendly transport options."
         )
 
-    # Flight suggestions
-    if flights >= 3:
+    elif transport == "Walking":
         recommendations.append(
-            "✈️ Reduce non-essential flights or consider carbon offset programs."
+            "🚶 Walking produces zero carbon emissions. Keep it up!"
         )
 
-    # Default suggestion
-    if not recommendations:
+    # Electricity Recommendations
+
+    if electricity >= 300:
+        priority.append("⚡ Electricity")
         recommendations.append(
-            "🌱 Great job! Keep maintaining your sustainable habits."
+            "💡 Your electricity usage is very high. Switch to LED bulbs and energy-efficient appliances."
+        )
+        recommendations.append(
+            "🔌 Turn off unused electronics instead of leaving them on standby."
         )
 
+    elif electricity >= 200:
+        recommendations.append(
+            "⚡ Try reducing electricity consumption by using appliances efficiently."
+        )
+
+    else:
+        recommendations.append(
+            "🌿 Your electricity usage is already efficient."
+        )
+
+    # Diet Recommendations
+
+    if diet in ("Non-Vegetarian", "Omnivore", "Heavy Meat"):
+        priority.append("🥩 Diet")
+        recommendations.append(
+            "🥗 Try replacing 1–2 meat meals every week with plant-based meals."
+        )
+        recommendations.append(
+            "🌱 Plant-based meals can significantly reduce your carbon footprint."
+        )
+
+    else:
+        recommendations.append(
+            "🥬 Great! A vegetarian or vegan diet generally has a lower carbon footprint."
+        )
+
+    # Flight Recommendations
+
+    if flights >= 5:
+        priority.append("✈️ Flights")
+        recommendations.append(
+            "✈️ Air travel is one of your biggest emission sources. Reduce non-essential flights."
+        )
+        recommendations.append(
+            "🌍 Offset unavoidable flight emissions through verified carbon offset programs."
+        )
+
+    elif flights >= 1:
+        recommendations.append(
+            "🛫 Consider combining trips to reduce the total number of flights."
+        )
+
+    else:
+        recommendations.append(
+            "🌎 Excellent! Your air travel emissions are minimal."
+        )
+
+    # Priority Summary
+
+    if priority:
+        recommendations.insert(
+            0,
+            f"🎯 Priority Focus: {', '.join(priority)}"
+        )
+    else:
+        recommendations.insert(
+            0,
+            "🌱 Excellent! Your lifestyle is already environmentally friendly. Keep maintaining these habits!"
+        )
+
+    return insight, recommendations
+
+
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
+def generate_water_recommendations(contributors, total_daily, diet):
+    diet = normalize_diet(diet)
+    recommendations = []
+    
+    highest_category = max(contributors, key=contributors.get)
+    insight = f"Your biggest water consumer is {highest_category} ({contributors[highest_category]:.0f} L/day)."
+    
+    if contributors.get("Shower", 0) > 100:
+        recommendations.append("🚿 Try reducing your shower time to under 10 minutes to save significant water.")
+    else:
+        recommendations.append("🚿 Your shower water usage is efficient. Keep it up!")
+        
+    if contributors.get("Laundry", 0) > 50:
+        recommendations.append("👕 Only run full loads of laundry to maximize water efficiency.")
+        
+    if contributors.get("Garden", 0) > 100:
+        recommendations.append("🌻 Consider collecting rainwater or using drought-resistant plants for your garden.")
+        
+    if diet in ["Omnivore", "Heavy Meat"]:
+        recommendations.append("🥩 A large portion of your water footprint comes from the 'virtual water' in meat production. Consider substituting a few meat meals with plant-based alternatives.")
+    
+    if total_daily > 3800:
+        recommendations.insert(0, "💧 Your water footprint is above the global average. Focus on reducing your highest consumption areas.")
+    else:
+        recommendations.insert(0, "💧 Great job! Your water footprint is below or near the global average.")
+        
     return insight, recommendations
