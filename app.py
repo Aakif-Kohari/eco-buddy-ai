@@ -517,20 +517,30 @@ with tab1:
             else:
                 st.warning("🔥 Your carbon footprint is above average. Let's work on reducing it!")
 
-        with col_badge2:
+with col_badge2:
             st.markdown("<div class='section-header' style='margin-top: 0;'>📊 Emission Sources</div>", unsafe_allow_html=True)
+
+            selected_categories = st.multiselect(
+                "Filter categories",
+                options=list(contributors.keys()),
+                default=list(contributors.keys()),
+                key="emission_category_filter"
+            )
+            filtered_contributors = {
+                k: v for k, v in contributors.items() if k in selected_categories
+            } or contributors
 
             # Pie chart with Plotly
             fig = go.Figure(data=[go.Pie(
-                labels=list(contributors.keys()),
-                values=list(contributors.values()),
+                labels=list(filtered_contributors.keys()),
+                values=list(filtered_contributors.values()),
                 hole=0.4,
                 marker=dict(
                     colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(0,0,0,0.1)', width=2)
                 ),
                 textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂<br>%{percent}<extra></extra>'
+                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
             )])
 
             fig.update_layout(
@@ -541,33 +551,37 @@ with tab1:
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#374151', size=12),
                 legend=dict(
-                    x=-0.15,
-                    y=1,
-                    bgcolor='rgba(0,0,0,0.3)',
+                    orientation='h',
+                    x=0.5,
+                    xanchor='center',
+                    y=-0.15,
+                    bgcolor='rgba(255,255,255,0.9)',
                     bordercolor='rgba(74, 222, 128, 0.3)',
                     borderwidth=1
                 )
             )
-        # -------------------------
+
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart creation
+# Bar chart creation
+        total_filtered = sum(filtered_contributors.values()) or 1
         breakdown_fig = go.Figure(data=[
             go.Bar(
-                x=list(contributors.keys()),
-                y=list(contributors.values()),
+                x=list(filtered_contributors.keys()),
+                y=list(filtered_contributors.values()),
                 marker=dict(
                     color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(255,255,255,0.2)', width=2)
                 ),
-                text=[f'{v:.0f} kg' for v in contributors.values()],
+                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
                 textposition='auto',
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
+                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
             )
         ])
-
         breakdown_fig.update_layout(
             height=350,
             margin=dict(l=40, r=20, t=20, b=40),
@@ -843,16 +857,17 @@ with tab1:
             )
 
 
-            st.plotly_chart(
+st.plotly_chart(
                 trend_fig,
                 width="stretch",
                 config={
-                    "displayModeBar": False,
+                    "displayModeBar": True,
+                    "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+                    "toImageButtonOptions": {"format": "png", "filename": "carbon_footprint_trend"},
                     "scrollZoom": False,
                     "responsive": True
                 }
             )
-
             st.markdown("---")
 
         # -------------------------
