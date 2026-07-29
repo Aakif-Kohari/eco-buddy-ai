@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import os
 import sys
 from datetime import datetime
 from data_io import export_data_json, export_data_csv_zip, import_data_json, import_assessments_bulkfrom database import get_assessments
@@ -212,12 +213,61 @@ is_done, import_result = render_task_progress(
 if is_done and import_result is not None:
     success, message = import_result
     if success:
-                st.success("✅ Data restored successfully!")
-                st.balloons()
-                st.info(
-                    "Please refresh the page or navigate to another section "
-                    "to see the restored data."
-                )
+                # Success notification
+        st.toast("Backup restored successfully!", icon="🎉")
+        st.success("✅ Data restored successfully!")
+        st.balloons()
+
+        # Current restore time
+        restore_time = datetime.now().strftime("%d %b %Y, %I:%M %p")
+
+        # Try to get uploaded file information
+        filename = uploaded_file.name if uploaded_file else "Unknown"
+
+        try:
+            file_size = uploaded_file.size
+                if file_size < 1024:
+                    file_size = f"{file_size} Bytes"
+                elif file_size < 1024 * 1024:
+                    file_size = f"{file_size / 1024:.2f} KB"
+                else:
+                    file_size = f"{file_size / (1024 * 1024):.2f} MB"
+        except:
+            file_size = "Unknown"
+
+# Success Summary Card
+with st.container(border=True):
+
+    st.subheader("📦 Restore Summary")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("Status", "Success")
+        st.metric("File", filename)
+
+    with col2:
+        st.metric("Restore Time", restore_time)
+        st.metric("File Size", file_size)
+
+    st.divider()
+
+    st.info(message)
+
+# Expandable Details
+with st.expander("📋 Restore Details", expanded=False):
+
+    st.write("### Imported Backup Information")
+
+    st.write(f"**Filename:** {filename}")
+    st.write(f"**Restore Time:** {restore_time}")
+    st.write(f"**File Size:** {file_size}")
+
+    st.divider()
+
+    st.write("### Import Log")
+
+    st.code(message)
             else:
                 st.error(message)
 
