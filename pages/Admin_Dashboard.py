@@ -69,12 +69,9 @@ st.markdown("---")
 st.markdown("### 💡 Popular Recommendations")
 
 if popular_recs:
-    # Top popular recommendations for visualization
     top_recs = popular_recs[:10]
-    df_recs = pd.DataFrame(top_recs, columns=["Recommendation", "Frequency"])
-    
-    # Sort for horizontal bar chart (highest frequency on top)
-    df_chart = df_recs.sort_values(by="Frequency", ascending=True)
+    df_recs = pd.DataFrame(popular_recs, columns=["Recommendation", "Frequency"])
+    df_chart = pd.DataFrame(top_recs, columns=["Recommendation", "Frequency"]).sort_values(by="Frequency", ascending=True)
 
     theme_is_dark = st.session_state.get("theme", "dark") == "dark"
     text_color = "#ffffff" if theme_is_dark else "#080b0a"
@@ -85,7 +82,6 @@ if popular_recs:
         y="Recommendation",
         orientation="h",
         labels={"Frequency": "Frequency Count", "Recommendation": "Recommendation Tip"},
-        title="Top Generated Recommendations Across Platform",
         color="Frequency",
         color_continuous_scale=["#16a34a", "#4ade80", "#86efac"]
     )
@@ -93,15 +89,16 @@ if popular_recs:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=text_color, family="Inter, sans-serif"),
-        margin=dict(l=20, r=20, t=50, b=30),
-        height=max(350, len(df_chart) * 40),
+        margin=dict(l=20, r=20, t=10, b=30),
+        height=max(320, len(df_chart) * 36),
         xaxis=dict(showgrid=True, gridcolor="rgba(148,163,184,0.15)"),
-        yaxis=dict(showgrid=False)
+        yaxis=dict(showgrid=False),
+        coloraxis_showscale=False
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("#### 📋 Detailed Recommendation Rankings")
+    st.markdown("<div style='margin:16px 0 8px; font-size:14px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;'>Recommendation Breakdown</div>", unsafe_allow_html=True)
     st.dataframe(
         df_recs,
         column_config={
