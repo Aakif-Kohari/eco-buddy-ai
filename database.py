@@ -159,13 +159,16 @@ def init_db():
         return False
 
 
-def create_user(username, email, password):
+def create_user(username, email, password, anonymous_leaderboard=False):
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, password_hash))
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, anonymous_leaderboard) VALUES (?, ?, ?, ?)",
+            (username, email, password_hash, int(bool(anonymous_leaderboard)))
+        )
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -182,11 +185,15 @@ def verify_user(username, password):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, password_hash, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         
         if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-            return {"id": user[0], "username": user[1]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -200,16 +207,38 @@ def get_user_by_username(username):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, email, anonymous_leaderboard FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         if user:
-            return {"id": user[0], "username": user[1], "email": user[2]}
+            return {
+                "id": user[0],
+                "username": user[1],
+                "email": user[2],
+                "anonymous_leaderboard": bool(user[3])
+            }
         return None
     except sqlite3.Error:
         return None
     finally:
         if conn:
             conn.close()
+
+
+def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET anonymous_leaderboard = ? WHERE id = ?",
+            (int(bool(anonymous_leaderboard)), user_id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        print(f"Database update user preference error: {e}")
+        return False
+
 
 def save_assessment(
     user_id,
@@ -770,6 +799,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_total_xp(user_id):
+    
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)

@@ -21,7 +21,7 @@ load_dotenv()
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user
+from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 from llm_parser import parse_quick_log
@@ -74,6 +74,7 @@ def render_sidebar_auth():
                     if user:
                         st.session_state['user_id'] = user['id']
                         st.session_state['username'] = user['username']
+                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
                         st.sidebar.success("Logged in successfully!")
                         st.rerun()
                     else:
@@ -83,8 +84,9 @@ def render_sidebar_auth():
                 username = st.text_input("Username")
                 email = st.text_input("Email")
                 password = st.text_input("Password", type="password")
+                anonymous = st.checkbox("Appear anonymously on leaderboard")
                 if st.form_submit_button("Register"):
-                    if create_user(username, email, password):
+                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
                         st.sidebar.success("Registration successful! Please login.")
                     else:
                         st.sidebar.error("Username or email already exists")
@@ -98,10 +100,21 @@ def render_sidebar_auth():
         st.stop()
     else:
         st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        anon_pref = st.sidebar.checkbox(
+            "Appear anonymously on leaderboard",
+            value=st.session_state.get("anonymous_leaderboard", False)
+        )
+        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+            st.session_state['anonymous_leaderboard'] = anon_pref
+            st.sidebar.success("Leaderboard preference saved.")
+            st.experimental_rerun()
+
         if st.sidebar.button("Logout"):
             st.session_state['user_id'] = None
             st.session_state['username'] = None
             st.session_state.pop('draft_status', None)
+            st.session_state.pop('anonymous_leaderboard', None)
             for key, val in DEFAULT_VALUES.items():
                 st.session_state[key] = val
             st.rerun()
@@ -183,7 +196,13 @@ st.markdown("---")
 
 # -------------------------
 
-tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🌍 Carbon Footprint",
+    "⚡ Home Energy Audit",
+    "🎮 Gamification",
+    "🗺️ Route Planning & Offsets",
+    "🏆 Community Leaderboard"
+])
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
