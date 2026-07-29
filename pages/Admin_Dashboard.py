@@ -23,6 +23,7 @@ total_assessments = stats["total_assessments"]
 average_eco_score = stats["average_eco_score"]
 active_users = stats["active_users"]
 popular_recs = stats["popular_recommendations"]
+rec_breakdown = stats.get("recommendation_breakdown", [])
 
 st.markdown("### 📈 Key Platform Metrics")
 
@@ -69,8 +70,8 @@ st.markdown("---")
 st.markdown("### 💡 Popular Recommendations")
 
 if popular_recs:
+    # 1. Plotly Chart: Visualizing top recommendations by frequency count
     top_recs = popular_recs[:10]
-    df_recs = pd.DataFrame(popular_recs, columns=["Recommendation", "Frequency"])
     df_chart = pd.DataFrame(top_recs, columns=["Recommendation", "Frequency"]).sort_values(by="Frequency", ascending=True)
 
     theme_is_dark = st.session_state.get("theme", "dark") == "dark"
@@ -82,6 +83,7 @@ if popular_recs:
         y="Recommendation",
         orientation="h",
         labels={"Frequency": "Frequency Count", "Recommendation": "Recommendation Tip"},
+        title="Top Generated Recommendations Across Platform",
         color="Frequency",
         color_continuous_scale=["#16a34a", "#4ade80", "#86efac"]
     )
@@ -89,21 +91,36 @@ if popular_recs:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=text_color, family="Inter, sans-serif"),
-        margin=dict(l=20, r=20, t=10, b=30),
-        height=max(320, len(df_chart) * 36),
+        margin=dict(l=20, r=20, t=50, b=30),
+        height=max(350, len(df_chart) * 40),
         xaxis=dict(showgrid=True, gridcolor="rgba(148,163,184,0.15)"),
-        yaxis=dict(showgrid=False),
-        coloraxis_showscale=False
+        yaxis=dict(showgrid=False)
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("<div style='margin:16px 0 8px; font-size:14px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;'>Recommendation Breakdown</div>", unsafe_allow_html=True)
+    # 2. Complementary Analytical Table: Domain Breakdown & Target Eco Scores
+    st.markdown("#### 🔍 Domain Impact & Platform Trigger Rates")
+    st.markdown(
+        "Complementary analytical breakdown showing category domain classification, platform trigger rates, "
+        "and the average Eco Score of users triggering each recommendation."
+    )
+
+    df_table = pd.DataFrame(rec_breakdown)
+    df_table_display = df_table.rename(columns={
+        "domain": "Domain",
+        "recommendation": "Recommendation Tip",
+        "trigger_rate": "Platform Trigger Rate (%)",
+        "target_avg_score": "Recipient Avg Eco Score"
+    })[["Domain", "Recommendation Tip", "Platform Trigger Rate (%)", "Recipient Avg Eco Score"]]
+
     st.dataframe(
-        df_recs,
+        df_table_display,
         column_config={
-            "Recommendation": st.column_config.TextColumn("Recommendation Tip"),
-            "Frequency": st.column_config.NumberColumn("Frequency Count", format="%d")
+            "Domain": st.column_config.TextColumn("Domain"),
+            "Recommendation Tip": st.column_config.TextColumn("Recommendation Tip"),
+            "Platform Trigger Rate (%)": st.column_config.NumberColumn("Platform Trigger Rate", format="%.1f%%"),
+            "Recipient Avg Eco Score": st.column_config.NumberColumn("Recipient Avg Eco Score", format="%.1f / 100")
         },
         use_container_width=True,
         hide_index=True
