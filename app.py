@@ -1733,6 +1733,63 @@ st.plotly_chart(
                 display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
                 display_df = display_df.iloc[::-1].reset_index(drop=True)
 
+
+
+                # =========================
+                # Compare Previous Assessments
+                # =========================
+
+                st.markdown("### 📊 Compare Previous Assessments")
+
+                if len(display_df) >= 2:
+
+                    compare_options = display_df["📅 Date"].astype(str).tolist()
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        assessment1 = st.selectbox(
+                            "First Assessment",
+                            compare_options,
+                            key="compare1"
+                        )
+
+                    with col2:
+                        assessment2 = st.selectbox(
+                            "Second Assessment",
+                            compare_options,
+                            compare_options[1] if len(compare_options) > 1 else compare_options[0],
+                            key="compare2"
+                        )
+
+                    row1 = display_df[display_df["📅 Date"].astype(str) == assessment1].iloc[0]
+                    row2 = display_df[display_df["📅 Date"].astype(str) == assessment2].iloc[0]
+
+                    c1, c2 = st.columns(2)
+
+                    with c1:
+                        st.metric(
+                            "Carbon Footprint",
+                            f"{row2['🌍 Footprint (kg CO₂)']:.1f}",
+                            delta=f"{row2['🌍 Footprint (kg CO₂)'] - row1['🌍 Footprint (kg CO₂)']:.1f} kg CO₂"
+                        )
+
+                    with c2:
+                        st.metric(
+                            "Eco Score",
+                            f"{row2['⭐ Eco Score']:.1f}",
+                            delta=f"{row2['⭐ Eco Score'] - row1['⭐ Eco Score']:.1f}"
+                        )
+
+                    if row2["⭐ Eco Score"] > row1["⭐ Eco Score"]:
+                        st.success("✅ Eco Score has improved.")
+
+                    elif row2["⭐ Eco Score"] < row1["⭐ Eco Score"]:
+                        st.warning("⚠️ Eco Score has decreased.")
+
+                    else:
+                        st.info("ℹ️ Eco Score is unchanged.")
+
                 search_text = st.text_input(
                     "🔍 Search by Date",
                     placeholder="Enter date..."
@@ -1764,6 +1821,7 @@ st.plotly_chart(
                 display_df = display_df[
                     display_df["🌍 Footprint (kg CO₂)"] <= max_footprint
                 ]
+
 
                 st.markdown(
                     "<div class='history-table-wrap'>"
