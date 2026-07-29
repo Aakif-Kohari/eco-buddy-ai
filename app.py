@@ -880,6 +880,38 @@ with tab1:
                 display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
                 display_df = display_df.iloc[::-1].reset_index(drop=True)
 
+                search_text = st.text_input(
+                    "🔍 Search by Date",
+                    placeholder="Enter date..."
+                )
+
+                min_score, max_score = st.slider(
+                    "🌱 Eco Score Range",
+                    0,
+                    100,
+                    (0, 100)
+                )
+
+                max_footprint = st.number_input(
+                    "🌍 Maximum Carbon Footprint (kg CO₂)",
+                    min_value=0.0,
+                    value=float(display_df["🌍 Footprint (kg CO₂)"].max())
+                )
+
+                if search_text:
+                    display_df = display_df[
+                        display_df["📅 Date"].astype(str).str.contains(search_text, case=False)
+                    ]
+
+                display_df = display_df[
+                    (display_df["🌱 Eco Score"] >= min_score) &
+                    (display_df["🌱 Eco Score"] <= max_score)
+                ]
+
+                display_df = display_df[
+                    display_df["🌍 Footprint (kg CO₂)"] <= max_footprint
+                ]
+
                 st.markdown(
                     "<div class='history-table-wrap'>"
                     + display_df.to_html(index=False, classes="history-table", border=0)
