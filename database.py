@@ -83,11 +83,7 @@ def migrate():
 
 def init_db():
     """
-    Initialize the database with core tables.
-    
-    This function should only be called once during application startup,
-    BEFORE any other database operations. It will automatically run
-    pending migrations if the database exists but is outdated.
+    Initialize the database with core tables and run pending migrations.
     
     Returns:
         bool: True if initialization succeeded, False otherwise
@@ -96,50 +92,48 @@ def init_db():
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        # Run migrations first to ensure schema is up to date
-        migrate()
+        # Create base users table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                anonymous_leaderboard INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
-        # For new databases (version 0), create all tables
-        current_version = get_db_version(conn)
-        if current_version == 0:
-            
-            # Create users table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create assessments table with trip_id
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS assessments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER DEFAULT 1,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    transport TEXT,
-                    distance REAL,
-                    electricity REAL,
-                    diet TEXT,
-                    flights INTEGER,
-                    footprint REAL,
-                    eco_score INTEGER,
-                    trip_id TEXT
-                )
-            """)
-            
-            # Create unique index on trip_id (NULL-safe)
-            cursor.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
-                ON assessments(trip_id) 
-                WHERE trip_id IS NOT NULL
-            """)
-            
-            conn.commit()
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
         
+        # Create base assessments table with trip_id
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER DEFAULT 1,
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                transport TEXT,
+                distance REAL,
+                electricity REAL,
+                diet TEXT,
+                flights INTEGER,
+                footprint REAL,
+                eco_score INTEGER,
+                trip_id TEXT
+            )
+        """)
+        
+        # Create unique index on trip_id (NULL-safe)
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
+            ON assessments(trip_id) 
+            WHERE trip_id IS NOT NULL
+        """)
+
+        # Create assessment_drafts table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS assessment_drafts (
                 user_id INTEGER PRIMARY KEY,
@@ -152,9 +146,12 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
+        
         conn.commit()
         conn.close()
+
+        # Run pending migrations to update schema
+        migrate()
         return True
     except sqlite3.Error as e:
         logger.error("Database init error: %s", e)
