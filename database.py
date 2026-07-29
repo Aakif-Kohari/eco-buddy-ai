@@ -157,8 +157,8 @@ def init_db():
         conn.close()
         return True
     except sqlite3.Error as e:
-logger.error("Database init error: %s", e)        
-return False
+        logger.error("Database init error: %s", e)
+        return False
 
 
 def create_user(username, email, password, anonymous_leaderboard=False):
@@ -1197,4 +1197,177 @@ def get_water_assessments(user_id):
     finally:
         if conn:
             conn.close()
+            conn.close()
+
+
+def save_dashboard_widget_preferences(user_id, widget_ids):
+    """Persist the ordered dashboard widget IDs selected by a user."""
+    import json
+
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dashboard_widget_preferences (
+                user_id INTEGER PRIMARY KEY,
+                widgets_json TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        cursor.execute(
+            """
+            INSERT INTO dashboard_widget_preferences (user_id, widgets_json, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                widgets_json = excluded.widgets_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (user_id, json.dumps(list(widget_ids))),
+        )
+        conn.commit()
+        return True
+    except (sqlite3.Error, TypeError, ValueError) as exc:
+        logger.error("Dashboard preference save error: %s", exc)
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def get_dashboard_widget_preferences(user_id):
+    """Return the saved widget IDs, or None when the user has no preference."""
+    import json
+
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dashboard_widget_preferences (
+                user_id INTEGER PRIMARY KEY,
+                widgets_json TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        cursor.execute(
+            "SELECT widgets_json FROM dashboard_widget_preferences WHERE user_id = ?",
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        value = json.loads(row[0])
+        return value if isinstance(value, list) else None
+    except (sqlite3.Error, json.JSONDecodeError, TypeError) as exc:
+        logger.error("Dashboard preference read error: %s", exc)
+        return None
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def record_environmental_milestone(
+    user_id,
+    milestone_type,
+    title,
+    description,
+    icon="🌱",
+    achieved_at=None,
+    metadata=None,
+):
+    """Persist a milestone once per user and milestone type.
+
+    Returns True only when a new milestone is inserted.
+    """
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO environmental_milestones (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            )
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            """,
+            (
+                user_id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                json.dumps(metadata or {}, sort_keys=True),
+            ),
+        )
+        conn.commit()
+        return cursor.rowcount == 1
+    except sqlite3.Error as exc:
+        logger.error("Unable to record environmental milestone: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_environmental_milestones(user_id):
+    """Return a user's milestones from newest to oldest."""
+    import json
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                id,
+                milestone_type,
+                title,
+                description,
+                icon,
+                achieved_at,
+                metadata_json
+            FROM environmental_milestones
+            WHERE user_id = ?
+            ORDER BY datetime(achieved_at) DESC, id DESC
+            """,
+            (user_id,),
+        )
+        milestones = []
+        for row in cursor.fetchall():
+            try:
+                metadata = json.loads(row[6] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                metadata = {}
+            milestones.append(
+                {
+                    "id": row[0],
+                    "milestone_type": row[1],
+                    "title": row[2],
+                    "description": row[3],
+                    "icon": row[4],
+                    "achieved_at": row[5],
+                    "metadata": metadata,
+                }
+            )
+        return milestones
+    except sqlite3.Error as exc:
+        logger.error("Unable to load environmental milestones: %s", exc)
+        return []
+    finally:
+        if conn:
             conn.close()
