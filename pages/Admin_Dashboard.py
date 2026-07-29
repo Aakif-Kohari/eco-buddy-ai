@@ -23,7 +23,6 @@ total_assessments = stats["total_assessments"]
 average_eco_score = stats["average_eco_score"]
 active_users = stats["active_users"]
 popular_recs = stats["popular_recommendations"]
-rec_breakdown = stats.get("recommendation_breakdown", [])
 
 st.markdown("### 📈 Key Platform Metrics")
 
@@ -70,7 +69,7 @@ st.markdown("---")
 st.markdown("### 💡 Popular Recommendations")
 
 if popular_recs:
-    # 1. Plotly Chart: Visualizing top recommendations by frequency count
+    # 1. Plotly Horizontal Bar Chart for Top Recommendations
     top_recs = popular_recs[:10]
     df_chart = pd.DataFrame(top_recs, columns=["Recommendation", "Frequency"]).sort_values(by="Frequency", ascending=True)
 
@@ -99,28 +98,20 @@ if popular_recs:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # 2. Complementary Analytical Table: Domain Breakdown & Target Eco Scores
-    st.markdown("#### 🔍 Domain Impact & Platform Trigger Rates")
-    st.markdown(
-        "Complementary analytical breakdown showing category domain classification, platform trigger rates, "
-        "and the average Eco Score of users triggering each recommendation."
-    )
+    # 2. Detailed Recommendation Rankings Table with native search, sorting & export
+    st.markdown("#### 📋 Detailed Recommendation Rankings")
 
-    df_table = pd.DataFrame(rec_breakdown)
-    df_table_display = df_table.rename(columns={
-        "domain": "Domain",
-        "recommendation": "Recommendation Tip",
-        "trigger_rate": "Platform Trigger Rate (%)",
-        "target_avg_score": "Recipient Avg Eco Score"
-    })[["Domain", "Recommendation Tip", "Platform Trigger Rate (%)", "Recipient Avg Eco Score"]]
+    df_table = pd.DataFrame([
+        {"Rank": idx + 1, "Recommendation Tip": rec, "Frequency Count": count}
+        for idx, (rec, count) in enumerate(popular_recs)
+    ])
 
     st.dataframe(
-        df_table_display,
+        df_table,
         column_config={
-            "Domain": st.column_config.TextColumn("Domain"),
+            "Rank": st.column_config.NumberColumn("Rank", format="%d"),
             "Recommendation Tip": st.column_config.TextColumn("Recommendation Tip"),
-            "Platform Trigger Rate (%)": st.column_config.NumberColumn("Platform Trigger Rate", format="%.1f%%"),
-            "Recipient Avg Eco Score": st.column_config.NumberColumn("Recipient Avg Eco Score", format="%.1f / 100")
+            "Frequency Count": st.column_config.NumberColumn("Frequency Count", format="%d")
         },
         use_container_width=True,
         hide_index=True
