@@ -1,5 +1,5 @@
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from emissions import calculate_footprint, calculate_eco_score
+from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
 from recommendations import generate_recommendations
 from config import DIET_TYPES, TRANSPORT_EMISSION_FACTORS, VALID_REGIONS
 
@@ -75,15 +75,17 @@ class CarbonFootprintPlugin(CalculatorPlugin):
         flights = inputs["flights"]
         region = inputs.get("region", "Global")
 
-        total_kg, contributors = calculate_footprint(
+        total_kg, contributors, audit_log = calculate_footprint(
             transport=transport,
             distance=distance,
             electricity=electricity,
             diet=diet,
             flights=flights,
             region=region,
+            return_audit=True
         )
         eco_score = calculate_eco_score(total_kg, contributors)
+        full_audit = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
 
         return CalcResult(
             total=total_kg,
@@ -97,6 +99,7 @@ class CarbonFootprintPlugin(CalculatorPlugin):
                 "diet": diet,
                 "flights": flights,
                 "region": region,
+                "audit_log": full_audit
             },
         )
 

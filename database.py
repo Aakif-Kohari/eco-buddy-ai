@@ -92,6 +92,7 @@ def init_db():
     """
     try:
         conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
         
         # Run migrations first to ensure schema is up to date
         migrate()
@@ -99,7 +100,6 @@ def init_db():
         # For new databases (version 0), create all tables
         current_version = get_db_version(conn)
         if current_version == 0:
-            cursor = conn.cursor()
             
             # Create users table
             cursor.execute("""
@@ -248,6 +248,7 @@ def save_assessment(
     diet,
     flights,
     footprint,
+    eco_score=0,
     trip_id=None,
     date=None
 ):
@@ -328,21 +329,6 @@ def save_assessment(
                 diet,
                 flights,
                 footprint,
-                eco_score,
-                trip_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            transport,
-            distance,
-            electricity,
-            diet,
-            flights,
-            footprint,
-            eco_score,
-            trip_id
-        ))
                 eco_score
             ))
 
@@ -379,7 +365,6 @@ def get_assessments(user_id=1):
         return []
 
 
-def get_diet_history(user_id, limit=7):
 def save_assessment_draft(user_id, transport, distance, electricity, diet, flights, region):
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -404,20 +389,28 @@ def save_assessment_draft(user_id, transport, distance, electricity, diet, fligh
         return False
 
 
-def get_assessment_draft(user_id):
+def get_diet_history(user_id, limit=7):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
             SELECT date, diet FROM assessments
+            WHERE user_id = ?
             ORDER BY date DESC LIMIT ?
-        """, (limit,))
+        """, (user_id, limit))
         rows = cursor.fetchall()
         conn.close()
         return rows
     except sqlite3.Error as e:
         print(f"get_diet_history error: {e}")
         return []
+
+
+def get_assessment_draft(user_id):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
             SELECT transport, distance, electricity, diet, flights, region
             FROM assessment_drafts
             WHERE user_id = ?
