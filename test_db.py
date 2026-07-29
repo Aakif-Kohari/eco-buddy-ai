@@ -11,6 +11,11 @@ def setup_teardown():
     old_db = db.DB_NAME
     db.DB_NAME = TEST_DB
     db.init_db()
+    
+    # Clear cached function results after database is reset
+    from invalidation import invalidate_all_db_caches
+    invalidate_all_db_caches()
+    
     conn = sqlite3.connect(TEST_DB)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assessments")
