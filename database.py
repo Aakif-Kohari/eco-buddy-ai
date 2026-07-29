@@ -239,6 +239,47 @@ def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
         return False
 
 
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_leaderboard(period="all"):
+    """
+    Retrieves community leaderboard rankings.
+    Returns list of tuples: (display_name, max_eco_score, total_xp, completed_challenges)
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                u.id,
+                u.username,
+                u.anonymous_leaderboard,
+                COALESCE(MAX(a.eco_score), 0) AS max_eco_score,
+                COALESCE(SUM(x.amount), 0) AS total_xp,
+                COUNT(DISTINCT c.challenge_id) AS completed_challenges
+            FROM users u
+            LEFT JOIN assessments a ON u.id = a.user_id
+            LEFT JOIN xp_transactions x ON u.id = x.user_id
+            LEFT JOIN user_challenges c ON u.id = c.user_id AND c.status = 'completed'
+            GROUP BY u.id
+            ORDER BY max_eco_score DESC, total_xp DESC
+        """)
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        leaderboard = []
+        for row in rows:
+            u_id, username, is_anon, eco_score, xp, challenges = row
+            display_name = f"User #{u_id}" if is_anon else username
+            leaderboard.append((display_name, eco_score, xp, challenges))
+
+        return leaderboard
+    except sqlite3.Error as e:
+        print(f"Database get_leaderboard error: {e}")
+        return []
+
+
 def save_assessment(
     user_id,
     transport,
