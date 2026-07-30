@@ -18,6 +18,7 @@ from invalidation import (
     invalidate_on_offset_delete,
     invalidate_on_offset_clear,
     invalidate_on_water_assessment_save,
+    invalidate_on_reduction_goal_change,
     invalidate_on_freeze_token_change,
 )
 import streamlit as st
@@ -1745,6 +1746,213 @@ def get_total_freeze_tokens_earned(user_id):
         return row[0] if row else 0
     except sqlite3.Error:
         return 0
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Reduction goals
+# ---------------------------------------------------------------------------
+
+def init_goals_db():
+    """
+    Create the reduction_goals table.
+
+    Kept as its own initializer to match the existing per-feature pattern
+    (init_energy_db, init_gamification_db, init_marketplace_db, init_water_db).
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS reduction_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                baseline_kg REAL NOT NULL,
+                target_kg REAL NOT NULL,
+                start_date TEXT NOT NULL,
+                target_date TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # A user may only have one active goal at a time; history rows are
+        # archived or completed and are excluded from the index.
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_reduction_goals_active
+            ON reduction_goals(user_id)
+            WHERE status = 'active'
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("Reduction goals init error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def _goal_row_to_dict(row):
+    """Map a reduction_goals row onto the dict shape goals.py expects."""
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "baseline_kg": row[2],
+        "target_kg": row[3],
+        "start_date": row[4],
+        "target_date": row[5],
+        "status": row[6],
+        "created_at": row[7],
+    }
+
+
+def save_reduction_goal(user_id, baseline_kg, target_kg, start_date, target_date):
+    """
+    Persist a new goal, archiving any goal the user already had active.
+
+    Returns the new goal id, or None if the write failed.
+    """
+    init_goals_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        # Only one active goal per user, so retire the previous one first.
+        cursor.execute(
+            "UPDATE reduction_goals SET status = 'archived' "
+            "WHERE user_id = ? AND status = 'active'",
+            (user_id,),
+        )
+        cursor.execute("""
+            INSERT INTO reduction_goals (
+                user_id, baseline_kg, target_kg, start_date, target_date, status
+            )
+            VALUES (?, ?, ?, ?, ?, 'active')
+        """, (
+            user_id,
+            float(baseline_kg),
+            float(target_kg),
+            str(start_date),
+            str(target_date),
+        ))
+        goal_id = cursor.lastrowid
+        conn.commit()
+        invalidate_on_reduction_goal_change()
+        return goal_id
+    except sqlite3.Error as exc:
+        logger.error("Unable to save reduction goal: %s", exc)
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_active_goal(user_id):
+    """Return the user's current active goal, or None."""
+    init_goals_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_id, baseline_kg, target_kg, start_date,
+                   target_date, status, created_at
+            FROM reduction_goals
+            WHERE user_id = ? AND status = 'active'
+            ORDER BY id DESC
+            LIMIT 1
+        """, (user_id,))
+        return _goal_row_to_dict(cursor.fetchone())
+    except sqlite3.Error as exc:
+        logger.error("Unable to load active goal: %s", exc)
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_goal_history(user_id):
+    """Return every goal the user has ever set, newest first."""
+    init_goals_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_id, baseline_kg, target_kg, start_date,
+                   target_date, status, created_at
+            FROM reduction_goals
+            WHERE user_id = ?
+            ORDER BY id DESC
+        """, (user_id,))
+        return [_goal_row_to_dict(row) for row in cursor.fetchall()]
+    except sqlite3.Error as exc:
+        logger.error("Unable to load goal history: %s", exc)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_goal_status(goal_id, status):
+    """Move a goal to a new lifecycle state (archived / completed / active)."""
+    if status not in ("active", "archived", "completed"):
+        logger.error("Refusing to set unknown goal status: %s", status)
+        return False
+
+    init_goals_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE reduction_goals SET status = ? WHERE id = ?",
+            (status, goal_id),
+        )
+        changed = cursor.rowcount > 0
+        conn.commit()
+        invalidate_on_reduction_goal_change()
+        return changed
+    except sqlite3.Error as exc:
+        logger.error("Unable to update goal status: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def archive_goal(goal_id):
+    """Retire a goal without marking it as met."""
+    return update_goal_status(goal_id, "archived")
+
+
+def complete_goal(goal_id):
+    """Mark a goal as successfully achieved."""
+    return update_goal_status(goal_id, "completed")
+
+
+def delete_reduction_goal(goal_id):
+    """Permanently remove a goal row."""
+    init_goals_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM reduction_goals WHERE id = ?", (goal_id,))
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        invalidate_on_reduction_goal_change()
+        return deleted
+    except sqlite3.Error as exc:
+        logger.error("Unable to delete reduction goal: %s", exc)
+        return False
     finally:
         if conn:
             conn.close()
