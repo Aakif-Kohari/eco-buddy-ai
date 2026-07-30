@@ -1,6 +1,5 @@
 import os
 import logging
-import requests
 import json
 import datetime
 import math
@@ -36,6 +35,7 @@ def fetch_emission_factors(region: str) -> dict:
         return factors
         
     try:
+        import requests
         url = "https://api.climatiq.io/data/v1/estimate"
         headers = {"Authorization": f"Bearer {api_key}"}
         

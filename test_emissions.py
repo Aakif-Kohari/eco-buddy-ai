@@ -31,7 +31,7 @@ class TestEmissions(unittest.TestCase):
         self.assertAlmostEqual(contributors["Flights"], 500.0, places=1)
         self.assertAlmostEqual(total, 6293.0, places=1)
 
-    @patch("emissions.requests.post")
+    @patch("requests.post")
     @patch("emissions.os.environ.get")
     def test_calculate_footprint_api_success(self, mock_env_get, mock_post):
         # Provide an API key
@@ -66,7 +66,7 @@ class TestEmissions(unittest.TestCase):
         self.assertAlmostEqual(contributors["Electricity"], 4500.0, places=1)
         self.assertAlmostEqual(contributors["Flights"], 600.0, places=1)
 
-    @patch("emissions.requests.post")
+    @patch("requests.post")
     @patch("emissions.os.environ.get")
     def test_calculate_footprint_api_failure(self, mock_env_get, mock_post):
         # Provide an API key
