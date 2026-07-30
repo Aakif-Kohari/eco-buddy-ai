@@ -245,7 +245,12 @@ with tab_assess:
         eco_score = calculate_eco_score(total, contributors)
         audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
+        # Stamp the assessment with the factor set that produced it, so the
+        # result stays reproducible and comparable after factors change.
+        save_assessment(
+            user_id, transport, distance, electricity, diet, flights, total, eco_score,
+            factor_version=footprint_audit.get("factor_version"),
+        )
         if user_id:
             delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)

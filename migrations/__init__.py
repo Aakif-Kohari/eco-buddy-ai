@@ -31,7 +31,7 @@ def set_version(conn, version):
     conn.commit()
 
 
-CURRENT_VERSION = 6
+CURRENT_VERSION = 7
 
 
 def migrate():
