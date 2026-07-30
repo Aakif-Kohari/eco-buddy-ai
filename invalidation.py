@@ -191,6 +191,14 @@ def invalidate_on_freeze_token_change():
     ])
 
 
+def invalidate_on_reduction_goal_change():
+    """Invalidate caches dependent on reduction goal create/archive/complete."""
+    _clear_by_name([
+        'get_active_goal',
+        'get_goal_history',
+    ])
+
+
 def invalidate_all_db_caches():
     """
     Invalidate ALL database read caches.
@@ -215,6 +223,8 @@ def invalidate_all_db_caches():
         'get_freeze_token_balance',
         'get_streak_freeze_dates',
         'get_total_freeze_tokens_earned',
+        'get_active_goal',
+        'get_goal_history',
     ]
     _clear_by_name(db_read_names)
 
