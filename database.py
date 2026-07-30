@@ -1957,3 +1957,85 @@ def delete_reduction_goal(goal_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Food Scanner database functions
+# ---------------------------------------------------------------------------
+
+def init_food_scanner_db():
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS food_scans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                meal_name TEXT,
+                items TEXT NOT NULL,
+                total_co2_kg REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("Food scanner init error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def save_food_scan(user_id, meal_name, items, total_co2_kg):
+    init_food_scanner_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO food_scans (user_id, meal_name, items, total_co2_kg)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, meal_name, str(items), total_co2_kg))
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.Error as exc:
+        logger.error("Unable to save food scan: %s", exc)
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_food_scans(user_id):
+    init_food_scanner_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_id, meal_name, items, total_co2_kg, created_at
+            FROM food_scans
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": r[0],
+                "user_id": r[1],
+                "meal_name": r[2],
+                "items": r[3],
+                "total_co2_kg": r[4],
+                "created_at": r[5],
+            }
+            for r in rows
+        ]
+    except sqlite3.Error as exc:
+        logger.error("Unable to load food scans: %s", exc)
+        return []
+    finally:
+        if conn:
+            conn.close()
