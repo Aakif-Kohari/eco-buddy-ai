@@ -40,7 +40,8 @@ def test_get_brands_filter_by_search_query():
 
 def test_add_sustainable_brand():
     """Verify adding a new brand entry."""
-    unique_name = "Test Eco Brand 123"
+    import uuid
+    unique_name = f"Test Eco Brand {uuid.uuid4().hex[:6]}"
     result = add_sustainable_brand(
         name=unique_name,
         category="Personal Care",
@@ -57,3 +58,4 @@ def test_add_sustainable_brand():
     assert fetched[0]["name"] == unique_name
     assert fetched[0]["eco_score"] == 99
     assert fetched[0]["sustainability_rating"] == "A+"
+
