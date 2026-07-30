@@ -73,6 +73,78 @@ else:
     st.info("Keep your streak going to earn freeze tokens!")
 
 st.markdown("---")
+st.markdown("### 🔥 Eco Streak Heatmap")
+st.caption("Your daily eco-activity for the past 12 months — darker squares mean more action!")
+
+assessments = get_assessments(user_id)
+activity_dates = [row[1] for row in assessments] if assessments else []
+
+if activity_dates:
+    from datetime import date, timedelta
+
+    today = date.today()
+    start_date = today - timedelta(days=364)
+    date_counts = {}
+    for d in activity_dates:
+        if isinstance(d, str):
+            d = pd.to_datetime(d).date()
+        elif hasattr(d, 'date'):
+            d = d.date()
+        if start_date <= d <= today:
+            date_counts[d] = date_counts.get(d, 0) + 1
+
+    weeks = []
+    current = start_date
+    while current <= today:
+        week_start = current - timedelta(days=current.weekday())
+        if not weeks or weeks[-1][0] != week_start:
+            weeks.append((week_start, []))
+        weeks[-1][1].append(current)
+        current += timedelta(days=1)
+
+    heatmap_data = []
+    for w_idx, (week_start, days) in enumerate(weeks):
+        for d_idx in range(7):
+            if d_idx < len(days):
+                day = days[d_idx]
+                count = date_counts.get(day, 0)
+                label = day.strftime("%b %d")
+            else:
+                count = None
+                label = ""
+            heatmap_data.append({"week": w_idx, "day": d_idx, "count": count, "label": label})
+
+    df_heat = pd.DataFrame(heatmap_data)
+    pivot = df_heat.pivot(index="day", columns="week", values="count")
+
+    day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    fig_heat = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x0=0, dx=1,
+        y=day_labels,
+        colorscale=[[0, "#ebedf0"], [0.25, "#9be9a8"], [0.5, "#40c463"], [0.75, "#30a14e"], [1, "#216e39"]],
+        showscale=True,
+        colorbar=dict(title="Actions"),
+        hovertemplate="%{customdata[0]}<br>Actions: %{z}<extra></extra>",
+        customdata=df_heat[df_heat["count"].notna()][["label"]].values if len(df_heat[df_heat["count"].notna()]) > 0 else None,
+    ))
+    fig_heat.update_layout(
+        height=200,
+        margin=dict(l=40, r=20, t=10, b=30),
+        template="plotly_dark",
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showticklabels=False, showgrid=False),
+        yaxis=dict(showgrid=False),
+    )
+    st.plotly_chart(fig_heat, use_container_width=True)
+
+    total_active_days = len(date_counts)
+    st.caption(f"📊 {total_active_days} active days in the past year — keep the streak alive!")
+else:
+    st.info("Start logging your eco-activities to see your streak heatmap!")
+
+st.markdown("---")
 
 tab_challenges, tab_badges, tab_cards = st.tabs(["🏆 Challenges", "🎖️ Badges", "🃏 Trading Cards"])
 
