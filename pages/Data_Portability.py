@@ -63,14 +63,12 @@ def render_export_card(
         )
 
 
+from session_state_utils import ensure_session_state
+
 # -----------------------------
 # Session State Initialization
 # -----------------------------
-if "csv_export" not in st.session_state:
-    st.session_state.csv_export = None
-
-if "json_export" not in st.session_state:
-    st.session_state.json_export = None
+ensure_session_state({"csv_export": None, "json_export": None})
 
 
 st.title("💾 Data Portability")

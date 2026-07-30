@@ -54,6 +54,7 @@ from session_recovery import (
     discard_current_draft,
     render_draft_recovery_prompt,
 )
+from session_state_utils import ensure_session_state, set_session_state_if_changed
 
 
 
@@ -119,7 +120,7 @@ def render_sidebar_auth():
         )
         if anon_pref != st.session_state.get("anonymous_leaderboard", False):
             update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
-            st.session_state['anonymous_leaderboard'] = anon_pref
+            set_session_state_if_changed('anonymous_leaderboard', anon_pref)
             st.sidebar.success("Leaderboard preference saved.")
             st.experimental_rerun()
 
@@ -160,16 +161,11 @@ render_customizable_dashboard(user_id, selected_dashboard_widgets)
 with st.expander("🌍 Environmental Impact Timeline", expanded=False):
     render_environmental_timeline(user_id)
 
-if 'extracted_kwh' not in st.session_state:
-    st.session_state.extracted_kwh = 200.0
-
 
 # -------------------------
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
+ensure_session_state(DEFAULT_VALUES)
 
 # page config moved to top
 

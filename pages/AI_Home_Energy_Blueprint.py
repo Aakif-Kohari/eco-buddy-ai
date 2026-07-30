@@ -22,13 +22,14 @@ input_mode = st.radio("Choose input method", ["Describe Your Home", "Upload Floo
 
 rooms = []
 
+from session_state_utils import ensure_session_state
+
+ensure_session_state({"blueprint_rooms": []})
+
 if input_mode == "Describe Your Home":
     st.markdown("### 🏡 Add Rooms")
 
     room_types = list(ea.ROOM_TYPES.keys())
-
-    if 'blueprint_rooms' not in st.session_state:
-        st.session_state.blueprint_rooms = []
 
     with st.form("add_room_form", clear_on_submit=True):
         row = st.columns(4)
@@ -75,8 +76,6 @@ else:
                 fp_area = row2[2].number_input("Area (sq ft)", min_value=20, max_value=2000, value=200, step=10, key="fp_area")
                 fp_devices = row2[3].number_input("Device Multiplier", min_value=1, max_value=10, value=1, step=1, key="fp_devices")
                 if st.form_submit_button("➕ Add Room from Floor Plan"):
-                    if 'blueprint_rooms' not in st.session_state:
-                        st.session_state.blueprint_rooms = []
                     st.session_state.blueprint_rooms.append({
                         'name': fp_name or fp_type,
                         'type': fp_type,
