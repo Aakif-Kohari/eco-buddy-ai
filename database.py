@@ -1957,3 +1957,88 @@ def delete_reduction_goal(goal_id):
     finally:
         if conn:
             conn.close()
+
+
+def init_waste_db():
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS waste_assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                food_scraps REAL DEFAULT 0,
+                plastic_packaging REAL DEFAULT 0,
+                paper_cardboard REAL DEFAULT 0,
+                glass REAL DEFAULT 0,
+                metal_cans REAL DEFAULT 0,
+                e_waste REAL DEFAULT 0,
+                textiles REAL DEFAULT 0,
+                mixed_waste REAL DEFAULT 0,
+                total_weekly_kg REAL DEFAULT 0,
+                annual_co2 REAL DEFAULT 0,
+                recyclable_pct REAL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Waste DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recyclable_pct):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO waste_assessments (
+                user_id, food_scraps, plastic_packaging, paper_cardboard,
+                glass, metal_cans, e_waste, textiles, mixed_waste,
+                total_weekly_kg, annual_co2, recyclable_pct
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_id,
+            waste_data.get("Food Scraps", 0),
+            waste_data.get("Plastic Packaging", 0),
+            waste_data.get("Paper & Cardboard", 0),
+            waste_data.get("Glass", 0),
+            waste_data.get("Metal (Cans)", 0),
+            waste_data.get("Electronics (E-Waste)", 0),
+            waste_data.get("Textiles", 0),
+            waste_data.get("Other (Mixed Waste)", 0),
+            total_weekly_kg, annual_co2, recyclable_pct,
+        ))
+        conn.commit()
+        get_waste_assessments.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Waste assessment save error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_waste_assessments(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM waste_assessments WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error as e:
+        logger.error("Waste assessment read error: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
