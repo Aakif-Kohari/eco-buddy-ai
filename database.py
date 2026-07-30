@@ -2138,3 +2138,217 @@ def get_unit_preference(user_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Sustainable Brand Directory
+# ---------------------------------------------------------------------------
+
+def init_brand_directory_db():
+    """Initialize the sustainable brands database table."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sustainable_brands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                sustainability_rating TEXT NOT NULL,
+                eco_score INTEGER NOT NULL,
+                certifications TEXT,
+                description TEXT,
+                website TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Sustainable brand DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_sustainable_brands():
+    """Seed initial sustainable brand listings if table is empty."""
+    init_brand_directory_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sustainable_brands")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        initial_brands = [
+            (
+                "Patagonia",
+                "Apparel & Footwear",
+                "A+",
+                96,
+                "B Corp, Fair Trade Certified, 1% for the Planet",
+                "High-performance outdoor clothing made from recycled materials with lifetime repair warranty.",
+                "https://www.patagonia.com",
+            ),
+            (
+                "Allbirds",
+                "Apparel & Footwear",
+                "A",
+                90,
+                "B Corp, Carbon Neutral, FSC Certified",
+                "Footwear and apparel crafted from natural, sustainable materials like merino wool and eucalyptus tree fiber.",
+                "https://www.allbirds.com",
+            ),
+            (
+                "Beyond Meat",
+                "Food & Beverage",
+                "A",
+                88,
+                "Non-GMO Project Verified, Plant-Based Certified",
+                "Revolutionary plant-based meats designed to replace animal agriculture and cut carbon emissions.",
+                "https://www.beyondmeat.com",
+            ),
+            (
+                "Tentree",
+                "Apparel & Footwear",
+                "A+",
+                94,
+                "B Corp, Climate Neutral, Organic Content Standard",
+                "Eco-friendly lifestyle apparel brand that plants 10 trees for every item purchased.",
+                "https://www.tentree.com",
+            ),
+            (
+                "Seventh Generation",
+                "Home & Energy",
+                "A",
+                89,
+                "B Corp, USDA Certified Biobased, Leaping Bunny",
+                "Plant-derived household cleaning, paper, and personal care products reducing chemical footprint.",
+                "https://www.seventhgeneration.com",
+            ),
+            (
+                "Fairphone",
+                "Tech & Electronics",
+                "A+",
+                95,
+                "B Corp, Fairtrade Gold, EcoVadis Platinum",
+                "Modular, repairable smartphones designed to reduce electronic waste and respect supply chain labor.",
+                "https://www.fairphone.com",
+            ),
+            (
+                "Ethique",
+                "Personal Care",
+                "A+",
+                97,
+                "B Corp, Cruelty-Free, Palm Oil Free, Plastic Free",
+                "Solid beauty and personal care bars replacing single-use plastic bottles.",
+                "https://ethique.com",
+            ),
+            (
+                "Ecover",
+                "Home & Energy",
+                "B+",
+                83,
+                "B Corp, Leaping Bunny",
+                "Eco-friendly cleaning supplies packaged in plant-based plastic bottles.",
+                "https://www.ecover.com",
+            ),
+            (
+                "Oatly",
+                "Food & Beverage",
+                "A",
+                91,
+                "Non-GMO, Climate Footprint Labeled",
+                "Original oat milk producers reducing livestock agriculture impacts.",
+                "https://www.oatly.com",
+            ),
+            (
+                "Tesla",
+                "Transportation",
+                "B+",
+                84,
+                "Zero Emission Vehicle Pioneer",
+                "Electric vehicles and clean solar energy storage systems.",
+                "https://www.tesla.com",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO sustainable_brands
+            (name, category, sustainability_rating, eco_score, certifications, description, website)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, initial_brands)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed sustainable brands: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_sustainable_brands(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve sustainable brands with optional category and search query filtering."""
+    seed_sustainable_brands()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, name, category, sustainability_rating, eco_score, certifications, description, website, created_at FROM sustainable_brands WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (name LIKE ? OR description LIKE ? OR certifications LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY eco_score DESC, name ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        columns = ["id", "name", "category", "sustainability_rating", "eco_score", "certifications", "description", "website", "created_at"]
+        return [dict(zip(columns, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read sustainable brands: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_sustainable_brand(
+    name: str,
+    category: str,
+    sustainability_rating: str,
+    eco_score: int,
+    certifications: str,
+    description: str,
+    website: str,
+) -> bool:
+    """Add a new sustainable brand entry."""
+    init_brand_directory_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sustainable_brands (name, category, sustainability_rating, eco_score, certifications, description, website)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (name, category, sustainability_rating, eco_score, certifications, description, website))
+        conn.commit()
+        get_sustainable_brands.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add sustainable brand: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
