@@ -134,6 +134,7 @@ eco-buddy-ai/
 ├── recommendations.py         # Personalized recommendation engine
 ├── report.py                  # PDF report generation
 ├── requirements.txt           # Project dependencies
+├── units.py                   # Unit conversion, currency, and localized formatting
 ├── water.py                   # Household water footprint calculations
 ├── eco_buddy.db               # Local SQLite database (auto-generated)
 │
@@ -141,6 +142,7 @@ eco-buddy-ai/
 │   ├── Carbon_Footprint.py
 │   ├── Data_Health.py
 │   ├── Data_Portability.py
+│   ├── Display_Settings.py
 │   ├── Emission_Factors.py
 │   ├── Gamification.py
 │   ├── Home_Energy_Audit.py
@@ -162,6 +164,7 @@ eco-buddy-ai/
 ├── test_goals.py
 ├── test_marketplace.py
 ├── test_recommendations.py
+├── test_units.py
 └── test_water.py
 ```
 
@@ -197,6 +200,7 @@ eco-buddy-ai/
 | `ocr_utils.py`       | Extracts text from uploaded PDFs/images for auto data entry |
 | `recommendations.py` | Generates personalized eco-friendly suggestions    |
 | `report.py`          | Generates downloadable PDF footprint reports       |
+| `units.py`           | Metric/imperial conversion, currency formatting, and per-user display preferences |
 | `water.py`           | Calculates household water footprint from daily habits |
 | `styles/theme.py`    | Applies the shared custom CSS theme across pages   |
 | `pages/*.py`         | Streamlit multi-page sections (Carbon Footprint, Water Footprint, Home Energy Audit, Route Planning, Gamification, Data Portability) |
