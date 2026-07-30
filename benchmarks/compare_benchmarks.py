@@ -5,17 +5,24 @@ Exits with code 1 if any benchmark's mean_ms regressed beyond the threshold (%).
 """
 import argparse
 import json
+import os
 import sys
 
 
 def load_benchmarks(path):
-    with open(path) as f:
-        data = json.load(f)
-    lookup = {}
-    for suite in data.get("suites", []):
-        for b in suite.get("benchmarks", []):
-            lookup[f"{suite['suite']}::{b['name']}"] = b.get("mean_ms", 0)
-    return lookup
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        lookup = {}
+        for suite in data.get("suites", []):
+            for b in suite.get("benchmarks", []):
+                lookup[f"{suite['suite']}::{b['name']}"] = b.get("mean_ms", 0)
+        return lookup
+    except Exception as e:
+        print(f"Error loading benchmark report '{path}': {e}")
+        return None
 
 
 def main(argv=None):
@@ -26,7 +33,14 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     current = load_benchmarks(args.current)
+    if current is None:
+        print(f"Error: Current benchmark report file '{args.current}' not found or invalid.")
+        return 1
+
     baseline = load_benchmarks(args.baseline)
+    if baseline is None:
+        print(f"Warning: Baseline report file '{args.baseline}' not found. Skipping baseline regression check.")
+        return 0
 
     regressions = []
     for name, base_ms in baseline.items():

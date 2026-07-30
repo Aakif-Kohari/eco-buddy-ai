@@ -571,15 +571,20 @@ def evaluate_skill_tree(user_id):
     if updates_made:
         # Re-fetch if updates were made
         progress = get_skill_tree_progress(user_id)
+        progress_map = {row['node_id']: row['status'] for row in progress}
         
-    return {row['node_id']: row['status'] for row in progress}
+    return {node_id: progress_map.get(node_id, 'Locked') for node_id in SKILL_TREE_NODES}
 
 
 def complete_skill_node(user_id, node_id):
     node_data = SKILL_TREE_NODES.get(node_id)
     if not node_data:
         return False
-        
+
+    status_map = evaluate_skill_tree(user_id)
+    if status_map.get(node_id) != 'Unlocked':
+        return False
+
     success = update_skill_node_status(user_id, node_id, 'Completed')
     if success:
         award_xp(user_id, 'skill_tree', node_id, node_data['xp_reward'], f"Completed Skill: {node_data['label']}")

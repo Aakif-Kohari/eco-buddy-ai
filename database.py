@@ -83,11 +83,7 @@ def migrate():
 
 def init_db():
     """
-    Initialize the database with core tables.
-    
-    This function should only be called once during application startup,
-    BEFORE any other database operations. It will automatically run
-    pending migrations if the database exists but is outdated.
+    Initialize the database with core tables and run pending migrations.
     
     Returns:
         bool: True if initialization succeeded, False otherwise
@@ -96,50 +92,48 @@ def init_db():
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        # Run migrations first to ensure schema is up to date
-        migrate()
+        # Create base users table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                anonymous_leaderboard INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
-        # For new databases (version 0), create all tables
-        current_version = get_db_version(conn)
-        if current_version == 0:
-            
-            # Create users table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            
-            # Create assessments table with trip_id
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS assessments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER DEFAULT 1,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    transport TEXT,
-                    distance REAL,
-                    electricity REAL,
-                    diet TEXT,
-                    flights INTEGER,
-                    footprint REAL,
-                    eco_score INTEGER,
-                    trip_id TEXT
-                )
-            """)
-            
-            # Create unique index on trip_id (NULL-safe)
-            cursor.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
-                ON assessments(trip_id) 
-                WHERE trip_id IS NOT NULL
-            """)
-            
-            conn.commit()
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
         
+        # Create base assessments table with trip_id
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER DEFAULT 1,
+                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                transport TEXT,
+                distance REAL,
+                electricity REAL,
+                diet TEXT,
+                flights INTEGER,
+                footprint REAL,
+                eco_score INTEGER,
+                trip_id TEXT
+            )
+        """)
+        
+        # Create unique index on trip_id (NULL-safe)
+        cursor.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
+            ON assessments(trip_id) 
+            WHERE trip_id IS NOT NULL
+        """)
+
+        # Create assessment_drafts table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS assessment_drafts (
                 user_id INTEGER PRIMARY KEY,
@@ -152,9 +146,12 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-
+        
         conn.commit()
         conn.close()
+
+        # Run pending migrations to update schema
+        migrate()
         return True
     except sqlite3.Error as e:
         logger.error("Database init error: %s", e)
@@ -240,6 +237,47 @@ def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
     except sqlite3.Error as e:
         print(f"Database update user preference error: {e}")
         return False
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_leaderboard(period="all"):
+    """
+    Retrieves community leaderboard rankings.
+    Returns list of tuples: (display_name, max_eco_score, total_xp, completed_challenges)
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                u.id,
+                u.username,
+                u.anonymous_leaderboard,
+                COALESCE(MAX(a.eco_score), 0) AS max_eco_score,
+                COALESCE(SUM(x.amount), 0) AS total_xp,
+                COUNT(DISTINCT c.challenge_id) AS completed_challenges
+            FROM users u
+            LEFT JOIN assessments a ON u.id = a.user_id
+            LEFT JOIN xp_transactions x ON u.id = x.user_id
+            LEFT JOIN user_challenges c ON u.id = c.user_id AND c.status = 'completed'
+            GROUP BY u.id
+            ORDER BY max_eco_score DESC, total_xp DESC
+        """)
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        leaderboard = []
+        for row in rows:
+            u_id, username, is_anon, eco_score, xp, challenges = row
+            display_name = f"User #{u_id}" if is_anon else username
+            leaderboard.append((display_name, eco_score, xp, challenges))
+
+        return leaderboard
+    except sqlite3.Error as e:
+        print(f"Database get_leaderboard error: {e}")
+        return []
 
 
 def save_assessment(
@@ -367,6 +405,27 @@ def get_assessments(user_id=1):
         return []
 
 
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_all_assessments():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            FROM assessments
+            ORDER BY date DESC, id DESC
+        """)
+
+        data = cursor.fetchall()
+
+        conn.close()
+        return data
+    except sqlite3.Error as e:
+        print(f"Database read error: {e}")
+        return []
+
+
 def save_assessment_draft(
     user_id,
     transport,
@@ -377,7 +436,6 @@ def save_assessment_draft(
     region,
 ):
     """Insert or update one unfinished assessment per user."""
-    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
