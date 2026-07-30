@@ -79,3 +79,147 @@ def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years
 
 def calculate_solar_carbon_offset(annual_generation_kwh, grid_carbon_intensity_kg_kwh=0.4):
     return annual_generation_kwh * grid_carbon_intensity_kg_kwh
+
+
+ROOM_TYPES = {
+    'Living Room': {
+        'icon': '🛋️',
+        'typical_appliances': ['TV', 'Lighting', 'AC/Fan', 'Sound System', 'Router'],
+        'base_wattage': 800,
+        'daily_hours': 6,
+    },
+    'Kitchen': {
+        'icon': '🍳',
+        'typical_appliances': ['Refrigerator', 'Oven/Microwave', 'Lighting', 'Exhaust Fan', 'Dishwasher'],
+        'base_wattage': 1200,
+        'daily_hours': 4,
+    },
+    'Bedroom': {
+        'icon': '🛏️',
+        'typical_appliances': ['Lighting', 'AC/Fan', 'Chargers', 'Lamp'],
+        'base_wattage': 500,
+        'daily_hours': 8,
+    },
+    'Bathroom': {
+        'icon': '🚿',
+        'typical_appliances': ['Water Heater', 'Lighting', 'Exhaust Fan', 'Hair Dryer'],
+        'base_wattage': 1500,
+        'daily_hours': 2,
+    },
+    'Home Office': {
+        'icon': '💻',
+        'typical_appliances': ['Computer', 'Monitor', 'Lighting', 'Printer', 'AC/Fan'],
+        'base_wattage': 600,
+        'daily_hours': 8,
+    },
+    'Hall/Dining': {
+        'icon': '🚪',
+        'typical_appliances': ['Lighting', 'Fan', 'TV', 'AC'],
+        'base_wattage': 700,
+        'daily_hours': 5,
+    },
+    'Utility Room': {
+        'icon': '🔧',
+        'typical_appliances': ['Washing Machine', 'Dryer', 'Water Heater', 'Lighting'],
+        'base_wattage': 2000,
+        'daily_hours': 2,
+    },
+}
+
+
+@cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
+def estimate_room_energy(room_type, area_sqft, num_devices=1):
+    room = ROOM_TYPES.get(room_type, ROOM_TYPES['Living Room'])
+    base_wattage = room['base_wattage'] * num_devices
+    area_factor = area_sqft / 200.0
+    daily_kwh = (base_wattage * room['daily_hours'] * area_factor) / 1000.0
+    monthly_kwh = daily_kwh * 30
+    yearly_kwh = daily_kwh * 365
+    return {
+        'daily_kwh': round(daily_kwh, 2),
+        'monthly_kwh': round(monthly_kwh, 2),
+        'yearly_kwh': round(yearly_kwh, 2),
+        'appliances': room['typical_appliances'],
+        'icon': room['icon'],
+    }
+
+
+def generate_room_recommendations(room_type, daily_kwh):
+    recommendations = []
+    room = ROOM_TYPES.get(room_type, ROOM_TYPES['Living Room'])
+
+    common_recs = [
+        ('💡', 'Switch to LED lighting', 'Reduce lighting energy by up to 80%', 5, 15),
+    ]
+
+    room_specific = {
+        'Living Room': [
+            ('📺', 'Use smart power strips for entertainment', 'Eliminate standby power drain', 3, 10),
+            ('🌡️', 'Set AC thermostat to 24°C', 'Save 6-8% on cooling per degree', 4, 12),
+        ],
+        'Kitchen': [
+            ('🧊', 'Keep refrigerator coils clean', 'Improve efficiency by up to 30%', 2, 8),
+            ('🍳', 'Use microwave/convection instead of oven', 'Uses 50% less energy for small meals', 5, 10),
+        ],
+        'Bedroom': [
+            ('🌡️', 'Use fan instead of AC when possible', 'Uses 90% less energy than AC', 5, 20),
+            ('🔌', 'Unplug chargers when not in use', 'Eliminate phantom load', 2, 5),
+        ],
+        'Bathroom': [
+            ('🚿', 'Install low-flow shower head', 'Reduce water heating energy', 5, 15),
+            ('💧', 'Use cold water for washing', 'Eliminates water heating cost', 3, 10),
+        ],
+        'Home Office': [
+            ('💻', 'Enable power saving on devices', 'Reduce energy by 30%', 3, 8),
+            ('📱', 'Use laptop instead of desktop', 'Uses 80% less energy', 5, 12),
+        ],
+        'Hall/Dining': [
+            ('💡', 'Install motion sensor lighting', 'Eliminate unnecessary usage', 3, 8),
+            ('🌡️', 'Zone cooling to occupied rooms', 'Reduce AC load', 4, 15),
+        ],
+        'Utility Room': [
+            ('👕', 'Air dry clothes instead of dryer', 'Eliminate dryer energy entirely', 8, 25),
+            ('🧺', 'Run full loads only', 'Reduce frequency by 30%', 3, 8),
+        ],
+    }
+
+    recommendations.extend(common_recs)
+    recommendations.extend(room_specific.get(room_type, []))
+
+    savings_pct = sum(r[3] for r in recommendations)
+    potential_savings_kwh = daily_kwh * (savings_pct / 100.0)
+
+    return recommendations, round(potential_savings_kwh, 2), savings_pct
+
+
+def estimate_home_blueprint(rooms):
+    total_daily_kwh = 0
+    room_details = []
+
+    for room in rooms:
+        est = estimate_room_energy(room['type'], room['area_sqft'], room.get('devices', 1))
+        recs, savings, pct = generate_room_recommendations(room['type'], est['daily_kwh'])
+        total_daily_kwh += est['daily_kwh']
+        room_details.append({
+            'name': room.get('name', room['type']),
+            'type': room['type'],
+            'area_sqft': room['area_sqft'],
+            'icon': est['icon'],
+            'usage': est,
+            'recommendations': recs,
+            'potential_savings_kwh': savings,
+            'savings_pct': pct,
+        })
+
+    total_monthly = total_daily_kwh * 30
+    total_yearly = total_daily_kwh * 365
+    total_savings_daily = sum(r['potential_savings_kwh'] for r in room_details)
+
+    return {
+        'rooms': room_details,
+        'total_daily_kwh': round(total_daily_kwh, 2),
+        'total_monthly_kwh': round(total_monthly, 2),
+        'total_yearly_kwh': round(total_yearly, 2),
+        'total_savings_daily_kwh': round(total_savings_daily, 2),
+        'total_savings_yearly_kwh': round(total_savings_daily * 365, 2),
+    }
