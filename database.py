@@ -292,87 +292,60 @@ def save_assessment(
     footprint,
     eco_score=0,
     trip_id=None,
-    date=None
+    date=None,
+    factor_version=None
 ):
+    """
+    Persist an assessment.
+
+    `factor_version` records which emission factor set produced the footprint
+    (see emission_factors.py). It is optional: rows written without it are read
+    back as 'static-v1', which is exactly the factor set the app used before
+    versioning existed.
+    """
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
 
+        # Build the column list from whatever the caller actually supplied,
+        # so the optional date / trip_id / factor_version columns keep their
+        # database defaults when they are omitted.
+        columns = [
+            "user_id",
+            "transport",
+            "distance",
+            "electricity",
+            "diet",
+            "flights",
+            "footprint",
+            "eco_score",
+        ]
+        values = [
+            user_id,
+            transport,
+            distance,
+            electricity,
+            diet,
+            flights,
+            footprint,
+            eco_score,
+        ]
+
         if date is not None:
-            cursor.execute("""
-                INSERT INTO assessments (
-                    user_id,
-                    date,
-                    transport,
-                    distance,
-                    electricity,
-                    diet,
-                    flights,
-                    footprint,
-                    eco_score,
-                    trip_id
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                user_id,
-                date,
-                transport,
-                distance,
-                electricity,
-                diet,
-                flights,
-                footprint,
-                eco_score,
-                trip_id
-            ))
-        elif trip_id is not None:
-            cursor.execute("""
-                INSERT INTO assessments (
-                    user_id,
-                    transport,
-                    distance,
-                    electricity,
-                    diet,
-                    flights,
-                    footprint,
-                    eco_score,
-                    trip_id
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                user_id,
-                transport,
-                distance,
-                electricity,
-                diet,
-                flights,
-                footprint,
-                eco_score,
-                trip_id
-            ))
-        else:
-            cursor.execute("""
-                INSERT INTO assessments (
-                    user_id,
-                    transport,
-                    distance,
-                    electricity,
-                    diet,
-                    flights,
-                    footprint,
-                    eco_score
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                user_id,
-                transport,
-                distance,
-                electricity,
-                diet,
-                flights,
-                footprint,
-                eco_score
-            ))
+            columns.append("date")
+            values.append(date)
+        if trip_id is not None:
+            columns.append("trip_id")
+            values.append(trip_id)
+        if factor_version is not None:
+            columns.append("factor_version")
+            values.append(factor_version)
+
+        placeholders = ", ".join("?" for _ in columns)
+        cursor.execute(
+            f"INSERT INTO assessments ({', '.join(columns)}) VALUES ({placeholders})",
+            tuple(values),
+        )
 
         conn.commit()
         conn.close()
@@ -405,6 +378,34 @@ def get_assessments(user_id=1):
     except sqlite3.Error as e:
         print(f"Database read error: {e}")
         return []
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_assessments_with_factors(user_id=1):
+    """
+    Assessments including the factor version each was computed under.
+
+    Kept separate from get_assessments() so the existing nine-column tuple
+    shape that every caller already unpacks stays untouched.
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, date, transport, distance, electricity, diet, flights,
+                   footprint, eco_score, factor_version
+            FROM assessments
+            WHERE user_id = ?
+            ORDER BY date DESC, id DESC
+        """, (user_id,))
+        return cursor.fetchall()
+    except sqlite3.Error as exc:
+        logger.error("Unable to read assessments with factor versions: %s", exc)
+        return []
+    finally:
+        if conn:
+            conn.close()
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)

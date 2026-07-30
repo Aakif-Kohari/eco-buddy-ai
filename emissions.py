@@ -15,6 +15,7 @@ from config import (
 )
 from cache import cached
 from cache_config import TTL_EXTERNAL_API, CACHE_CATEGORY_API
+from emission_factors import provenance_block, resolve_factor_set
 
 
 @cached(ttl=TTL_EXTERNAL_API, category=CACHE_CATEGORY_API)
@@ -128,6 +129,10 @@ def calculate_footprint(
     elec_factor = dynamic_factors["electricity"]
     flight_factor = dynamic_factors["flight"]
 
+    # Record which versioned factor set produced this result, so the number
+    # stays reproducible and comparable after factors are updated.
+    factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
+
     # Electricity
     electricity_emission = electricity * elec_factor * 12
     contributors["Electricity"] = round(electricity_emission, 2)
@@ -148,6 +153,8 @@ def calculate_footprint(
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "region": region,
         "is_dynamic_api_used": dynamic_factors.get("is_dynamic", False),
+        "factor_version": factor_version,
+        "provenance": provenance_block(factor_version),
         "inputs": {
             "transport": transport,
             "daily_distance_km": distance,
@@ -256,9 +263,21 @@ def generate_full_audit_log(transport, distance, electricity, diet, flights, reg
         "summary": {
             "total_footprint_kg_co2": total,
             "eco_score": eco_score,
-            "contributors": contributors
+            "contributors": contributors,
+            "factor_version": footprint_audit["factor_version"],
+            "factor_citation": footprint_audit["provenance"]["citation"],
         }
     }
+
+
+def get_factor_version(region="Global"):
+    """
+    The factor set version a calculation for this region would currently use.
+
+    Exposed so the page layer can stamp `save_assessment(..., factor_version=...)`
+    without having to request a full audit log.
+    """
+    return resolve_factor_set(region=region, api_factors=fetch_emission_factors(region))
 
 
 def export_audit_log_json(audit_log: dict, indent: int = 2) -> str:
