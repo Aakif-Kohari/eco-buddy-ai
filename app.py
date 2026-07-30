@@ -24,6 +24,7 @@ import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 
 from recommendations import generate_recommendations
+from what_changed import generate_what_changed_analysis, render_what_changed_ui
 
 # Added for Route Planning & Offsets
 from database import (
@@ -1377,6 +1378,41 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+
+        # -------------------------
+        # WHAT CHANGED?
+        # -------------------------
+        history_after = get_assessments(user_id)
+        if history_after and len(history_after) >= 2:
+            prev = history_after[1]
+            region_val = st.session_state.get("region", "Global")
+            from emissions import calculate_footprint
+            prev_total, prev_contributors = calculate_footprint(
+                prev[2], prev[3], prev[4], prev[5], prev[6], region_val
+            )
+            current_data = {
+                "transport": transport,
+                "distance": distance,
+                "electricity": electricity,
+                "diet": diet,
+                "flights": flights,
+                "footprint": total,
+                "eco_score": eco_score,
+                "contributors": contributors,
+            }
+            prev_data = {
+                "transport": prev[2],
+                "distance": prev[3],
+                "electricity": prev[4],
+                "diet": prev[5],
+                "flights": prev[6],
+                "footprint": prev[7],
+                "eco_score": prev[8],
+                "contributors": prev_contributors,
+            }
+            diff_result = generate_what_changed_analysis(current_data, prev_data)
+            if diff_result:
+                render_what_changed_ui(diff_result)
 
         # -------------------------
         # RECOMMENDATIONS
