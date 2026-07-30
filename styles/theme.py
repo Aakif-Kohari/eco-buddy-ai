@@ -781,3 +781,109 @@ def render_appliance_table(table_rows):
         """,
         unsafe_allow_html=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# Unit and currency preference selector
+# ---------------------------------------------------------------------------
+
+def render_unit_selector(user_id=None):
+    """
+    Sidebar selector for unit system and currency.
+
+    Lives alongside render_theme_selector() so the preference is reachable from
+    every page — it has to be global, or the PDF report and the dashboard end
+    up disagreeing with the input forms.
+
+    Returns the active preference dict so the caller can format with it
+    immediately without a second lookup.
+    """
+    from units import (
+        DEFAULT_PREFERENCE,
+        SYSTEM_LABELS,
+        UNIT_SYSTEMS,
+        get_currency,
+        list_currencies,
+        make_preference,
+    )
+
+    if "unit_preference" not in st.session_state:
+        loaded = DEFAULT_PREFERENCE
+        if user_id is not None:
+            try:
+                from database import get_unit_preference
+                loaded = get_unit_preference(user_id)
+            except Exception:
+                # A preference lookup must never stop a page from rendering.
+                loaded = DEFAULT_PREFERENCE
+        st.session_state.unit_preference = loaded
+
+    current = st.session_state.unit_preference
+
+    system_labels = [SYSTEM_LABELS[key] for key in UNIT_SYSTEMS]
+    system_by_label = {SYSTEM_LABELS[key]: key for key in UNIT_SYSTEMS}
+    current_system_label = SYSTEM_LABELS[current["system"]]
+
+    selected_system_label = st.sidebar.selectbox(
+        "Units",
+        system_labels,
+        index=system_labels.index(current_system_label),
+        key="_unit_system_selector",
+    )
+
+    currency_codes = list_currencies()
+    currency_labels = [
+        f"{get_currency(code)['symbol']} {code}" for code in currency_codes
+    ]
+    currency_by_label = dict(zip(currency_labels, currency_codes))
+    current_currency_label = (
+        f"{get_currency(current['currency'])['symbol']} {current['currency']}"
+    )
+
+    selected_currency_label = st.sidebar.selectbox(
+        "Currency",
+        currency_labels,
+        index=currency_labels.index(current_currency_label),
+        key="_currency_selector",
+    )
+
+    chosen = make_preference(
+        system_by_label.get(selected_system_label, current["system"]),
+        currency_by_label.get(selected_currency_label, current["currency"]),
+    )
+
+    if chosen != current:
+        st.session_state.unit_preference = chosen
+        if user_id is not None:
+            try:
+                from database import save_unit_preference
+                save_unit_preference(user_id, chosen["system"], chosen["currency"])
+            except Exception:
+                pass
+        st.rerun()
+
+    return chosen
+
+
+def get_active_unit_preference(user_id=None):
+    """
+    The preference a page should format with, without rendering a selector.
+
+    Pages that only display values call this; the sidebar selector is rendered
+    once per page by whichever component owns the sidebar.
+    """
+    from units import DEFAULT_PREFERENCE
+
+    if "unit_preference" in st.session_state:
+        return st.session_state.unit_preference
+
+    if user_id is not None:
+        try:
+            from database import get_unit_preference
+            preference = get_unit_preference(user_id)
+            st.session_state.unit_preference = preference
+            return preference
+        except Exception:
+            pass
+
+    return DEFAULT_PREFERENCE

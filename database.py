@@ -2042,3 +2042,99 @@ def get_waste_assessments(user_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Unit and currency preferences
+# ---------------------------------------------------------------------------
+
+def init_unit_preferences():
+    """
+    Add the unit_system and currency columns to the users table.
+
+    Uses the same defensive ALTER-and-swallow pattern already used for
+    anonymous_leaderboard in init_db(), so it is safe to call repeatedly and on
+    a database that already has the columns.
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        for statement in (
+            "ALTER TABLE users ADD COLUMN unit_system TEXT DEFAULT 'metric'",
+            "ALTER TABLE users ADD COLUMN currency TEXT DEFAULT 'USD'",
+        ):
+            try:
+                cursor.execute(statement)
+            except sqlite3.OperationalError:
+                pass
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("Unit preference init error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def save_unit_preference(user_id, unit_system, currency):
+    """
+    Persist a user's display preference.
+
+    The value is normalised through units.make_preference() first, so an
+    unknown system or currency is stored as the default rather than as
+    something no page can render.
+    """
+    from units import make_preference
+
+    preference = make_preference(unit_system, currency)
+    init_unit_preferences()
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET unit_system = ?, currency = ? WHERE id = ?",
+            (preference["system"], preference["currency"], user_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.Error as exc:
+        logger.error("Unable to save unit preference: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_unit_preference(user_id):
+    """
+    Return a user's display preference, defaulting to metric + USD.
+
+    Never raises and never returns None: every page reads this on load, so a
+    missing user, a missing column or a corrupted value must all degrade to the
+    default rather than break the page.
+    """
+    from units import make_preference
+
+    init_unit_preferences()
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT unit_system, currency FROM users WHERE id = ?", (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return make_preference()
+        return make_preference(row[0], row[1])
+    except sqlite3.Error as exc:
+        logger.error("Unable to read unit preference: %s", exc)
+        return make_preference()
+    finally:
+        if conn:
+            conn.close()
