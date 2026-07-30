@@ -2138,3 +2138,277 @@ def get_unit_preference(user_id):
     finally:
         if conn:
             conn.close()
+
+
+def get_eco_balance(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT balance, lifetime_earned, lifetime_spent FROM user_eco_balance WHERE user_id = ?",
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        if row:
+            return {"balance": row[0], "lifetime_earned": row[1], "lifetime_spent": row[2]}
+        cursor.execute(
+            "INSERT OR IGNORE INTO user_eco_balance (user_id, balance, lifetime_earned) VALUES (?, 1000.0, 1000.0)",
+            (user_id,),
+        )
+        conn.commit()
+        return {"balance": 1000.0, "lifetime_earned": 1000.0, "lifetime_spent": 0.0}
+    except Exception as e:
+        print(f"get_eco_balance error: {e}")
+        return {"balance": 1000.0, "lifetime_earned": 1000.0, "lifetime_spent": 0.0}
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_eco_balance(user_id, delta, source_type=None):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance, lifetime_earned, lifetime_spent FROM user_eco_balance WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            cursor.execute(
+                "INSERT INTO user_eco_balance (user_id, balance, lifetime_earned) VALUES (?, 1000.0, 1000.0)",
+                (user_id,),
+            )
+            balance, lifetime_earned, lifetime_spent = 1000.0, 1000.0, 0.0
+        else:
+            balance, lifetime_earned, lifetime_spent = row
+
+        new_balance = balance + delta
+        new_lifetime_earned = lifetime_earned + (delta if delta > 0 else 0)
+        new_lifetime_spent = lifetime_spent + (abs(delta) if delta < 0 else 0)
+
+        cursor.execute(
+            "UPDATE user_eco_balance SET balance = ?, lifetime_earned = ?, lifetime_spent = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+            (new_balance, new_lifetime_earned, new_lifetime_spent, user_id),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"update_eco_balance error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_carbon_credits(user_id, status=None):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        if status:
+            cursor.execute(
+                "SELECT * FROM carbon_credits WHERE user_id = ? AND status = ? ORDER BY issued_at DESC",
+                (user_id, status),
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM carbon_credits WHERE user_id = ? ORDER BY issued_at DESC",
+                (user_id,),
+            )
+        columns = [column[0] for column in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    except Exception:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_all_listed_credits():
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM carbon_credits WHERE status = 'listed' ORDER BY issued_at DESC"
+        )
+        columns = [column[0] for column in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    except Exception:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def issue_carbon_credit(user_id, project_id, project_name, quantity, source, vintage_year=None):
+    import uuid
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        from datetime import datetime
+        vintage = vintage_year or datetime.now().year
+        serial_no = f"CB-{vintage}-{uuid.uuid4().hex[:8].upper()}"
+        cursor.execute(
+            """INSERT INTO carbon_credits
+               (user_id, serial_no, project_id, project_name, vintage_year, quantity, source)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, serial_no, project_id, project_name, vintage, quantity, source),
+        )
+        conn.commit()
+        return serial_no
+    except Exception as e:
+        print(f"issue_carbon_credit error: {e}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
+
+def retire_carbon_credit(credit_id, retired_for=None):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE carbon_credits SET status = 'retired', retired_at = CURRENT_TIMESTAMP, retired_for = ? WHERE id = ? AND status != 'retired'",
+            (retired_for, credit_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"retire_carbon_credit error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def list_credit_for_trade(credit_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE carbon_credits SET status = 'listed' WHERE id = ? AND status = 'issued'",
+            (credit_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(f"list_credit_for_trade error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def execute_credit_trade(credit_id, seller_id, buyer_id, quantity, price_per_tonne):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        total_value = quantity * price_per_tonne
+        cursor.execute(
+            """INSERT INTO credit_trades
+               (credit_id, seller_id, buyer_id, quantity, price_per_tonne, total_value)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (credit_id, seller_id, buyer_id, quantity, price_per_tonne, total_value),
+        )
+        cursor.execute(
+            "UPDATE carbon_credits SET user_id = ?, status = 'traded' WHERE id = ?",
+            (buyer_id, credit_id),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"execute_credit_trade error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_market_state():
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM market_state ORDER BY id DESC LIMIT 1")
+        columns = [column[0] for column in cursor.description]
+        row = cursor.fetchone()
+        if row:
+            return dict(zip(columns, row))
+        return {"price_per_tonne": 25.0, "volatility": 0.05, "total_supply": 10000.0, "total_demand": 5000.0, "trading_volume": 0.0}
+    except Exception:
+        return {"price_per_tonne": 25.0, "volatility": 0.05, "total_supply": 10000.0, "total_demand": 5000.0, "trading_volume": 0.0}
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_market_state(price, volatility, supply, demand, volume):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE market_state SET price_per_tonne = ?, volatility = ?, total_supply = ?, total_demand = ?, trading_volume = ?, updated_at = CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 1",
+            (price, volatility, supply, demand, volume),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"update_market_state error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_credit_trades(user_id=None):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        if user_id:
+            cursor.execute(
+                "SELECT * FROM credit_trades WHERE seller_id = ? OR buyer_id = ? ORDER BY created_at DESC",
+                (user_id, user_id),
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM credit_trades ORDER BY created_at DESC",
+            )
+        columns = [column[0] for column in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    except Exception:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_credit_portfolio_summary(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """SELECT status, COUNT(*) as count, SUM(quantity) as total_tonnes
+               FROM carbon_credits WHERE user_id = ?
+               GROUP BY status""",
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+        summary = {"issued": 0, "listed": 0, "traded": 0, "retired": 0, "total_tonnes": 0}
+        for status, count, tonnes in rows:
+            summary[status] = count
+            summary["total_tonnes"] += tonnes or 0
+        return summary
+    except Exception:
+        return {"issued": 0, "listed": 0, "traded": 0, "retired": 0, "total_tonnes": 0}
+    finally:
+        if conn:
+            conn.close()
