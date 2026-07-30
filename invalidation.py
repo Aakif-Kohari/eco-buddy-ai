@@ -199,6 +199,13 @@ def invalidate_on_reduction_goal_change():
     ])
 
 
+def invalidate_on_time_capsule_change():
+    """Invalidate caches dependent on time capsule operations."""
+    _clear_by_name([
+        'get_time_capsules',
+    ])
+
+
 def invalidate_all_db_caches():
     """
     Invalidate ALL database read caches.
@@ -225,6 +232,7 @@ def invalidate_all_db_caches():
         'get_total_freeze_tokens_earned',
         'get_active_goal',
         'get_goal_history',
+        'get_time_capsules',
     ]
     _clear_by_name(db_read_names)
 
