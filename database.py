@@ -755,6 +755,17 @@ def init_gamification_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_xp_user ON xp_transactions(user_id)")
 
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_cards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                card_id TEXT NOT NULL,
+                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, card_id)
+            )
+        """)
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS skill_tree_progress (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL DEFAULT 1,
@@ -950,6 +961,47 @@ def get_unlocked_badges(user_id):
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM unlocked_badges WHERE user_id = ?", (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error as e:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def unlock_card_in_db(user_id, card_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO user_cards (user_id, card_id)
+            VALUES (?, ?)
+        """, (user_id, card_id))
+
+        conn.commit()
+        get_unlocked_cards.clear()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    except sqlite3.Error as e:
+        print(f"unlock_card_in_db error: {e}")
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@st.cache_data
+def get_unlocked_cards(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user_cards WHERE user_id = ?", (user_id,))
         columns = [column[0] for column in cursor.description]
         data = cursor.fetchall()
         return [dict(zip(columns, row)) for row in data]

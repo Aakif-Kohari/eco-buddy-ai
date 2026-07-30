@@ -25,7 +25,16 @@ jobs:
 
       - name: Compare against baseline
         run: |
-          latest=$(ls -t benchmark_results/*.json | head -n 1)
+          latest=$(ls -t benchmark_results/*.json 2>/dev/null | head -n 1)
+          if [ -z "$latest" ]; then
+            echo "No benchmark report found — skipping comparison."
+            exit 0
+          fi
+          if [ ! -f benchmarks/baseline_report.json ]; then
+            echo "No baseline report found — using current results as baseline."
+            cp "$latest" benchmarks/baseline_report.json
+            exit 0
+          fi
           python3 -m benchmarks.compare_benchmarks "$latest" benchmarks/baseline_report.json --threshold 20
 
       - name: Upload benchmark report

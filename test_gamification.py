@@ -111,3 +111,75 @@ def test_badges_and_card_generation():
         pytest.fail("Failed to open generated image")
         
     os.remove(filepath)
+
+def test_trading_cards():
+    # Unlock a card
+    success = gf.unlock_card(1, 'crd_1')
+    assert success is True
+
+    # Duplicate should fail
+    success_dup = gf.unlock_card(1, 'crd_1')
+    assert success_dup is False
+
+    # Verify unlocked
+    unlocked = db.get_unlocked_cards(1)
+    assert len(unlocked) == 1
+    assert unlocked[0]['card_id'] == 'crd_1'
+
+    # Card definitions
+    card_def = gf.CARDS.get('crd_1')
+    assert card_def is not None
+    assert card_def['rarity'] == 'common'
+    assert card_def['icon'] == '👣'
+
+    # Rarity colors
+    rarity = gf.CARD_RARITIES.get('common')
+    assert rarity is not None
+    assert rarity['label'] == 'Common'
+
+    # Generate card image
+    filepath = gf.generate_trading_card(1, 'crd_1', 'test_trading_card.png')
+    assert filepath is not None
+    assert os.path.exists(filepath)
+
+    try:
+        with Image.open(filepath) as img:
+            assert img.width == 500
+            assert img.height == 700
+    except IOError:
+        pytest.fail("Failed to open generated trading card image")
+
+    os.remove(filepath)
+
+def test_card_rarities():
+    for r_key, r_def in gf.CARD_RARITIES.items():
+        assert 'label' in r_def
+        assert 'color_bg' in r_def
+        assert 'color_accent' in r_def
+        assert 'color_text' in r_def
+        assert len(r_def['color_bg']) == 3
+        assert len(r_def['color_accent']) == 3
+        assert len(r_def['color_text']) == 3
+
+def test_all_cards_have_valid_rarity():
+    for c_id, c_def in gf.CARDS.items():
+        assert 'name' in c_def, f"Card {c_id} missing name"
+        assert 'rarity' in c_def, f"Card {c_id} missing rarity"
+        assert c_def['rarity'] in gf.CARD_RARITIES, f"Card {c_id} has invalid rarity {c_def['rarity']}"
+        assert 'icon' in c_def, f"Card {c_id} missing icon"
+        assert 'desc' in c_def, f"Card {c_id} missing desc"
+        assert 'condition' in c_def, f"Card {c_id} missing condition"
+
+def test_trading_card_generation_all_rarities():
+    for r_key in gf.CARD_RARITIES:
+        card_id = None
+        for c_id, c_def in gf.CARDS.items():
+            if c_def['rarity'] == r_key:
+                card_id = c_id
+                break
+        assert card_id is not None, f"No card found for rarity {r_key}"
+
+        filepath = gf.generate_trading_card(1, card_id, f"test_{r_key}.png")
+        assert filepath is not None
+        assert os.path.exists(filepath)
+        os.remove(filepath)

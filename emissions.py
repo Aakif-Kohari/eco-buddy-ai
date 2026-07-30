@@ -65,6 +65,7 @@ def fetch_emission_factors(region: str) -> dict:
             f_data = f_response.json()
             factors["flight"] = f_data.get("co2e", factors["flight"])
             factors["is_dynamic"] = True
+            
     except Exception:
         logger.exception("API Error, falling back to static factors")        
     return factors
