@@ -123,6 +123,7 @@ eco-buddy-ai/
 ├── config.py                  # Eco score baseline, sensitivity, and category weights
 ├── database.py                # SQLite database operations
 ├── data_io.py                 # Export/import assessment data as JSON or CSV
+├── data_quality.py            # Anomaly detection and confidence scoring for stored assessments
 ├── emissions.py               # Carbon emission calculations
 ├── energy_audit.py            # Home appliance energy, cost, and solar ROI calculations
 ├── gamification.py            # XP, levels, streaks, challenges, and achievement badges
@@ -137,6 +138,7 @@ eco-buddy-ai/
 │
 ├── pages/                      # Streamlit multi-page app sections
 │   ├── Carbon_Footprint.py
+│   ├── Data_Health.py
 │   ├── Data_Portability.py
 │   ├── Gamification.py
 │   ├── Home_Energy_Audit.py
@@ -147,6 +149,7 @@ eco-buddy-ai/
 │   └── theme.py                # Shared custom CSS theme applied across pages
 │
 ├── test_data_io.py
+├── test_data_quality.py
 ├── test_database_crud.py
 ├── test_db.py
 ├── test_emissions.py
@@ -179,6 +182,7 @@ eco-buddy-ai/
 | `config.py`          | Central configuration for eco-score baseline and category weights |
 | `database.py`        | Initializes SQLite database and stores assessments |
 | `data_io.py`         | Exports/imports assessment data as JSON or CSV     |
+| `data_quality.py`    | Detects outliers, duplicates, implausible jumps, and timestamp defects in stored assessments |
 | `emissions.py`       | Calculates annual carbon emissions                 |
 | `energy_audit.py`    | Calculates appliance energy use, cost, and solar payback/ROI |
 | `gamification.py`    | Manages XP, levels, streaks, challenges, and badges |
