@@ -1,3 +1,57 @@
+"""
+Carbon Footprint Calculator Plugin
+
+This plugin estimates annual carbon emissions based on:
+- Transport mode
+- Daily travel distance (km)
+- Monthly electricity consumption (kWh)
+- Diet type
+- Annual flights
+- Region
+
+Example Input:
+{
+    "transport": "Car",
+    "distance": 20.0,
+    "electricity": 250.0,
+    "diet": "Vegetarian",
+    "flights": 2,
+    "region": "Global"
+}
+
+Returns:
+CalcResult containing:
+- total annual emissions (kg CO₂/year)
+- emission contributors
+- eco score
+- audit log
+"""
+
+def calculate(self, inputs: dict) -> CalcResult:
+    """
+    Calculate the user's annual carbon footprint.
+
+    Parameters
+    ----------
+    inputs : dict
+        transport : str
+            Primary transport mode.
+        distance : float
+            Daily travel distance in kilometers.
+        electricity : float
+            Monthly electricity usage in kWh.
+        diet : str
+            Vegetarian or Non-Vegetarian.
+        flights : int
+            Number of flights per year.
+        region : str
+            Emission factor region.
+
+    Returns
+    -------
+    CalcResult
+        Carbon footprint calculation result with metadata.
+    """
 from plugins.base import CalculatorPlugin, InputField, CalcResult
 from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
 from recommendations import generate_recommendations
