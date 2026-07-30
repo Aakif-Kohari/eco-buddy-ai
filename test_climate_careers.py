@@ -45,9 +45,11 @@ def test_filter_careers_by_location_and_search():
 
 def test_add_and_bookmark_career():
     """Verify posting a career and bookmarking it."""
+    import uuid
     test_user_id = 42
+    unique_title = f"Grid Decarbonization Specialist {uuid.uuid4().hex[:6]}"
     success = add_career_opportunity(
-        title="Grid Decarbonization Specialist",
+        title=unique_title,
         company="GreenGrid Corp",
         opportunity_type="Full-Time Jobs",
         domain="Renewable Energy",
@@ -57,9 +59,10 @@ def test_add_and_bookmark_career():
     )
     assert success is True
 
-    jobs = get_career_opportunities(search_query="Grid Decarbonization Specialist")
+    jobs = get_career_opportunities(search_query=unique_title)
     assert len(jobs) == 1
     job_id = jobs[0]["id"]
+
 
     assert is_career_bookmarked(test_user_id, job_id) is False
 
