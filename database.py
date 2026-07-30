@@ -2138,3 +2138,191 @@ def get_unit_preference(user_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Environmental Timeline & Historical Events
+# ---------------------------------------------------------------------------
+
+def init_historical_events_db():
+    """Initialize database table for historical environmental events."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historical_environmental_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                year INTEGER NOT NULL,
+                title TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                impact_summary TEXT NOT NULL,
+                educational_resources TEXT,
+                source_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Historical events DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_historical_events():
+    """Seed key global climate history milestones if table is empty."""
+    init_historical_events_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM historical_environmental_events")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        events = [
+            (
+                1970,
+                "First Earth Day Founded",
+                "Climate Movements",
+                "20 million Americans demonstrated across the US, launching the modern environmental movement and leading to the creation of the EPA.",
+                "Catalyzed landmark legislation including the Clean Air Act, Clean Water Act, and Endangered Species Act.",
+                "Earth Day Network Educational Guides, EPA History Archive",
+                "https://www.earthday.org/history/",
+            ),
+            (
+                1987,
+                "Montreal Protocol Signed",
+                "Policy & Treaties",
+                "Landmark international treaty adopted to phase out ozone-depleting substances like CFCs globally.",
+                "Phase-out of over 99% of controlled ozone-depleting substances, putting the stratospheric ozone layer on track to heal by 2060.",
+                "UNEP Ozone Secretariat Reports, NASA Ozone Watch",
+                "https://ozone.unep.org/",
+            ),
+            (
+                1988,
+                "Intergovernmental Panel on Climate Change (IPCC) Established",
+                "Scientific Discoveries",
+                "UN Environment Programme and WMO established the IPCC to assess climate change science objectively.",
+                "Published assessment reports providing the scientific foundation for international negotiations under the UNFCCC.",
+                "IPCC Assessment Reports, Climate Change Science Primers",
+                "https://www.ipcc.ch/",
+            ),
+            (
+                1997,
+                "Kyoto Protocol Adopted",
+                "Policy & Treaties",
+                "First international agreement committing industrialized nations to legally binding greenhouse gas emission reduction targets.",
+                "Established market-based mechanisms such as carbon trading and the Clean Development Mechanism (CDM).",
+                "UNFCCC Kyoto Protocol Guide",
+                "https://unfccc.int/kyoto_protocol",
+            ),
+            (
+                2015,
+                "Paris Climate Agreement Adopted",
+                "Policy & Treaties",
+                "Historic accord signed by 196 parties at COP21 aiming to limit global warming to well below 2.0°C, preferably 1.5°C, above pre-industrial levels.",
+                "Created national Nationally Determined Contributions (NDCs) framework and global net-zero pledge benchmarks.",
+                "UN Climate Change Paris Agreement Overview",
+                "https://unfccc.int/process-and-meetings/the-paris-agreement",
+            ),
+            (
+                2018,
+                "Global Fridays for Future Youth Movement",
+                "Climate Movements",
+                "Greta Thunberg initiated school strikes for climate outside the Swedish parliament, sparking global youth mobilizations.",
+                "Mobilized over 4 million students and activists worldwide to demand urgent political climate action.",
+                "Fridays For Future Movement Archives & Toolkits",
+                "https://fridaysforfuture.org/",
+            ),
+            (
+                2023,
+                "COP28 UAE Consensus on Transitioning Away from Fossil Fuels",
+                "Policy & Treaties",
+                "For the first time in 28 years of UN climate summits, agreement explicitly called on all nations to transition away from fossil fuels in energy systems.",
+                "Pledged to triple global renewable energy capacity and double energy efficiency improvements by 2030.",
+                "UNFCCC COP28 Outcome Reports",
+                "https://cop28.com/",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO historical_environmental_events
+            (year, title, category, description, impact_summary, educational_resources, source_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, events)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed historical events: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_historical_events(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve historical environmental events with category and search filtering."""
+    seed_historical_events()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, year, title, category, description, impact_summary, educational_resources, source_url, created_at FROM historical_environmental_events WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (title LIKE ? OR description LIKE ? OR impact_summary LIKE ? OR CAST(year AS TEXT) LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term, term])
+
+        query += " ORDER BY year ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "year", "title", "category", "description", "impact_summary", "educational_resources", "source_url", "created_at"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read historical events: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_historical_event(
+    year: int,
+    title: str,
+    category: str,
+    description: str,
+    impact_summary: str,
+    educational_resources: str = "",
+    source_url: str = "",
+) -> bool:
+    """Add a new historical environmental event."""
+    init_historical_events_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO historical_environmental_events
+            (year, title, category, description, impact_summary, educational_resources, source_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (year, title, category, description, impact_summary, educational_resources, source_url))
+        conn.commit()
+        get_historical_events.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add historical event: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
