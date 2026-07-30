@@ -2138,3 +2138,177 @@ def get_unit_preference(user_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Open Environmental Data Explorer
+# ---------------------------------------------------------------------------
+
+def init_environmental_datasets_db():
+    """Initialize database table for open environmental datasets."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS environmental_datasets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                license TEXT DEFAULT 'CC-BY-4.0',
+                update_frequency TEXT DEFAULT 'Monthly',
+                description TEXT NOT NULL,
+                data_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Environmental datasets DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_environmental_datasets():
+    """Seed sample open environmental datasets if table is empty."""
+    init_environmental_datasets_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM environmental_datasets")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        sample_datasets = [
+            (
+                "Global Atmospheric CO2 Concentration Trends (2015-2025)",
+                "Global Carbon Emissions",
+                "NOAA / Mauna Loa Observatory",
+                "Public Domain",
+                "Monthly",
+                "Historical atmospheric carbon dioxide levels measured in parts per million (ppm).",
+                '{"headers":["Year","Average_PPM","Yearly_Increase_PPM"],"records":[['
+                '2015,400.8,2.2],[2017,406.5,2.1],[2019,411.4,2.5],[2021,416.4,2.4],[2023,421.1,2.6],[2025,426.5,2.7]]}',
+            ),
+            (
+                "Major World Cities Air Quality Index (AQI)",
+                "Air Quality Index",
+                "World Air Quality Project",
+                "CC-BY-4.0",
+                "Real-time / Daily",
+                "Air Pollution index tracking PM2.5, PM10, and Ozone across major global capitals.",
+                '{"headers":["City","Country","AQI_Score","Status","PM2_5_ug_m3"],"records":[['
+                '"Tokyo","Japan",24,"Good",5.8],["Reykjavik","Iceland",12,"Good",3.1],["London","UK",42,"Moderate",10.2],["Delhi","India",185,"Unhealthy",112.5],["New York","USA",38,"Good",9.1]]}',
+            ),
+            (
+                "Global Renewable Energy Generation Capacity (GW)",
+                "Renewable Energy Growth",
+                "International Renewable Energy Agency (IRENA)",
+                "Open Data License",
+                "Annual",
+                "Installed capacity breakdown for solar, wind, hydro, and bioenergy worldwide.",
+                '{"headers":["Year","Solar_GW","Wind_GW","Hydro_GW","Bioenergy_GW","Total_GW"],"records":[['
+                '2018,485,564,1292,120,2461],[2020,714,733,1331,130,2908],[2022,1053,899,1393,142,3487],[2024,1418,1070,1440,154,4082],[2026,1820,1260,1480,165,4725]]}',
+            ),
+            (
+                "Tropical Deforestation Loss by Region (Hectares)",
+                "Deforestation Rates",
+                "Global Forest Watch",
+                "CC-BY-4.0",
+                "Annual",
+                "Annual primary rainforest canopy loss in South America, Southeast Asia, and Central Africa.",
+                '{"headers":["Year","Amazon_Ha","Congo_Basin_Ha","Southeast_Asia_Ha"],"records":[['
+                '2020,1850000,820000,640000],[2022,1620000,790000,580000],[2024,1310000,740000,490000],[2025,1150000,690000,430000]]}',
+            ),
+            (
+                "Global Ocean Temperature Anomaly (°C)",
+                "Ocean Temperatures",
+                "NASA Goddard Institute for Space Studies",
+                "Public Domain",
+                "Monthly",
+                "Global sea surface surface temperature anomalies relative to the 1951-1980 baseline.",
+                '{"headers":["Year","Anomaly_C","Heat_Content_ZJ"],"records":[['
+                '2016,0.76,215],[2018,0.70,228],[2020,0.82,242],[2022,0.85,257],[2024,0.98,276],[2026,1.04,291]]}',
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO environmental_datasets
+            (title, category, provider, license, update_frequency, description, data_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, sample_datasets)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed environmental datasets: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_environmental_datasets(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve environmental datasets filtered by category and search term."""
+    seed_environmental_datasets()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, title, category, provider, license, update_frequency, description, data_json, created_at FROM environmental_datasets WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (title LIKE ? OR provider LIKE ? OR description LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY id ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "title", "category", "provider", "license", "update_frequency", "description", "data_json", "created_at"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read environmental datasets: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_environmental_dataset(
+    title: str,
+    category: str,
+    provider: str,
+    license: str,
+    update_frequency: str,
+    description: str,
+    data_json: str,
+) -> bool:
+    """Add a new open environmental dataset."""
+    init_environmental_datasets_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO environmental_datasets (title, category, provider, license, update_frequency, description, data_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, category, provider, license, update_frequency, description, data_json))
+        conn.commit()
+        get_environmental_datasets.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add environmental dataset: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
