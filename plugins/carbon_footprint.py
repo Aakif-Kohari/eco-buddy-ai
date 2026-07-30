@@ -67,6 +67,7 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             ),
         ]
 
+
     def _build_metadata(
         self,
         transport,
@@ -90,6 +91,7 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             "audit_log": audit_log,
         }
 
+
     def calculate(self, inputs: dict) -> CalcResult:
         transport = inputs["transport"]
         distance = inputs["distance"]
@@ -105,6 +107,7 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             diet=diet,
             flights=flights,
             region=region,
+
             return_audit=True,
         )
 
@@ -129,11 +132,30 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             audit_log=full_audit,
         )
 
+            return_audit=True
+        )
+        eco_score = calculate_eco_score(total_kg, contributors)
+        full_audit = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
+
+
         return CalcResult(
             total=total_kg,
             unit="kg CO2/year",
             contributors=contributors,
+
             metadata=metadata,
+
+            metadata={
+                "eco_score": eco_score,
+                "transport": transport,
+                "distance": distance,
+                "electricity": electricity,
+                "diet": diet,
+                "flights": flights,
+                "region": region,
+                "audit_log": full_audit
+            },
+
         )
 
     def get_recommendations(self, result: CalcResult) -> list[str]:
@@ -145,4 +167,8 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             flights=meta.get("flights", 0),
             contributors=result.contributors,
         )
+
         return recs
+
+        return recs
+

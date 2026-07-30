@@ -1,0 +1,434 @@
+{
+  "generated_at": "20260729_190557",
+  "suites": [
+    {
+      "suite": "Emissions Calculations",
+      "timestamp": "2026-07-29T19:05:28.727214+00:00",
+      "iterations": 10,
+      "python_version": "3.13.1",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "benchmarks": [
+        {
+          "name": "calculate_footprint \u2013 Car/Non-Veg",
+          "iterations": 10,
+          "min_ms": 0.3524,
+          "max_ms": 0.7918,
+          "mean_ms": 0.478,
+          "median_ms": 0.4552,
+          "stdev_ms": 0.1363,
+          "peak_memory_kb": 26.66,
+          "error": null
+        },
+        {
+          "name": "calculate_footprint \u2013 Walking/Vegetarian",
+          "iterations": 10,
+          "min_ms": 0.35,
+          "max_ms": 0.4329,
+          "mean_ms": 0.3686,
+          "median_ms": 0.3606,
+          "stdev_ms": 0.0244,
+          "peak_memory_kb": 26.65,
+          "error": null
+        },
+        {
+          "name": "calculate_footprint \u2013 max values",
+          "iterations": 10,
+          "min_ms": 0.3398,
+          "max_ms": 0.4914,
+          "mean_ms": 0.3903,
+          "median_ms": 0.3763,
+          "stdev_ms": 0.0452,
+          "peak_memory_kb": 26.65,
+          "error": null
+        },
+        {
+          "name": "calculate_footprint \u2013 Public Transport",
+          "iterations": 10,
+          "min_ms": 0.3533,
+          "max_ms": 0.476,
+          "mean_ms": 0.3997,
+          "median_ms": 0.391,
+          "stdev_ms": 0.0373,
+          "peak_memory_kb": 26.65,
+          "error": null
+        },
+        {
+          "name": "calculate_eco_score \u2013 overall",
+          "iterations": 10,
+          "min_ms": 0.021,
+          "max_ms": 0.0887,
+          "mean_ms": 0.0331,
+          "median_ms": 0.0271,
+          "stdev_ms": 0.0201,
+          "peak_memory_kb": 0.3,
+          "error": null
+        },
+        {
+          "name": "calculate_eco_score \u2013 weighted",
+          "iterations": 10,
+          "min_ms": 0.0252,
+          "max_ms": 0.0347,
+          "mean_ms": 0.0319,
+          "median_ms": 0.0327,
+          "stdev_ms": 0.0032,
+          "peak_memory_kb": 1.04,
+          "error": null
+        },
+        {
+          "name": "fetch_emission_factors \u2013 static fallback",
+          "iterations": 10,
+          "min_ms": 0.0182,
+          "max_ms": 0.0649,
+          "mean_ms": 0.028,
+          "median_ms": 0.0255,
+          "stdev_ms": 0.0135,
+          "peak_memory_kb": 0.8,
+          "error": null
+        },
+        {
+          "name": "normalize_diet \u2013 9 inputs",
+          "iterations": 10,
+          "min_ms": 0.0112,
+          "max_ms": 0.0284,
+          "mean_ms": 0.0187,
+          "median_ms": 0.0183,
+          "stdev_ms": 0.0044,
+          "peak_memory_kb": 0.17,
+          "error": null
+        }
+      ]
+    },
+    {
+      "suite": "OCR Processing",
+      "timestamp": "2026-07-29T19:05:29.562259+00:00",
+      "iterations": 10,
+      "python_version": "3.13.1",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "benchmarks": [
+        {
+          "name": "parse_energy_consumption \u2013 simple kWh",
+          "iterations": 10,
+          "min_ms": 0.0227,
+          "max_ms": 0.1373,
+          "mean_ms": 0.0598,
+          "median_ms": 0.0532,
+          "stdev_ms": 0.0365,
+          "peak_memory_kb": 1.27,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 labelled",
+          "iterations": 10,
+          "min_ms": 0.0257,
+          "max_ms": 0.0894,
+          "mean_ms": 0.0464,
+          "median_ms": 0.0446,
+          "stdev_ms": 0.0173,
+          "peak_memory_kb": 1.27,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 comma number",
+          "iterations": 10,
+          "min_ms": 0.029,
+          "max_ms": 0.1021,
+          "mean_ms": 0.0435,
+          "median_ms": 0.0372,
+          "stdev_ms": 0.0219,
+          "peak_memory_kb": 1.32,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 multi-line bill",
+          "iterations": 10,
+          "min_ms": 0.0297,
+          "max_ms": 0.086,
+          "mean_ms": 0.0548,
+          "median_ms": 0.0539,
+          "stdev_ms": 0.0162,
+          "peak_memory_kb": 1.27,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 no match",
+          "iterations": 10,
+          "min_ms": 0.0322,
+          "max_ms": 0.1019,
+          "mean_ms": 0.0527,
+          "median_ms": 0.0477,
+          "stdev_ms": 0.0185,
+          "peak_memory_kb": 1.19,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 empty",
+          "iterations": 10,
+          "min_ms": 0.005,
+          "max_ms": 0.0125,
+          "mean_ms": 0.007,
+          "median_ms": 0.0065,
+          "stdev_ms": 0.0021,
+          "peak_memory_kb": 0.0,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 None",
+          "iterations": 10,
+          "min_ms": 0.0046,
+          "max_ms": 0.009,
+          "mean_ms": 0.0063,
+          "median_ms": 0.0063,
+          "stdev_ms": 0.0013,
+          "peak_memory_kb": 0.0,
+          "error": null
+        },
+        {
+          "name": "parse_energy_consumption \u2013 batch 50 pages",
+          "iterations": 10,
+          "min_ms": 0.2795,
+          "max_ms": 0.358,
+          "mean_ms": 0.3048,
+          "median_ms": 0.3016,
+          "stdev_ms": 0.0234,
+          "peak_memory_kb": 1.77,
+          "error": null
+        },
+        {
+          "name": "extract_text_from_file \u2013 PDF (mocked)",
+          "iterations": 10,
+          "min_ms": 1.3424,
+          "max_ms": 1.8794,
+          "mean_ms": 1.4918,
+          "median_ms": 1.4071,
+          "stdev_ms": 0.1938,
+          "peak_memory_kb": 126.93,
+          "error": null
+        },
+        {
+          "name": "extract_text_from_file \u2013 image (mocked)",
+          "iterations": 10,
+          "min_ms": 8.0936,
+          "max_ms": 10.1099,
+          "mean_ms": 8.996,
+          "median_ms": 9.0948,
+          "stdev_ms": 0.6816,
+          "peak_memory_kb": 52.66,
+          "error": null
+        }
+      ]
+    },
+    {
+      "suite": "Report Generation",
+      "timestamp": "2026-07-29T19:05:30.566013+00:00",
+      "iterations": 10,
+      "python_version": "3.13.1",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "benchmarks": [
+        {
+          "name": "generate_pdf \u2013 short insight",
+          "iterations": 10,
+          "min_ms": 0.0825,
+          "max_ms": 0.1196,
+          "mean_ms": 0.0991,
+          "median_ms": 0.1023,
+          "stdev_ms": 0.0123,
+          "peak_memory_kb": 1.11,
+          "error": null
+        },
+        {
+          "name": "generate_pdf \u2013 long insight",
+          "iterations": 10,
+          "min_ms": 0.0967,
+          "max_ms": 0.2169,
+          "mean_ms": 0.1486,
+          "median_ms": 0.1464,
+          "stdev_ms": 0.0392,
+          "peak_memory_kb": 1.71,
+          "error": null
+        },
+        {
+          "name": "generate_pdf \u2013 score 100",
+          "iterations": 10,
+          "min_ms": 0.0808,
+          "max_ms": 0.2234,
+          "mean_ms": 0.1234,
+          "median_ms": 0.0978,
+          "stdev_ms": 0.0533,
+          "peak_memory_kb": 0.83,
+          "error": null
+        },
+        {
+          "name": "generate_pdf \u2013 score 1",
+          "iterations": 10,
+          "min_ms": 0.0664,
+          "max_ms": 0.1728,
+          "mean_ms": 0.0982,
+          "median_ms": 0.098,
+          "stdev_ms": 0.0291,
+          "peak_memory_kb": 0.84,
+          "error": null
+        },
+        {
+          "name": "generate_pdf \u2013 unicode insight",
+          "iterations": 10,
+          "min_ms": 0.0905,
+          "max_ms": 0.1088,
+          "mean_ms": 0.1005,
+          "median_ms": 0.1011,
+          "stdev_ms": 0.0052,
+          "peak_memory_kb": 0.89,
+          "error": null
+        },
+        {
+          "name": "generate_pdf \u2013 batch 8 reports",
+          "iterations": 10,
+          "min_ms": 0.2353,
+          "max_ms": 0.2702,
+          "mean_ms": 0.2562,
+          "median_ms": 0.258,
+          "stdev_ms": 0.0109,
+          "peak_memory_kb": 1.78,
+          "error": null
+        }
+      ]
+    },
+    {
+      "suite": "Database Operations",
+      "timestamp": "2026-07-29T19:05:31.124827+00:00",
+      "iterations": 10,
+      "python_version": "3.13.1",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "benchmarks": [
+        {
+          "name": "init_db \u2013 schema creation",
+          "iterations": 10,
+          "min_ms": 115.5579,
+          "max_ms": 132.2014,
+          "mean_ms": 119.1835,
+          "median_ms": 117.3034,
+          "stdev_ms": 4.9752,
+          "peak_memory_kb": 6.04,
+          "error": null
+        },
+        {
+          "name": "create_user \u2013 bcrypt hash",
+          "iterations": 10,
+          "min_ms": 441.9244,
+          "max_ms": 463.313,
+          "mean_ms": 449.0673,
+          "median_ms": 448.3497,
+          "stdev_ms": 6.4053,
+          "peak_memory_kb": 1.72,
+          "error": null
+        },
+        {
+          "name": "verify_user \u2013 bcrypt check",
+          "iterations": 10,
+          "min_ms": 440.963,
+          "max_ms": 470.4507,
+          "mean_ms": 449.9808,
+          "median_ms": 447.3983,
+          "stdev_ms": 9.3619,
+          "peak_memory_kb": 1.52,
+          "error": null
+        },
+        {
+          "name": "save_assessment \u2013 single insert",
+          "iterations": 10,
+          "min_ms": 8.524,
+          "max_ms": 11.2744,
+          "mean_ms": 9.2761,
+          "median_ms": 9.004,
+          "stdev_ms": 0.7733,
+          "peak_memory_kb": 1.34,
+          "error": null
+        },
+        {
+          "name": "get_assessments \u2013 20 rows",
+          "iterations": 10,
+          "min_ms": 1.4594,
+          "max_ms": 4.155,
+          "mean_ms": 1.8417,
+          "median_ms": 1.5493,
+          "stdev_ms": 0.8206,
+          "peak_memory_kb": 6.76,
+          "error": null
+        },
+        {
+          "name": "save_assessment \u2013 bulk 50 inserts",
+          "iterations": 10,
+          "min_ms": 417.6855,
+          "max_ms": 564.5626,
+          "mean_ms": 463.8245,
+          "median_ms": 439.3485,
+          "stdev_ms": 55.6835,
+          "peak_memory_kb": 1.84,
+          "error": null
+        },
+        {
+          "name": "get_assessments \u2013 50+ rows",
+          "iterations": 10,
+          "min_ms": 3.084,
+          "max_ms": 4.168,
+          "mean_ms": 3.3537,
+          "median_ms": 3.2558,
+          "stdev_ms": 0.3278,
+          "peak_memory_kb": 159.47,
+          "error": null
+        },
+        {
+          "name": "add_appliance \u2013 single insert",
+          "iterations": 10,
+          "min_ms": 8.2612,
+          "max_ms": 10.0841,
+          "mean_ms": 8.97,
+          "median_ms": 8.7642,
+          "stdev_ms": 0.5538,
+          "peak_memory_kb": 1.34,
+          "error": null
+        },
+        {
+          "name": "get_appliances \u2013 6 rows",
+          "iterations": 10,
+          "min_ms": 1.4353,
+          "max_ms": 2.5305,
+          "mean_ms": 1.7027,
+          "median_ms": 1.551,
+          "stdev_ms": 0.3442,
+          "peak_memory_kb": 13.85,
+          "error": null
+        },
+        {
+          "name": "save_water_assessment \u2013 single insert",
+          "iterations": 10,
+          "min_ms": 7.9385,
+          "max_ms": 9.6044,
+          "mean_ms": 8.6898,
+          "median_ms": 8.4683,
+          "stdev_ms": 0.5601,
+          "peak_memory_kb": 1.34,
+          "error": null
+        },
+        {
+          "name": "get_water_assessments \u2013 11 rows",
+          "iterations": 10,
+          "min_ms": 1.4846,
+          "max_ms": 3.4302,
+          "mean_ms": 2.3815,
+          "median_ms": 2.3999,
+          "stdev_ms": 0.5899,
+          "peak_memory_kb": 11.05,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_benchmarks": 35,
+    "total_errors": 0,
+    "slowest": {
+      "name": "save_assessment \u2013 bulk 50 inserts",
+      "mean_ms": 463.8245
+    }
+  }
+}

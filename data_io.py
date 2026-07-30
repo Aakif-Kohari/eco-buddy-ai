@@ -6,6 +6,9 @@ import zipfile
 import streamlit as st
 from database import DB_NAME
 import database
+from cache import cached
+from cache_config import CACHE_CATEGORY_SESSION
+from invalidation import invalidate_all_db_caches, invalidate_export_caches
 
 
 def _dict_factory(cursor, row):
@@ -35,7 +38,7 @@ def _get_all_table_data(table_name):
             conn.close()
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_SESSION)
 def export_data_json():
     """Exports all user data as a JSON string."""
     tables = [
@@ -54,7 +57,7 @@ def export_data_json():
     return json.dumps(data, indent=4)
 
 
-@st.cache_data
+@cached(category=CACHE_CATEGORY_SESSION)
 def export_data_csv_zip():
     """Exports assessments, appliances, and offset_transactions as CSVs in a ZIP archive."""
     tables_to_export = ["assessments", "appliances", "offset_transactions"]
@@ -145,21 +148,8 @@ def import_data_json(json_str, strategy='merge'):
 
         conn.commit()
 
-        # Invalidate cached read methods across data_io and database
-        export_data_json.clear()
-        export_data_csv_zip.clear()
-        if hasattr(database, "get_assessments") and hasattr(database.get_assessments, "clear"):
-            database.get_assessments.clear()
-            database.get_appliances.clear()
-            database.get_solar_config.clear()
-            database.get_user_challenges.clear()
-            database.get_total_xp.clear()
-            database.get_unlocked_badges.clear()
-            database.get_journey_profiles.clear()
-            database.get_offset_transactions.clear()
-            database.get_total_offsets.clear()
-            database.get_total_spend.clear()
-            database.get_water_assessments.clear()
+        invalidate_export_caches()
+        invalidate_all_db_caches()
 
         return True, "Data imported successfully!"
     except Exception as e:
@@ -169,3 +159,70 @@ def import_data_json(json_str, strategy='merge'):
     finally:
         if conn:
             conn.close()
+
+
+def import_assessments_bulk(file_content, file_type, user_id):
+    """
+    Bulk-imports historical assessments from CSV or JSON content.
+    Validates each record, skips duplicates and invalid rows, and
+    returns a summary dict instead of failing the whole import.
+    """
+    required_fields = ["transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score"]
+    summary = {"imported": 0, "duplicates": 0, "invalid": 0, "errors": []}
+
+    try:
+        if file_type == "csv":
+            rows = list(csv.DictReader(io.StringIO(file_content)))
+        elif file_type == "json":
+            parsed = json.loads(file_content)
+            rows = parsed if isinstance(parsed, list) else parsed.get("assessments", [])
+        else:
+            summary["errors"].append("Unsupported file type. Please upload a .csv or .json file.")
+            return summary
+    except (json.JSONDecodeError, csv.Error) as e:
+        summary["errors"].append(f"Could not parse file: {e}")
+        return summary
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    for i, row in enumerate(rows, start=1):
+        missing = [f for f in required_fields if not row.get(f)]
+        if missing:
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: missing field(s) {', '.join(missing)}")
+            continue
+
+        try:
+            transport = str(row["transport"])
+            distance = float(row["distance"])
+            electricity = float(row["electricity"])
+            diet = str(row["diet"])
+            flights = int(row["flights"])
+            footprint = float(row["footprint"])
+            eco_score = int(row["eco_score"])
+        except (ValueError, TypeError):
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: invalid data type in one or more fields")
+            continue
+
+        cursor.execute(
+            """SELECT 1 FROM assessments
+               WHERE user_id = ? AND transport = ? AND distance = ?
+               AND footprint = ? AND eco_score = ?""",
+            (user_id, transport, distance, footprint, eco_score),
+        )
+        if cursor.fetchone():
+            summary["duplicates"] += 1
+            continue
+
+        if database.save_assessment(user_id, transport, distance, electricity, diet, flights, footprint, eco_score):
+            summary["imported"] += 1
+        else:
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: failed to save to database")
+
+    conn.close()
+    invalidate_export_caches()
+    invalidate_all_db_caches()
+    return summary
