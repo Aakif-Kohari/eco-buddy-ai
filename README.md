@@ -139,6 +139,7 @@ eco-buddy-ai/
 │
 ├── pages/                      # Streamlit multi-page app sections
 │   ├── Carbon_Footprint.py
+│   ├── Data_Health.py
 │   ├── Data_Portability.py
 │   ├── Emission_Factors.py
 │   ├── Gamification.py
@@ -151,6 +152,7 @@ eco-buddy-ai/
 │   └── theme.py                # Shared custom CSS theme applied across pages
 │
 ├── test_data_io.py
+├── test_data_quality.py
 ├── test_database_crud.py
 ├── test_db.py
 ├── test_emission_factors.py
