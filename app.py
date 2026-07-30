@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
+from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 
@@ -29,7 +29,8 @@ from recommendations import generate_recommendations
 from database import (
     init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
     save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
-    get_total_offsets, get_total_spend
+    get_total_offsets, get_total_spend,
+    get_total_freeze_tokens_earned
 )
 from marketplace import (
     calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
@@ -140,6 +141,7 @@ def run_db_initializations():
     
     init_db()
     init_gamification_db()
+    init_freeze_tokens_db()
     init_marketplace_db()
 
 run_db_initializations()
@@ -1116,6 +1118,8 @@ with tab1:
         save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
+        gf.award_freeze_tokens_for_streak_milestones(user_id)
+        gf.check_badge_eligibility(user_id)
         discard_current_draft(
             user_id,
             st.session_state,
@@ -1736,20 +1740,45 @@ with tab2:
 with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
-    # Header: Level, XP, Streak
+    # Header: Level, XP, Streak, Freeze Tokens
     total_xp = gf.get_total_xp(user_id)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
     history = get_assessments(user_id)
     activities_dates = [row[1] for row in history] if history else []
-    streak = gf.calculate_streak(1, activities_dates)
+    streak = gf.get_user_streak(user_id)
+    token_balance = gf.get_freeze_token_balance(user_id)
     
-    g_col1, g_col2, g_col3 = st.columns(3)
+    g_col1, g_col2, g_col3, g_col4 = st.columns(4)
     g_col1.metric("Current Level", f"Lvl {level}")
     g_col2.metric("Total XP", f"{total_xp} XP")
     g_col3.metric("Current Streak", f"{streak} Days 🔥")
+    g_col4.metric("🧊 Freeze Tokens", f"{token_balance}")
     
     st.progress(progress, text=f"Progress to Level {level+1}")
+    
+    st.markdown("### 🧊 Green Streak Insurance")
+    with st.expander("About Freeze Tokens"):
+        st.write(
+            "Freeze tokens protect your sustainability streak when you miss a day. "
+            "Earn tokens by maintaining long streaks, then redeem them to keep your streak alive!"
+        )
+        st.markdown("**Milestone rewards:**")
+        for threshold, tokens, _, label in gf.FREEZE_TOKEN_MILESTONES:
+            st.write(f"- {label}: **{tokens}** token{'s' if tokens > 1 else ''}")
+        total_earned = get_total_freeze_tokens_earned(user_id)
+        st.write(f"*You've earned {total_earned} freeze token{'s' if total_earned != 1 else ''} total.*")
+    
+    if token_balance > 0:
+        if st.button("🧊 Protect My Streak", type="primary", use_container_width=True):
+            success, msg = gf.protect_streak_with_freeze(user_id)
+            if success:
+                st.success(msg)
+            else:
+                st.warning(msg)
+            st.rerun()
+    else:
+        st.info("Keep your streak going to earn freeze tokens!")
     
     st.markdown("---")
     st.markdown("### 🏆 Weekly Challenges")

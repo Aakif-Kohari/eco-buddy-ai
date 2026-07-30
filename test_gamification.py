@@ -16,6 +16,7 @@ def setup_teardown():
     db.DB_NAME = TEST_DB
     db.init_db()
     db.init_gamification_db()
+    db.init_freeze_tokens_db()
     yield
     db.DB_NAME = original_db_name
     if os.path.exists(TEST_DB):
@@ -183,3 +184,69 @@ def test_trading_card_generation_all_rarities():
         assert filepath is not None
         assert os.path.exists(filepath)
         os.remove(filepath)
+
+
+def test_freeze_token_balance_initial():
+    assert db.get_freeze_token_balance(1) == 0
+
+
+def test_award_freeze_tokens():
+    success = db.award_freeze_tokens(1, 3, "test award")
+    assert success is True
+    assert db.get_freeze_token_balance(1) == 3
+    assert db.get_total_freeze_tokens_earned(1) == 3
+
+
+def test_redeem_freeze_token():
+    db.award_freeze_tokens(1, 2, "test award")
+    success = db.redeem_freeze_token(1)
+    assert success is True
+    assert db.get_freeze_token_balance(1) == 1
+    db.redeem_freeze_token(1)
+    assert db.redeem_freeze_token(1) is False
+    assert db.get_freeze_token_balance(1) == 0
+
+
+def test_streak_freeze_dates():
+    db.use_streak_freeze(1, "2026-07-28")
+    db.use_streak_freeze(1, "2026-07-27")
+    dates = db.get_streak_freeze_dates(1)
+    assert "2026-07-28" in dates
+    assert "2026-07-27" in dates
+    db.use_streak_freeze(1, "2026-07-28")
+    assert len(db.get_streak_freeze_dates(1)) == 2
+
+
+def test_calculate_streak_with_freeze_dates():
+    today = datetime.date.today()
+    d1 = today - datetime.timedelta(days=2)
+    d2 = today - datetime.timedelta(days=1)
+    d_broken = today - datetime.timedelta(days=4)
+    dates = [d_broken, d2]
+    assert gf.calculate_streak(1, dates, []) == 1
+    d3 = today - datetime.timedelta(days=3)
+    d4 = today - datetime.timedelta(days=2)
+    freeze_dates = [str(d3), str(d4)]
+    assert gf.calculate_streak(1, dates, freeze_dates) == 4
+
+
+def test_award_freeze_tokens_for_milestones():
+    today = datetime.date.today()
+    d1 = today - datetime.timedelta(days=2)
+    d2 = today - datetime.timedelta(days=1)
+    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d1))
+    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d2))
+    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(today))
+    awarded = gf.award_freeze_tokens_for_streak_milestones(1)
+    assert awarded == 0
+
+
+def test_freeze_token_transactions():
+    db.award_freeze_tokens(1, 5, "earn")
+    db.redeem_freeze_token(1)
+    db.award_freeze_tokens(1, 2, "bonus")
+    txs = db.get_freeze_token_transactions(1)
+    assert len(txs) == 3
+    assert txs[0]['amount'] == 2
+    assert txs[1]['amount'] == -1
+    assert txs[2]['amount'] == 5
