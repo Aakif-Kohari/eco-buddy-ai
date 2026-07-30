@@ -55,6 +55,7 @@ if not user_id:
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
 from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+from session_state_utils import ensure_session_state
 
 DEFAULT_VALUES = {
     "region": "Global",
@@ -72,9 +73,7 @@ draft = None
 if user_id and st.session_state.draft_status is None:
     draft = get_assessment_draft(user_id)
 
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
+ensure_session_state(DEFAULT_VALUES)
 
 tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
 
@@ -213,10 +212,11 @@ with tab_assess:
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment", use_container_width=True)
         if reset_btn:
+            st.session_state.show_reset_confirm = True
             st.session_state.show_reset_confirm_cf = True
             st.rerun()
 
-    if st.session_state.get("show_reset_confirm_cf", False):
+    if st.session_state.get("show_reset_confirm", False) or st.session_state.get("show_reset_confirm_cf", False):
         st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
         confirm_col, cancel_col, _ = st.columns([1, 1, 3])
         with confirm_col:
@@ -225,6 +225,7 @@ with tab_assess:
                     st.session_state[key] = DEFAULT_VALUES[key]
                 st.session_state.pop("extracted_kwh", None)
                 st.session_state.pop("analysis", None)
+                st.session_state.show_reset_confirm = False
                 st.session_state.show_reset_confirm_cf = False
                 if user_id:
                     delete_assessment_draft(user_id)
@@ -232,6 +233,7 @@ with tab_assess:
                 st.rerun()
         with cancel_col:
             if st.button("❌ Cancel", key="cancel_reset_cf"):
+                st.session_state.show_reset_confirm = False
                 st.session_state.show_reset_confirm_cf = False
                 st.rerun()
 

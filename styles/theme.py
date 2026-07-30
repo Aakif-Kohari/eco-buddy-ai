@@ -455,9 +455,16 @@ def _load_theme():
     return DEFAULT_THEME
 
 
-def render_theme_selector():
+from session_state_utils import ensure_session_state
+
+
+def _ensure_theme_state():
     if "theme" not in st.session_state:
         st.session_state.theme = _load_theme()
+
+
+def render_theme_selector():
+    _ensure_theme_state()
 
     current = st.session_state.theme
     options = [f"{THEMES[k]['icon']} {THEMES[k]['name']}" for k in VALID_THEMES]
@@ -479,8 +486,7 @@ def render_theme_selector():
 
 
 def apply_theme():
-    if "theme" not in st.session_state:
-        st.session_state.theme = _load_theme()
+    _ensure_theme_state()
 
     theme_name = st.session_state.get("theme", DEFAULT_THEME)
     if theme_name not in THEMES:
