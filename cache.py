@@ -15,7 +15,6 @@ Usage:
 
 import functools
 import time
-import streamlit as st
 
 from cache_config import CACHE_CATEGORIES, TTL_DB_READ, CACHE_CATEGORY_DB_READS
 from cache_metrics import record_hit, record_miss, record_invalidation
@@ -43,8 +42,6 @@ def cached(
         Decorated function with .clear() and .cache_info() methods.
     """
     def decorator(func):
-        nonlocal ttl, max_entries
-
         # Resolve TTL from category if not explicitly set
         if ttl is None and category and category in CACHE_CATEGORIES:
             resolved_ttl = CACHE_CATEGORIES[category]["ttl"]
@@ -68,29 +65,37 @@ def cached(
         if show_spinner:
             cache_kwargs["show_spinner"] = show_spinner
 
-        @st.cache_data(**cache_kwargs)
+        # Lazy initialization: defer st.cache_data application until the
+        # decorated function is first called. This avoids importing streamlit
+        # (and its heavy dependency chain) at module import time.
+        _cached_wrapper = None
+
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Record cache access (Streamlit handles hit/miss internally)
-            result = func(*args, **kwargs)
-            return result
+        def lazy_wrapper(*args, **kwargs):
+            nonlocal _cached_wrapper
+            if _cached_wrapper is None:
+                import streamlit as st
+                @st.cache_data(**cache_kwargs)
+                @functools.wraps(func)
+                def _inner(*a, **kw):
+                    return func(*a, **kw)
+                _cached_wrapper = _inner
+            return _cached_wrapper(*args, **kwargs)
 
-        # Expose a .clear() method for manual invalidation
-        # (st.cache_data already provides this, but we wrap it for metrics)
-        original_clear = wrapper.clear
-
+        # clear() delegates to the underlying st.cache_data wrapper once initialized
         def tracked_clear(*clear_args, **clear_kwargs):
             record_invalidation(cache_name)
-            return original_clear(*clear_args, **clear_kwargs)
+            if _cached_wrapper is not None and hasattr(_cached_wrapper, "clear"):
+                return _cached_wrapper.clear(*clear_args, **clear_kwargs)
 
-        wrapper.clear = tracked_clear
+        lazy_wrapper.clear = tracked_clear
 
         # Store metadata for introspection
-        wrapper._cache_category = category
-        wrapper._cache_ttl = resolved_ttl
-        wrapper._cache_name = cache_name
+        lazy_wrapper._cache_category = category
+        lazy_wrapper._cache_ttl = resolved_ttl
+        lazy_wrapper._cache_name = cache_name
 
-        return wrapper
+        return lazy_wrapper
 
     return decorator
 

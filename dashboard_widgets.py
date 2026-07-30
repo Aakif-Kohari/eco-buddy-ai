@@ -5,8 +5,6 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Iterable, Mapping
 
-import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from database import (
@@ -83,7 +81,8 @@ def render_widget_customizer(user_id: int) -> list[str]:
     return list(st.session_state[SESSION_KEY])
 
 
-def _assessment_rows_to_frame(rows: list[tuple]) -> pd.DataFrame:
+def _assessment_rows_to_frame(rows: list[tuple]):
+    import pandas as pd
     columns = [
         "id",
         "date",
@@ -150,6 +149,7 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
             st.subheader("📈 Footprint trend")
             trend = frame.dropna(subset=["date", "footprint"]).sort_values("date")
             if len(trend) >= 2:
+                import plotly.express as px
                 figure = px.line(
                     trend,
                     x="date",
@@ -168,6 +168,7 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
         with st.container(border=True):
             st.subheader("🧭 Latest activity")
             if latest:
+                import pandas as pd
                 activity = pd.DataFrame(
                     {
                         "Category": ["Transport", "Distance", "Electricity", "Diet", "Flights"],

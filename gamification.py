@@ -2,7 +2,6 @@ import math
 import os
 import streamlit as st
 import datetime
-from PIL import Image, ImageDraw, ImageFont
 from cache import cached
 from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 
@@ -296,7 +295,8 @@ def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
     badge_def = BADGES.get(badge_id)
     if not badge_def:
         return None
-        
+
+    from PIL import Image, ImageDraw, ImageFont
     width = 600
     height = 400
     
