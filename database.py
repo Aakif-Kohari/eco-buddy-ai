@@ -2138,3 +2138,278 @@ def get_unit_preference(user_id):
     finally:
         if conn:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Climate Career Hub
+# ---------------------------------------------------------------------------
+
+def init_climate_careers_db():
+    """Initialize database tables for Climate Career Hub."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS climate_careers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                company TEXT NOT NULL,
+                type TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                location TEXT NOT NULL,
+                description TEXT NOT NULL,
+                apply_url TEXT NOT NULL,
+                posted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS career_bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                career_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, career_id),
+                FOREIGN KEY (career_id) REFERENCES climate_careers (id) ON DELETE CASCADE
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Climate careers DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_climate_careers():
+    """Seed initial climate career listings if table is empty."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM climate_careers")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        initial_careers = [
+            (
+                "Solar Energy Systems Engineer",
+                "SunPower Technologies",
+                "Full-Time Jobs",
+                "Renewable Energy",
+                "Remote",
+                "Design scalable commercial solar PV systems and grid interconnection architectures.",
+                "https://example.com/careers/solar-engineer",
+            ),
+            (
+                "Climate Tech Policy Fellow",
+                "Global Clean Energy Institute",
+                "Fellowships",
+                "Climate Policy",
+                "Hybrid - Washington DC",
+                "Conduct research on decarbonization policies and present reports to international policymakers.",
+                "https://example.com/careers/policy-fellow",
+            ),
+            (
+                "Carbon Accounting & Footprint Analyst",
+                "Terraform Carbon Solutions",
+                "Full-Time Jobs",
+                "Carbon Capture",
+                "Remote",
+                "Help enterprise clients audit Scope 1, 2, and 3 GHG emissions and achieve net-zero targets.",
+                "https://example.com/careers/carbon-analyst",
+            ),
+            (
+                "Sustainable Agriculture Research Intern",
+                "EcoSoil Labs",
+                "Internships",
+                "Sustainable Agriculture",
+                "On-site - Davis, CA",
+                "Assist field trials evaluating regenerative soil microbiology and organic bio-fertilizers.",
+                "https://example.com/careers/agri-intern",
+            ),
+            (
+                "Circular Economy & Waste Reduction Specialist",
+                "ZeroWaste Solutions",
+                "Full-Time Jobs",
+                "Circular Economy",
+                "Hybrid - Berlin, Germany",
+                "Develop closed-loop product recycling workflows and packaging redesign strategies.",
+                "https://example.com/careers/circular-specialist",
+            ),
+            (
+                "EV Fleet Integration Volunteer",
+                "Clean Transit Alliance",
+                "Volunteer",
+                "Clean Mobility",
+                "Remote",
+                "Support municipal transit agencies in planning electric bus route electrification schedules.",
+                "https://example.com/careers/ev-volunteer",
+            ),
+            (
+                "Direct Air Capture R&D Fellow",
+                "Climeworks Institute",
+                "Fellowships",
+                "Carbon Capture",
+                "On-site - Zurich, Switzerland",
+                "Perform novel chemical sorbent synthesis and test direct air carbon capture efficiency.",
+                "https://example.com/careers/dac-fellow",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, initial_careers)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed climate careers: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_career_opportunities(
+    opportunity_type: str | None = None,
+    domain: str | None = None,
+    location: str | None = None,
+    search_query: str | None = None,
+) -> list[dict]:
+    """Retrieve filtered climate career opportunities."""
+    seed_climate_careers()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, title, company, type, domain, location, description, apply_url, posted_date FROM climate_careers WHERE 1=1"
+        params: list[object] = []
+
+        if opportunity_type and opportunity_type != "All Types":
+            query += " AND type = ?"
+            params.append(opportunity_type)
+
+        if domain and domain != "All Domains":
+            query += " AND domain = ?"
+            params.append(domain)
+
+        if location and location != "All Locations":
+            query += " AND location LIKE ?"
+            params.append(f"%{location}%")
+
+        if search_query:
+            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY posted_date DESC, id DESC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read climate careers: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_career_opportunity(
+    title: str,
+    company: str,
+    opportunity_type: str,
+    domain: str,
+    location: str,
+    description: str,
+    apply_url: str,
+) -> bool:
+    """Add a new climate career listing."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, company, opportunity_type, domain, location, description, apply_url))
+        conn.commit()
+        get_career_opportunities.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add career opportunity: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def toggle_career_bookmark(user_id: int, career_id: int) -> bool:
+    """Toggle bookmark status for a career listing."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("DELETE FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        else:
+            cursor.execute("INSERT INTO career_bookmarks (user_id, career_id) VALUES (?, ?)", (user_id, career_id))
+        conn.commit()
+        get_bookmarked_careers.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to toggle career bookmark: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_bookmarked_careers(user_id: int) -> list[dict]:
+    """Retrieve all career listings bookmarked by a user."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT c.id, c.title, c.company, c.type, c.domain, c.location, c.description, c.apply_url, c.posted_date
+            FROM climate_careers c
+            INNER JOIN career_bookmarks b ON c.id = b.career_id
+            WHERE b.user_id = ?
+            ORDER BY b.created_at DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read bookmarked careers: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def is_career_bookmarked(user_id: int, career_id: int) -> bool:
+    """Check if a career listing is bookmarked by user."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        return cursor.fetchone() is not None
+    except sqlite3.Error:
+        return False
+    finally:
+        if conn:
+            conn.close()
+
