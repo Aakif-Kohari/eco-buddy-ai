@@ -18,6 +18,7 @@ from invalidation import (
     invalidate_on_offset_delete,
     invalidate_on_offset_clear,
     invalidate_on_water_assessment_save,
+    invalidate_on_freeze_token_change,
 )
 import streamlit as st
 import bcrypt
@@ -1533,6 +1534,217 @@ def get_environmental_milestones(user_id):
     except sqlite3.Error as exc:
         logger.error("Unable to load environmental milestones: %s", exc)
         return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def init_freeze_tokens_db():
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        migrate()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS freeze_token_balances (
+                user_id INTEGER PRIMARY KEY,
+                balance INTEGER NOT NULL DEFAULT 0,
+                total_earned INTEGER NOT NULL DEFAULT 0,
+                total_used INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS freeze_token_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS streak_freezes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                frozen_date TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, frozen_date)
+            )
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_streak_freezes_user_date
+            ON streak_freezes(user_id, frozen_date DESC)
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Freeze tokens DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_freeze_token_balance(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM freeze_token_balances WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        return row[0] if row else 0
+    except sqlite3.Error:
+        return 0
+    finally:
+        if conn:
+            conn.close()
+
+
+def ensure_freeze_token_row(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR IGNORE INTO freeze_token_balances (user_id, balance, total_earned, total_used)
+            VALUES (?, 0, 0, 0)
+        """, (user_id,))
+        conn.commit()
+        return True
+    except sqlite3.Error:
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def award_freeze_tokens(user_id, amount, reason):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        ensure_freeze_token_row(user_id)
+        cursor.execute("""
+            UPDATE freeze_token_balances
+            SET balance = balance + ?, total_earned = total_earned + ?
+            WHERE user_id = ?
+        """, (amount, amount, user_id))
+        cursor.execute("""
+            INSERT INTO freeze_token_transactions (user_id, amount, reason)
+            VALUES (?, ?, ?)
+        """, (user_id, amount, reason))
+        conn.commit()
+        invalidate_on_freeze_token_change()
+        return True
+    except sqlite3.Error as e:
+        logger.error("award_freeze_tokens error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def redeem_freeze_token(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM freeze_token_balances WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row or row[0] < 1:
+            return False
+        cursor.execute("""
+            UPDATE freeze_token_balances
+            SET balance = balance - 1, total_used = total_used + 1
+            WHERE user_id = ? AND balance >= 1
+        """, (user_id,))
+        cursor.execute("""
+            INSERT INTO freeze_token_transactions (user_id, amount, reason)
+            VALUES (?, ?, ?)
+        """, (user_id, -1, 'redeem'))
+        conn.commit()
+        invalidate_on_freeze_token_change()
+        return True
+    except sqlite3.Error as e:
+        logger.error("redeem_freeze_token error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def use_streak_freeze(user_id, frozen_date):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR IGNORE INTO streak_freezes (user_id, frozen_date)
+            VALUES (?, ?)
+        """, (user_id, frozen_date))
+        conn.commit()
+        invalidate_on_freeze_token_change()
+        return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        logger.error("use_streak_freeze error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_streak_freeze_dates(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT frozen_date FROM streak_freezes
+            WHERE user_id = ?
+            ORDER BY frozen_date DESC
+        """, (user_id,))
+        return [row[0] for row in cursor.fetchall()]
+    except sqlite3.Error:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_freeze_token_transactions(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_id, amount, reason, created_at
+            FROM freeze_token_transactions
+            WHERE user_id = ?
+            ORDER BY created_at DESC, id DESC
+        """, (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_total_freeze_tokens_earned(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT total_earned FROM freeze_token_balances WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        return row[0] if row else 0
+    except sqlite3.Error:
+        return 0
     finally:
         if conn:
             conn.close()

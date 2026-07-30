@@ -11,7 +11,10 @@ from database import (
     get_unlocked_badges, unlock_badge_in_db, update_challenge_progress,
     enroll_challenge, get_skill_tree_progress, update_skill_node_status,
     get_assessments, get_diet_history,
-    unlock_card_in_db, get_unlocked_cards
+    unlock_card_in_db, get_unlocked_cards,
+    get_freeze_token_balance, award_freeze_tokens, redeem_freeze_token,
+    use_streak_freeze, get_streak_freeze_dates,
+    get_total_freeze_tokens_earned, record_environmental_milestone,
 )
 from config import normalize_diet
 from skill_tree_data import SKILL_TREE_NODES
@@ -30,6 +33,14 @@ BADGES = {
     'b3': {'name': 'Challenge Champion', 'desc': 'Completed 5 weekly challenges', 'xp': 100},
     'b4': {'name': 'Plant-Based Week', 'desc': 'Avoided non-vegetarian meals for 7 days', 'xp': 50}
 }
+
+FREEZE_TOKEN_MILESTONES = [
+    (7, 1, 'streak_7', '7-day streak'),
+    (14, 1, 'streak_14', '14-day streak'),
+    (30, 2, 'streak_30', '30-day streak'),
+    (60, 3, 'streak_60', '60-day streak'),
+    (90, 5, 'streak_90', '90-day streak'),
+]
 
 CARD_RARITIES = {
     'common':   {'label': 'Common',   'color_bg': (232, 244, 216), 'color_accent': (76, 175, 80),   'color_text': (46, 125, 50)},
@@ -171,11 +182,11 @@ def calculate_level_progress(total_xp):
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def calculate_streak(user_id, activities_dates):
+def calculate_streak(user_id, activities_dates, freeze_dates=None):
     # Adjust check to allow yesterday's log to keep streak alive (#86).
     # If the most recent log was yesterday, the streak remains active;
     # only reset if the last log was more than 1 day ago.
-    if not activities_dates:
+    if not activities_dates and not freeze_dates:
         return 0
 
     # Parse and standardise all entries to datetime.date objects
@@ -191,6 +202,18 @@ def calculate_streak(user_id, activities_dates):
             parsed_dates.append(date.date())
         elif isinstance(date, datetime.date):
             parsed_dates.append(date)
+
+    if freeze_dates:
+        for fd in freeze_dates:
+            if isinstance(fd, str):
+                try:
+                    parsed_dates.append(datetime.datetime.strptime(fd.split(' ')[0], '%Y-%m-%d').date())
+                except ValueError:
+                    continue
+            elif isinstance(fd, datetime.datetime):
+                parsed_dates.append(fd.date())
+            elif isinstance(fd, datetime.date):
+                parsed_dates.append(fd)
 
     if not parsed_dates:
         return 0
@@ -283,6 +306,79 @@ def check_badge_eligibility(user_id, check_diet=False):
             all_plant = all(row[1] in plant_based for row in diet_logs)
             if all_plant:
                 unlock_badge(user_id, 'b4')
+
+
+def get_user_streak(user_id):
+    assessments = get_assessments(user_id)
+    activities_dates = [row[1] for row in assessments]
+    freeze_dates = get_streak_freeze_dates(user_id)
+    return calculate_streak(user_id, activities_dates, freeze_dates)
+
+
+def award_freeze_tokens_for_streak_milestones(user_id):
+    streak = get_user_streak(user_id)
+    awarded = 0
+    for threshold, tokens, milestone_type, label in FREEZE_TOKEN_MILESTONES:
+        if streak >= threshold:
+            success = record_environmental_milestone(
+                user_id, milestone_type,
+                f"Streak: {label}",
+                f"Reached a {label} and earned {tokens} freeze token{'s' if tokens > 1 else ''}",
+                icon="🧊"
+            )
+            if success:
+                award_freeze_tokens(user_id, tokens, f"Streak milestone: {label}")
+                awarded += tokens
+    return awarded
+
+
+def protect_streak_with_freeze(user_id):
+    assessments = get_assessments(user_id)
+    activities_dates = [row[1] for row in assessments]
+    freeze_dates = get_streak_freeze_dates(user_id)
+
+    current_streak = calculate_streak(user_id, activities_dates, freeze_dates)
+    if current_streak == 0:
+        return False, "No active streak to protect"
+
+    today = datetime.date.today()
+    parsed = []
+    for date in activities_dates:
+        if isinstance(date, str):
+            try:
+                parsed.append(datetime.datetime.strptime(date.split(' ')[0], '%Y-%m-%d').date())
+            except ValueError:
+                continue
+        elif isinstance(date, datetime.datetime):
+            parsed.append(date.date())
+        elif isinstance(date, datetime.date):
+            parsed.append(date)
+    if freeze_dates:
+        for fd in freeze_dates:
+            if isinstance(fd, str):
+                try:
+                    parsed.append(datetime.datetime.strptime(fd.split(' ')[0], '%Y-%m-%d').date())
+                except ValueError:
+                    continue
+            elif isinstance(fd, datetime.datetime):
+                parsed.append(fd.date())
+            elif isinstance(fd, datetime.date):
+                parsed.append(fd)
+
+    unique_dates = sorted(list(set(parsed)), reverse=True)
+    if unique_dates and unique_dates[0] >= today:
+        return False, "You already logged activity today — no freeze needed"
+
+    balance = get_freeze_token_balance(user_id)
+    if balance < 1:
+        return False, "No freeze tokens available"
+
+    yesterday = today - datetime.timedelta(days=1)
+    freeze_target = yesterday
+    if use_streak_freeze(user_id, str(freeze_target)):
+        redeem_freeze_token(user_id)
+        return True, f"Streak frozen! Protected your {current_streak}-day streak."
+    return False, "Failed to apply streak freeze"
 
 
 def unlock_badge(user_id, badge_id):
