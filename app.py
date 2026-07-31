@@ -42,6 +42,7 @@ from styles.theme import apply_theme, render_theme_selector
 from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
 from environmental_timeline import render_environmental_timeline
 from report_validation import validate_report_data
+from future_self import generate_future_self_report, build_projection_timeline
 from session_recovery import (
     autosave_session_draft,
     discard_current_draft,
@@ -887,12 +888,13 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
     "🗺️ Route Planning & Offsets",
-    "🏆 Community Leaderboard"
+    "🏆 Community Leaderboard",
+    "🔮 Future Self"
 ])
 
 
@@ -2060,6 +2062,263 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
 
+with tab6:
+    import plotly.graph_objects as go
+
+    st.markdown("<div class='section-header'>🔮 Future Self Sustainability Report</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>See the long-term consequences of today's habits — projected 1, 5, and 10 years into the future.</div>", unsafe_allow_html=True)
+
+    report = generate_future_self_report(user_id)
+
+    if report is None:
+        st.markdown("""
+        <div style='text-align:center; padding:60px 24px; border:1px dashed rgba(134,239,172,0.3); border-radius:16px; background:rgba(15,23,42,0.5);'>
+            <div style='font-size:64px; margin-bottom:16px;'>🔮</div>
+            <div style='font-size:22px; font-weight:700; color:#e5e7eb; margin-bottom:12px;'>No Assessment History Yet</div>
+            <div style='font-size:15px; color:#94a3b8; max-width:500px; margin:0 auto; line-height:1.8;'>
+                Complete your first carbon footprint assessment in the
+                <b>🌍 Carbon Footprint</b> tab to unlock your Future Self report.
+                <br><br>
+                Once you have at least one assessment recorded, this dashboard will
+                project your environmental impact 1, 5, and 10 years from now.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        scenario_labels = {1: "1 Year", 5: "5 Years", 10: "10 Years"}
+
+        metrics_cols = st.columns(4)
+        metrics_cols[0].metric("Current Footprint", f"{report.current_footprint:.0f} kg")
+        metrics_cols[1].metric("Current Eco Score", f"{report.current_eco_score}/100")
+        metrics_cols[2].metric("Assessments Logged", str(report.num_assessments))
+        trend_str = f"{abs(report.trend_slope):.1f} kg/assessment"
+        if report.trend_slope < 0:
+            trend_str = f"↓ {trend_str}"
+        elif report.trend_slope > 0:
+            trend_str = f"↑ {trend_str}"
+        else:
+            trend_str = "→ Stable"
+        metrics_cols[3].metric("Trend", trend_str)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📊 Impact Projections</div>", unsafe_allow_html=True)
+
+        scenario_rows = []
+        for year in (1, 5, 10):
+            s = report.scenarios[year]
+            scenario_rows.append({
+                "Horizon": scenario_labels[year],
+                "Annual Footprint (kg)": f"{s.annual_footprint:.0f}",
+                "Cumulative (kg)": f"{s.cumulative_emissions:.0f}",
+                "Eco Score": f"{s.eco_score}/100",
+            })
+
+        st.dataframe(
+            pd.DataFrame(scenario_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📈 Historical & Projected Trend</div>", unsafe_allow_html=True)
+
+        timeline_df = build_projection_timeline(report)
+
+        timeline_fig = go.Figure()
+
+        hist = timeline_df[timeline_df["type"] == "Historical"]
+        proj = timeline_df[timeline_df["type"] == "Projected"]
+
+        if not hist.empty:
+            timeline_fig.add_trace(go.Scatter(
+                x=hist["label"],
+                y=hist["value"],
+                mode="lines+markers",
+                name="Historical",
+                line=dict(color="#4ade80", width=3),
+                marker=dict(size=8, color="#4ade80"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        if not proj.empty:
+            timeline_fig.add_trace(go.Scatter(
+                x=proj["label"],
+                y=proj["value"],
+                mode="markers+lines",
+                name="Projected",
+                line=dict(color="#fbbf24", width=3, dash="dash"),
+                marker=dict(size=12, color="#fbbf24", symbol="diamond"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        timeline_fig.update_layout(
+            height=380,
+            margin=dict(l=40, r=20, t=20, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(55, 65, 81, 0.2)",
+            hovermode="x unified",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                font=dict(color="#e5e7eb"),
+            ),
+            xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
+            yaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor="rgba(74, 222, 128, 0.1)",
+                zeroline=False,
+                color="#94a3b8",
+                title=dict(text="kg CO₂ / year"),
+            ),
+        )
+
+        st.plotly_chart(timeline_fig, use_container_width=True, config={"displayModeBar": False})
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📊 Contributors Over Time</div>", unsafe_allow_html=True)
+
+        cat_fig = go.Figure()
+        categories = list(report.current_contributors.keys())
+        colors = {"Transport": "#4ade80", "Electricity": "#60a5fa", "Diet": "#fbbf24", "Flights": "#f87171"}
+
+        x_labels = ["Current"] + [scenario_labels[y] for y in (1, 5, 10)]
+
+        for cat in categories:
+            values = [report.current_contributors.get(cat, 0)]
+            for year in (1, 5, 10):
+                values.append(report.scenarios[year].contributors.get(cat, 0))
+            cat_fig.add_trace(go.Bar(
+                name=cat,
+                x=x_labels,
+                y=values,
+                marker_color=colors.get(cat, "#94a3b8"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        cat_fig.update_layout(
+            barmode="group",
+            height=380,
+            margin=dict(l=40, r=20, t=20, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(55, 65, 81, 0.2)",
+            hovermode="x unified",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                font=dict(color="#e5e7eb"),
+            ),
+            xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
+            yaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor="rgba(74, 222, 128, 0.1)",
+                zeroline=False,
+                color="#94a3b8",
+                title=dict(text="kg CO₂ / year"),
+            ),
+        )
+
+        st.plotly_chart(cat_fig, use_container_width=True, config={"displayModeBar": False})
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>🌍 What This Means</div>", unsafe_allow_html=True)
+
+        ten_yr = report.scenarios[10]
+        avg_person_annual = 4700
+        trees_per_kg = 0.0005
+        offset_trees_10yr = int(ten_yr.cumulative_emissions * trees_per_kg)
+
+        col_n1, col_n2 = st.columns(2)
+
+        with col_n1:
+            st.markdown(f"""
+            <div class='card-highlight' style='padding:24px;'>
+                <div style='font-size:18px; font-weight:700; color:#4ade80; margin-bottom:12px;'>📈 If Habits Continue</div>
+                <div style='color:#374151; font-size:15px; line-height:1.9;'>
+                    In <b>10 years</b>, your annual carbon footprint could be
+                    <b style='color:#f87171;'>{ten_yr.annual_footprint:.0f} kg CO₂</b>
+                    — that's a cumulative total of
+                    <b style='color:#fbbf24;'>{ten_yr.cumulative_emissions:,.0f} kg</b>
+                    over the decade.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_n2:
+            st.markdown(f"""
+            <div class='card-highlight' style='padding:24px;'>
+                <div style='font-size:18px; font-weight:700; color:#4ade80; margin-bottom:12px;'>🌱 The Cost of Inaction</div>
+                <div style='color:#374151; font-size:15px; line-height:1.9;'>
+                    To offset your 10-year projected emissions, you would need to plant
+                    <b style='color:#4ade80;'>~{offset_trees_10yr:,} trees</b>
+                    that each absorb ~48 lbs of CO₂ per year.
+                    <br><br>
+                    Your current footprint is
+                    <b>{'above' if report.current_footprint > avg_person_annual else 'below'}</b>
+                    the global average of {avg_person_annual:,} kg CO₂/year.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📋 Scenario Details</div>", unsafe_allow_html=True)
+
+        for year in (1, 5, 10):
+            s = report.scenarios[year]
+            direction = "increasing" if s.annual_footprint > report.current_footprint else "decreasing" if s.annual_footprint < report.current_footprint else "stable"
+            emoji = "📈" if direction == "increasing" else "📉" if direction == "decreasing" else "➡️"
+            score_change = s.eco_score - report.current_eco_score
+            score_dir = "improving" if score_change > 0 else "declining" if score_change < 0 else "stable"
+            score_emoji = "✅" if score_change > 0 else "⚠️" if score_change < 0 else "➡️"
+
+            top_category = max(s.contributors, key=s.contributors.get)
+            best_category = min(s.contributors, key=s.contributors.get)
+
+            border_color = "#f87171" if direction == "increasing" else "#4ade80"
+            st.markdown(f"""
+            <div class='card' style='border-left: 4px solid {border_color};'>
+                <div style='display:flex; align-items:center; gap:16px;'>
+                    <div style='font-size:40px;'>{emoji}</div>
+                    <div style='flex:1;'>
+                        <div style='font-size:18px; font-weight:700; color:#4ade80;'>{scenario_labels[year]} Projection</div>
+                        <div style='font-size:14px; color:#374151; margin-top:6px; line-height:1.7;'>
+                            Annual footprint of <b>{s.annual_footprint:.0f} kg CO₂</b> | 
+                            Eco Score <b>{s.eco_score}/100</b> ({score_emoji} {score_dir})
+                            <br>
+                            Biggest contributor: <b>{top_category}</b> | 
+                            Best category: <b>{best_category}</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>💡 Change Your Trajectory</div>", unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class='card-highlight' style='padding:24px;'>
+            <div style='font-size:15px; color:#374151; line-height:1.9;'>
+                Your Future Self report is a <b>simulation based on your current habits</b>.
+                Every small change you make today can bend the curve.
+                Check the <b>💡 Personalized Recommendations</b> section in the
+                Carbon Footprint tab for actionable steps to reduce your impact.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
