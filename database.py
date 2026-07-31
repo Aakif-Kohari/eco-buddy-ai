@@ -2141,275 +2141,289 @@ def get_unit_preference(user_id):
 
 
 # ---------------------------------------------------------------------------
-# Climate Career Hub
+# Community Polls
 # ---------------------------------------------------------------------------
 
-def init_climate_careers_db():
-    """Initialize database tables for Climate Career Hub."""
+def init_community_polls_db():
+    """Initialize database tables for community polls."""
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS climate_careers (
+            CREATE TABLE IF NOT EXISTS community_polls (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                company TEXT NOT NULL,
-                type TEXT NOT NULL,
-                domain TEXT NOT NULL,
-                location TEXT NOT NULL,
-                description TEXT NOT NULL,
-                apply_url TEXT NOT NULL,
-                posted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                question TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                status TEXT DEFAULT 'active',
+                created_by TEXT DEFAULT 'Community',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS career_bookmarks (
+            CREATE TABLE IF NOT EXISTS poll_options (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                career_id INTEGER NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, career_id),
-                FOREIGN KEY (career_id) REFERENCES climate_careers (id) ON DELETE CASCADE
+                poll_id INTEGER NOT NULL,
+                option_text TEXT NOT NULL,
+                vote_count INTEGER DEFAULT 0,
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                user_identifier TEXT NOT NULL,
+                option_id INTEGER NOT NULL,
+                voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(poll_id, user_identifier),
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE,
+                FOREIGN KEY (option_id) REFERENCES poll_options (id) ON DELETE CASCADE
             )
         """)
         conn.commit()
         return True
     except sqlite3.Error as e:
-        logger.error("Climate careers DB init error: %s", e)
+        logger.error("Community polls DB init error: %s", e)
         return False
     finally:
         if conn:
             conn.close()
 
 
-def seed_climate_careers():
-    """Seed initial climate career listings if table is empty."""
-    init_climate_careers_db()
+def seed_community_polls():
+    """Seed sample sustainability community polls if table is empty."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM climate_careers")
+        cursor.execute("SELECT COUNT(*) FROM community_polls")
         if cursor.fetchone()[0] > 0:
             return
 
-        initial_careers = [
+        sample_polls = [
             (
-                "Solar Energy Systems Engineer",
-                "SunPower Technologies",
-                "Full-Time Jobs",
-                "Renewable Energy",
-                "Remote",
-                "Design scalable commercial solar PV systems and grid interconnection architectures.",
-                "https://example.com/careers/solar-engineer",
+                "What is your primary action for reducing personal carbon footprint in 2026?",
+                "Lifestyle",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Switching to plant-based diet", 45),
+                    ("Using public transport & biking", 38),
+                    ("Installing solar panels / renewable energy", 29),
+                    ("Reducing single-use plastic & waste", 52),
+                ],
             ),
             (
-                "Climate Tech Policy Fellow",
-                "Global Clean Energy Institute",
-                "Fellowships",
-                "Climate Policy",
-                "Hybrid - Washington DC",
-                "Conduct research on decarbonization policies and present reports to international policymakers.",
-                "https://example.com/careers/policy-fellow",
+                "Which sector needs the most aggressive climate policy enforcement?",
+                "Policy",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Energy & Electricity Generation", 60),
+                    ("Industrial Manufacturing & Heavy Industry", 42),
+                    ("Transportation & Logistics", 31),
+                    ("Agriculture & Deforestation", 25),
+                ],
             ),
             (
-                "Carbon Accounting & Footprint Analyst",
-                "Terraform Carbon Solutions",
-                "Full-Time Jobs",
-                "Carbon Capture",
-                "Remote",
-                "Help enterprise clients audit Scope 1, 2, and 3 GHG emissions and achieve net-zero targets.",
-                "https://example.com/careers/carbon-analyst",
-            ),
-            (
-                "Sustainable Agriculture Research Intern",
-                "EcoSoil Labs",
-                "Internships",
-                "Sustainable Agriculture",
-                "On-site - Davis, CA",
-                "Assist field trials evaluating regenerative soil microbiology and organic bio-fertilizers.",
-                "https://example.com/careers/agri-intern",
-            ),
-            (
-                "Circular Economy & Waste Reduction Specialist",
-                "ZeroWaste Solutions",
-                "Full-Time Jobs",
-                "Circular Economy",
-                "Hybrid - Berlin, Germany",
-                "Develop closed-loop product recycling workflows and packaging redesign strategies.",
-                "https://example.com/careers/circular-specialist",
-            ),
-            (
-                "EV Fleet Integration Volunteer",
-                "Clean Transit Alliance",
-                "Volunteer",
-                "Clean Mobility",
-                "Remote",
-                "Support municipal transit agencies in planning electric bus route electrification schedules.",
-                "https://example.com/careers/ev-volunteer",
-            ),
-            (
-                "Direct Air Capture R&D Fellow",
-                "Climeworks Institute",
-                "Fellowships",
-                "Carbon Capture",
-                "On-site - Zurich, Switzerland",
-                "Perform novel chemical sorbent synthesis and test direct air carbon capture efficiency.",
-                "https://example.com/careers/dac-fellow",
+                "What was the most impactful eco-habit you adopted last year?",
+                "Community",
+                "archived",
+                "Community",
+                [
+                    ("Composting organic waste", 85),
+                    ("Eliminating fast fashion purchases", 64),
+                    ("Switching to EV / E-bike", 40),
+                    ("Smart home energy management", 53),
+                ],
             ),
         ]
 
-        cursor.executemany("""
-            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, initial_careers)
+        for question, category, status, created_by, options in sample_polls:
+            cursor.execute("""
+                INSERT INTO community_polls (question, category, status, created_by)
+                VALUES (?, ?, ?, ?)
+            """, (question, category, status, created_by))
+            poll_id = cursor.lastrowid
+            for opt_text, count in options:
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, ?)
+                """, (poll_id, opt_text, count))
+
         conn.commit()
     except sqlite3.Error as e:
-        logger.error("Failed to seed climate careers: %s", e)
+        logger.error("Failed to seed community polls: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+def create_poll(question: str, options: list[str], category: str = "General", created_by: str = "Community") -> int | None:
+    """Create a new poll with given options."""
+    if not question.strip() or len(options) < 2:
+        return None
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO community_polls (question, category, status, created_by)
+            VALUES (?, ?, 'active', ?)
+        """, (question.strip(), category, created_by))
+        poll_id = cursor.lastrowid
+        for opt in options:
+            if opt.strip():
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, 0)
+                """, (poll_id, opt.strip()))
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return poll_id
+    except sqlite3.Error as e:
+        logger.error("Failed to create poll: %s", e)
+        return None
     finally:
         if conn:
             conn.close()
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_career_opportunities(
-    opportunity_type: str | None = None,
-    domain: str | None = None,
-    location: str | None = None,
-    search_query: str | None = None,
-) -> list[dict]:
-    """Retrieve filtered climate career opportunities."""
-    seed_climate_careers()
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        query = "SELECT id, title, company, type, domain, location, description, apply_url, posted_date FROM climate_careers WHERE 1=1"
-        params: list[object] = []
-
-        if opportunity_type and opportunity_type != "All Types":
-            query += " AND type = ?"
-            params.append(opportunity_type)
-
-        if domain and domain != "All Domains":
-            query += " AND domain = ?"
-            params.append(domain)
-
-        if location and location != "All Locations":
-            query += " AND location LIKE ?"
-            params.append(f"%{location}%")
-
-        if search_query:
-            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ?)"
-            term = f"%{search_query}%"
-            params.extend([term, term, term])
-
-        query += " ORDER BY posted_date DESC, id DESC"
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
-        return [dict(zip(cols, row)) for row in rows]
-    except sqlite3.Error as e:
-        logger.error("Failed to read climate careers: %s", e)
-        return []
-    finally:
-        if conn:
-            conn.close()
-
-
-def add_career_opportunity(
-    title: str,
-    company: str,
-    opportunity_type: str,
-    domain: str,
-    location: str,
-    description: str,
-    apply_url: str,
-) -> bool:
-    """Add a new climate career listing."""
-    init_climate_careers_db()
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (title, company, opportunity_type, domain, location, description, apply_url))
-        conn.commit()
-        get_career_opportunities.clear()
-        return True
-    except sqlite3.Error as e:
-        logger.error("Failed to add career opportunity: %s", e)
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def toggle_career_bookmark(user_id: int, career_id: int) -> bool:
-    """Toggle bookmark status for a career listing."""
-    init_climate_careers_db()
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("DELETE FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
-        else:
-            cursor.execute("INSERT INTO career_bookmarks (user_id, career_id) VALUES (?, ?)", (user_id, career_id))
-        conn.commit()
-        get_bookmarked_careers.clear()
-        return True
-    except sqlite3.Error as e:
-        logger.error("Failed to toggle career bookmark: %s", e)
-        return False
-    finally:
-        if conn:
-            conn.close()
+def get_active_polls() -> list[dict]:
+    """Retrieve all active community polls with their options and vote counts."""
+    seed_community_polls()
+    return _fetch_polls_by_status("active")
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_bookmarked_careers(user_id: int) -> list[dict]:
-    """Retrieve all career listings bookmarked by a user."""
-    init_climate_careers_db()
+def get_archived_polls() -> list[dict]:
+    """Retrieve all archived community polls with final results."""
+    seed_community_polls()
+    return _fetch_polls_by_status("archived")
+
+
+def _fetch_polls_by_status(status: str) -> list[dict]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT c.id, c.title, c.company, c.type, c.domain, c.location, c.description, c.apply_url, c.posted_date
-            FROM climate_careers c
-            INNER JOIN career_bookmarks b ON c.id = b.career_id
-            WHERE b.user_id = ?
-            ORDER BY b.created_at DESC
-        """, (user_id,))
-        rows = cursor.fetchall()
-        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
-        return [dict(zip(cols, row)) for row in rows]
+            SELECT id, question, category, status, created_by, created_at
+            FROM community_polls
+            WHERE status = ?
+            ORDER BY created_at DESC
+        """, (status,))
+        poll_rows = cursor.fetchall()
+        polls = []
+        for p in poll_rows:
+            poll_id = p[0]
+            cursor.execute("""
+                SELECT id, option_text, vote_count
+                FROM poll_options
+                WHERE poll_id = ?
+                ORDER BY id ASC
+            """, (poll_id,))
+            option_rows = cursor.fetchall()
+            options = [
+                {"id": opt[0], "option_text": opt[1], "vote_count": opt[2]}
+                for opt in option_rows
+            ]
+            total_votes = sum(opt["vote_count"] for opt in options)
+            polls.append({
+                "id": poll_id,
+                "question": p[1],
+                "category": p[2],
+                "status": p[3],
+                "created_by": p[4],
+                "created_at": p[5],
+                "options": options,
+                "total_votes": total_votes,
+            })
+        return polls
     except sqlite3.Error as e:
-        logger.error("Failed to read bookmarked careers: %s", e)
+        logger.error("Failed to fetch polls: %s", e)
         return []
     finally:
         if conn:
             conn.close()
 
 
-def is_career_bookmarked(user_id: int, career_id: int) -> bool:
-    """Check if a career listing is bookmarked by user."""
-    init_climate_careers_db()
+def has_user_voted(poll_id: int, user_identifier: str) -> bool:
+    """Check if a specific user/identifier has already voted on a poll."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
         return cursor.fetchone() is not None
-    except sqlite3.Error:
+    except sqlite3.Error as e:
+        logger.error("Error checking poll vote: %s", e)
         return False
     finally:
         if conn:
             conn.close()
 
+
+def vote_poll(poll_id: int, option_id: int, user_identifier: str) -> bool:
+    """Record an anonymous vote for an option in a poll."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Check if already voted
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        if cursor.fetchone():
+            return False
+
+        cursor.execute("""
+            INSERT INTO poll_votes (poll_id, user_identifier, option_id)
+            VALUES (?, ?, ?)
+        """, (poll_id, str(user_identifier), option_id))
+
+        cursor.execute("""
+            UPDATE poll_options SET vote_count = vote_count + 1 WHERE id = ? AND poll_id = ?
+        """, (option_id, poll_id))
+
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to record vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def archive_poll(poll_id: int) -> bool:
+    """Archive a poll by ID."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE community_polls SET status = 'archived' WHERE id = ?", (poll_id,))
+        changed = cursor.rowcount > 0
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return changed
+    except sqlite3.Error as e:
+        logger.error("Failed to archive poll: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
