@@ -89,3 +89,54 @@ def test_sync_only_reports_new_milestones(monkeypatch):
         "eco_score_85",
         "footprint_under_5",
     }
+
+
+def test_init_and_seed_historical_events():
+    """Verify initialization and seeding of historical environmental events."""
+    assert database.init_historical_events_db() is True
+    database.seed_historical_events()
+
+    events = database.get_historical_events()
+    assert len(events) >= 7
+    titles = [e["title"] for e in events]
+    assert "First Earth Day Founded" in titles
+    assert "Paris Climate Agreement Adopted" in titles
+
+
+def test_filter_and_search_historical_events():
+    """Verify filtering by category and searching by keyword/year."""
+    policy_events = database.get_historical_events(category="Policy & Treaties")
+    assert len(policy_events) >= 4
+    for e in policy_events:
+        assert e["category"] == "Policy & Treaties"
+
+    paris_search = database.get_historical_events(search_query="Paris")
+    assert len(paris_search) == 1
+    assert paris_search[0]["title"] == "Paris Climate Agreement Adopted"
+
+    year_search = database.get_historical_events(search_query="1970")
+    assert len(year_search) == 1
+    assert year_search[0]["year"] == 1970
+
+
+def test_add_historical_event():
+    """Verify adding a custom historical climate milestone event."""
+    import uuid
+    unique_title = f"Global Plastics Treaty High-Level Summit {uuid.uuid4().hex[:6]}"
+    success = database.add_historical_event(
+        year=2025,
+        title=unique_title,
+        category="Policy & Treaties",
+        description="Legally binding global treaty on plastic pollution finalized.",
+        impact_summary="Targeted 80% reduction in global ocean plastic leakage.",
+        educational_resources="UN Environment Programme Plastics Brief",
+        source_url="https://unep.org/plastics",
+    )
+    assert success is True
+
+    fetched = database.get_historical_events(search_query=unique_title)
+    assert len(fetched) == 1
+    assert fetched[0]["year"] == 2025
+    assert fetched[0]["title"] == unique_title
+    assert "UN Environment Programme" in fetched[0]["educational_resources"]
+

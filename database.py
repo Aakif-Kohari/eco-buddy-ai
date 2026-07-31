@@ -2140,275 +2140,290 @@ def get_unit_preference(user_id):
             conn.close()
 
 
-def get_eco_balance(user_id):
+# ---------------------------------------------------------------------------
+# Community Polls
+# ---------------------------------------------------------------------------
+
+def init_community_polls_db():
+    """Initialize database tables for community polls."""
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT balance, lifetime_earned, lifetime_spent FROM user_eco_balance WHERE user_id = ?",
-            (user_id,),
-        )
-        row = cursor.fetchone()
-        if row:
-            return {"balance": row[0], "lifetime_earned": row[1], "lifetime_spent": row[2]}
-        cursor.execute(
-            "INSERT OR IGNORE INTO user_eco_balance (user_id, balance, lifetime_earned) VALUES (?, 1000.0, 1000.0)",
-            (user_id,),
-        )
-        conn.commit()
-        return {"balance": 1000.0, "lifetime_earned": 1000.0, "lifetime_spent": 0.0}
-    except Exception as e:
-        print(f"get_eco_balance error: {e}")
-        return {"balance": 1000.0, "lifetime_earned": 1000.0, "lifetime_spent": 0.0}
-    finally:
-        if conn:
-            conn.close()
-
-
-def update_eco_balance(user_id, delta, source_type=None):
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT balance, lifetime_earned, lifetime_spent FROM user_eco_balance WHERE user_id = ?", (user_id,))
-        row = cursor.fetchone()
-        if not row:
-            cursor.execute(
-                "INSERT INTO user_eco_balance (user_id, balance, lifetime_earned) VALUES (?, 1000.0, 1000.0)",
-                (user_id,),
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS community_polls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                status TEXT DEFAULT 'active',
+                created_by TEXT DEFAULT 'Community',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-            balance, lifetime_earned, lifetime_spent = 1000.0, 1000.0, 0.0
-        else:
-            balance, lifetime_earned, lifetime_spent = row
-
-        new_balance = balance + delta
-        new_lifetime_earned = lifetime_earned + (delta if delta > 0 else 0)
-        new_lifetime_spent = lifetime_spent + (abs(delta) if delta < 0 else 0)
-
-        cursor.execute(
-            "UPDATE user_eco_balance SET balance = ?, lifetime_earned = ?, lifetime_spent = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
-            (new_balance, new_lifetime_earned, new_lifetime_spent, user_id),
-        )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                option_text TEXT NOT NULL,
+                vote_count INTEGER DEFAULT 0,
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                user_identifier TEXT NOT NULL,
+                option_id INTEGER NOT NULL,
+                voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(poll_id, user_identifier),
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE,
+                FOREIGN KEY (option_id) REFERENCES poll_options (id) ON DELETE CASCADE
+            )
+        """)
         conn.commit()
         return True
-    except Exception as e:
-        print(f"update_eco_balance error: {e}")
+    except sqlite3.Error as e:
+        logger.error("Community polls DB init error: %s", e)
         return False
     finally:
         if conn:
             conn.close()
 
 
-def get_carbon_credits(user_id, status=None):
+def seed_community_polls():
+    """Seed sample sustainability community polls if table is empty."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        if status:
-            cursor.execute(
-                "SELECT * FROM carbon_credits WHERE user_id = ? AND status = ? ORDER BY issued_at DESC",
-                (user_id, status),
-            )
-        else:
-            cursor.execute(
-                "SELECT * FROM carbon_credits WHERE user_id = ? ORDER BY issued_at DESC",
-                (user_id,),
-            )
-        columns = [column[0] for column in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    except Exception:
-        return []
-    finally:
-        if conn:
-            conn.close()
+        cursor.execute("SELECT COUNT(*) FROM community_polls")
+        if cursor.fetchone()[0] > 0:
+            return
 
+        sample_polls = [
+            (
+                "What is your primary action for reducing personal carbon footprint in 2026?",
+                "Lifestyle",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Switching to plant-based diet", 45),
+                    ("Using public transport & biking", 38),
+                    ("Installing solar panels / renewable energy", 29),
+                    ("Reducing single-use plastic & waste", 52),
+                ],
+            ),
+            (
+                "Which sector needs the most aggressive climate policy enforcement?",
+                "Policy",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Energy & Electricity Generation", 60),
+                    ("Industrial Manufacturing & Heavy Industry", 42),
+                    ("Transportation & Logistics", 31),
+                    ("Agriculture & Deforestation", 25),
+                ],
+            ),
+            (
+                "What was the most impactful eco-habit you adopted last year?",
+                "Community",
+                "archived",
+                "Community",
+                [
+                    ("Composting organic waste", 85),
+                    ("Eliminating fast fashion purchases", 64),
+                    ("Switching to EV / E-bike", 40),
+                    ("Smart home energy management", 53),
+                ],
+            ),
+        ]
 
-def get_all_listed_credits():
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT * FROM carbon_credits WHERE status = 'listed' ORDER BY issued_at DESC"
-        )
-        columns = [column[0] for column in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    except Exception:
-        return []
-    finally:
-        if conn:
-            conn.close()
+        for question, category, status, created_by, options in sample_polls:
+            cursor.execute("""
+                INSERT INTO community_polls (question, category, status, created_by)
+                VALUES (?, ?, ?, ?)
+            """, (question, category, status, created_by))
+            poll_id = cursor.lastrowid
+            for opt_text, count in options:
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, ?)
+                """, (poll_id, opt_text, count))
 
-
-def issue_carbon_credit(user_id, project_id, project_name, quantity, source, vintage_year=None):
-    import uuid
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        from datetime import datetime
-        vintage = vintage_year or datetime.now().year
-        serial_no = f"CB-{vintage}-{uuid.uuid4().hex[:8].upper()}"
-        cursor.execute(
-            """INSERT INTO carbon_credits
-               (user_id, serial_no, project_id, project_name, vintage_year, quantity, source)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, serial_no, project_id, project_name, vintage, quantity, source),
-        )
         conn.commit()
-        return serial_no
-    except Exception as e:
-        print(f"issue_carbon_credit error: {e}")
+    except sqlite3.Error as e:
+        logger.error("Failed to seed community polls: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+def create_poll(question: str, options: list[str], category: str = "General", created_by: str = "Community") -> int | None:
+    """Create a new poll with given options."""
+    if not question.strip() or len(options) < 2:
+        return None
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO community_polls (question, category, status, created_by)
+            VALUES (?, ?, 'active', ?)
+        """, (question.strip(), category, created_by))
+        poll_id = cursor.lastrowid
+        for opt in options:
+            if opt.strip():
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, 0)
+                """, (poll_id, opt.strip()))
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return poll_id
+    except sqlite3.Error as e:
+        logger.error("Failed to create poll: %s", e)
         return None
     finally:
         if conn:
             conn.close()
 
 
-def retire_carbon_credit(credit_id, retired_for=None):
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_active_polls() -> list[dict]:
+    """Retrieve all active community polls with their options and vote counts."""
+    seed_community_polls()
+    return _fetch_polls_by_status("active")
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_archived_polls() -> list[dict]:
+    """Retrieve all archived community polls with final results."""
+    seed_community_polls()
+    return _fetch_polls_by_status("archived")
+
+
+def _fetch_polls_by_status(status: str) -> list[dict]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE carbon_credits SET status = 'retired', retired_at = CURRENT_TIMESTAMP, retired_for = ? WHERE id = ? AND status != 'retired'",
-            (retired_for, credit_id),
-        )
-        conn.commit()
-        return cursor.rowcount > 0
-    except Exception as e:
-        print(f"retire_carbon_credit error: {e}")
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def list_credit_for_trade(credit_id):
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE carbon_credits SET status = 'listed' WHERE id = ? AND status = 'issued'",
-            (credit_id,),
-        )
-        conn.commit()
-        return cursor.rowcount > 0
-    except Exception as e:
-        print(f"list_credit_for_trade error: {e}")
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def execute_credit_trade(credit_id, seller_id, buyer_id, quantity, price_per_tonne):
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        total_value = quantity * price_per_tonne
-        cursor.execute(
-            """INSERT INTO credit_trades
-               (credit_id, seller_id, buyer_id, quantity, price_per_tonne, total_value)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (credit_id, seller_id, buyer_id, quantity, price_per_tonne, total_value),
-        )
-        cursor.execute(
-            "UPDATE carbon_credits SET user_id = ?, status = 'traded' WHERE id = ?",
-            (buyer_id, credit_id),
-        )
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"execute_credit_trade error: {e}")
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def get_market_state():
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM market_state ORDER BY id DESC LIMIT 1")
-        columns = [column[0] for column in cursor.description]
-        row = cursor.fetchone()
-        if row:
-            return dict(zip(columns, row))
-        return {"price_per_tonne": 25.0, "volatility": 0.05, "total_supply": 10000.0, "total_demand": 5000.0, "trading_volume": 0.0}
-    except Exception:
-        return {"price_per_tonne": 25.0, "volatility": 0.05, "total_supply": 10000.0, "total_demand": 5000.0, "trading_volume": 0.0}
-    finally:
-        if conn:
-            conn.close()
-
-
-def update_market_state(price, volatility, supply, demand, volume):
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE market_state SET price_per_tonne = ?, volatility = ?, total_supply = ?, total_demand = ?, trading_volume = ?, updated_at = CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 1",
-            (price, volatility, supply, demand, volume),
-        )
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"update_market_state error: {e}")
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def get_credit_trades(user_id=None):
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        if user_id:
-            cursor.execute(
-                "SELECT * FROM credit_trades WHERE seller_id = ? OR buyer_id = ? ORDER BY created_at DESC",
-                (user_id, user_id),
-            )
-        else:
-            cursor.execute(
-                "SELECT * FROM credit_trades ORDER BY created_at DESC",
-            )
-        columns = [column[0] for column in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
-    except Exception:
+        cursor.execute("""
+            SELECT id, question, category, status, created_by, created_at
+            FROM community_polls
+            WHERE status = ?
+            ORDER BY created_at DESC
+        """, (status,))
+        poll_rows = cursor.fetchall()
+        polls = []
+        for p in poll_rows:
+            poll_id = p[0]
+            cursor.execute("""
+                SELECT id, option_text, vote_count
+                FROM poll_options
+                WHERE poll_id = ?
+                ORDER BY id ASC
+            """, (poll_id,))
+            option_rows = cursor.fetchall()
+            options = [
+                {"id": opt[0], "option_text": opt[1], "vote_count": opt[2]}
+                for opt in option_rows
+            ]
+            total_votes = sum(opt["vote_count"] for opt in options)
+            polls.append({
+                "id": poll_id,
+                "question": p[1],
+                "category": p[2],
+                "status": p[3],
+                "created_by": p[4],
+                "created_at": p[5],
+                "options": options,
+                "total_votes": total_votes,
+            })
+        return polls
+    except sqlite3.Error as e:
+        logger.error("Failed to fetch polls: %s", e)
         return []
     finally:
         if conn:
             conn.close()
 
 
-def get_credit_portfolio_summary(user_id):
+def has_user_voted(poll_id: int, user_identifier: str) -> bool:
+    """Check if a specific user/identifier has already voted on a poll."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute(
-            """SELECT status, COUNT(*) as count, SUM(quantity) as total_tonnes
-               FROM carbon_credits WHERE user_id = ?
-               GROUP BY status""",
-            (user_id,),
-        )
-        rows = cursor.fetchall()
-        summary = {"issued": 0, "listed": 0, "traded": 0, "retired": 0, "total_tonnes": 0}
-        for status, count, tonnes in rows:
-            summary[status] = count
-            summary["total_tonnes"] += tonnes or 0
-        return summary
-    except Exception:
-        return {"issued": 0, "listed": 0, "traded": 0, "retired": 0, "total_tonnes": 0}
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        return cursor.fetchone() is not None
+    except sqlite3.Error as e:
+        logger.error("Error checking poll vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def vote_poll(poll_id: int, option_id: int, user_identifier: str) -> bool:
+    """Record an anonymous vote for an option in a poll."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Check if already voted
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        if cursor.fetchone():
+            return False
+
+        cursor.execute("""
+            INSERT INTO poll_votes (poll_id, user_identifier, option_id)
+            VALUES (?, ?, ?)
+        """, (poll_id, str(user_identifier), option_id))
+
+        cursor.execute("""
+            UPDATE poll_options SET vote_count = vote_count + 1 WHERE id = ? AND poll_id = ?
+        """, (option_id, poll_id))
+
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to record vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def archive_poll(poll_id: int) -> bool:
+    """Archive a poll by ID."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE community_polls SET status = 'archived' WHERE id = ?", (poll_id,))
+        changed = cursor.rowcount > 0
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return changed
+    except sqlite3.Error as e:
+        logger.error("Failed to archive poll: %s", e)
+        return False
     finally:
         if conn:
             conn.close()
