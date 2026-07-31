@@ -1959,49 +1959,334 @@ def delete_reduction_goal(goal_id):
             conn.close()
 
 
-# ---------------------------------------------------------------------------
-# Food Scanner database functions
-# ---------------------------------------------------------------------------
-
-def init_food_scanner_db():
+def init_waste_db():
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS food_scans (
+            CREATE TABLE IF NOT EXISTS waste_assessments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                meal_name TEXT,
-                items TEXT NOT NULL,
-                total_co2_kg REAL NOT NULL,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                food_scraps REAL DEFAULT 0,
+                plastic_packaging REAL DEFAULT 0,
+                paper_cardboard REAL DEFAULT 0,
+                glass REAL DEFAULT 0,
+                metal_cans REAL DEFAULT 0,
+                e_waste REAL DEFAULT 0,
+                textiles REAL DEFAULT 0,
+                mixed_waste REAL DEFAULT 0,
+                total_weekly_kg REAL DEFAULT 0,
+                annual_co2 REAL DEFAULT 0,
+                recyclable_pct REAL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
         return True
-    except sqlite3.Error as exc:
-        logger.error("Food scanner init error: %s", exc)
+    except sqlite3.Error as e:
+        logger.error("Waste DB init error: %s", e)
         return False
     finally:
         if conn:
             conn.close()
 
 
-def save_food_scan(user_id, meal_name, items, total_co2_kg):
-    init_food_scanner_db()
+def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recyclable_pct):
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO food_scans (user_id, meal_name, items, total_co2_kg)
-            VALUES (?, ?, ?, ?)
-        """, (user_id, meal_name, str(items), total_co2_kg))
+            INSERT INTO waste_assessments (
+                user_id, food_scraps, plastic_packaging, paper_cardboard,
+                glass, metal_cans, e_waste, textiles, mixed_waste,
+                total_weekly_kg, annual_co2, recyclable_pct
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            user_id,
+            waste_data.get("Food Scraps", 0),
+            waste_data.get("Plastic Packaging", 0),
+            waste_data.get("Paper & Cardboard", 0),
+            waste_data.get("Glass", 0),
+            waste_data.get("Metal (Cans)", 0),
+            waste_data.get("Electronics (E-Waste)", 0),
+            waste_data.get("Textiles", 0),
+            waste_data.get("Other (Mixed Waste)", 0),
+            total_weekly_kg, annual_co2, recyclable_pct,
+        ))
         conn.commit()
-        return cursor.lastrowid
+        get_waste_assessments.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Waste assessment save error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_waste_assessments(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM waste_assessments WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error as e:
+        logger.error("Waste assessment read error: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Unit and currency preferences
+# ---------------------------------------------------------------------------
+
+def init_unit_preferences():
+    """
+    Add the unit_system and currency columns to the users table.
+
+    Uses the same defensive ALTER-and-swallow pattern already used for
+    anonymous_leaderboard in init_db(), so it is safe to call repeatedly and on
+    a database that already has the columns.
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        for statement in (
+            "ALTER TABLE users ADD COLUMN unit_system TEXT DEFAULT 'metric'",
+            "ALTER TABLE users ADD COLUMN currency TEXT DEFAULT 'USD'",
+        ):
+            try:
+                cursor.execute(statement)
+            except sqlite3.OperationalError:
+                pass
+        conn.commit()
+        return True
     except sqlite3.Error as exc:
-        logger.error("Unable to save food scan: %s", exc)
+        logger.error("Unit preference init error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def save_unit_preference(user_id, unit_system, currency):
+    """
+    Persist a user's display preference.
+
+    The value is normalised through units.make_preference() first, so an
+    unknown system or currency is stored as the default rather than as
+    something no page can render.
+    """
+    from units import make_preference
+
+    preference = make_preference(unit_system, currency)
+    init_unit_preferences()
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE users SET unit_system = ?, currency = ? WHERE id = ?",
+            (preference["system"], preference["currency"], user_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.Error as exc:
+        logger.error("Unable to save unit preference: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_unit_preference(user_id):
+    """
+    Return a user's display preference, defaulting to metric + USD.
+
+    Never raises and never returns None: every page reads this on load, so a
+    missing user, a missing column or a corrupted value must all degrade to the
+    default rather than break the page.
+    """
+    from units import make_preference
+
+    init_unit_preferences()
+
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT unit_system, currency FROM users WHERE id = ?", (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return make_preference()
+        return make_preference(row[0], row[1])
+    except sqlite3.Error as exc:
+        logger.error("Unable to read unit preference: %s", exc)
+        return make_preference()
+    finally:
+        if conn:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Community Polls
+# ---------------------------------------------------------------------------
+
+def init_community_polls_db():
+    """Initialize database tables for community polls."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS community_polls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                status TEXT DEFAULT 'active',
+                created_by TEXT DEFAULT 'Community',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                option_text TEXT NOT NULL,
+                vote_count INTEGER DEFAULT 0,
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                user_identifier TEXT NOT NULL,
+                option_id INTEGER NOT NULL,
+                voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(poll_id, user_identifier),
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE,
+                FOREIGN KEY (option_id) REFERENCES poll_options (id) ON DELETE CASCADE
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Community polls DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_community_polls():
+    """Seed sample sustainability community polls if table is empty."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM community_polls")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        sample_polls = [
+            (
+                "What is your primary action for reducing personal carbon footprint in 2026?",
+                "Lifestyle",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Switching to plant-based diet", 45),
+                    ("Using public transport & biking", 38),
+                    ("Installing solar panels / renewable energy", 29),
+                    ("Reducing single-use plastic & waste", 52),
+                ],
+            ),
+            (
+                "Which sector needs the most aggressive climate policy enforcement?",
+                "Policy",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Energy & Electricity Generation", 60),
+                    ("Industrial Manufacturing & Heavy Industry", 42),
+                    ("Transportation & Logistics", 31),
+                    ("Agriculture & Deforestation", 25),
+                ],
+            ),
+            (
+                "What was the most impactful eco-habit you adopted last year?",
+                "Community",
+                "archived",
+                "Community",
+                [
+                    ("Composting organic waste", 85),
+                    ("Eliminating fast fashion purchases", 64),
+                    ("Switching to EV / E-bike", 40),
+                    ("Smart home energy management", 53),
+                ],
+            ),
+        ]
+
+        for question, category, status, created_by, options in sample_polls:
+            cursor.execute("""
+                INSERT INTO community_polls (question, category, status, created_by)
+                VALUES (?, ?, ?, ?)
+            """, (question, category, status, created_by))
+            poll_id = cursor.lastrowid
+            for opt_text, count in options:
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, ?)
+                """, (poll_id, opt_text, count))
+
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed community polls: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+def create_poll(question: str, options: list[str], category: str = "General", created_by: str = "Community") -> int | None:
+    """Create a new poll with given options."""
+    if not question.strip() or len(options) < 2:
+        return None
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO community_polls (question, category, status, created_by)
+            VALUES (?, ?, 'active', ?)
+        """, (question.strip(), category, created_by))
+        poll_id = cursor.lastrowid
+        for opt in options:
+            if opt.strip():
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, 0)
+                """, (poll_id, opt.strip()))
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return poll_id
+    except sqlite3.Error as e:
+        logger.error("Failed to create poll: %s", e)
         return None
     finally:
         if conn:
@@ -2009,33 +2294,136 @@ def save_food_scan(user_id, meal_name, items, total_co2_kg):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_food_scans(user_id):
-    init_food_scanner_db()
+def get_active_polls() -> list[dict]:
+    """Retrieve all active community polls with their options and vote counts."""
+    seed_community_polls()
+    return _fetch_polls_by_status("active")
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_archived_polls() -> list[dict]:
+    """Retrieve all archived community polls with final results."""
+    seed_community_polls()
+    return _fetch_polls_by_status("archived")
+
+
+def _fetch_polls_by_status(status: str) -> list[dict]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, user_id, meal_name, items, total_co2_kg, created_at
-            FROM food_scans
-            WHERE user_id = ?
+            SELECT id, question, category, status, created_by, created_at
+            FROM community_polls
+            WHERE status = ?
             ORDER BY created_at DESC
-        """, (user_id,))
-        rows = cursor.fetchall()
-        return [
-            {
-                "id": r[0],
-                "user_id": r[1],
-                "meal_name": r[2],
-                "items": r[3],
-                "total_co2_kg": r[4],
-                "created_at": r[5],
-            }
-            for r in rows
-        ]
-    except sqlite3.Error as exc:
-        logger.error("Unable to load food scans: %s", exc)
+        """, (status,))
+        poll_rows = cursor.fetchall()
+        polls = []
+        for p in poll_rows:
+            poll_id = p[0]
+            cursor.execute("""
+                SELECT id, option_text, vote_count
+                FROM poll_options
+                WHERE poll_id = ?
+                ORDER BY id ASC
+            """, (poll_id,))
+            option_rows = cursor.fetchall()
+            options = [
+                {"id": opt[0], "option_text": opt[1], "vote_count": opt[2]}
+                for opt in option_rows
+            ]
+            total_votes = sum(opt["vote_count"] for opt in options)
+            polls.append({
+                "id": poll_id,
+                "question": p[1],
+                "category": p[2],
+                "status": p[3],
+                "created_by": p[4],
+                "created_at": p[5],
+                "options": options,
+                "total_votes": total_votes,
+            })
+        return polls
+    except sqlite3.Error as e:
+        logger.error("Failed to fetch polls: %s", e)
         return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def has_user_voted(poll_id: int, user_identifier: str) -> bool:
+    """Check if a specific user/identifier has already voted on a poll."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        return cursor.fetchone() is not None
+    except sqlite3.Error as e:
+        logger.error("Error checking poll vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def vote_poll(poll_id: int, option_id: int, user_identifier: str) -> bool:
+    """Record an anonymous vote for an option in a poll."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Check if already voted
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        if cursor.fetchone():
+            return False
+
+        cursor.execute("""
+            INSERT INTO poll_votes (poll_id, user_identifier, option_id)
+            VALUES (?, ?, ?)
+        """, (poll_id, str(user_identifier), option_id))
+
+        cursor.execute("""
+            UPDATE poll_options SET vote_count = vote_count + 1 WHERE id = ? AND poll_id = ?
+        """, (option_id, poll_id))
+
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to record vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def archive_poll(poll_id: int) -> bool:
+    """Archive a poll by ID."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE community_polls SET status = 'archived' WHERE id = ?", (poll_id,))
+        changed = cursor.rowcount > 0
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return changed
+    except sqlite3.Error as e:
+        logger.error("Failed to archive poll: %s", e)
+        return False
     finally:
         if conn:
             conn.close()

@@ -447,6 +447,8 @@ def generate_trading_card(user_id, card_id, filename="trading_card.png"):
     if not card_def:
         return None
 
+    from PIL import Image, ImageDraw, ImageFont
+
     rarity = CARD_RARITIES.get(card_def['rarity'], CARD_RARITIES['common'])
     width = 500
     height = 700
