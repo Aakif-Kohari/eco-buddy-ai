@@ -2427,4 +2427,3 @@ def archive_poll(poll_id: int) -> bool:
     finally:
         if conn:
             conn.close()
-
