@@ -2141,212 +2141,288 @@ def get_unit_preference(user_id):
 
 
 # ---------------------------------------------------------------------------
-# Sustainable Brand Directory
+# Community Polls
 # ---------------------------------------------------------------------------
 
-def init_brand_directory_db():
-    """Initialize the sustainable brands database table."""
+def init_community_polls_db():
+    """Initialize database tables for community polls."""
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS sustainable_brands (
+            CREATE TABLE IF NOT EXISTS community_polls (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                category TEXT NOT NULL,
-                sustainability_rating TEXT NOT NULL,
-                eco_score INTEGER NOT NULL,
-                certifications TEXT,
-                description TEXT,
-                website TEXT,
+                question TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                status TEXT DEFAULT 'active',
+                created_by TEXT DEFAULT 'Community',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                option_text TEXT NOT NULL,
+                vote_count INTEGER DEFAULT 0,
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS poll_votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                user_identifier TEXT NOT NULL,
+                option_id INTEGER NOT NULL,
+                voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(poll_id, user_identifier),
+                FOREIGN KEY (poll_id) REFERENCES community_polls (id) ON DELETE CASCADE,
+                FOREIGN KEY (option_id) REFERENCES poll_options (id) ON DELETE CASCADE
             )
         """)
         conn.commit()
         return True
     except sqlite3.Error as e:
-        logger.error("Sustainable brand DB init error: %s", e)
+        logger.error("Community polls DB init error: %s", e)
         return False
     finally:
         if conn:
             conn.close()
 
 
-def seed_sustainable_brands():
-    """Seed initial sustainable brand listings if table is empty."""
-    init_brand_directory_db()
+def seed_community_polls():
+    """Seed sample sustainability community polls if table is empty."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM sustainable_brands")
+        cursor.execute("SELECT COUNT(*) FROM community_polls")
         if cursor.fetchone()[0] > 0:
             return
 
-        initial_brands = [
+        sample_polls = [
             (
-                "Patagonia",
-                "Apparel & Footwear",
-                "A+",
-                96,
-                "B Corp, Fair Trade Certified, 1% for the Planet",
-                "High-performance outdoor clothing made from recycled materials with lifetime repair warranty.",
-                "https://www.patagonia.com",
+                "What is your primary action for reducing personal carbon footprint in 2026?",
+                "Lifestyle",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Switching to plant-based diet", 45),
+                    ("Using public transport & biking", 38),
+                    ("Installing solar panels / renewable energy", 29),
+                    ("Reducing single-use plastic & waste", 52),
+                ],
             ),
             (
-                "Allbirds",
-                "Apparel & Footwear",
-                "A",
-                90,
-                "B Corp, Carbon Neutral, FSC Certified",
-                "Footwear and apparel crafted from natural, sustainable materials like merino wool and eucalyptus tree fiber.",
-                "https://www.allbirds.com",
+                "Which sector needs the most aggressive climate policy enforcement?",
+                "Policy",
+                "active",
+                "EcoBuddy Team",
+                [
+                    ("Energy & Electricity Generation", 60),
+                    ("Industrial Manufacturing & Heavy Industry", 42),
+                    ("Transportation & Logistics", 31),
+                    ("Agriculture & Deforestation", 25),
+                ],
             ),
             (
-                "Beyond Meat",
-                "Food & Beverage",
-                "A",
-                88,
-                "Non-GMO Project Verified, Plant-Based Certified",
-                "Revolutionary plant-based meats designed to replace animal agriculture and cut carbon emissions.",
-                "https://www.beyondmeat.com",
-            ),
-            (
-                "Tentree",
-                "Apparel & Footwear",
-                "A+",
-                94,
-                "B Corp, Climate Neutral, Organic Content Standard",
-                "Eco-friendly lifestyle apparel brand that plants 10 trees for every item purchased.",
-                "https://www.tentree.com",
-            ),
-            (
-                "Seventh Generation",
-                "Home & Energy",
-                "A",
-                89,
-                "B Corp, USDA Certified Biobased, Leaping Bunny",
-                "Plant-derived household cleaning, paper, and personal care products reducing chemical footprint.",
-                "https://www.seventhgeneration.com",
-            ),
-            (
-                "Fairphone",
-                "Tech & Electronics",
-                "A+",
-                95,
-                "B Corp, Fairtrade Gold, EcoVadis Platinum",
-                "Modular, repairable smartphones designed to reduce electronic waste and respect supply chain labor.",
-                "https://www.fairphone.com",
-            ),
-            (
-                "Ethique",
-                "Personal Care",
-                "A+",
-                97,
-                "B Corp, Cruelty-Free, Palm Oil Free, Plastic Free",
-                "Solid beauty and personal care bars replacing single-use plastic bottles.",
-                "https://ethique.com",
-            ),
-            (
-                "Ecover",
-                "Home & Energy",
-                "B+",
-                83,
-                "B Corp, Leaping Bunny",
-                "Eco-friendly cleaning supplies packaged in plant-based plastic bottles.",
-                "https://www.ecover.com",
-            ),
-            (
-                "Oatly",
-                "Food & Beverage",
-                "A",
-                91,
-                "Non-GMO, Climate Footprint Labeled",
-                "Original oat milk producers reducing livestock agriculture impacts.",
-                "https://www.oatly.com",
-            ),
-            (
-                "Tesla",
-                "Transportation",
-                "B+",
-                84,
-                "Zero Emission Vehicle Pioneer",
-                "Electric vehicles and clean solar energy storage systems.",
-                "https://www.tesla.com",
+                "What was the most impactful eco-habit you adopted last year?",
+                "Community",
+                "archived",
+                "Community",
+                [
+                    ("Composting organic waste", 85),
+                    ("Eliminating fast fashion purchases", 64),
+                    ("Switching to EV / E-bike", 40),
+                    ("Smart home energy management", 53),
+                ],
             ),
         ]
 
-        cursor.executemany("""
-            INSERT OR IGNORE INTO sustainable_brands
-            (name, category, sustainability_rating, eco_score, certifications, description, website)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, initial_brands)
+        for question, category, status, created_by, options in sample_polls:
+            cursor.execute("""
+                INSERT INTO community_polls (question, category, status, created_by)
+                VALUES (?, ?, ?, ?)
+            """, (question, category, status, created_by))
+            poll_id = cursor.lastrowid
+            for opt_text, count in options:
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, ?)
+                """, (poll_id, opt_text, count))
+
         conn.commit()
     except sqlite3.Error as e:
-        logger.error("Failed to seed sustainable brands: %s", e)
+        logger.error("Failed to seed community polls: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+def create_poll(question: str, options: list[str], category: str = "General", created_by: str = "Community") -> int | None:
+    """Create a new poll with given options."""
+    if not question.strip() or len(options) < 2:
+        return None
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO community_polls (question, category, status, created_by)
+            VALUES (?, ?, 'active', ?)
+        """, (question.strip(), category, created_by))
+        poll_id = cursor.lastrowid
+        for opt in options:
+            if opt.strip():
+                cursor.execute("""
+                    INSERT INTO poll_options (poll_id, option_text, vote_count)
+                    VALUES (?, ?, 0)
+                """, (poll_id, opt.strip()))
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return poll_id
+    except sqlite3.Error as e:
+        logger.error("Failed to create poll: %s", e)
+        return None
     finally:
         if conn:
             conn.close()
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_sustainable_brands(category: str | None = None, search_query: str | None = None) -> list[dict]:
-    """Retrieve sustainable brands with optional category and search query filtering."""
-    seed_sustainable_brands()
+def get_active_polls() -> list[dict]:
+    """Retrieve all active community polls with their options and vote counts."""
+    seed_community_polls()
+    return _fetch_polls_by_status("active")
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_archived_polls() -> list[dict]:
+    """Retrieve all archived community polls with final results."""
+    seed_community_polls()
+    return _fetch_polls_by_status("archived")
+
+
+def _fetch_polls_by_status(status: str) -> list[dict]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        query = "SELECT id, name, category, sustainability_rating, eco_score, certifications, description, website, created_at FROM sustainable_brands WHERE 1=1"
-        params: list[object] = []
-
-        if category and category != "All Categories":
-            query += " AND category = ?"
-            params.append(category)
-
-        if search_query:
-            query += " AND (name LIKE ? OR description LIKE ? OR certifications LIKE ?)"
-            term = f"%{search_query}%"
-            params.extend([term, term, term])
-
-        query += " ORDER BY eco_score DESC, name ASC"
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        columns = ["id", "name", "category", "sustainability_rating", "eco_score", "certifications", "description", "website", "created_at"]
-        return [dict(zip(columns, row)) for row in rows]
+        cursor.execute("""
+            SELECT id, question, category, status, created_by, created_at
+            FROM community_polls
+            WHERE status = ?
+            ORDER BY created_at DESC
+        """, (status,))
+        poll_rows = cursor.fetchall()
+        polls = []
+        for p in poll_rows:
+            poll_id = p[0]
+            cursor.execute("""
+                SELECT id, option_text, vote_count
+                FROM poll_options
+                WHERE poll_id = ?
+                ORDER BY id ASC
+            """, (poll_id,))
+            option_rows = cursor.fetchall()
+            options = [
+                {"id": opt[0], "option_text": opt[1], "vote_count": opt[2]}
+                for opt in option_rows
+            ]
+            total_votes = sum(opt["vote_count"] for opt in options)
+            polls.append({
+                "id": poll_id,
+                "question": p[1],
+                "category": p[2],
+                "status": p[3],
+                "created_by": p[4],
+                "created_at": p[5],
+                "options": options,
+                "total_votes": total_votes,
+            })
+        return polls
     except sqlite3.Error as e:
-        logger.error("Failed to read sustainable brands: %s", e)
+        logger.error("Failed to fetch polls: %s", e)
         return []
     finally:
         if conn:
             conn.close()
 
 
-def add_sustainable_brand(
-    name: str,
-    category: str,
-    sustainability_rating: str,
-    eco_score: int,
-    certifications: str,
-    description: str,
-    website: str,
-) -> bool:
-    """Add a new sustainable brand entry."""
-    init_brand_directory_db()
+def has_user_voted(poll_id: int, user_identifier: str) -> bool:
+    """Check if a specific user/identifier has already voted on a poll."""
+    init_community_polls_db()
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO sustainable_brands (name, category, sustainability_rating, eco_score, certifications, description, website)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (name, category, sustainability_rating, eco_score, certifications, description, website))
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        return cursor.fetchone() is not None
+    except sqlite3.Error as e:
+        logger.error("Error checking poll vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def vote_poll(poll_id: int, option_id: int, user_identifier: str) -> bool:
+    """Record an anonymous vote for an option in a poll."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Check if already voted
+        cursor.execute("""
+            SELECT 1 FROM poll_votes WHERE poll_id = ? AND user_identifier = ?
+        """, (poll_id, str(user_identifier)))
+        if cursor.fetchone():
+            return False
+
+        cursor.execute("""
+            INSERT INTO poll_votes (poll_id, user_identifier, option_id)
+            VALUES (?, ?, ?)
+        """, (poll_id, str(user_identifier), option_id))
+
+        cursor.execute("""
+            UPDATE poll_options SET vote_count = vote_count + 1 WHERE id = ? AND poll_id = ?
+        """, (option_id, poll_id))
+
         conn.commit()
-        get_sustainable_brands.clear()
+        get_active_polls.clear()
+        get_archived_polls.clear()
         return True
     except sqlite3.Error as e:
-        logger.error("Failed to add sustainable brand: %s", e)
+        logger.error("Failed to record vote: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def archive_poll(poll_id: int) -> bool:
+    """Archive a poll by ID."""
+    init_community_polls_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE community_polls SET status = 'archived' WHERE id = ?", (poll_id,))
+        changed = cursor.rowcount > 0
+        conn.commit()
+        get_active_polls.clear()
+        get_archived_polls.clear()
+        return changed
+    except sqlite3.Error as e:
+        logger.error("Failed to archive poll: %s", e)
         return False
     finally:
         if conn:
