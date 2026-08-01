@@ -1712,6 +1712,22 @@ with tab1:
                     "eco_score",
                 ],
             )
+            # ---------------------------------------------------------------
+# Format the automatically generated creation timestamps before
+# displaying them in the Assessment History table.
+#
+# The database stores timestamps in the default SQLite format
+# (YYYY-MM-DD HH:MM:SS), which is suitable for storage and sorting
+# but not very user-friendly.
+#
+# This formatting step converts the raw timestamp into a more
+# readable format (e.g., "01 Aug 2026 03:45 PM"), improving the
+# overall user experience while preserving the original data in
+# the database.
+#
+# If a timestamp is missing or unavailable, a placeholder ("-")
+# is displayed instead of causing formatting errors.
+# ---------------------------------------------------------------
             df["Created At"] = df["Created At"].apply(format_timestamp)
             latest = history[0]
             stat1, stat2, stat3, stat4 = st.columns(4)
