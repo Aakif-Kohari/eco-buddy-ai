@@ -20,6 +20,7 @@ from invalidation import (
     invalidate_on_water_assessment_save,
     invalidate_on_reduction_goal_change,
     invalidate_on_freeze_token_change,
+    invalidate_on_time_capsule_change,
 )
 import streamlit as st
 import bcrypt
@@ -2423,6 +2424,108 @@ def archive_poll(poll_id: int) -> bool:
         return changed
     except sqlite3.Error as e:
         logger.error("Failed to archive poll: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def create_time_capsule(user_id, title, promise_text, category, unlock_date):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO time_capsules (user_id, title, promise_text, category, unlock_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, title, promise_text, category, unlock_date))
+        conn.commit()
+        invalidate_on_time_capsule_change()
+        return True
+    except sqlite3.Error as e:
+        logger.error("create_time_capsule error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_time_capsules(user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_id, title, promise_text, category,
+                   unlock_date, is_unlocked, unlocked_at, progress_notes,
+                   created_at, updated_at
+            FROM time_capsules
+            WHERE user_id = ?
+            ORDER BY unlock_date ASC, created_at DESC
+        """, (user_id,))
+        columns = [column[0] for column in cursor.description]
+        data = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in data]
+    except sqlite3.Error:
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_time_capsule_unlock(capsule_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE time_capsules
+            SET is_unlocked = 1, unlocked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND is_unlocked = 0
+        """, (capsule_id,))
+        conn.commit()
+        invalidate_on_time_capsule_change()
+        return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        logger.error("update_time_capsule_unlock error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_time_capsule_progress(capsule_id, progress_notes):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE time_capsules
+            SET progress_notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (progress_notes, capsule_id))
+        conn.commit()
+        invalidate_on_time_capsule_change()
+        return True
+    except sqlite3.Error as e:
+        logger.error("update_time_capsule_progress error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def delete_time_capsule(capsule_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM time_capsules WHERE id = ?", (capsule_id,))
+        conn.commit()
+        invalidate_on_time_capsule_change()
+        return True
+    except sqlite3.Error as e:
+        logger.error("delete_time_capsule error: %s", e)
         return False
     finally:
         if conn:
