@@ -158,10 +158,19 @@ def render_sidebar_auth():
         auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
         if auth_mode == "Login":
             with st.sidebar.form("login_form"):
-                username = st.text_input("Username",
-    help="Enter your registered username.")
+                MAX_USERNAME = 30
+
+                username = st.text_input(
+                    "Username",
+                    key="username",
+                    max_chars=MAX_USERNAME,
+                    help="Enter your registered username."
+                )
+
+                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+
                 password = st.text_input("Password", type="password",
-    help="Enter your account password. Characters will be hidden for security.")
+                help="Enter your account password. Characters will be hidden for security.")
                 if st.form_submit_button("Login"):
                     user = verify_user(username, password)
                     if user:
@@ -174,8 +183,24 @@ def render_sidebar_auth():
                         st.sidebar.error("Invalid username or password")
         elif auth_mode == "Register":
             with st.sidebar.form("register_form"):
-                username = st.text_input("Username", help="Choose a unique username for your account.")
-                email = st.text_input("Email",help="Enter a valid email address for account recovery.")
+                MAX_USERNAME = 30
+
+                username = st.text_input(
+                    "Username",
+                    max_chars=MAX_USERNAME,
+                    help="Choose a unique username."
+                )
+
+                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+                MAX_EMAIL = 100
+
+                email = st.text_input(
+                    "Email",
+                    max_chars=MAX_EMAIL,
+                    help="Enter a valid email address."
+                )
+
+                st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
                 password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
                 anonymous = st.checkbox("Appear anonymously on leaderboard")
                 if st.form_submit_button("Register"):
@@ -1123,13 +1148,16 @@ with tab1:
     st.markdown("### 🤖 AI Quick Log")
     col_ai_input, col_ai_btn = st.columns([4, 1])
     with col_ai_input:
+        MAX_CHARS = 500
         quick_log_text = st.text_area(
     "Let AI auto-fill your profile! Describe your day naturally.",
     placeholder="e.g., 'I drove 15 miles in my SUV and had a beef steak'",
     key="quick_log_input",
     height=68,
+    max_chars=MAX_CHARS,
     help="Describe your daily activities in natural language. The AI will analyze your routine and automatically populate relevant sustainability and carbon footprint fields."
 )
+        st.caption(f"📝 {len(quick_log_text)}/{MAX_CHARS} characters")
     with col_ai_btn:
         st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
         parse_btn = st.button("✨ Parse with AI", use_container_width=True)
@@ -1799,11 +1827,16 @@ with tab1:
             ]
             display_df = display_df.iloc[::-1].reset_index(drop=True)
 
+            MAX_SEARCH = 100
+
             search_text = st.text_input(
                 "🔍 Search by Date",
                 placeholder="Enter date...",
                 key="assessment_history_search",
+                max_chars=MAX_SEARCH,
             )
+
+            st.caption(f"🔎 {len(search_text)}/{MAX_SEARCH} characters")
             min_score, max_score = st.slider(
     "🌱 Eco Score Range",
     0,
@@ -1858,7 +1891,15 @@ with tab2:
     with st.expander("➕ Add New Appliance", expanded=False):
         with st.form("appliance_form"):
             c1, c2, c3 = st.columns(3)
-            app_name = c1.text_input("Appliance Name")
+            MAX_APP = 50
+
+            app_name = st.text_input(
+                "Appliance Name",
+                max_chars=MAX_APP,
+                help="Enter your appliance name."
+            )
+            
+            st.caption(f"🔌 {len(app_name)}/{MAX_APP} characters")
             app_cat = c2.selectbox("Category", ["AC", "EV Charger", "Heat Pump", "Refrigerator", "Lighting", "Other"])
             app_qty = c3.number_input("Quantity", min_value=1, value=1)
 
