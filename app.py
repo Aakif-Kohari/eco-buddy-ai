@@ -12,6 +12,7 @@ st.set_page_config(    page_title="EcoBuddy",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 import tempfile
 import uuid
 import os
@@ -25,6 +26,82 @@ from emissions import calculate_footprint, calculate_eco_score
 
 from recommendations import generate_recommendations
 from what_changed import generate_what_changed_analysis, render_what_changed_ui
+
+
+
+# ----------------------------
+# Welcome Section
+# ----------------------------
+st.title("🌱 Welcome to EcoBuddy AI")
+
+st.markdown(
+    """
+    Welcome to **EcoBuddy AI**, an intelligent sustainability platform designed
+    to help users understand their environmental impact through AI-powered
+    insights, carbon footprint analysis, and eco-friendly recommendations.
+    """
+)
+
+# ----------------------------
+# Application Information
+# ----------------------------
+welcome_info = {
+    "message": "Welcome to EcoBuddy AI API",
+    "version": "1.0.0",
+    "status": "Running",
+    "framework": "Streamlit",
+    "environment": "Development",
+}
+
+st.subheader("Application Information")
+st.json(welcome_info)
+
+# ----------------------------
+# Feature Highlights
+# ----------------------------
+st.subheader("Key Features")
+
+features = [
+    "🌍 Carbon Footprint Calculator",
+    "⚡ Energy Consumption Analysis",
+    "🚗 Sustainable Commute Planner",
+    "♻️ Waste Management Assistant",
+    "📊 Environmental Dashboard",
+    "🤖 AI-powered Recommendations",
+]
+
+for feature in features:
+    st.markdown(f"- {feature}")
+
+# ----------------------------
+# Quick Statistics
+# ----------------------------
+st.subheader("Application Status")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Version", "1.0.0")
+
+with col2:
+    st.metric("Status", "Online")
+
+with col3:
+    st.metric("Environment", "Development")
+
+# ----------------------------
+# Additional Information
+# ----------------------------
+with st.expander("About EcoBuddy AI"):
+    st.write(
+        """
+        EcoBuddy AI empowers users to make environmentally conscious decisions
+        by providing personalized sustainability insights, educational resources,
+        and practical recommendations for reducing their ecological footprint.
+        """
+    )
+
+st.success("EcoBuddy AI is running successfully.")
 
 # Added for Route Planning & Offsets
 from database import (
