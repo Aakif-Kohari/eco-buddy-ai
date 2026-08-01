@@ -118,6 +118,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER DEFAULT 1,
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 transport TEXT,
                 distance REAL,
                 electricity REAL,
@@ -128,6 +129,14 @@ def init_db():
                 trip_id TEXT
             )
         """)
+        try:
+            cursor.execute("""
+                ALTER TABLE assessments
+                ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            """)
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         
         # Create unique index on trip_id (NULL-safe)
         cursor.execute("""
@@ -358,7 +367,31 @@ def save_assessment(
         print(f"Database save error: {e}")
         return False
 
-
+# -------------------------------------------------------------------------
+# Assessment Timestamp Migration
+#
+# This migration introduces the `created_at` column to the assessments
+# table to automatically record when each assessment is created.
+#
+# The column uses SQLite's `CURRENT_TIMESTAMP` as its default value,
+# allowing every newly inserted record to receive an accurate creation
+# timestamp without requiring manual handling in application code.
+#
+# The migration is wrapped in a try/except block to ensure backward
+# compatibility with existing databases. If the column already exists,
+# SQLite raises an OperationalError, which is safely ignored so the
+# application can continue initializing without interruption.
+#
+# Storing creation timestamps enables future enhancements such as:
+#   • Chronological sorting of assessments
+#   • Activity history and audit trails
+#   • Time-based analytics and reporting
+#   • Date range filtering
+#   • Exporting records with creation metadata
+#
+# Existing assessment functionality remains unchanged because SQLite
+# automatically populates the timestamp whenever a new record is created.
+# -------------------------------------------------------------------------
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_assessments(user_id=1):
     try:
@@ -366,10 +399,10 @@ def get_assessments(user_id=1):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            SELECT id, date,created_at, transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC, id DESC
+            ORDER BY created_at  DESC, id DESC
         """, (user_id,))
 
         data = cursor.fetchall()
@@ -394,11 +427,11 @@ def get_assessments_with_factors(user_id=1):
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, date, transport, distance, electricity, diet, flights,
+            SELECT id, date, transport,created_at, distance, electricity, diet, flights,
                    footprint, eco_score, factor_version
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC, id DESC
+            ORDER BY created_at DESC, id DESC
         """, (user_id,))
         return cursor.fetchall()
     except sqlite3.Error as exc:
@@ -416,7 +449,7 @@ def get_all_assessments():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            SELECT id, user_id, date, created_at,transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             ORDER BY date DESC, id DESC
         """)
@@ -513,6 +546,7 @@ def get_assessment_draft(user_id):
             SELECT
                 transport,
                 distance,
+                created_at,
                 electricity,
                 diet,
                 flights,
