@@ -118,6 +118,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER DEFAULT 1,
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 transport TEXT,
                 distance REAL,
                 electricity REAL,
@@ -128,6 +129,14 @@ def init_db():
                 trip_id TEXT
             )
         """)
+        try:
+            cursor.execute("""
+                ALTER TABLE assessments
+                ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            """)
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
         
         # Create unique index on trip_id (NULL-safe)
         cursor.execute("""
@@ -366,10 +375,10 @@ def get_assessments(user_id=1):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            SELECT id, date,created_at, transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC, id DESC
+            ORDER BY created_at  DESC, id DESC
         """, (user_id,))
 
         data = cursor.fetchall()
@@ -394,11 +403,11 @@ def get_assessments_with_factors(user_id=1):
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, date, transport, distance, electricity, diet, flights,
+            SELECT id, date, transport,created_at, distance, electricity, diet, flights,
                    footprint, eco_score, factor_version
             FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC, id DESC
+            ORDER BY created_at DESC, id DESC
         """, (user_id,))
         return cursor.fetchall()
     except sqlite3.Error as exc:
@@ -416,7 +425,7 @@ def get_all_assessments():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            SELECT id, user_id, date, created_at,transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
             ORDER BY date DESC, id DESC
         """)
@@ -513,6 +522,7 @@ def get_assessment_draft(user_id):
             SELECT
                 transport,
                 distance,
+                created_at,
                 electricity,
                 diet,
                 flights,

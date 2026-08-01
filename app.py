@@ -27,7 +27,7 @@ from emissions import calculate_footprint, calculate_eco_score
 from recommendations import generate_recommendations
 from what_changed import generate_what_changed_analysis, render_what_changed_ui
 
-
+from datetime import datetime
 
 # ----------------------------
 # Welcome Section
@@ -140,7 +140,13 @@ DEFAULT_VALUES = {
 
 def h(text):
     return html.escape(str(text))
-
+def format_timestamp(ts):
+    if ts:
+        return datetime.strptime(
+            ts,
+            "%Y-%m-%d %H:%M:%S"
+        ).strftime("%d %b %Y %I:%M %p")
+    return "-"
 
 def render_sidebar_auth():
     st.sidebar.title("Authentication")
@@ -1696,6 +1702,7 @@ with tab1:
                 columns=[
                     "id",
                     "date",
+                    "Created At",
                     "transport",
                     "distance",
                     "electricity",
@@ -1705,7 +1712,7 @@ with tab1:
                     "eco_score",
                 ],
             )
-
+            df["Created At"] = df["Created At"].apply(format_timestamp)
             latest = history[0]
             stat1, stat2, stat3, stat4 = st.columns(4)
 
