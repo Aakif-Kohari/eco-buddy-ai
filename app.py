@@ -12,6 +12,7 @@ st.set_page_config(    page_title="EcoBuddy",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 import tempfile
 import uuid
 import os
@@ -25,6 +26,14 @@ from emissions import calculate_footprint, calculate_eco_score
 
 from recommendations import generate_recommendations
 from what_changed import generate_what_changed_analysis, render_what_changed_ui
+
+
+st.title("Welcome to EcoBuddy AI API")
+
+st.json({
+    "message": "Welcome to EcoBuddy AI API",
+    "version": "1.0.0"
+})
 
 # Added for Route Planning & Offsets
 from database import (
