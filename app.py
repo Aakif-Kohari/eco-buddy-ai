@@ -152,8 +152,10 @@ def render_sidebar_auth():
         auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
         if auth_mode == "Login":
             with st.sidebar.form("login_form"):
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
+                username = st.text_input("Username",
+    help="Enter your registered username.")
+                password = st.text_input("Password", type="password",
+    help="Enter your account password. Characters will be hidden for security.")
                 if st.form_submit_button("Login"):
                     user = verify_user(username, password)
                     if user:
@@ -166,9 +168,9 @@ def render_sidebar_auth():
                         st.sidebar.error("Invalid username or password")
         elif auth_mode == "Register":
             with st.sidebar.form("register_form"):
-                username = st.text_input("Username")
-                email = st.text_input("Email")
-                password = st.text_input("Password", type="password")
+                username = st.text_input("Username", help="Choose a unique username for your account.")
+                email = st.text_input("Email",help="Enter a valid email address for account recovery.")
+                password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
                 anonymous = st.checkbox("Appear anonymously on leaderboard")
                 if st.form_submit_button("Register"):
                     if create_user(username, email, password, anonymous_leaderboard=anonymous):
@@ -861,17 +863,17 @@ with col1:
     </div>
     """, unsafe_allow_html=True)
     transport = st.selectbox(
-        "Primary Transport",
-        ["Car", "Public Transport", "Bike", "Walking"],
-        key="transport",
-        help="Select the transport mode you use most often."
+    "Primary Transport",
+    ["Car", "Public Transport", "Bike", "Walking"],
+    key="transport",
+    help="Select the mode of transportation you use most frequently for your daily commute."
     )
     diet = st.selectbox(
-        "Diet Type",
-        ["Vegetarian", "Non-Vegetarian"],
-        key="diet",
-        help="Choose the diet that best matches your eating habits."
-    )
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
 
 with col2:
     st.markdown("""
@@ -890,10 +892,11 @@ with col2:
     )
 
     diet = st.selectbox(
-        "Diet Type",
-        ["Vegetarian", "Non-Vegetarian"],
-        key="diet"
-    )
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
 with col3:
     st.markdown("""
     <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -1017,7 +1020,12 @@ with tab1:
     render_draft_recovery_prompt(user_id, DEFAULT_VALUES)
 
     st.markdown("### Region Setting")
-    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"], key="region")
+    region = st.selectbox(
+    "Select Your Region for API Emissions Factor",
+    ["Global", "US", "UK", "EU"],
+    key="region",
+    help="Choose your region to apply the appropriate emission factors for more accurate carbon footprint calculations."
+)
 
     # -------------------------
     # QUICK LOG (AI)
@@ -1025,7 +1033,13 @@ with tab1:
     st.markdown("### 🤖 AI Quick Log")
     col_ai_input, col_ai_btn = st.columns([4, 1])
     with col_ai_input:
-        quick_log_text = st.text_area("Let AI auto-fill your profile! Describe your day naturally.", placeholder="e.g., 'I drove 15 miles in my SUV and had a beef steak'", key="quick_log_input", height=68)
+        quick_log_text = st.text_area(
+    "Let AI auto-fill your profile! Describe your day naturally.",
+    placeholder="e.g., 'I drove 15 miles in my SUV and had a beef steak'",
+    key="quick_log_input",
+    height=68,
+    help="Describe your daily activities in natural language. The AI will analyze your routine and automatically populate relevant sustainability and carbon footprint fields."
+)
     with col_ai_btn:
         st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
         parse_btn = st.button("✨ Parse with AI", use_container_width=True)
@@ -1072,7 +1086,12 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Transportation</span>
         </div>
         """, unsafe_allow_html=True)
-        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"], key="transport")
+        transport = st.selectbox(
+    "Primary Transport",
+    ["Car", "Public Transport", "Bike", "Walking"],
+    key="transport",
+    help="Select the mode of transportation you use most frequently for your daily commute."
+)
         distance = st.number_input("Daily Distance (km)", min_value=0.0, key="distance", step=1.0)
 
     with col2:
@@ -1119,7 +1138,12 @@ with tab1:
                         st.warning("Could not extract energy consumption. Please enter manually.")
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
+        diet = st.selectbox(
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
     
         col1, col2 = st.columns(2)
     with col3:
@@ -1674,12 +1698,13 @@ with tab1:
                 key="assessment_history_search",
             )
             min_score, max_score = st.slider(
-                "🌱 Eco Score Range",
-                0,
-                100,
-                (0, 100),
-                key="assessment_history_score_range",
-            )
+    "🌱 Eco Score Range",
+    0,
+    100,
+    (0, 100),
+    key="assessment_history_score_range",
+    help="Adjust the minimum and maximum Eco Score to filter assessment history and display records within the selected range."
+)
 
             if search_text:
                 display_df = display_df[
@@ -1779,7 +1804,13 @@ with tab2:
         st.markdown("")
         del_cols = st.columns([3, 1])
         with del_cols[0]:
-            del_id = st.selectbox("Select appliance to remove", options=[(a['id'], a['name']) for a in appliances], format_func=lambda x: x[1], label_visibility="collapsed")
+            del_id = st.selectbox(
+    "Select appliance to remove",
+    options=[(a['id'], a['name']) for a in appliances],
+    format_func=lambda x: x[1],
+    label_visibility="collapsed",
+    help="Select the appliance you want to remove from your energy inventory."
+)
         with del_cols[1]:
             if st.button(
                 "🗑️ Remove",
@@ -1958,8 +1989,15 @@ with tab4:
         with st.form("route_form"):
             dist_val = st.number_input("Trip Distance (km)", min_value=0.1, value=15.0, step=1.0)
             pass_val = st.number_input("Number of Passengers", min_value=1, value=1, step=1)
-            freq = st.selectbox("Trip Frequency", ["One-time", "Weekly Commute (10 trips/week)", "Daily (14 trips/week)"])
-            
+            freq = st.selectbox(
+    "Trip Frequency",
+    [
+        "One-time",
+        "Weekly Commute (10 trips/week)",
+        "Daily (14 trips/week)"
+    ],
+    help="Choose how often you make this trip to estimate its long-term carbon impact."
+)
             calc_btn = st.form_submit_button("Compare Emissions")
             
         if calc_btn:
