@@ -923,33 +923,117 @@ with col3:
 # -------------------------
 # TABS CONFIGURATION
 # -------------------------
-
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
 
+# Initialize session state
+if "show_reset_confirm" not in st.session_state:
+    st.session_state.show_reset_confirm = False
+
+if "last_reset_time" not in st.session_state:
+    st.session_state.last_reset_time = None
+
 with col_btn1:
-    reset_btn = st.button(
+    if st.button(
         "🔄 Reset Assessment",
         use_container_width=True,
         key="reset_btn"
-    )
+    ):
+        st.session_state.show_reset_confirm = True
+        st.rerun()
 
 with col_btn2:
- 
+
     st.caption("✔ All input fields are validated before analysis.")
-    
+
     analyze_btn = st.button(
         "🌿 Analyze My Impact",
         use_container_width=True,
         key="analyze_btn"
     )
 
-if reset_btn:
-    for key in DEFAULT_VALUES:
-        if key in st.session_state:
-            del st.session_state[key]
+# -----------------------------
+# Reset Confirmation Dialog
+# -----------------------------
+if st.session_state.show_reset_confirm:
 
-    st.success("✅ Assessment form has been reset.")
-    st.rerun()
+    st.warning("⚠️ Reset Assessment")
+
+    st.markdown("""
+This action will:
+
+- 🚗 Clear transportation details
+- ⚡ Reset electricity usage
+- 🥗 Reset diet selection
+- ✈️ Clear annual flight information
+- 🌍 Restore default region
+- 🤖 Remove AI Quick Log input
+- 📄 Clear uploaded utility bill
+- 📊 Remove temporary analysis results
+- 💾 Discard unsaved draft
+
+**This action cannot be undone.**
+""")
+
+    confirm_col, cancel_col = st.columns(2)
+
+    with confirm_col:
+        if st.button(
+            "✅ Confirm Reset",
+            key="confirm_reset"
+        ):
+
+            # Restore default values
+            for key, value in DEFAULT_VALUES.items():
+                st.session_state[key] = value
+
+            # Clear temporary session values
+            temp_keys = [
+                "quick_log_input",
+                "temp_parsed",
+                "uploaded_bill",
+                "extracted_kwh",
+                "analysis_complete",
+                "generated_report",
+                "contributors",
+                "recommendations",
+                "footprint",
+                "eco_score",
+                "assessment_history_search",
+                "assessment_history_score_range",
+            ]
+
+            for key in temp_keys:
+                st.session_state.pop(key, None)
+
+            st.session_state.show_reset_confirm = False
+            st.session_state.last_reset_time = time.strftime("%H:%M:%S")
+
+            st.success("✅ Assessment has been reset successfully!")
+
+            st.info(
+                "All values have been restored to their defaults. "
+                "You can now start a fresh sustainability assessment."
+            )
+
+            st.balloons()
+
+            time.sleep(1)
+
+            st.rerun()
+
+    with cancel_col:
+        if st.button(
+            "❌ Cancel",
+            key="cancel_reset"
+        ):
+            st.session_state.show_reset_confirm = False
+            st.info("Reset cancelled.")
+            st.rerun()
+
+if st.session_state.last_reset_time:
+    st.caption(
+        f"🕒 Last reset performed at {st.session_state.last_reset_time}"
+    )
 
  
 
