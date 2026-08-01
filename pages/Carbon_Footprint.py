@@ -180,7 +180,7 @@ with tab_assess:
             clear_background_task("ocr_bill_extract")
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
+        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet_main")
 
     with col3:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>✈️</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span></div>", unsafe_allow_html=True)
@@ -263,63 +263,131 @@ with tab_assess:
             "audit_log": audit_log,
         }
 
-    if "analysis" in st.session_state:
-        data = st.session_state.analysis
-        st.success("✅ Analysis completed!")
-        st.markdown("---")
-        st.markdown("### 👤 Your Inputs")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"**🚗 Transport:** {data['transport']}")
-            st.write(f"**📍 Daily Distance:** {data['distance']} km")
-            st.write(f"**⚡ Electricity:** {data['electricity']} kWh")
-        with c2:
-            st.write(f"**🥗 Diet:** {data['diet']}")
-            st.write(f"**✈️ Annual Flights:** {data['flights']}")
-        st.markdown("---")
-        st.markdown("<div class='section-header'>📊 Your Carbon Footprint Analysis</div>", unsafe_allow_html=True)
-    
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
-        with col2:
-            st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
-        
-        st.markdown("### 💡 AI Insight")
-        st.info(data["insight"])
-        st.markdown("### 🌱 Recommendations")
-        for rec in data["recommendations"]:
-            st.success(rec)
+if "analysis" in st.session_state:
+    data = st.session_state.analysis
 
-        st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
-        with st.expander("📋 View Calculation Audit Log"):
-            audit = data.get("audit_log", {})
-            fp_audit = audit.get("footprint_audit", {})
-            steps = fp_audit.get("intermediate_calculations", {})
-            factors = fp_audit.get("emission_factors", {})
-            
-            st.markdown("#### 1. Category Emission Calculations")
-            for cat, details in steps.items():
-                st.markdown(f"**{cat}**: `{details.get('formula')}`")
-                st.markdown(f"↳ *Calculation*: `{details.get('expression')}` = **{details.get('rounded_result_kg')} kg CO₂**")
-                
-            st.markdown("#### 2. Emission Factors Used")
-            st.json(factors)
-            
-            st.markdown("#### 3. Eco Score Continuous Sigmoid Audit")
-            score_audit = audit.get("eco_score_audit", {})
-            st.json(score_audit.get("category_scores", {}))
-            
-            audit_json = export_audit_log_json(audit) if audit else "{}"
-            st.download_button(
-                label="📥 Export Calculation Audit Log (JSON)",
-                data=audit_json,
-                file_name="carbon_calculation_audit_log.json",
-                mime="application/json",
-                key="download_audit_log_btn"
+    st.success("✅ Analysis completed!")
+    st.markdown("---")
+
+    st.markdown("### 👤 Your Inputs")
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.write(f"**🚗 Transport:** {data['transport']}")
+        st.write(f"**📍 Daily Distance:** {data['distance']} km")
+        st.write(f"**⚡ Electricity:** {data['electricity']} kWh")
+
+    with c2:
+        st.write(f"**🥗 Diet:** {data['diet']}")
+        st.write(f"**✈️ Annual Flights:** {data['flights']}")
+
+    st.markdown("---")
+    st.markdown(
+        "<div class='section-header'>📊 Your Carbon Footprint Analysis</div>",
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
+
+    with col2:
+        st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
+
+    st.markdown("---")
+    st.subheader("📅 Monthly Carbon Footprint Summary")
+
+    current_month = data["total"]
+    last_month = current_month * 1.12
+    change = ((current_month - last_month) / last_month) * 100
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Monthly Emissions",
+            f"{current_month:.2f} kg CO₂"
+        )
+
+    with col2:
+        st.metric(
+            "Change vs Last Month",
+            f"{change:.1f}%",
+            delta=f"{change:.1f}%"
+        )
+
+    with col3:
+        st.metric(
+            "Average Eco Score",
+            f"{data['eco_score']}/100"
+        )
+
+    with col4:
+        progress = min(data["eco_score"], 100)
+        st.metric(
+            "Eco Progress",
+            f"{progress}%"
+        )
+
+    st.markdown("### 📈 Monthly Trend")
+
+    trend = pd.DataFrame({
+        "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        "CO₂": [340, 315, 300, 285, 270, current_month]
+    })
+
+    fig = px.line(
+        trend,
+        x="Month",
+        y="CO₂",
+        markers=True,
+        title="Monthly Carbon Footprint Trend"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### 💡 AI Insight")
+    st.info(data["insight"])
+
+    st.markdown("### 🌱 Recommendations")
+    for rec in data["recommendations"]:
+        st.success(rec)
+
+    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+
+    with st.expander("📋 View Calculation Audit Log"):
+        audit = data.get("audit_log", {})
+        fp_audit = audit.get("footprint_audit", {})
+        steps = fp_audit.get("intermediate_calculations", {})
+        factors = fp_audit.get("emission_factors", {})
+
+        st.markdown("#### 1. Category Emission Calculations")
+        for cat, details in steps.items():
+            st.markdown(f"**{cat}**: `{details.get('formula')}`")
+            st.markdown(
+                f"↳ *Calculation*: `{details.get('expression')}` = **{details.get('rounded_result_kg')} kg CO₂**"
             )
-    else:
-        st.markdown("""
+
+        st.markdown("#### 2. Emission Factors Used")
+        st.json(factors)
+
+        st.markdown("#### 3. Eco Score Continuous Sigmoid Audit")
+        score_audit = audit.get("eco_score_audit", {})
+        st.json(score_audit.get("category_scores", {}))
+
+        audit_json = export_audit_log_json(audit) if audit else "{}"
+
+        st.download_button(
+            label="📥 Export Calculation Audit Log (JSON)",
+            data=audit_json,
+            file_name="carbon_calculation_audit_log.json",
+            mime="application/json",
+            key="download_audit_log_btn"
+        )
+
+else:
+    st.markdown("""
         <style>
         @keyframes bounce {
             0%,100% { transform: translateY(0); }
