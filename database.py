@@ -367,7 +367,31 @@ def save_assessment(
         print(f"Database save error: {e}")
         return False
 
-
+# -------------------------------------------------------------------------
+# Assessment Timestamp Migration
+#
+# This migration introduces the `created_at` column to the assessments
+# table to automatically record when each assessment is created.
+#
+# The column uses SQLite's `CURRENT_TIMESTAMP` as its default value,
+# allowing every newly inserted record to receive an accurate creation
+# timestamp without requiring manual handling in application code.
+#
+# The migration is wrapped in a try/except block to ensure backward
+# compatibility with existing databases. If the column already exists,
+# SQLite raises an OperationalError, which is safely ignored so the
+# application can continue initializing without interruption.
+#
+# Storing creation timestamps enables future enhancements such as:
+#   • Chronological sorting of assessments
+#   • Activity history and audit trails
+#   • Time-based analytics and reporting
+#   • Date range filtering
+#   • Exporting records with creation metadata
+#
+# Existing assessment functionality remains unchanged because SQLite
+# automatically populates the timestamp whenever a new record is created.
+# -------------------------------------------------------------------------
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_assessments(user_id=1):
     try:
