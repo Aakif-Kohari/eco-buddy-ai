@@ -1347,8 +1347,48 @@ with tab1:
 
         eco_score = calculate_eco_score(total)
 
+        transport_emission = contributors.get("Transportation", 0)
+        electricity_emission = contributors.get("Electricity", 0)
+        diet_emission = contributors.get("Diet", 0)
+        flight_emission = contributors.get("Flights", 0)
+
         insight, recommendations = generate_recommendations(
             transport, electricity, diet, flights, contributors
+        )
+
+        # -------------------------
+        # Cross-Module Smart Suggestions
+        # -------------------------
+
+        cross_module_suggestions = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            cross_module_suggestions.append(
+                "🛣️ Explore the Route Planning module to discover lower-emission travel options."
+            )
+
+        if electricity_emission > 5:
+            cross_module_suggestions.append(
+                "⚡ Open the Home Energy Audit section for personalized electricity-saving recommendations."
+            )
+
+        if flight_emission > 2:
+            cross_module_suggestions.append(
+                "✈️ Visit Carbon Offsets to balance emissions from frequent air travel."
+            )
+
+        if eco_score < 60:
+            cross_module_suggestions.append(
+                "🏆 Complete weekly sustainability challenges to improve your Eco Score faster."
+            )
+
+        if eco_score >= 80:
+            cross_module_suggestions.append(
+                "🌍 Compare your progress on the Community Leaderboard and inspire other users."
+            )
+
+        cross_module_suggestions.append(
+            "📊 Review your Assessment History to monitor long-term sustainability progress."
         )
 
         save_assessment(user_id, 
@@ -1362,6 +1402,169 @@ with tab1:
         )
 
         st.success("✅ Analysis completed!")
+
+
+
+        # -------------------------
+        # INPUT CONFIDENCE SCORE
+        # -------------------------
+
+        confidence_score = 100
+        missing_items = []
+
+        if distance == 0:
+            confidence_score -= 15
+            missing_items.append("Transportation distance")
+
+        if electricity == 0:
+            confidence_score -= 20
+            missing_items.append("Electricity usage")
+
+        if flights == 0:
+            confidence_score -= 10
+            missing_items.append("Flight activity")
+
+        if diet.lower() in ["unknown", "", "select"]:
+            confidence_score -= 15
+            missing_items.append("Diet information")
+
+        confidence_score = max(confidence_score, 0)
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🎯 Assessment Confidence</h3>
+            <p>
+                EcoBuddy evaluates the completeness and consistency of your inputs to
+                estimate how reliable your carbon footprint assessment is. Providing
+                detailed and accurate information improves recommendation quality and
+                overall assessment accuracy.
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🔗 Cross-Module Smart Suggestions</h3>
+            <p>
+                Based on your assessment results, EcoBuddy recommends additional
+                modules that can help you further reduce your environmental impact.
+                These suggestions connect different features across the application
+                to provide a more personalized sustainability experience.
+
+
+        st.caption(
+            "These personalized feature recommendations are automatically generated "
+            "after every assessment to help users discover useful EcoBuddy modules "
+            "that match their environmental profile and encourage continued engagement."
+        )
+
+        # -------------------------
+        # SMART FEATURE DISCOVERY
+        # -------------------------
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3 style='margin-bottom:12px;'>💡 Smart Feature Discovery</h3>
+            <p style='color:#6b7280;'>
+                Based on your assessment results, EcoBuddy has identified additional
+                tools that can help you better understand, monitor, and reduce your
+                environmental impact. Explore the suggestions below to continue your
+                sustainability journey with personalized insights.
+
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+        st.markdown("### 🎯 Input Confidence Score")
+
+        st.progress(confidence_score / 100)
+
+        st.metric("Confidence", f"{confidence_score}%")
+
+        if confidence_score >= 90:
+            st.success("🟢 High confidence assessment. Your inputs appear complete and reliable.")
+
+        elif confidence_score >= 70:
+            st.warning("🟡 Medium confidence assessment. Some additional information could improve accuracy.")
+
+        else:
+            st.error("🔴 Low confidence assessment. Consider completing more fields for better estimates.")
+
+        if missing_items:
+
+            st.markdown("#### Missing or Incomplete Information")
+
+            for item in missing_items:
+                st.write(f"• {item}")
+
+            st.info(
+                "Providing more complete information will improve the accuracy "
+                "of your carbon footprint calculations and recommendations."
+            )
+
+        st.markdown("#### 💡 Improvement Suggestions")
+
+        if confidence_score < 100:
+
+            st.write("✅ Provide accurate transportation distance.")
+            st.write("✅ Enter realistic electricity consumption.")
+            st.write("✅ Include annual flight information.")
+            st.write("✅ Select the most appropriate diet type.")
+
+        else:
+
+            st.success(
+                "Excellent! Your assessment contains sufficient information "
+                "to generate highly reliable sustainability insights."
+            )
+
+        st.markdown("### 🔗 Cross-Module Smart Suggestions")
+
+        st.caption(
+            "EcoBuddy analyzed your assessment and identified additional modules "
+            "that can provide relevant guidance based on your current environmental profile."
+        )
+
+        for item in cross_module_suggestions:
+            st.info(item)
+
+
+        feature_suggestions = []
+
+        if contributors.get("transport", 0) > 0:
+            feature_suggestions.append(
+                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport emissions."
+            )
+
+        if electricity > 150:
+            feature_suggestions.append(
+                "⚡ Visit the Home Energy Audit section for recommendations that can reduce electricity consumption."
+            )
+
+        if eco_score < 70:
+            feature_suggestions.append(
+                "🏆 Improve your Eco Score by completing more assessments and earning sustainability badges."
+            )
+
+        feature_suggestions.append(
+            "📈 Track your future environmental progress using the Future Self dashboard."
+        )
+
+        feature_suggestions.append(
+            "🌍 Check the Community Leaderboard to compare your sustainability progress with other users."
+        )
+
+        st.info(
+            "🌱 Personalized Feature Suggestions\n\n"
+            "These recommendations are generated from your latest assessment "
+            "to help you discover useful EcoBuddy features."
+        )
+
+        for suggestion in feature_suggestions:
+            st.write(f"✅ {suggestion}")
+
+        if st.button("❌ Dismiss Suggestions", key="dismiss_feature_suggestions"):
+            st.success("Feature suggestions dismissed. They will appear again after your next assessment.")
+
 
         st.markdown("---")
 
@@ -1688,11 +1891,59 @@ with tab1:
         # -------------------------
         # PDF DOWNLOAD
         # -------------------------
+
+        
+        st.markdown("---")
+
+        with st.expander("🧮 Interactive Calculation Breakdown", expanded=False):
+
+            st.markdown("### Step-by-Step Carbon Footprint Calculation")
+
+            st.markdown("#### 🚗 Transportation")
+            st.write(f"Mode: **{transport}**")
+            st.write(f"Distance: **{distance} km/day**")
+            st.success(f"Contribution: **{transport_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ⚡ Electricity")
+            st.write(f"Monthly Usage: **{electricity} kWh**")
+            st.success(f"Contribution: **{electricity_emission:.2f} kg CO₂**")
+
+            st.markdown("#### 🥗 Diet")
+            st.write(f"Diet Type: **{diet}**")
+            st.success(f"Contribution: **{diet_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ✈ Flights")
+            st.write(f"Flights per year: **{flights}**")
+            st.success(f"Contribution: **{flight_emission:.2f} kg CO₂**")
+
+            st.markdown("---")
+
+            st.metric("🌍 Total Carbon Footprint", f"{total:.2f} kg CO₂")
+
+            st.info("""
+        ### How the total is calculated
+
+        The final carbon footprint is calculated by combining:
+
+        • Transportation emissions
+
+        • Electricity consumption
+
+        • Diet impact
+
+        • Flight emissions
+
+        Each category contributes independently to the final result. Expanding this section allows users to inspect every intermediate value instead of only viewing the final score, making the assessment more transparent and easier to understand.
+        """)
+
+        report = generate_pdf(total, eco_score, insight)
+
         report_validation = validate_report_data(
             total,
             eco_score,
             insight,
         )
+
 
         if not report_validation.is_valid:
             st.error(
@@ -1757,22 +2008,63 @@ with tab1:
                     "eco_score",
                 ],
             )
+
+            # -----------------------------
+            # Eco Impact Streak Calendar
+            # -----------------------------
+            st.markdown("---")
+            st.subheader("📅 Eco Impact Streak Calendar")
+
+            calendar_df = df.copy()
+            calendar_df["date"] = pd.to_datetime(calendar_df["date"]).dt.date
+
+            today = pd.Timestamp.today().date()
+            last_30_days = pd.date_range(end=today, periods=30)
+
+            activity = []
+
+            for day in last_30_days:
+                if day.date() in calendar_df["date"].values:
+                    activity.append("🟩")
+                else:
+                    activity.append("⬜")
+
+            calendar_html = ""
+
+            for i, box in enumerate(activity):
+                calendar_html += f"<span style='font-size:20px'>{box}</span>"
+                if (i + 1) % 10 == 0:
+                    calendar_html += "<br>"
+
+            st.markdown(calendar_html, unsafe_allow_html=True)
+
+            active_days = len(calendar_df)
+
+            st.metric(
+                "🌱 Active Eco Days",
+                active_days
+            )
+
+            st.caption("🟩 Assessment completed   ⬜ No assessment")
+
+
+
             # ---------------------------------------------------------------
-# Format the automatically generated creation timestamps before
-# displaying them in the Assessment History table.
-#
-# The database stores timestamps in the default SQLite format
-# (YYYY-MM-DD HH:MM:SS), which is suitable for storage and sorting
-# but not very user-friendly.
-#
-# This formatting step converts the raw timestamp into a more
-# readable format (e.g., "01 Aug 2026 03:45 PM"), improving the
-# overall user experience while preserving the original data in
-# the database.
-#
-# If a timestamp is missing or unavailable, a placeholder ("-")
-# is displayed instead of causing formatting errors.
-# ---------------------------------------------------------------
+            # Format the automatically generated creation timestamps before
+            # displaying them in the Assessment History table.
+            #
+            # The database stores timestamps in the default SQLite format
+            # (YYYY-MM-DD HH:MM:SS), which is suitable for storage and sorting
+            # but not very user-friendly.
+            #
+            # This formatting step converts the raw timestamp into a more
+            # readable format (e.g., "01 Aug 2026 03:45 PM"), improving the
+            # overall user experience while preserving the original data in
+            # the database.
+            #
+            # If a timestamp is missing or unavailable, a placeholder ("-")
+            # is displayed instead of causing formatting errors.
+            # ---------------------------------------------------------------
             df["Created At"] = df["Created At"].apply(format_timestamp)
             latest = history[0]
             stat1, stat2, stat3, stat4 = st.columns(4)
