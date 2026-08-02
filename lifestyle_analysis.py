@@ -121,7 +121,9 @@ def _call_gemini_vision(uploaded_file, space_type, hint):
             ],
             "generationConfig": {"responseMimeType": "application/json"},
         }
+        from request_logging import log_api_request
         response = requests.post(url, json=payload, timeout=30)
+        log_api_request("POST", url, status_code=response.status_code)
         if response.status_code == 200:
             data = response.json()
             raw_text = data["candidates"][0]["content"]["parts"][0]["text"]

@@ -150,7 +150,9 @@ def _call_llm(system_prompt, user_prompt, json_mode=True):
             }
             if json_mode:
                 payload["generationConfig"] = {"responseMimeType": "application/json"}
+            from request_logging import log_api_request
             response = requests.post(url, json=payload, timeout=15)
+            log_api_request("POST", url, status_code=response.status_code)
             if response.status_code == 200:
                 data = response.json()
                 raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -173,7 +175,9 @@ def _call_llm(system_prompt, user_prompt, json_mode=True):
             }
             if json_mode:
                 payload["response_format"] = {"type": "json_object"}
+            from request_logging import log_api_request
             response = requests.post(url, json=payload, headers=headers, timeout=15)
+            log_api_request("POST", url, headers=headers, status_code=response.status_code)
             if response.status_code == 200:
                 data = response.json()
                 raw_text = data["choices"][0]["message"]["content"]

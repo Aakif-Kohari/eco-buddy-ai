@@ -37,6 +37,7 @@ def fetch_emission_factors(region: str) -> dict:
         
     try:
         import requests
+        from request_logging import log_api_request
         url = "https://api.climatiq.io/data/v1/estimate"
         headers = {"Authorization": f"Bearer {api_key}"}
         
@@ -49,6 +50,7 @@ def fetch_emission_factors(region: str) -> dict:
         }
         
         response = requests.post(url, json=payload, headers=headers, timeout=5)
+        log_api_request("POST", url, headers=headers, status_code=response.status_code)
         if response.status_code == 200:
             data = response.json()
             factors["electricity"] = data.get("co2e", factors["electricity"])
@@ -62,6 +64,7 @@ def fetch_emission_factors(region: str) -> dict:
             "parameters": {"passengers": 1}
         }
         f_response = requests.post(url, json=flight_payload, headers=headers, timeout=5)
+        log_api_request("POST", url, headers=headers, status_code=f_response.status_code)
         if f_response.status_code == 200:
             f_data = f_response.json()
             factors["flight"] = f_data.get("co2e", factors["flight"])
