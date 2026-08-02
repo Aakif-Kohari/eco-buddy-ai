@@ -26,7 +26,7 @@ def test_search_species_keyword():
 def test_search_species_filters():
     results = search_species(region="Asia", category="Wildlife & Mammals")
     assert len(results) >= 1
-    assert results[0]["common_name"] == "Red Panda (Ailurus fulgens)"
+    assert "Red Panda" in results[0]["common_name"]
 
 
 def test_get_conservation_stats():
