@@ -1359,6 +1359,65 @@ with tab1:
 
         st.success("✅ Analysis completed!")
 
+        st.caption(
+            "These personalized feature recommendations are automatically generated "
+            "after every assessment to help users discover useful EcoBuddy modules "
+            "that match their environmental profile and encourage continued engagement."
+        )
+
+        # -------------------------
+        # SMART FEATURE DISCOVERY
+        # -------------------------
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3 style='margin-bottom:12px;'>💡 Smart Feature Discovery</h3>
+            <p style='color:#6b7280;'>
+                Based on your assessment results, EcoBuddy has identified additional
+                tools that can help you better understand, monitor, and reduce your
+                environmental impact. Explore the suggestions below to continue your
+                sustainability journey with personalized insights.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        feature_suggestions = []
+
+        if contributors.get("transport", 0) > 0:
+            feature_suggestions.append(
+                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport emissions."
+            )
+
+        if electricity > 150:
+            feature_suggestions.append(
+                "⚡ Visit the Home Energy Audit section for recommendations that can reduce electricity consumption."
+            )
+
+        if eco_score < 70:
+            feature_suggestions.append(
+                "🏆 Improve your Eco Score by completing more assessments and earning sustainability badges."
+            )
+
+        feature_suggestions.append(
+            "📈 Track your future environmental progress using the Future Self dashboard."
+        )
+
+        feature_suggestions.append(
+            "🌍 Check the Community Leaderboard to compare your sustainability progress with other users."
+        )
+
+        st.info(
+            "🌱 Personalized Feature Suggestions\n\n"
+            "These recommendations are generated from your latest assessment "
+            "to help you discover useful EcoBuddy features."
+        )
+
+        for suggestion in feature_suggestions:
+            st.write(f"✅ {suggestion}")
+
+        if st.button("❌ Dismiss Suggestions", key="dismiss_feature_suggestions"):
+            st.success("Feature suggestions dismissed. They will appear again after your next assessment.")
+
         st.markdown("---")
 
 
