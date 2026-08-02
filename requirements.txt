@@ -13,3 +13,6 @@ statsmodels>=0.14.0
 pytest>=7.4.0
 bcrypt>=4.0.0
 streamlit-agraph>=0.0.41
+gpxpy>=1.6.0
+ijson>=3.2.0
+geopy>=2.4.0
