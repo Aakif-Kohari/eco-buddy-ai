@@ -125,7 +125,13 @@ from session_recovery import (
     discard_current_draft,
     render_draft_recovery_prompt,
 )
-from session_state_utils import ensure_session_state, set_session_state_if_changed
+from session_state_utils import (
+    ensure_session_state,
+    set_session_state_if_changed,
+    check_session_timeout,
+    update_last_activity,
+    clear_auth_session,
+)
 
 
 
@@ -153,6 +159,14 @@ def render_sidebar_auth():
     if 'user_id' not in st.session_state:
         st.session_state['user_id'] = None
         st.session_state['username'] = None
+
+    if st.session_state.get('user_id'):
+        if check_session_timeout():
+            clear_auth_session()
+            st.sidebar.warning("Your session has expired. Please sign in again.")
+            st.rerun()
+        else:
+            update_last_activity()
 
     if st.session_state['user_id'] is None:
         auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
@@ -229,9 +243,7 @@ def render_sidebar_auth():
             st.experimental_rerun()
 
         if st.sidebar.button("Logout"):
-            st.session_state['user_id'] = None
-            st.session_state['username'] = None
-            st.session_state.pop('anonymous_leaderboard', None)
+            clear_auth_session()
             for key, val in DEFAULT_VALUES.items():
                 st.session_state[key] = val
             st.rerun()
