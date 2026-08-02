@@ -143,3 +143,8 @@ if isinstance(st.session_state.history_date_range, tuple) and len(st.session_sta
         )
 else:
     st.info("Please select a complete date range (start and end date).")
+
+st.divider()
+from assessment_undo import render_assessment_undo_ui
+render_assessment_undo_ui(user_id=user_id)
+
