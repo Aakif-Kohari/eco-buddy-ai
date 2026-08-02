@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from database_connection import database_connection, execute_with_retry
 from cache import cached
 from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
 from invalidation import (
@@ -47,192 +48,251 @@ def set_db_version(conn, version):
 def migrate():
     """
     Apply pending database migrations.
-    
-    This function is called on application startup to ensure the database
-    schema is up to date. It should be called once before any other
-    database operations.
-    
+
     Returns:
         tuple: (success: bool, message: str)
     """
-    # Import migrations module to get version info
     import migrations
-    
+
     try:
-        conn = sqlite3.connect(DB_NAME)
-        current_version = get_db_version(conn)
-        
-        if current_version >= migrations.CURRENT_VERSION:
-            conn.close()
-            return True, f"Database is already at version {current_version}"
-        
-        # Apply migrations sequentially
-        migrations_to_apply = range(current_version + 1, migrations.CURRENT_VERSION + 1)
-        for version in migrations_to_apply:
-            migration_file = f"migrations/migrate_v{version}.py"
-            if os.path.exists(migration_file):
-                module = __import__(f"migrations.migrate_v{version}", fromlist=['migrate'])
-                if hasattr(module, 'migrate'):
-                    module.migrate(conn)
-                    set_db_version(conn, version)
-                    print(f"Applied migration v{version}")
-        
-        conn.close()
-        return True, f"Database migrated to version {migrations.CURRENT_VERSION}"
-        
-    except Exception as e:
-        return False, f"Migration failed: {str(e)}"
+        with database_connection(DB_NAME) as conn:
+            current_version = get_db_version(conn)
+
+            if current_version >= migrations.CURRENT_VERSION:
+                return True, (
+                    f"Database is already at version {current_version}"
+                )
+
+            migrations_to_apply = range(
+                current_version + 1,
+                migrations.CURRENT_VERSION + 1,
+            )
+            for version in migrations_to_apply:
+                migration_file = f"migrations/migrate_v{version}.py"
+                if os.path.exists(migration_file):
+                    module = __import__(
+                        f"migrations.migrate_v{version}",
+                        fromlist=["migrate"],
+                    )
+                    if hasattr(module, "migrate"):
+                        module.migrate(conn)
+                        set_db_version(conn, version)
+                        print(f"Applied migration v{version}")
+
+        return True, (
+            f"Database migrated to version {migrations.CURRENT_VERSION}"
+        )
+    except Exception as exc:
+        return False, f"Migration failed: {exc}"
 
 
 def init_db():
     """
     Initialize the database with core tables and run pending migrations.
-    
+
     Returns:
         bool: True if initialization succeeded, False otherwise
     """
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        
-        # Create base users table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                anonymous_leaderboard INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        try:
-            cursor.execute("ALTER TABLE users ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0")
-        except sqlite3.OperationalError:
-            pass
-        
-        # Create base assessments table with trip_id
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS assessments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER DEFAULT 1,
-                date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                transport TEXT,
-                distance REAL,
-                electricity REAL,
-                diet TEXT,
-                flights INTEGER,
-                footprint REAL,
-                eco_score INTEGER,
-                trip_id TEXT
-            )
-        """)
-        try:
-            cursor.execute("""
-                ALTER TABLE assessments
-                ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            """)
-        except sqlite3.OperationalError:
-            # Column already exists
-            pass
-        
-        # Create unique index on trip_id (NULL-safe)
-        cursor.execute("""
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_assessments_trip_id 
-            ON assessments(trip_id) 
-            WHERE trip_id IS NOT NULL
-        """)
+        def initialize_schema():
+            with database_connection(DB_NAME) as conn:
+                cursor = conn.cursor()
 
-        # Create assessment_drafts table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS assessment_drafts (
-                user_id INTEGER PRIMARY KEY,
-                transport TEXT,
-                distance REAL,
-                electricity REAL,
-                diet TEXT,
-                flights INTEGER,
-                region TEXT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        conn.commit()
-        conn.close()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        anonymous_leaderboard INTEGER DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
 
-        # Run pending migrations to update schema
+                try:
+                    cursor.execute(
+                        """
+                        ALTER TABLE users
+                        ADD COLUMN anonymous_leaderboard INTEGER DEFAULT 0
+                        """
+                    )
+                except sqlite3.OperationalError as exc:
+                    if "duplicate column name" not in str(exc).lower():
+                        raise
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS assessments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER DEFAULT 1,
+                        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        transport TEXT,
+                        distance REAL,
+                        electricity REAL,
+                        diet TEXT,
+                        flights INTEGER,
+                        footprint REAL,
+                        eco_score INTEGER,
+                        trip_id TEXT
+                    )
+                    """
+                )
+
+                try:
+                    cursor.execute(
+                        """
+                        ALTER TABLE assessments
+                        ADD COLUMN created_at
+                        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        """
+                    )
+                except sqlite3.OperationalError as exc:
+                    if "duplicate column name" not in str(exc).lower():
+                        raise
+
+                cursor.execute(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS
+                    idx_assessments_trip_id
+                    ON assessments(trip_id)
+                    WHERE trip_id IS NOT NULL
+                    """
+                )
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS assessment_drafts (
+                        user_id INTEGER PRIMARY KEY,
+                        transport TEXT,
+                        distance REAL,
+                        electricity REAL,
+                        diet TEXT,
+                        flights INTEGER,
+                        region TEXT,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+
+        execute_with_retry(initialize_schema)
         migrate()
         return True
-    except sqlite3.Error as e:
-        logger.error("Database init error: %s", e)
+    except sqlite3.Error as exc:
+        logger.error("Database init error: %s", exc)
         return False
 
 
-def create_user(username, email, password, anonymous_leaderboard=False):
-    conn = None
+def create_user(
+    username,
+    email,
+    password,
+    anonymous_leaderboard=False,
+):
+    def insert_user():
+        with database_connection(DB_NAME) as conn:
+            password_hash = bcrypt.hashpw(
+                password.encode("utf-8"),
+                bcrypt.gensalt(),
+            ).decode("utf-8")
+            conn.execute(
+                """
+                INSERT INTO users (
+                    username,
+                    email,
+                    password_hash,
+                    anonymous_leaderboard
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    username,
+                    email,
+                    password_hash,
+                    int(bool(anonymous_leaderboard)),
+                ),
+            )
+
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cursor.execute(
-            "INSERT INTO users (username, email, password_hash, anonymous_leaderboard) VALUES (?, ?, ?, ?)",
-            (username, email, password_hash, int(bool(anonymous_leaderboard)))
-        )
-        conn.commit()
+        execute_with_retry(insert_user)
         return True
     except sqlite3.IntegrityError:
         return False
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+    except sqlite3.Error as exc:
+        logger.error("Database user creation error: %s", exc)
         return False
-    finally:
-        if conn:
-            conn.close()
+
 
 def verify_user(username, password):
-    conn = None
+    def fetch_user():
+        with database_connection(DB_NAME) as conn:
+            return conn.execute(
+                """
+                SELECT
+                    id,
+                    username,
+                    password_hash,
+                    anonymous_leaderboard
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, password_hash, anonymous_leaderboard FROM users WHERE username = ?", (username,))
-        user = cursor.fetchone()
-        
-        if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+        user = execute_with_retry(fetch_user)
+
+        if user and bcrypt.checkpw(
+            password.encode("utf-8"),
+            user["password_hash"].encode("utf-8"),
+        ):
             return {
-                "id": user[0],
-                "username": user[1],
-                "anonymous_leaderboard": bool(user[3])
+                "id": user["id"],
+                "username": user["username"],
+                "anonymous_leaderboard": bool(
+                    user["anonymous_leaderboard"]
+                ),
             }
         return None
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
+    except sqlite3.Error as exc:
+        logger.error("Database user verification error: %s", exc)
         return None
-    finally:
-        if conn:
-            conn.close()
+
 
 def get_user_by_username(username):
-    conn = None
+    def fetch_user():
+        with database_connection(DB_NAME) as conn:
+            return conn.execute(
+                """
+                SELECT
+                    id,
+                    username,
+                    email,
+                    anonymous_leaderboard
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, username, email, anonymous_leaderboard FROM users WHERE username = ?", (username,))
-        user = cursor.fetchone()
-        if user:
-            return {
-                "id": user[0],
-                "username": user[1],
-                "email": user[2],
-                "anonymous_leaderboard": bool(user[3])
-            }
+        user = execute_with_retry(fetch_user)
+        if not user:
+            return None
+
+        return {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "anonymous_leaderboard": bool(
+                user["anonymous_leaderboard"]
+            ),
+        }
+    except sqlite3.Error as exc:
+        logger.error("Database user lookup error: %s", exc)
         return None
-    except sqlite3.Error:
-        return None
-    finally:
-        if conn:
-            conn.close()
 
 
 def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
