@@ -1,5 +1,9 @@
+"""
+Carbon Footprint Calculator Plugin
+"""
+
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from emissions import calculate_footprint, calculate_eco_score
+from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
 from recommendations import generate_recommendations
 from config import DIET_TYPES, TRANSPORT_EMISSION_FACTORS, VALID_REGIONS
 
@@ -67,6 +71,31 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             ),
         ]
 
+
+    def _build_metadata(
+        self,
+        transport,
+        distance,
+        electricity,
+        diet,
+        flights,
+        region,
+        eco_score,
+        audit_log,
+    ) -> dict:
+        """Build metadata for the calculation result."""
+        return {
+            "eco_score": eco_score,
+            "transport": transport,
+            "distance": distance,
+            "electricity": electricity,
+            "diet": diet,
+            "flights": flights,
+            "region": region,
+            "audit_log": audit_log,
+        }
+
+
     def calculate(self, inputs: dict) -> CalcResult:
         transport = inputs["transport"]
         distance = inputs["distance"]
@@ -75,29 +104,43 @@ class CarbonFootprintPlugin(CalculatorPlugin):
         flights = inputs["flights"]
         region = inputs.get("region", "Global")
 
-        total_kg, contributors = calculate_footprint(
+        total_kg, contributors, audit_log = calculate_footprint(
             transport=transport,
             distance=distance,
             electricity=electricity,
             diet=diet,
             flights=flights,
             region=region,
+
+            return_audit=True,
         )
+
         eco_score = calculate_eco_score(total_kg, contributors)
+        full_audit = generate_full_audit_log(
+            transport,
+            distance,
+            electricity,
+            diet,
+            flights,
+            region,
+        )
+
+        metadata = self._build_metadata(
+            transport=transport,
+            distance=distance,
+            electricity=electricity,
+            diet=diet,
+            flights=flights,
+            region=region,
+            eco_score=eco_score,
+            audit_log=full_audit,
+        )
 
         return CalcResult(
             total=total_kg,
             unit="kg CO2/year",
             contributors=contributors,
-            metadata={
-                "eco_score": eco_score,
-                "transport": transport,
-                "distance": distance,
-                "electricity": electricity,
-                "diet": diet,
-                "flights": flights,
-                "region": region,
-            },
+            metadata=metadata,
         )
 
     def get_recommendations(self, result: CalcResult) -> list[str]:
@@ -110,3 +153,4 @@ class CarbonFootprintPlugin(CalculatorPlugin):
             contributors=result.contributors,
         )
         return recs
+
