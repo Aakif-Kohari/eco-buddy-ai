@@ -240,6 +240,27 @@ with tab_badges:
                     if file_path:
                         with open(file_path, "rb") as f:
                             st.download_button("Download Card", f, file_name=f"badge_{b_id}.png", key=f"dl_{b_id}")
+                
+                with st.expander("Certificate"):
+                    if st.button("Generate PDF", key=f"gen_cert_{b_id}"):
+                        st.session_state[f"cert_{b_id}"] = True
+                        
+                    if st.session_state.get(f"cert_{b_id}"):
+                        from certificate import generate_certificate
+                        import datetime
+                        assessments = get_assessments(user_id)
+                        latest_score = float(assessments[0][8]) if assessments and len(assessments) > 0 and assessments[0][8] is not None else None
+                        
+                        cert_path = generate_certificate(
+                            username=st.session_state.get('username', f'User {user_id}'),
+                            achievement_title=b_data['name'],
+                            achievement_description=b_data['desc'],
+                            eco_score=latest_score,
+                            date_achieved=datetime.datetime.now().strftime("%B %d, %Y")
+                        )
+                        if cert_path:
+                            with open(cert_path, "rb") as f:
+                                st.download_button("📥 Download PDF", f, file_name=f"{b_id}_certificate.pdf", key=f"dl_cert_{b_id}")
             else:
                 st.markdown(f"**🔒 {b_data['name']}**")
                 st.caption(b_data['desc'])
