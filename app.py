@@ -411,6 +411,11 @@ with tab1:
 
         eco_score = calculate_eco_score(total)
 
+        transport_emission = contributors.get("Transportation", 0)
+        electricity_emission = contributors.get("Electricity", 0)
+        diet_emission = contributors.get("Diet", 0)
+        flight_emission = contributors.get("Flights", 0)
+
         insight, recommendations = generate_recommendations(
             transport, electricity, diet, flights, contributors
         )
@@ -694,6 +699,50 @@ with tab1:
         # -------------------------
         # PDF DOWNLOAD
         # -------------------------
+        
+        st.markdown("---")
+
+        with st.expander("🧮 Interactive Calculation Breakdown", expanded=False):
+
+            st.markdown("### Step-by-Step Carbon Footprint Calculation")
+
+            st.markdown("#### 🚗 Transportation")
+            st.write(f"Mode: **{transport}**")
+            st.write(f"Distance: **{distance} km/day**")
+            st.success(f"Contribution: **{transport_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ⚡ Electricity")
+            st.write(f"Monthly Usage: **{electricity} kWh**")
+            st.success(f"Contribution: **{electricity_emission:.2f} kg CO₂**")
+
+            st.markdown("#### 🥗 Diet")
+            st.write(f"Diet Type: **{diet}**")
+            st.success(f"Contribution: **{diet_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ✈ Flights")
+            st.write(f"Flights per year: **{flights}**")
+            st.success(f"Contribution: **{flight_emission:.2f} kg CO₂**")
+
+            st.markdown("---")
+
+            st.metric("🌍 Total Carbon Footprint", f"{total:.2f} kg CO₂")
+
+            st.info("""
+        ### How the total is calculated
+
+        The final carbon footprint is calculated by combining:
+
+        • Transportation emissions
+
+        • Electricity consumption
+
+        • Diet impact
+
+        • Flight emissions
+
+        Each category contributes independently to the final result. Expanding this section allows users to inspect every intermediate value instead of only viewing the final score, making the assessment more transparent and easier to understand.
+        """)
+
         report = generate_pdf(total, eco_score, insight)
 
         if report:
