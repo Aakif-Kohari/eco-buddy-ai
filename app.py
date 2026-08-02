@@ -1353,6 +1353,41 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
+        # -------------------------
+        # Cross-Module Smart Suggestions
+        # -------------------------
+
+        cross_module_suggestions = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            cross_module_suggestions.append(
+                "🛣️ Explore the Route Planning module to discover lower-emission travel options."
+            )
+
+        if electricity_emission > 5:
+            cross_module_suggestions.append(
+                "⚡ Open the Home Energy Audit section for personalized electricity-saving recommendations."
+            )
+
+        if flight_emission > 2:
+            cross_module_suggestions.append(
+                "✈️ Visit Carbon Offsets to balance emissions from frequent air travel."
+            )
+
+        if eco_score < 60:
+            cross_module_suggestions.append(
+                "🏆 Complete weekly sustainability challenges to improve your Eco Score faster."
+            )
+
+        if eco_score >= 80:
+            cross_module_suggestions.append(
+                "🌍 Compare your progress on the Community Leaderboard and inspire other users."
+            )
+
+        cross_module_suggestions.append(
+            "📊 Review your Assessment History to monitor long-term sustainability progress."
+        )
+
         save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
@@ -1364,6 +1399,7 @@ with tab1:
         )
 
         st.success("✅ Analysis completed!")
+
 
 
         # -------------------------
@@ -1400,6 +1436,16 @@ with tab1:
                 detailed and accurate information improves recommendation quality and
                 overall assessment accuracy.
 
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🔗 Cross-Module Smart Suggestions</h3>
+            <p>
+                Based on your assessment results, EcoBuddy recommends additional
+                modules that can help you further reduce your environmental impact.
+                These suggestions connect different features across the application
+                to provide a more personalized sustainability experience.
+
+
         st.caption(
             "These personalized feature recommendations are automatically generated "
             "after every assessment to help users discover useful EcoBuddy modules "
@@ -1422,6 +1468,7 @@ with tab1:
             </p>
         </div>
         """, unsafe_allow_html=True)
+
 
 
         st.markdown("### 🎯 Input Confidence Score")
@@ -1466,6 +1513,17 @@ with tab1:
                 "Excellent! Your assessment contains sufficient information "
                 "to generate highly reliable sustainability insights."
             )
+
+        st.markdown("### 🔗 Cross-Module Smart Suggestions")
+
+        st.caption(
+            "EcoBuddy analyzed your assessment and identified additional modules "
+            "that can provide relevant guidance based on your current environmental profile."
+        )
+
+        for item in cross_module_suggestions:
+            st.info(item)
+
 
         feature_suggestions = []
 
