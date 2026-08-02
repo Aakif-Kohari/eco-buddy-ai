@@ -1866,6 +1866,47 @@ with tab1:
                     "eco_score",
                 ],
             )
+
+            # -----------------------------
+            # Eco Impact Streak Calendar
+            # -----------------------------
+            st.markdown("---")
+            st.subheader("📅 Eco Impact Streak Calendar")
+
+            calendar_df = df.copy()
+            calendar_df["date"] = pd.to_datetime(calendar_df["date"]).dt.date
+
+            today = pd.Timestamp.today().date()
+            last_30_days = pd.date_range(end=today, periods=30)
+
+            activity = []
+
+            for day in last_30_days:
+                if day.date() in calendar_df["date"].values:
+                    activity.append("🟩")
+                else:
+                    activity.append("⬜")
+
+            calendar_html = ""
+
+            for i, box in enumerate(activity):
+                calendar_html += f"<span style='font-size:20px'>{box}</span>"
+                if (i + 1) % 10 == 0:
+                    calendar_html += "<br>"
+
+            st.markdown(calendar_html, unsafe_allow_html=True)
+
+            active_days = len(calendar_df)
+
+            st.metric(
+                "🌱 Active Eco Days",
+                active_days
+            )
+
+            st.caption("🟩 Assessment completed   ⬜ No assessment")
+
+
+
             # ---------------------------------------------------------------
             # Format the automatically generated creation timestamps before
             # displaying them in the Assessment History table.
