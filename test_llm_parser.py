@@ -13,6 +13,7 @@ import json
 import time
 from unittest.mock import patch, MagicMock
 from llm_parser import parse_quick_log, LLM_COOLDOWN_SECONDS, _check_rate_limit
+from errors import ConfigurationError, RateLimitError, ExternalServiceError, ParsingError
 
 
 @pytest.fixture(autouse=True)
@@ -153,7 +154,7 @@ class TestParseQuickLog:
             assert result['transport'] == 'Car'
 
     def test_parse_quick_log_api_error_fallback(self):
-        """Test fallback when API calls fail."""
+        """Test that a clear ExternalServiceError is raised when every provider fails."""
         text = "Just walked around"
         
         with patch('llm_parser.requests.post') as mock_post:
@@ -164,10 +165,15 @@ class TestParseQuickLog:
             mock_post.return_value = mock_error
             
             with patch('llm_parser.st.session_state', {}):
-                result = parse_quick_log(text)
-            
-            # Should return None when all APIs fail
-            assert result is None
+                with pytest.raises(ExternalServiceError) as exc_info:
+                    parse_quick_log(text)
+
+            # The error should be specific and actionable, not a generic
+            # placeholder, and should mention both providers were tried.
+            assert exc_info.value.code == "EXTERNAL_SERVICE_ERROR"
+            assert exc_info.value.message
+            assert "Gemini" in exc_info.value.details
+            assert "Groq" in exc_info.value.details
 
     def test_parse_quick_log_invalid_json_response(self):
         """Test handling of invalid JSON response."""
@@ -187,10 +193,11 @@ class TestParseQuickLog:
             mock_post.return_value = mock_response
             
             with patch('llm_parser.st.session_state', {}):
-                result = parse_quick_log(text)
-            
-            # Should return None for invalid JSON
-            assert result is None
+                with pytest.raises(ParsingError) as exc_info:
+                    parse_quick_log(text)
+
+            assert exc_info.value.code == "PARSING_ERROR"
+            assert exc_info.value.message
 
     def test_parse_quick_log_empty_text(self):
         """Test parsing empty text input."""
@@ -234,6 +241,62 @@ class TestParseQuickLog:
             
             assert result is not None
             assert result['diet'] == 'Non-Vegetarian'
+
+
+class TestParseQuickLogErrorMessages:
+    """Tests that failures produce specific, descriptive errors instead of
+    a generic message or a silent None (see issue: 'Improve API Error
+    Messages')."""
+
+    def test_no_api_keys_raises_configuration_error(self, monkeypatch):
+        """When neither provider is configured, the caller should get a
+        clear configuration error rather than a mysterious failure."""
+        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+        with patch('llm_parser.st.session_state', {}):
+            with pytest.raises(ConfigurationError) as exc_info:
+                parse_quick_log("I drove 5 km")
+
+        assert exc_info.value.code == "CONFIGURATION_ERROR"
+        assert "GEMINI_API_KEY" in exc_info.value.message
+        assert "GROQ_API_KEY" in exc_info.value.message
+
+    def test_rate_limited_raises_rate_limit_error(self):
+        """When every configured provider is on cooldown, the error should
+        say so explicitly instead of behaving like an unexplained failure."""
+        with patch('llm_parser._check_rate_limit', return_value=False):
+            with patch('llm_parser.st.session_state', {}):
+                with pytest.raises(RateLimitError) as exc_info:
+                    parse_quick_log("I drove 5 km")
+
+        assert exc_info.value.code == "RATE_LIMITED"
+
+    def test_missing_fields_raises_parsing_error(self):
+        """A 200 response that doesn't contain the fields the app needs
+        should be reported as a parsing problem, not silently accepted or
+        turned into a generic failure."""
+        with patch('llm_parser.requests.post') as mock_post:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            # Valid JSON, but missing the required "diet" key.
+            mock_response.json.return_value = {
+                "candidates": [{
+                    "content": {
+                        "parts": [{"text": '{"transport": "Car", "distance": 5.0}'}]
+                    }
+                }]
+            }
+            mock_post.return_value = mock_response
+
+            with patch('llm_parser.st.session_state', {}):
+                with pytest.raises(ParsingError) as exc_info:
+                    parse_quick_log("I drove 5 km")
+
+        assert exc_info.value.code == "PARSING_ERROR"
+        # The user-facing message stays short and actionable; the specific
+        # missing field is preserved in `details` for logs/debugging.
+        assert "diet" in exc_info.value.details
 
 
 class TestRateLimiting:

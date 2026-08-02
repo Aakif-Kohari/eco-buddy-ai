@@ -1178,11 +1178,12 @@ with tab1:
         if quick_log_text.strip():
             with st.spinner("Analyzing text..."):
                 from llm_parser import parse_quick_log
-                parsed_data = parse_quick_log(quick_log_text)
-                if parsed_data:
+                from errors import AppError
+                try:
+                    parsed_data = parse_quick_log(quick_log_text)
                     st.session_state.temp_parsed = parsed_data
-                else:
-                    st.error("Could not parse the text. Please try again.")
+                except AppError as exc:
+                    st.error(f"❌ {exc.message}")
         else:
             st.warning("Please enter some text first.")
 
