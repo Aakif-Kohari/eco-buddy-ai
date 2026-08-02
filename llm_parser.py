@@ -61,8 +61,11 @@ def _call_gemini(text, system_prompt, api_key):
         }
     }
     try:
+        from request_logging import log_api_request
         response = requests.post(url, json=payload, timeout=10)
+        log_api_request("POST", url, status_code=response.status_code)
     except requests.exceptions.RequestException as exc:
+        log_api_request("POST", url)
         raise ExternalServiceError(
             "Could not reach the Gemini API (network error).", details=str(exc)
         ) from exc
@@ -106,8 +109,11 @@ def _call_groq(text, system_prompt, api_key):
         "response_format": {"type": "json_object"}
     }
     try:
+        from request_logging import log_api_request
         response = requests.post(url, json=payload, headers=headers, timeout=10)
+        log_api_request("POST", url, headers=headers, status_code=response.status_code)
     except requests.exceptions.RequestException as exc:
+        log_api_request("POST", url, headers=headers)
         raise ExternalServiceError(
             "Could not reach the Groq API (network error).", details=str(exc)
         ) from exc
