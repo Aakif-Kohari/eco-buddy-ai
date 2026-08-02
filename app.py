@@ -68,6 +68,9 @@ features = [
     "♻️ Waste Management Assistant",
     "📊 Environmental Dashboard",
     "🤖 AI-powered Recommendations",
+    "🎬 Carbon Footprint Replay",
+    "🧾 AI Receipt Categorization",
+    "🌿 Local Biodiversity Explorer",
 ]
 
 for feature in features:
