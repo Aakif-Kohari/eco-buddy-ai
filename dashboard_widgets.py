@@ -81,7 +81,8 @@ def render_widget_customizer(user_id: int) -> list[str]:
     return list(st.session_state[SESSION_KEY])
 
 
-def _assessment_rows_to_frame(rows: list[tuple]):
+@st.cache_data(show_spinner=False)
+def _assessment_rows_to_frame(rows: tuple):
     import pandas as pd
     columns = [
         "id",
@@ -111,7 +112,7 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     st.markdown("<div class='section-header'>📊 My Dashboard</div>", unsafe_allow_html=True)
     st.caption("Personalized widgets based on your saved dashboard preferences.")
 
-    frame = _assessment_rows_to_frame(get_assessments(user_id))
+    frame = _assessment_rows_to_frame(tuple(get_assessments(user_id)))
     latest: Mapping[str, object] | None = None
     if not frame.empty:
         latest = frame.iloc[0].to_dict()
