@@ -1401,6 +1401,41 @@ with tab1:
         st.success("✅ Analysis completed!")
 
 
+
+        # -------------------------
+        # INPUT CONFIDENCE SCORE
+        # -------------------------
+
+        confidence_score = 100
+        missing_items = []
+
+        if distance == 0:
+            confidence_score -= 15
+            missing_items.append("Transportation distance")
+
+        if electricity == 0:
+            confidence_score -= 20
+            missing_items.append("Electricity usage")
+
+        if flights == 0:
+            confidence_score -= 10
+            missing_items.append("Flight activity")
+
+        if diet.lower() in ["unknown", "", "select"]:
+            confidence_score -= 15
+            missing_items.append("Diet information")
+
+        confidence_score = max(confidence_score, 0)
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🎯 Assessment Confidence</h3>
+            <p>
+                EcoBuddy evaluates the completeness and consistency of your inputs to
+                estimate how reliable your carbon footprint assessment is. Providing
+                detailed and accurate information improves recommendation quality and
+                overall assessment accuracy.
+
         st.markdown("""
         <div class='card-highlight' style='margin-bottom:18px;'>
             <h3>🔗 Cross-Module Smart Suggestions</h3>
@@ -1409,6 +1444,7 @@ with tab1:
                 modules that can help you further reduce your environmental impact.
                 These suggestions connect different features across the application
                 to provide a more personalized sustainability experience.
+
 
         st.caption(
             "These personalized feature recommendations are automatically generated "
@@ -1434,6 +1470,50 @@ with tab1:
         """, unsafe_allow_html=True)
 
 
+
+        st.markdown("### 🎯 Input Confidence Score")
+
+        st.progress(confidence_score / 100)
+
+        st.metric("Confidence", f"{confidence_score}%")
+
+        if confidence_score >= 90:
+            st.success("🟢 High confidence assessment. Your inputs appear complete and reliable.")
+
+        elif confidence_score >= 70:
+            st.warning("🟡 Medium confidence assessment. Some additional information could improve accuracy.")
+
+        else:
+            st.error("🔴 Low confidence assessment. Consider completing more fields for better estimates.")
+
+        if missing_items:
+
+            st.markdown("#### Missing or Incomplete Information")
+
+            for item in missing_items:
+                st.write(f"• {item}")
+
+            st.info(
+                "Providing more complete information will improve the accuracy "
+                "of your carbon footprint calculations and recommendations."
+            )
+
+        st.markdown("#### 💡 Improvement Suggestions")
+
+        if confidence_score < 100:
+
+            st.write("✅ Provide accurate transportation distance.")
+            st.write("✅ Enter realistic electricity consumption.")
+            st.write("✅ Include annual flight information.")
+            st.write("✅ Select the most appropriate diet type.")
+
+        else:
+
+            st.success(
+                "Excellent! Your assessment contains sufficient information "
+                "to generate highly reliable sustainability insights."
+            )
+
         st.markdown("### 🔗 Cross-Module Smart Suggestions")
 
         st.caption(
@@ -1443,6 +1523,7 @@ with tab1:
 
         for item in cross_module_suggestions:
             st.info(item)
+
 
         feature_suggestions = []
 
