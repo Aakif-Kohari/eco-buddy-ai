@@ -122,7 +122,11 @@ with tab_assess:
         else:
             st.warning("Please enter some text first.")
 
-    is_done_ai, parsed_data = render_task_progress("quick_log_parse", success_msg="Text analyzed successfully!")
+    is_done_ai, parsed_data = render_task_progress(
+        "quick_log_parse",
+        success_msg="Text analyzed successfully!",
+        error_msg="AI Quick Log failed",
+    )
     if is_done_ai and parsed_data:
         st.session_state.temp_parsed = parsed_data
         clear_background_task("quick_log_parse")

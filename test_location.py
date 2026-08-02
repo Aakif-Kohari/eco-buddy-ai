@@ -1,6 +1,14 @@
+import io
+import json
 import datetime
 import pytest
-from location_parser import parse_gpx, segment_trips, process_segment
+from location_parser import (
+    parse_gpx,
+    parse_google_takeout_json,
+    parse_and_segment_file_bytes,
+    segment_trips,
+    process_segment,
+)
 
 GPX_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Mock">
@@ -74,6 +82,61 @@ def test_detect_transport_mode_speed_ranges():
     assert detect_transport_mode(15.0) == "Bike"
     assert detect_transport_mode(35.0) == "Public Transport"
     assert detect_transport_mode(60.0) == "Car"
+
+
+class TestParsingErrors:
+    """Tests that malformed input produces specific, descriptive errors
+    instead of a generic message or a silently-empty result (see issue:
+    'Improve API Error Messages')."""
+
+    def test_parse_gpx_with_invalid_xml_raises_parsing_error(self):
+        from errors import ParsingError
+
+        with pytest.raises(ParsingError) as exc_info:
+            parse_gpx("this is not gpx xml at all")
+
+        assert exc_info.value.code == "PARSING_ERROR"
+        assert "GPX" in exc_info.value.message
+
+    def test_parse_google_takeout_json_with_malformed_json_raises_parsing_error(self):
+        from errors import ParsingError
+
+        with pytest.raises(ParsingError) as exc_info:
+            parse_google_takeout_json(io.BytesIO(b"{not: valid json"))
+
+        assert exc_info.value.code == "PARSING_ERROR"
+
+    def test_parse_and_segment_unsupported_extension(self):
+        result = parse_and_segment_file_bytes(b"whatever", "trip.csv")
+
+        assert result["success"] is False
+        assert result["error_code"] == "VALIDATION_ERROR"
+        assert ".csv" in result["error"]
+        assert result["waypoints"] == []
+        assert result["segments"] == []
+
+    def test_parse_and_segment_corrupted_gpx(self):
+        result = parse_and_segment_file_bytes(b"not a gpx file", "trip.gpx")
+
+        assert result["success"] is False
+        assert result["error_code"] == "PARSING_ERROR"
+        assert result["error"]
+
+    def test_parse_and_segment_empty_takeout_json(self):
+        payload = json.dumps({"locations": []}).encode("utf-8")
+        result = parse_and_segment_file_bytes(payload, "Location History.json")
+
+        assert result["success"] is False
+        assert result["error_code"] == "PARSING_ERROR"
+        assert "waypoints" in result["error"].lower()
+
+    def test_parse_and_segment_valid_gpx_succeeds(self):
+        result = parse_and_segment_file_bytes(GPX_CONTENT.encode("utf-8"), "trip.gpx")
+
+        assert result["success"] is True
+        assert result["error"] is None
+        assert result["error_code"] is None
+        assert len(result["waypoints"]) == 3
 
 
 def test_process_segment_returns_required_keys():
