@@ -4,13 +4,13 @@ import time
 from database import *
 from emissions import *
 from recommendations import *
-import os
+from impact_analyzer import analyze_minimal_changeimport os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
 from report import generate_pdf
-import gamification as gf
+from treemap_chart import create_emission_treemapfrom sankey_chart import create_emission_sankeyimport gamification as gf
 from marketplace import *
 from llm_parser import parse_quick_log
 from ocr_utils import extract_text_from_bytes, parse_energy_consumption
@@ -349,17 +349,48 @@ if "analysis" in st.session_state:
         title="Monthly Carbon Footprint Trend"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 💡 AI Insight")
-    st.info(data["insight"])
+    st.markdown("### 🌊 Carbon Emission Flow (Sankey Diagram)")
+    st.caption("See how each activity category flows into your total carbon footprint.")
+    sankey_fig = create_emission_sankey(data["contributors"], data["total"])
+st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 🌱 Recommendations")
+    st.markdown("### 🗺️ Carbon Footprint Breakdown (Tree Map)")
+    st.caption("See which categories take up the largest share of your total footprint.")
+    treemap_fig = create_emission_treemap(data["contributors"], data["total"])
+    st.plotly_chart(treemap_fig, use_container_width=True)
+
+    st.markdown("### 💡 AI Insight")    st.info(data["insight"])
+
+st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
         st.success(rec)
 
-    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+    st.markdown("### 🎯 Minimal Change, Maximum Impact")
+    ranked_changes = analyze_minimal_change(
+        data["transport"], data["distance"], data["electricity"],
+        data["diet"], data["flights"], st.session_state.get("region", "Global"),
+        data["total"]
+    )
+    if ranked_changes:
+        best = ranked_changes[0]
+        st.success(
+            f"⭐ **Best small change:** {best['change']}\n\n"
+            f"**Estimated savings:** {best['savings']:.2f} kg CO₂/year "
+            f"(Effort: {best['effort']})\n\n"
+            f"**Why it works:** {best['reason']}"
+        )
+        with st.expander("📊 See all ranked lifestyle changes"):
+            for c in ranked_changes:
+                st.write(
+                    f"- **{c['change']}** — Effort: {c['effort']}, "
+                    f"Estimated savings: {c['savings']:.2f} kg CO₂/year"
+                )
+    else:
+        st.info("No further small changes detected — your lifestyle is already optimized!")
 
+    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
     with st.expander("📋 View Calculation Audit Log"):
         audit = data.get("audit_log", {})
         fp_audit = audit.get("footprint_audit", {})
