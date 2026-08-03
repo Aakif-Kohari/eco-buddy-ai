@@ -159,3 +159,70 @@ def import_data_json(json_str, strategy='merge'):
     finally:
         if conn:
             conn.close()
+
+
+def import_assessments_bulk(file_content, file_type, user_id):
+    """
+    Bulk-imports historical assessments from CSV or JSON content.
+    Validates each record, skips duplicates and invalid rows, and
+    returns a summary dict instead of failing the whole import.
+    """
+    required_fields = ["transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score"]
+    summary = {"imported": 0, "duplicates": 0, "invalid": 0, "errors": []}
+
+    try:
+        if file_type == "csv":
+            rows = list(csv.DictReader(io.StringIO(file_content)))
+        elif file_type == "json":
+            parsed = json.loads(file_content)
+            rows = parsed if isinstance(parsed, list) else parsed.get("assessments", [])
+        else:
+            summary["errors"].append("Unsupported file type. Please upload a .csv or .json file.")
+            return summary
+    except (json.JSONDecodeError, csv.Error) as e:
+        summary["errors"].append(f"Could not parse file: {e}")
+        return summary
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    for i, row in enumerate(rows, start=1):
+        missing = [f for f in required_fields if not row.get(f)]
+        if missing:
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: missing field(s) {', '.join(missing)}")
+            continue
+
+        try:
+            transport = str(row["transport"])
+            distance = float(row["distance"])
+            electricity = float(row["electricity"])
+            diet = str(row["diet"])
+            flights = int(row["flights"])
+            footprint = float(row["footprint"])
+            eco_score = int(row["eco_score"])
+        except (ValueError, TypeError):
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: invalid data type in one or more fields")
+            continue
+
+        cursor.execute(
+            """SELECT 1 FROM assessments
+               WHERE user_id = ? AND transport = ? AND distance = ?
+               AND footprint = ? AND eco_score = ?""",
+            (user_id, transport, distance, footprint, eco_score),
+        )
+        if cursor.fetchone():
+            summary["duplicates"] += 1
+            continue
+
+        if database.save_assessment(user_id, transport, distance, electricity, diet, flights, footprint, eco_score):
+            summary["imported"] += 1
+        else:
+            summary["invalid"] += 1
+            summary["errors"].append(f"Row {i}: failed to save to database")
+
+    conn.close()
+    invalidate_export_caches()
+    invalidate_all_db_caches()
+    return summary

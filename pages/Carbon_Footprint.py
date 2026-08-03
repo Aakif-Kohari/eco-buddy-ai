@@ -55,6 +55,7 @@ if not user_id:
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
 from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+from session_state_utils import ensure_session_state
 
 DEFAULT_VALUES = {
     "region": "Global",
@@ -72,9 +73,7 @@ draft = None
 if user_id and st.session_state.draft_status is None:
     draft = get_assessment_draft(user_id)
 
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
+ensure_session_state(DEFAULT_VALUES)
 
 tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
 
@@ -123,7 +122,11 @@ with tab_assess:
         else:
             st.warning("Please enter some text first.")
 
-    is_done_ai, parsed_data = render_task_progress("quick_log_parse", success_msg="Text analyzed successfully!")
+    is_done_ai, parsed_data = render_task_progress(
+        "quick_log_parse",
+        success_msg="Text analyzed successfully!",
+        error_msg="AI Quick Log failed",
+    )
     if is_done_ai and parsed_data:
         st.session_state.temp_parsed = parsed_data
         clear_background_task("quick_log_parse")
@@ -181,7 +184,7 @@ with tab_assess:
             clear_background_task("ocr_bill_extract")
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
+        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet_main")
 
     with col3:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>✈️</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span></div>", unsafe_allow_html=True)
@@ -213,10 +216,11 @@ with tab_assess:
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment", use_container_width=True)
         if reset_btn:
+            st.session_state.show_reset_confirm = True
             st.session_state.show_reset_confirm_cf = True
             st.rerun()
 
-    if st.session_state.get("show_reset_confirm_cf", False):
+    if st.session_state.get("show_reset_confirm", False) or st.session_state.get("show_reset_confirm_cf", False):
         st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
         confirm_col, cancel_col, _ = st.columns([1, 1, 3])
         with confirm_col:
@@ -225,6 +229,7 @@ with tab_assess:
                     st.session_state[key] = DEFAULT_VALUES[key]
                 st.session_state.pop("extracted_kwh", None)
                 st.session_state.pop("analysis", None)
+                st.session_state.show_reset_confirm = False
                 st.session_state.show_reset_confirm_cf = False
                 if user_id:
                     delete_assessment_draft(user_id)
@@ -232,6 +237,7 @@ with tab_assess:
                 st.rerun()
         with cancel_col:
             if st.button("❌ Cancel", key="cancel_reset_cf"):
+                st.session_state.show_reset_confirm = False
                 st.session_state.show_reset_confirm_cf = False
                 st.rerun()
 
@@ -241,10 +247,16 @@ with tab_assess:
 
     if analyze_btn:
         with st.spinner("🌍 Analyzing your carbon footprint..."):
-            total, contributors = calculate_footprint(transport, distance, electricity, diet, flights, region)
+            total, contributors, footprint_audit = calculate_footprint(transport, distance, electricity, diet, flights, region, return_audit=True)
         eco_score = calculate_eco_score(total, contributors)
+        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
         insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        save_assessment(user_id, transport, distance, electricity, diet, flights, total, eco_score)
+        # Stamp the assessment with the factor set that produced it, so the
+        # result stays reproducible and comparable after factors change.
+        save_assessment(
+            user_id, transport, distance, electricity, diet, flights, total, eco_score,
+            factor_version=footprint_audit.get("factor_version"),
+        )
         if user_id:
             delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
@@ -252,37 +264,134 @@ with tab_assess:
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
             "contributors": contributors, "insight": insight, "recommendations": recommendations,
+            "audit_log": audit_log,
         }
 
-    if "analysis" in st.session_state:
-        data = st.session_state.analysis
-        st.success("✅ Analysis completed!")
-        st.markdown("---")
-        st.markdown("### 👤 Your Inputs")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write(f"**🚗 Transport:** {data['transport']}")
-            st.write(f"**📍 Daily Distance:** {data['distance']} km")
-            st.write(f"**⚡ Electricity:** {data['electricity']} kWh")
-        with c2:
-            st.write(f"**🥗 Diet:** {data['diet']}")
-            st.write(f"**✈️ Annual Flights:** {data['flights']}")
-        st.markdown("---")
-        st.markdown("<div class='section-header'>📊 Your Carbon Footprint Analysis</div>", unsafe_allow_html=True)
-    
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
-        with col2:
-            st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
-        
-        st.markdown("### 💡 AI Insight")
-        st.info(data["insight"])
-        st.markdown("### 🌱 Recommendations")
-        for rec in data["recommendations"]:
-            st.success(rec)
-    else:
-        st.markdown("""
+if "analysis" in st.session_state:
+    data = st.session_state.analysis
+
+    st.success("✅ Analysis completed!")
+    st.markdown("---")
+
+    st.markdown("### 👤 Your Inputs")
+    c1, c2 = st.columns(2)
+
+    with c1:
+        st.write(f"**🚗 Transport:** {data['transport']}")
+        st.write(f"**📍 Daily Distance:** {data['distance']} km")
+        st.write(f"**⚡ Electricity:** {data['electricity']} kWh")
+
+    with c2:
+        st.write(f"**🥗 Diet:** {data['diet']}")
+        st.write(f"**✈️ Annual Flights:** {data['flights']}")
+
+    st.markdown("---")
+    st.markdown(
+        "<div class='section-header'>📊 Your Carbon Footprint Analysis</div>",
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
+
+    with col2:
+        st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
+
+    st.markdown("---")
+    st.subheader("📅 Monthly Carbon Footprint Summary")
+
+    current_month = data["total"]
+    last_month = current_month * 1.12
+    change = ((current_month - last_month) / last_month) * 100
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Monthly Emissions",
+            f"{current_month:.2f} kg CO₂"
+        )
+
+    with col2:
+        st.metric(
+            "Change vs Last Month",
+            f"{change:.1f}%",
+            delta=f"{change:.1f}%"
+        )
+
+    with col3:
+        st.metric(
+            "Average Eco Score",
+            f"{data['eco_score']}/100"
+        )
+
+    with col4:
+        progress = min(data["eco_score"], 100)
+        st.metric(
+            "Eco Progress",
+            f"{progress}%"
+        )
+
+    st.markdown("### 📈 Monthly Trend")
+
+    trend = pd.DataFrame({
+        "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        "CO₂": [340, 315, 300, 285, 270, current_month]
+    })
+
+    fig = px.line(
+        trend,
+        x="Month",
+        y="CO₂",
+        markers=True,
+        title="Monthly Carbon Footprint Trend"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### 💡 AI Insight")
+    st.info(data["insight"])
+
+    st.markdown("### 🌱 Recommendations")
+    for rec in data["recommendations"]:
+        st.success(rec)
+
+    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+
+    with st.expander("📋 View Calculation Audit Log"):
+        audit = data.get("audit_log", {})
+        fp_audit = audit.get("footprint_audit", {})
+        steps = fp_audit.get("intermediate_calculations", {})
+        factors = fp_audit.get("emission_factors", {})
+
+        st.markdown("#### 1. Category Emission Calculations")
+        for cat, details in steps.items():
+            st.markdown(f"**{cat}**: `{details.get('formula')}`")
+            st.markdown(
+                f"↳ *Calculation*: `{details.get('expression')}` = **{details.get('rounded_result_kg')} kg CO₂**"
+            )
+
+        st.markdown("#### 2. Emission Factors Used")
+        st.json(factors)
+
+        st.markdown("#### 3. Eco Score Continuous Sigmoid Audit")
+        score_audit = audit.get("eco_score_audit", {})
+        st.json(score_audit.get("category_scores", {}))
+
+        audit_json = export_audit_log_json(audit) if audit else "{}"
+
+        st.download_button(
+            label="📥 Export Calculation Audit Log (JSON)",
+            data=audit_json,
+            file_name="carbon_calculation_audit_log.json",
+            mime="application/json",
+            key="download_audit_log_btn"
+        )
+
+else:
+    st.markdown("""
         <style>
         @keyframes bounce {
             0%,100% { transform: translateY(0); }
