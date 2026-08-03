@@ -70,7 +70,6 @@ features = [
     "🤖 AI-powered Recommendations",
     "🎬 Carbon Footprint Replay",
     "🧾 AI Receipt Categorization",
-    "🌿 Local Biodiversity Explorer",
 ]
 
 for feature in features:
