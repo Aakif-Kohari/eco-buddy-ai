@@ -10,7 +10,7 @@ import uuid
 import plotly.graph_objects as go
 import plotly.express as px
 from report import generate_pdf
-import gamification as gf
+from sankey_chart import create_emission_sankeyimport gamification as gf
 from marketplace import *
 from llm_parser import parse_quick_log
 from ocr_utils import extract_text_from_bytes, parse_energy_consumption
@@ -349,10 +349,14 @@ if "analysis" in st.session_state:
         title="Monthly Carbon Footprint Trend"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 💡 AI Insight")
-    st.info(data["insight"])
+    st.markdown("### 🌊 Carbon Emission Flow (Sankey Diagram)")
+    st.caption("See how each activity category flows into your total carbon footprint.")
+    sankey_fig = create_emission_sankey(data["contributors"], data["total"])
+    st.plotly_chart(sankey_fig, use_container_width=True)
+
+    st.markdown("### 💡 AI Insight")    st.info(data["insight"])
 
     st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
