@@ -5,6 +5,7 @@ from cache import cached
 from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
 from invalidation import (
     invalidate_on_assessment_save,
+    invalidate_on_assessment_undo,
     invalidate_on_appliance_change,
     invalidate_on_solar_config_save,
     invalidate_on_challenge_enroll,
@@ -173,6 +174,38 @@ def init_db():
                         flights INTEGER,
                         region TEXT,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS deleted_assessments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        original_id INTEGER,
+                        user_id INTEGER DEFAULT 1,
+                        date TIMESTAMP,
+                        transport TEXT,
+                        distance REAL,
+                        electricity REAL,
+                        diet TEXT,
+                        flights INTEGER,
+                        footprint REAL,
+                        eco_score INTEGER,
+                        deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS assessment_activity_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER DEFAULT 1,
+                        assessment_id INTEGER,
+                        action TEXT NOT NULL,
+                        details TEXT,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                     """
                 )
@@ -520,6 +553,203 @@ def get_all_assessments():
         return data
     except sqlite3.Error as e:
         print(f"Database read error: {e}")
+        return []
+
+
+def undo_last_assessment(user_id=1):
+    """
+    Undo the user's most recent assessment record.
+    Moves record to deleted_assessments table, logs action in activity log,
+    and invalidates dependent caches.
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Find latest assessment
+        cursor.execute(
+            """
+            SELECT id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            FROM assessments
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return False, "No assessment found to undo.", None
+
+        rec_id, date, transport, distance, electricity, diet, flights, footprint, eco_score = row
+
+        # Backup into deleted_assessments
+        cursor.execute(
+            """
+            INSERT INTO deleted_assessments (original_id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (rec_id, user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score)
+        )
+
+        # Delete from assessments table
+        cursor.execute("DELETE FROM assessments WHERE id = ?", (rec_id,))
+
+        # Log activity
+        details = f"Undone assessment #{rec_id} ({footprint:.1f} kg CO2, score {eco_score})"
+        cursor.execute(
+            """
+            INSERT INTO assessment_activity_log (user_id, assessment_id, action, details)
+            VALUES (?, ?, 'UNDO', ?)
+            """,
+            (user_id, rec_id, details)
+        )
+
+        conn.commit()
+        conn.close()
+
+        invalidate_on_assessment_undo()
+        record_dict = {
+            "id": rec_id,
+            "date": date,
+            "transport": transport,
+            "distance": distance,
+            "electricity": electricity,
+            "diet": diet,
+            "flights": flights,
+            "footprint": footprint,
+            "eco_score": eco_score,
+        }
+        return True, f"Successfully undone assessment #{rec_id}.", record_dict
+    except sqlite3.Error as e:
+        logger.error("Undo assessment error: %s", e)
+        return False, f"Database error during undo: {e}", None
+
+
+def restore_last_deleted_assessment(user_id=1):
+    """
+    Restore the user's most recently undone assessment.
+    Re-inserts record into assessments table and logs action.
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+
+        # Find latest deleted assessment
+        cursor.execute(
+            """
+            SELECT id, original_id, date, transport, distance, electricity, diet, flights, footprint, eco_score
+            FROM deleted_assessments
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return False, "No deleted assessment available to restore.", None
+
+        del_id, orig_id, date, transport, distance, electricity, diet, flights, footprint, eco_score = row
+
+        # Re-insert into assessments
+        cursor.execute(
+            """
+            INSERT INTO assessments (user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, date, transport, distance, electricity, diet, flights, footprint, eco_score)
+        )
+        new_id = cursor.lastrowid
+
+        # Delete from deleted_assessments
+        cursor.execute("DELETE FROM deleted_assessments WHERE id = ?", (del_id,))
+
+        # Log activity
+        details = f"Restored assessment (formerly #{orig_id}, now #{new_id})"
+        cursor.execute(
+            """
+            INSERT INTO assessment_activity_log (user_id, assessment_id, action, details)
+            VALUES (?, ?, 'RESTORE', ?)
+            """,
+            (user_id, new_id, details)
+        )
+
+        conn.commit()
+        conn.close()
+
+        invalidate_on_assessment_save()
+        return True, f"Successfully restored assessment #{new_id}.", {"id": new_id, "footprint": footprint}
+    except sqlite3.Error as e:
+        logger.error("Restore assessment error: %s", e)
+        return False, f"Database error during restore: {e}", None
+
+
+def get_last_undone_assessment(user_id=1):
+    """Fetch the latest undone assessment for restore preview."""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT original_id, date, transport, distance, electricity, diet, flights, footprint, eco_score, deleted_at
+            FROM deleted_assessments
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "original_id": row[0],
+                "date": row[1],
+                "transport": row[2],
+                "distance": row[3],
+                "electricity": row[4],
+                "diet": row[5],
+                "flights": row[6],
+                "footprint": row[7],
+                "eco_score": row[8],
+                "deleted_at": row[9],
+            }
+        return None
+    except sqlite3.Error:
+        return None
+
+
+def get_assessment_activity_history(user_id=1):
+    """Retrieve chronological activity log for assessment creations, undos, and restores."""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, assessment_id, action, details, timestamp
+            FROM assessment_activity_log
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            {
+                "id": r[0],
+                "assessment_id": r[1],
+                "action": r[2],
+                "details": r[3],
+                "timestamp": r[4],
+            }
+            for r in rows
+        ]
+    except sqlite3.Error:
         return []
 
 
