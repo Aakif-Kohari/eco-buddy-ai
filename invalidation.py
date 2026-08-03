@@ -74,6 +74,12 @@ def invalidate_on_assessment_save():
     ])
 
 
+def invalidate_on_assessment_undo():
+    """Invalidate caches dependent on assessment undo or restore operations."""
+    invalidate_on_assessment_save()
+
+
+
 def invalidate_on_appliance_change():
     """Invalidate caches dependent on appliance add/delete."""
     _clear_by_name([
