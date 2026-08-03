@@ -4,7 +4,7 @@ import time
 from database import *
 from emissions import *
 from recommendations import *
-import os
+from impact_analyzer import analyze_minimal_changeimport os
 import tempfile
 import uuid
 import plotly.graph_objects as go
@@ -358,12 +358,34 @@ st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("### 💡 AI Insight")    st.info(data["insight"])
 
-    st.markdown("### 🌱 Recommendations")
+st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
         st.success(rec)
 
-    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+    st.markdown("### 🎯 Minimal Change, Maximum Impact")
+    ranked_changes = analyze_minimal_change(
+        data["transport"], data["distance"], data["electricity"],
+        data["diet"], data["flights"], st.session_state.get("region", "Global"),
+        data["total"]
+    )
+    if ranked_changes:
+        best = ranked_changes[0]
+        st.success(
+            f"⭐ **Best small change:** {best['change']}\n\n"
+            f"**Estimated savings:** {best['savings']:.2f} kg CO₂/year "
+            f"(Effort: {best['effort']})\n\n"
+            f"**Why it works:** {best['reason']}"
+        )
+        with st.expander("📊 See all ranked lifestyle changes"):
+            for c in ranked_changes:
+                st.write(
+                    f"- **{c['change']}** — Effort: {c['effort']}, "
+                    f"Estimated savings: {c['savings']:.2f} kg CO₂/year"
+                )
+    else:
+        st.info("No further small changes detected — your lifestyle is already optimized!")
 
+    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
     with st.expander("📋 View Calculation Audit Log"):
         audit = data.get("audit_log", {})
         fp_audit = audit.get("footprint_audit", {})
