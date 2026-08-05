@@ -141,7 +141,16 @@ def init_db():
                     )
                     """
                 )
-
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS carbon_budgets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    budget_type TEXT NOT NULL,
+    budget_limit REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+)
+""")
                 try:
                     cursor.execute(
                         """
@@ -506,7 +515,74 @@ def get_assessments(user_id=1):
         print(f"Database read error: {e}")
         return []
 
+def save_carbon_budget(user_id, budget_type, budget_limit):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
 
+        cursor.execute(
+            "DELETE FROM carbon_budgets WHERE user_id=?",
+            (user_id,)
+        )
+
+        cursor.execute("""
+            INSERT INTO carbon_budgets(user_id,budget_type,budget_limit)
+            VALUES(?,?,?)
+        """,(user_id,budget_type,budget_limit))
+
+        conn.commit()
+        conn.close()
+
+        return True
+
+    except sqlite3.Error as e:
+        print(e)
+        return False
+def get_carbon_budget(user_id):
+
+    try:
+        conn=sqlite3.connect(DB_NAME)
+        cursor=conn.cursor()
+
+        cursor.execute("""
+        SELECT budget_type,budget_limit
+        FROM carbon_budgets
+        WHERE user_id=?
+        ORDER BY id DESC
+        LIMIT 1
+        """,(user_id,))
+
+        row=cursor.fetchone()
+
+        conn.close()
+
+        return row
+
+    except sqlite3.Error:
+        return None
+def update_carbon_budget(user_id,budget_type,budget_limit):
+
+    try:
+
+        conn=sqlite3.connect(DB_NAME)
+        cursor=conn.cursor()
+
+        cursor.execute("""
+        UPDATE carbon_budgets
+        SET budget_type=?,
+            budget_limit=?
+        WHERE user_id=?
+        """,(budget_type,budget_limit,user_id))
+
+        conn.commit()
+
+        conn.close()
+
+        return True
+
+    except sqlite3.Error:
+
+        return False
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_assessments_with_factors(user_id=1):
     """

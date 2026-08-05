@@ -1,8 +1,15 @@
 import streamlit as st
 import pandas as pd
 import time
+from database import save_carbon_budget,get_carbon_budget
 from database import *
 from emissions import *
+from emissions import (
+    calculate_remaining_budget,
+    calculate_budget_progress,
+    forecast_monthly_emission,
+    budget_status,
+)
 from recommendations import *
 from impact_analyzer import analyze_minimal_changeimport os
 import tempfile
@@ -658,3 +665,156 @@ with tab_forecast:
                 st.success("Great job! Your footprint is on a downward trend. Keep it up!")
         except Exception as e:
             st.error(f"Error generating forecast: {e}")
+st.subheader("🌱 Carbon Budget Planner")
+
+budget_type=st.selectbox(
+    "Budget Type",
+    ["Monthly","Yearly"]
+)
+
+budget_limit=st.number_input(
+    "Carbon Budget (kg CO₂)",
+    min_value=0.0,
+    step=10.0
+)
+
+if st.button("Save Budget"):
+    save_carbon_budget(
+        st.session_state.user["id"],
+        budget_type,
+        budget_limit
+    )
+
+    st.success("Budget saved successfully.")
+if progress>=0.9:
+    st.error("⚠ You are close to exceeding your carbon budget.")
+
+elif progress>=0.7:
+    st.warning("Approaching your carbon budget.")
+
+else:
+    st.success("Within budget.")
+forecast=total*1.10
+
+st.metric(
+    "Forecast",
+    f"{forecast:.2f} kg CO₂"
+)
+budget = get_carbon_budget(
+    st.session_state.user["id"]
+)
+
+if budget:
+
+    st.info(
+        f"Current Budget: {budget[1]} kg CO₂ ({budget[0]})"
+    )
+budget = get_carbon_budget(
+    st.session_state.user["id"]
+)
+
+if budget:
+
+    budget_limit = budget[1]
+
+    used = total
+
+    remaining = max(
+        budget_limit - used,
+        0
+    )
+
+    progress = min(
+        used / budget_limit,
+        1.0
+    )
+
+    st.subheader("📊 Budget Overview")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Budget",
+            f"{budget_limit:.2f} kg"
+        )
+
+    with col2:
+        st.metric(
+            "Remaining",
+            f"{remaining:.2f} kg"
+        )
+
+    st.progress(progress)
+if progress >= 0.9:
+
+    st.error(
+        "⚠ You are very close to exceeding your carbon budget."
+    )
+
+elif progress >= 0.7:
+
+    st.warning(
+        "Approaching your carbon budget."
+    )
+
+else:
+
+    st.success(
+        "Great! You are within your carbon budget."
+    )
+forecast = used * 1.10
+
+st.metric(
+    "Estimated End-of-Month Emissions",
+    f"{forecast:.2f} kg CO₂"
+)
+
+if forecast > budget_limit:
+
+    st.error(
+        "Forecast indicates you may exceed your budget."
+    )
+
+else:
+
+    st.success(
+        "Forecast indicates you are likely to stay within budget."
+    )
+col1,col2,col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "Budget",
+        f"{budget_limit:.2f}"
+    )
+
+with col2:
+    st.metric(
+        "Used",
+        f"{total:.2f}"
+    )
+
+with col3:
+    st.metric(
+        "Remaining",
+        f"{remaining:.2f}"
+    )
+st.progress(progress)
+st.subheader("Suggestions")
+
+if forecast > budget_limit:
+
+    st.write("• Reduce electricity consumption")
+
+    st.write("• Prefer walking or cycling")
+
+    st.write("• Use public transport")
+
+    st.write("• Reduce unnecessary flights")
+
+else:
+
+    st.success(
+        "You're on track to stay within your carbon budget."
+    )
