@@ -74,6 +74,12 @@ def invalidate_on_assessment_save():
     ])
 
 
+def invalidate_on_assessment_undo():
+    """Invalidate caches dependent on assessment undo or restore operations."""
+    invalidate_on_assessment_save()
+
+
+
 def invalidate_on_appliance_change():
     """Invalidate caches dependent on appliance add/delete."""
     _clear_by_name([
@@ -182,6 +188,30 @@ def invalidate_on_water_assessment_save():
     ])
 
 
+def invalidate_on_freeze_token_change():
+    """Invalidate caches dependent on freeze token or streak freeze changes."""
+    _clear_by_name([
+        'get_freeze_token_balance',
+        'get_streak_freeze_dates',
+        'get_total_freeze_tokens_earned',
+    ])
+
+
+def invalidate_on_reduction_goal_change():
+    """Invalidate caches dependent on reduction goal create/archive/complete."""
+    _clear_by_name([
+        'get_active_goal',
+        'get_goal_history',
+    ])
+
+
+def invalidate_on_time_capsule_change():
+    """Invalidate caches dependent on time capsule operations."""
+    _clear_by_name([
+        'get_time_capsules',
+    ])
+
+
 def invalidate_all_db_caches():
     """
     Invalidate ALL database read caches.
@@ -203,6 +233,12 @@ def invalidate_all_db_caches():
         'get_total_spend',
         'get_diet_history',
         'get_water_assessments',
+        'get_freeze_token_balance',
+        'get_streak_freeze_dates',
+        'get_total_freeze_tokens_earned',
+        'get_active_goal',
+        'get_goal_history',
+        'get_time_capsules',
     ]
     _clear_by_name(db_read_names)
 

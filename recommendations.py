@@ -1,4 +1,3 @@
-import streamlit as st
 from config import normalize_diet
 from cache import cached
 from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED

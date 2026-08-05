@@ -1,10 +1,18 @@
 import html
 import time
+import logging
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-import plotly.express as px
+from logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
+st.set_page_config(    page_title="EcoBuddy",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 import tempfile
 import uuid
 import os
@@ -15,40 +23,142 @@ from components.profile import render_profile
 
 
 load_dotenv()
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
 
-from database import init_db, save_assessment, get_assessments, init_gamification_db, verify_user, create_user
+from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
-from llm_parser import parse_quick_log
 
 from recommendations import generate_recommendations
-from ocr_utils import extract_text_from_file, parse_energy_consumption
+from what_changed import generate_what_changed_analysis, render_what_changed_ui
 
-st.set_page_config(
-    page_title="EcoBuddy",
-    page_icon="🌱",
-    layout="wide",
-    initial_sidebar_state="expanded",
+from datetime import datetime
+
+# ----------------------------
+# Welcome Section
+# ----------------------------
+st.title("🌱 Welcome to EcoBuddy AI")
+
+st.markdown(
+    """
+    Welcome to **EcoBuddy AI**, an intelligent sustainability platform designed
+    to help users understand their environmental impact through AI-powered
+    insights, carbon footprint analysis, and eco-friendly recommendations.
+    """
 )
+
+# ----------------------------
+# Application Information
+# ----------------------------
+welcome_info = {
+    "message": "Welcome to EcoBuddy AI API",
+    "version": "1.0.0",
+    "status": "Running",
+    "framework": "Streamlit",
+    "environment": "Development",
+}
+
+st.subheader("Application Information")
+st.json(welcome_info)
+
+# ----------------------------
+# Feature Highlights
+# ----------------------------
+st.subheader("Key Features")
+
+features = [
+    "🌍 Carbon Footprint Calculator",
+    "⚡ Energy Consumption Analysis",
+    "🚗 Sustainable Commute Planner",
+    "♻️ Waste Management Assistant",
+    "📊 Environmental Dashboard",
+    "🤖 AI-powered Recommendations",
+    "🎬 Carbon Footprint Replay",
+    "🧾 AI Receipt Categorization",
+]
+
+for feature in features:
+    st.markdown(f"- {feature}")
+
+# ----------------------------
+# Quick Statistics
+# ----------------------------
+st.subheader("Application Status")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Version", "1.0.0")
+
+with col2:
+    st.metric("Status", "Online")
+
+with col3:
+    st.metric("Environment", "Development")
+
+# ----------------------------
+# Additional Information
+# ----------------------------
+with st.expander("About EcoBuddy AI"):
+    st.write(
+        """
+        EcoBuddy AI empowers users to make environmentally conscious decisions
+        by providing personalized sustainability insights, educational resources,
+        and practical recommendations for reducing their ecological footprint.
+        """
+    )
+
+st.success("EcoBuddy AI is running successfully.")
+
 # Added for Route Planning & Offsets
 from database import (
     init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
     save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
-    get_total_offsets, get_total_spend
+    get_total_offsets, get_total_spend,
+    get_total_freeze_tokens_earned
 )
 from marketplace import (
     calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
     calculate_offset_cost, validate_offset_transaction, get_offset_projects,
     calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
 )
+from styles.theme import apply_theme, render_theme_selector
+from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
+from environmental_timeline import render_environmental_timeline
+from report_validation import validate_report_data
+from future_self import generate_future_self_report, build_projection_timeline
+from session_recovery import (
+    autosave_session_draft,
+    discard_current_draft,
+    render_draft_recovery_prompt,
+)
+from session_state_utils import (
+    ensure_session_state,
+    set_session_state_if_changed,
+    check_session_timeout,
+    update_last_activity,
+    clear_auth_session,
+)
 
 
+
+DEFAULT_VALUES = {
+    "region": "Global",
+    "transport": "Car",
+    "distance": 10.0,
+    "electricity": 200.0,
+    "diet": "Vegetarian",
+    "flights": 0,
+}
 
 def h(text):
     return html.escape(str(text))
-
+def format_timestamp(ts):
+    if ts:
+        return datetime.strptime(
+            ts,
+            "%Y-%m-%d %H:%M:%S"
+        ).strftime("%d %b %Y %I:%M %p")
+    return "-"
 
 def render_sidebar_auth():
     st.sidebar.title("Authentication")
@@ -56,28 +166,65 @@ def render_sidebar_auth():
         st.session_state['user_id'] = None
         st.session_state['username'] = None
 
+    if st.session_state.get('user_id'):
+        if check_session_timeout():
+            clear_auth_session()
+            st.sidebar.warning("Your session has expired. Please sign in again.")
+            st.rerun()
+        else:
+            update_last_activity()
+
     if st.session_state['user_id'] is None:
         auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
         if auth_mode == "Login":
             with st.sidebar.form("login_form"):
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
+                MAX_USERNAME = 30
+
+                username = st.text_input(
+                    "Username",
+                    key="username",
+                    max_chars=MAX_USERNAME,
+                    help="Enter your registered username."
+                )
+
+                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+
+                password = st.text_input("Password", type="password",
+                help="Enter your account password. Characters will be hidden for security.")
                 if st.form_submit_button("Login"):
                     user = verify_user(username, password)
                     if user:
                         st.session_state['user_id'] = user['id']
                         st.session_state['username'] = user['username']
+                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
                         st.sidebar.success("Logged in successfully!")
                         st.rerun()
                     else:
                         st.sidebar.error("Invalid username or password")
         elif auth_mode == "Register":
             with st.sidebar.form("register_form"):
-                username = st.text_input("Username")
-                email = st.text_input("Email")
-                password = st.text_input("Password", type="password")
+                MAX_USERNAME = 30
+
+                username = st.text_input(
+                    "Username",
+                    max_chars=MAX_USERNAME,
+                    help="Choose a unique username."
+                )
+
+                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+                MAX_EMAIL = 100
+
+                email = st.text_input(
+                    "Email",
+                    max_chars=MAX_EMAIL,
+                    help="Enter a valid email address."
+                )
+
+                st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
+                password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
+                anonymous = st.checkbox("Appear anonymously on leaderboard")
                 if st.form_submit_button("Register"):
-                    if create_user(username, email, password):
+                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
                         st.sidebar.success("Registration successful! Please login.")
                     else:
                         st.sidebar.error("Username or email already exists")
@@ -91,9 +238,20 @@ def render_sidebar_auth():
         st.stop()
     else:
         st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        anon_pref = st.sidebar.checkbox(
+            "Appear anonymously on leaderboard",
+            value=st.session_state.get("anonymous_leaderboard", False)
+        )
+        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+            set_session_state_if_changed('anonymous_leaderboard', anon_pref)
+            st.sidebar.success("Leaderboard preference saved.")
+            st.experimental_rerun()
+
         if st.sidebar.button("Logout"):
-            st.session_state['user_id'] = None
-            st.session_state['username'] = None
+            clear_auth_session()
+            for key, val in DEFAULT_VALUES.items():
+                st.session_state[key] = val
             st.rerun()
 
     return st.session_state['user_id']
@@ -104,39 +262,620 @@ def render_sidebar_auth():
 
 @st.cache_resource
 def run_db_initializations():
+    # Run migrations first to ensure database schema is up to date
+    from database import migrate
+    success, message = migrate()
+    if not success:
+        print(f"Warning: Migration failed: {message}")
+    else:
+        print(f"Database: {message}")
+    
     init_db()
     init_gamification_db()
+    init_freeze_tokens_db()
     init_marketplace_db()
 
 run_db_initializations()
 user_id = render_sidebar_auth()
+render_theme_selector()
+selected_dashboard_widgets = render_widget_customizer(user_id)
+render_customizable_dashboard(user_id, selected_dashboard_widgets)
 
-if 'extracted_kwh' not in st.session_state:
-    st.session_state.extracted_kwh = 200.0
-
-
-
-# -------------------------
-# DEFAULT FORM VALUES
-# -------------------------
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
-
-for key, value in DEFAULT_VALUES.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
+with st.expander("🌍 Environmental Impact Timeline", expanded=False):
+    render_environmental_timeline(user_id)
 
 
 # -------------------------
-# REFERENCE-INSPIRED ADVANCED STYLING
+# DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-load_css()
+ensure_session_state(DEFAULT_VALUES)
+
+# page config moved to top
+
+
+# -------------------------
+# THEME APPLICATION
+# -------------------------
+
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {
+        --ink: #111827;
+        --muted: #6b7280;
+        --paper: rgba(255,255,255,0.75);
+        --paper-strong: rgba(255,255,255,0.95);
+        --line: rgba(0,0,0,0.08);
+        --shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body,
+    [data-testid="stAppViewContainer"] {
+        color: #1f2937;
+        background:
+            radial-gradient(circle at top left, #dcfce7 0%, transparent 30%),
+            radial-gradient(circle at top right, #dbeafe 0%, transparent 30%),
+            #f8fafc !important;
+    }
+
+    .block-container {
+        max-width: 1280px;
+        padding: 24px 32px 56px;
+    }
+
+    [data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.74);
+        border-right: 1px solid var(--line);
+        box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
+        backdrop-filter: blur(18px);
+    }
+
+    [data-testid="stSidebar"] * {
+        color: var(--ink);
+    }
+
+    .title {
+        margin: 8px 0 12px;
+        color: var(--ink);
+        font-size: clamp(46px, 6vw, 82px);
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-align: center;
+        animation: fadeUp 700ms ease both;
+    }
+
+    .subtitle {
+        max-width: 720px;
+        margin: 0 auto 30px;
+        color: var(--muted);
+        font-size: 19px;
+        line-height: 1.6;
+        font-weight: 500;
+        text-align: center;
+        animation: fadeUp 800ms 80ms ease both;
+    }
+
+    .section-header {
+        margin: 38px 0 18px;
+        color: var(--ink);
+        font-size: clamp(28px, 3vw, 42px);
+        line-height: 1.08;
+        font-weight: 800;
+        letter-spacing: 0;
+        animation: fadeUp 650ms ease both;
+    }
+
+    .section-header::after {
+        content: '';
+        display: block;
+        width: 88px;
+        height: 4px;
+        margin-top: 14px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #030504, var(--leaf), rgba(120, 169, 69, 0));
+    }
+
+    .input-section,
+    .card,
+    .card-highlight,
+    .metric-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255,255,255,0.9);
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
+        backdrop-filter: blur(18px);
+        position: relative;
+        overflow: hidden;
+        animation: fadeUp 700ms ease both;
+        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .input-section {
+        padding: 34px;
+        margin-bottom: 24px;
+    }
+
+    .card,
+    .card-highlight,
+    .metric-card {
+        padding: 26px;
+        margin-bottom: 16px;
+    }
+
+    .metric-card::before,
+    .card-highlight::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 5px;
+        background: linear-gradient(90deg, #030504, var(--leaf), #b6d274);
+    }
+
+    .metric-card:hover,
+    .card:hover,
+    .card-highlight:hover {
+        transform: translateY(-6px);
+        border-color: rgba(95, 143, 54, 0.28);
+        box-shadow: 0 26px 64px rgba(57, 86, 47, 0.17);
+    }
+
+    .card-highlight {
+        background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 216, 0.82)),
+            linear-gradient(135deg, rgba(120, 169, 69, 0.12), transparent);
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 20px;
+        border-radius: 999px;
+        border: 1px solid rgba(8, 11, 10, 0.08);
+        background: #030504;
+        color: #fff;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0;
+    }
+
+    .badge-champion {
+        background: linear-gradient(135deg, #f4c760, #d8831e);
+        color: #2c1804;
+    }
+
+    .badge-guardian {
+        background: linear-gradient(135deg, #acd66f, #5f8f36);
+        color: #0d1c0f;
+    }
+
+    .badge-learner {
+        background: linear-gradient(135deg, #b9d7f4, #6aa0cf);
+        color: #071927;
+    }
+
+    .badge-high {
+        background: linear-gradient(135deg, #ff8e70, #d84b35);
+        color: #2e0904;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 12px;
+        margin-top: 12px;
+        border-radius: 999px;
+        background: rgba(8, 11, 10, 0.08);
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #030504, var(--moss), var(--leaf));
+        box-shadow: 0 0 20px rgba(95, 143, 54, 0.34);
+        transition: width 600ms ease;
+    }
+
+    hr {
+        height: 1px;
+        margin: 32px 0;
+        border: none;
+        background: linear-gradient(90deg, transparent, rgba(8, 11, 10, 0.16), transparent);
+    }
+
+    .stTextInput > div > div > input,
+    .stNumberInput input,
+    .stSelectbox [data-baseweb="select"],
+    .stTextArea textarea {
+        min-height: 48px;
+        border: 1px solid rgba(8, 11, 10, 0.12) !important;
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.88) !important;
+        color: var(--ink) !important;
+        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+    }
+
+    .stTextInput > div > div > input:focus,
+    .stNumberInput input:focus,
+    .stTextArea textarea:focus {
+        border-color: rgba(95, 143, 54, 0.55) !important;
+        box-shadow: 0 0 0 4px rgba(120, 169, 69, 0.14) !important;
+    }
+
+    .stButton > button,
+    .stDownloadButton > button,
+    [data-testid="stFormSubmitButton"] > button {
+        min-height: 52px;
+        padding: 0 28px !important;
+        border: none !important;
+        border-radius: 12px !important;
+        background: #030504 !important;
+        color: #fff !important;
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2) !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0 !important;
+        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+    }
+
+    .stButton > button:hover,
+    .stDownloadButton > button:hover,
+    [data-testid="stFormSubmitButton"] > button:hover {
+        transform: translateY(-2px);
+        background: #101713 !important;
+        box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26) !important;
+    }
+
+    .stInfo,
+    .stWarning,
+    .stSuccess,
+    .stError {
+        border-radius: 14px !important;
+        border: 1px solid var(--line) !important;
+        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+    }
+
+    .stInfo {
+        background: rgba(185, 215, 244, 0.42) !important;
+    }
+
+    .stWarning {
+        background: rgba(244, 199, 96, 0.24) !important;
+    }
+
+    .stSuccess {
+        background: rgba(172, 214, 111, 0.26) !important;
+    }
+
+    @media (prefers-color-scheme: dark) {
+    /* DARK PREMIUM THEME OVERRIDES */
+    :root {
+        --sky: #8ec5ff;
+        --sky-soft: #18273a;
+        --field: #4ade80;
+        --leaf: #58d27b;
+        --moss: #86efac;
+        --ink: #f8fafc;
+        --muted: #a7b3c6;
+        --paper: rgba(15, 23, 42, 0.76);
+        --paper-strong: rgba(12, 18, 32, 0.92);
+        --line: rgba(148, 163, 184, 0.18);
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+        --radius: 18px;
+    }
+
+    body,
+    [data-testid="stAppViewContainer"] {
+        color: var(--ink);
+        background:
+            radial-gradient(circle at 18% 8%, rgba(74, 222, 128, 0.22), transparent 28%),
+            radial-gradient(circle at 84% 12%, rgba(96, 165, 250, 0.18), transparent 30%),
+            linear-gradient(145deg, #030712 0%, #07130d 42%, #111827 100%) !important;
+    }
+
+    .block-container {
+        padding-top: 28px;
+    }
+
+    [data-testid="stSidebar"] {
+        background: rgba(3, 7, 18, 0.84);
+        border-right: 1px solid var(--line);
+        box-shadow: 18px 0 48px rgba(0, 0, 0, 0.26);
+    }
+
+    [data-testid="stSidebar"] * {
+        color: var(--ink);
+    }
+
+    .title {
+        color: var(--ink);
+        text-shadow: 0 18px 48px rgba(74, 222, 128, 0.18);
+    }
+
+    .subtitle,
+    .section-header {
+        color: var(--ink);
+    }
+
+    .subtitle {
+        color: var(--muted);
+    }
+
+    .input-section,
+    .card,
+    .card-highlight,
+    .metric-card {
+        background:
+            linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72)),
+            linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
+        border-color: var(--line);
+        box-shadow: var(--shadow);
+    }
+
+    .card-highlight {
+        background:
+            linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
+            linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
+    }
+
+    .metric-card::before,
+    .card-highlight::before,
+    .section-header::after {
+        background: linear-gradient(90deg, #4ade80, #86efac, rgba(96, 165, 250, 0));
+    }
+
+    .progress-bar {
+        background: rgba(148, 163, 184, 0.14);
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #16a34a, #4ade80, #86efac);
+    }
+
+    .stTextInput > div > div > input,
+    .stNumberInput input,
+    .stSelectbox [data-baseweb="select"],
+    .stTextArea textarea {
+        background: #e6f5e9 !important;
+        border-color: rgba(74, 222, 128, 0.4) !important;
+        color: #05070a !important;
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+    }
+
+    .stTextInput label,
+    .stNumberInput label,
+    .stSelectbox label,
+    [data-testid="stWidgetLabel"],
+    [data-testid="stWidgetLabel"] p {
+        color: #ffffff !important;
+        opacity: 1 !important;
+        font-weight: 800 !important;
+    }
+
+    .stSelectbox [data-baseweb="select"] *,
+    .stNumberInput input,
+    .stTextInput input,
+    .stTextArea textarea {
+        color: #05070a !important;
+        -webkit-text-fill-color: #05070a !important;
+    }
+
+    .stButton > button,
+    .stDownloadButton > button,
+    [data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(135deg, #0b0f18, #111827) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(134, 239, 172, 0.28) !important;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
+    }
+    .stButton > button:hover,
+    .stDownloadButton > button:hover,
+    [data-testid="stFormSubmitButton"] > button:hover {
+        background: linear-gradient(135deg, #111827, #0f2a1a) !important;
+        border-color: rgba(134, 239, 172, 0.55) !important;
+    }
+
+    .stInfo,
+    .stWarning,
+    .stSuccess,
+    .stError {
+        color: var(--ink) !important;
+        background: rgba(15, 23, 42, 0.78) !important;
+        border-color: var(--line) !important;
+    }
+
+    [style*="#d1d5db"],
+    [style*="#6b7280"],
+    [style*="rgb(209, 213, 219)"],
+    [style*="rgb(156, 163, 175)"] {
+        color: var(--muted) !important;
+    }
+    
+    [style*="#4ade80"],
+    [style*="rgb(74, 222, 128)"] {
+        color: var(--moss) !important;
+    }
+
+    [data-testid="stDataFrame"] {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        background: var(--paper-strong) !important;
+    }
+
+    [data-testid="stDataFrame"] > div,
+    [data-testid="stDataFrame"] iframe,
+    [data-testid="stDataFrame"] [class*="stDataFrame"],
+    [data-testid="stDataFrame"] [class*="dataframe"],
+    [data-testid="stDataFrame"] [class*="glide"],
+    [data-testid="stDataFrame"] [class*="table"] {
+        background: transparent !important;
+    }
+
+    [data-testid="stDataFrame"] canvas {
+        background: transparent !important;
+    }
+
+    [data-testid="stDataFrame"] button,
+    [data-testid="stDataFrame"] [role="button"] {
+        background: rgba(255, 255, 255, 0.8) !important;
+        color: var(--ink) !important;
+        border-color: var(--line) !important;
+    }
+
+    [data-testid="stDataFrame"] svg {
+        color: var(--ink) !important;
+        fill: var(--ink) !important;
+    }
+
+    [data-testid="stDataFrame"] [role="grid"],
+    [data-testid="stDataFrame"] [role="row"],
+    [data-testid="stDataFrame"] [role="columnheader"],
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        background-color: transparent !important;
+        border-color: var(--line) !important;
+    }
+
+    [data-testid="stDataFrame"] [role="columnheader"] {
+        background-color: var(--sky-soft) !important;
+        color: var(--moss) !important;
+        font-weight: 800 !important;
+    }
+
+    .history-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid rgba(134, 239, 172, 0.24);
+        border-radius: 16px;
+        background: #0f172a;
+        box-shadow: var(--shadow);
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 15px;
+    }
+
+    .history-table thead th {
+        padding: 16px 18px;
+        background: #07130d;
+        color: #ffffff !important;
+        border-bottom: 1px solid rgba(134, 239, 172, 0.3);
+        font-weight: 800;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .history-table tbody td {
+        padding: 15px 18px;
+        color: #ffffff !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        text-align: left;
+    }
+
+    .history-table tbody tr:nth-child(odd) {
+        background: #0f172a;
+    }
+
+    .history-table tbody tr:nth-child(even) {
+        background: #111827;
+    }
+
+    .history-table tbody tr:hover {
+        background: rgba(34, 197, 94, 0.14);
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 760px) {
+        .block-container {
+            padding: 16px 14px 42px;
+        }
+
+        .input-section,
+        .card,
+        .card-highlight,
+        .metric-card {
+            padding: 22px;
+        }
+    }
+
+    button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+        color: #d1d5db !important;
+        font-weight: 600 !important;
+    }
+    
+    button[data-baseweb="tab"][aria-selected="true"] > div[data-testid="stMarkdownContainer"] > p {
+        color: #4ade80 !important;
+        font-weight: 800 !important;
+    }
+    
+    [data-testid="stExpander"] {
+        background: #0f172a !important;
+        border: 1px solid rgba(134, 239, 172, 0.28) !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+    }
+    
+    [data-testid="stExpander"] details {
+        background: #0f172a !important;
+    }
+
+    [data-testid="stExpander"] summary {
+        background-color: #0f172a !important;
+    }
+    
+    [data-testid="stExpander"] summary:hover {
+        background-color: #1e293b !important;
+    }
+
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] summary p,
+    [data-testid="stExpander"] summary span,
+    [data-testid="stExpander"] summary svg {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        fill: #ffffff !important;
+    }
+    
+    [data-testid="stExpanderDetails"] {
+        background-color: #0f172a !important;
+        color: #d1d5db !important;
+    }
+    } /* end @media (prefers-color-scheme: dark) */
+</style>
+""", unsafe_allow_html=True)
+
+apply_theme()
+
+
 
 # -------------------------
 # HEADER
@@ -146,63 +885,228 @@ render_header()
 
 # -------------------------
 # INPUTS SECTION
-# ------------------------
+# -------------------------
 
-DEFAULT_VALUES = {
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-    "region": "Global",
-    "extracted_kwh": 200.0,
-}
-profile = render_profile(DEFAULT_VALUES)
-if profile["analyze_btn"]:
-    total, contributors = calculate_footprint(
-        profile["transport"],
-        profile["distance"],
-        profile["electricity"],
-        profile["diet"],
-        profile["flights"],
-        profile["region"]
+
+st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+
+ 
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>🚗</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
+    </div>
+    """, unsafe_allow_html=True)
+    transport = st.selectbox(
+    "Primary Transport",
+    ["Car", "Public Transport", "Bike", "Walking"],
+    key="transport",
+    help="Select the mode of transportation you use most frequently for your daily commute."
+    )
+    diet = st.selectbox(
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
+
+with col2:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>⚡</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
+    </div>
+    """, unsafe_allow_html=True)
+    electricity = st.number_input(
+        "Monthly Electricity (kWh)",
+        min_value=0.0,
+        value=200.0,
+        step=10.0,
+        key="electricity",
+        help="Enter your average monthly electricity consumption in kWh."
     )
 
-    eco_score = calculate_eco_score(total)
-
-    insight, recommendations = generate_recommendations(
-        profile["transport"],
-        profile["electricity"],
-        profile["diet"],
-        profile["flights"],
-        contributors
+    diet = st.selectbox(
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
+with col3:
+    st.markdown("""
+    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+        <span style='font-size: 24px;'>✈️</span>
+        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
+    </div>
+    """, unsafe_allow_html=True)
+    flights = st.number_input(
+        "Annual Flights",
+        min_value=0,
+        value=0,
+        step=1,
+        key="flights",
+        help="Enter the number of long-distance flights you take each year."
     )
-
-    render_dashboard(
-        total,
-        eco_score,
-        contributors,
-        insight,
-        recommendations
-    )
-
-    st.caption("✔ All input fields are validated before analysis.")
-
-if reset_btn:
-    for key in DEFAULT_VALUES:
-        if key in st.session_state:
-            del st.session_state[key]
-
-    st.success("✅ Assessment form has been reset.")
-    st.rerun()
+    st.info("💡 How many long-distance flights per year?")
 
  
 
+# -------------------------
+# PDF REPORT GENERATION
+# -------------------------
+
+# -------------------------
+# TABS CONFIGURATION
+# -------------------------
+col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
+
+# Initialize session state
+if "show_reset_confirm" not in st.session_state:
+    st.session_state.show_reset_confirm = False
+
+if "last_reset_time" not in st.session_state:
+    st.session_state.last_reset_time = None
+
+with col_btn1:
+    if st.button(
+        "🔄 Reset Assessment",
+        use_container_width=True,
+        key="reset_btn"
+    ):
+        st.session_state.show_reset_confirm = True
+        st.rerun()
+
+with col_btn2:
+
+    st.caption("✔ All input fields are validated before analysis.")
+
+    analyze_btn = st.button(
+        "🌿 Analyze My Impact",
+        use_container_width=True,
+        key="analyze_btn"
+    )
+
+# -----------------------------
+# Reset Confirmation Dialog
+# -----------------------------
+if st.session_state.show_reset_confirm:
+
+    st.warning("⚠️ Reset Assessment")
+
+    st.markdown("""
+This action will:
+
+- 🚗 Clear transportation details
+- ⚡ Reset electricity usage
+- 🥗 Reset diet selection
+- ✈️ Clear annual flight information
+- 🌍 Restore default region
+- 🤖 Remove AI Quick Log input
+- 📄 Clear uploaded utility bill
+- 📊 Remove temporary analysis results
+- 💾 Discard unsaved draft
+
+**This action cannot be undone.**
+""")
+
+    confirm_col, cancel_col = st.columns(2)
+
+    with confirm_col:
+        if st.button(
+            "✅ Confirm Reset",
+            key="confirm_reset"
+        ):
+
+            # Restore default values
+            for key, value in DEFAULT_VALUES.items():
+                st.session_state[key] = value
+
+            # Clear temporary session values
+            temp_keys = [
+                "quick_log_input",
+                "temp_parsed",
+                "uploaded_bill",
+                "extracted_kwh",
+                "analysis_complete",
+                "generated_report",
+                "contributors",
+                "recommendations",
+                "footprint",
+                "eco_score",
+                "assessment_history_search",
+                "assessment_history_score_range",
+            ]
+
+            for key in temp_keys:
+                st.session_state.pop(key, None)
+
+            st.session_state.show_reset_confirm = False
+            st.session_state.last_reset_time = time.strftime("%H:%M:%S")
+
+            st.success("✅ Assessment has been reset successfully!")
+
+            st.info(
+                "All values have been restored to their defaults. "
+                "You can now start a fresh sustainability assessment."
+            )
+
+            st.balloons()
+
+            time.sleep(1)
+
+            st.rerun()
+
+    with cancel_col:
+        if st.button(
+            "❌ Cancel",
+            key="cancel_reset"
+        ):
+            st.session_state.show_reset_confirm = False
+            st.info("Reset cancelled.")
+            st.rerun()
+
+if st.session_state.last_reset_time:
+    st.caption(
+        f"🕒 Last reset performed at {st.session_state.last_reset_time}"
+    )
+
+ 
 
 tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
 
+
+st.caption("✔ All input fields are validated before analysis.")
+    
+ 
+
+tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audit", "🎮 Gamification", "🗺️ Route Planning & Offsets"])
+ 
+ 
+# ------------------------
+
+
+# -------------------------
+
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "🌍 Carbon Footprint",
+    "⚡ Home Energy Audit",
+    "🎮 Gamification",
+    "🗺️ Route Planning & Offsets",
+    "🏆 Community Leaderboard",
+    "🔮 Future Self"
+])
+
+
 with tab1:
-    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True) 
+    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+
+
+ 
+ 
     with st.spinner("🌍 Analyzing your carbon footprint..."):
 
         progress_text = st.empty()
@@ -234,9 +1138,17 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
-    
+
+    # Draft recovery prompt
+    render_draft_recovery_prompt(user_id, DEFAULT_VALUES)
+
     st.markdown("### Region Setting")
-    region = st.selectbox("Select Your Region for API Emissions Factor", ["Global", "US", "UK", "EU"])
+    region = st.selectbox(
+    "Select Your Region for API Emissions Factor",
+    ["Global", "US", "UK", "EU"],
+    key="region",
+    help="Choose your region to apply the appropriate emission factors for more accurate carbon footprint calculations."
+)
 
     # -------------------------
     # QUICK LOG (AI)
@@ -244,7 +1156,16 @@ with tab1:
     st.markdown("### 🤖 AI Quick Log")
     col_ai_input, col_ai_btn = st.columns([4, 1])
     with col_ai_input:
-        quick_log_text = st.text_area("Let AI auto-fill your profile! Describe your day naturally.", placeholder="e.g., 'I drove 15 miles in my SUV and had a beef steak'", key="quick_log_input", height=68)
+        MAX_CHARS = 500
+        quick_log_text = st.text_area(
+    "Let AI auto-fill your profile! Describe your day naturally.",
+    placeholder="e.g., 'I drove 15 miles in my SUV and had a beef steak'",
+    key="quick_log_input",
+    height=68,
+    max_chars=MAX_CHARS,
+    help="Describe your daily activities in natural language. The AI will analyze your routine and automatically populate relevant sustainability and carbon footprint fields."
+)
+        st.caption(f"📝 {len(quick_log_text)}/{MAX_CHARS} characters")
     with col_ai_btn:
         st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
         parse_btn = st.button("✨ Parse with AI", use_container_width=True)
@@ -252,11 +1173,13 @@ with tab1:
     if parse_btn:
         if quick_log_text.strip():
             with st.spinner("Analyzing text..."):
-                parsed_data = parse_quick_log(quick_log_text)
-                if parsed_data:
+                from llm_parser import parse_quick_log
+                from errors import AppError
+                try:
+                    parsed_data = parse_quick_log(quick_log_text)
                     st.session_state.temp_parsed = parsed_data
-                else:
-                    st.error("Could not parse the text. Please try again.")
+                except AppError as exc:
+                    st.error(f"❌ {exc.message}")
         else:
             st.warning("Please enter some text first.")
 
@@ -270,6 +1193,9 @@ with tab1:
                 st.session_state.distance = float(tp.get('distance', 10.0))
                 st.session_state.diet = tp.get('diet', 'Vegetarian')
                 del st.session_state.temp_parsed
+                if user_id:
+                 save_assessment_draft(user_id, st.session_state.transport, st.session_state.distance, st.session_state.get("electricity", 200.0), st.session_state.diet, st.session_state.get("flights", 0), st.session_state.get("region", "Global"))
+                 
                 st.rerun()
         with c_no:
             if st.button("❌ No, cancel", key="confirm_no"):
@@ -279,6 +1205,7 @@ with tab1:
     col1, col2, col3 = st.columns(3)
  
 
+ 
     with col1:
         st.markdown("""
         <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
@@ -286,8 +1213,13 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Transportation</span>
         </div>
         """, unsafe_allow_html=True)
-        transport = st.selectbox("Primary Transport", ["Car", "Public Transport", "Bike", "Walking"])
-        distance = st.number_input("Daily Distance (km)", min_value=0.0, value=10.0, step=1.0)
+        transport = st.selectbox(
+    "Primary Transport",
+    ["Car", "Public Transport", "Bike", "Walking"],
+    key="transport",
+    help="Select the mode of transportation you use most frequently for your daily commute."
+)
+        distance = st.number_input("Daily Distance (km)", min_value=0.0, key="distance", step=1.0)
 
     with col2:
         st.markdown("""
@@ -313,21 +1245,32 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span>
         </div>
         """, unsafe_allow_html=True)
-        uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
+        uploaded_bill = st.file_uploader(
+            "Upload Utility Bill (PDF/Image)",
+            type=["pdf", "png", "jpg", "jpeg"],
+            help="Upload your latest electricity bill to automatically extract usage information."
+        )
         if uploaded_bill is not None:
             # We use a button to trigger extraction so it doesn't re-run infinitely on every interaction
             if st.button("Extract Energy Usage"):
                 with st.spinner("Extracting data from bill..."):
+                    from ocr_utils import extract_text_from_file, parse_energy_consumption
                     extracted_text = extract_text_from_file(uploaded_bill)
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
+                        st.session_state.electricity = float(parsed_val)
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
 
-        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, value=float(st.session_state.extracted_kwh), step=10.0)
-        diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"])
+        electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
+        diet = st.selectbox(
+    "Diet Type",
+    ["Vegetarian", "Non-Vegetarian"],
+    key="diet",
+    help="Choose the option that best represents your regular dietary habits."
+)
     
         col1, col2 = st.columns(2)
     with col3:
@@ -337,40 +1280,15 @@ with tab1:
             <span style='font-size: 18px; font-weight: 700; color: #000;'>Travel</span>
         </div>
         """, unsafe_allow_html=True)
-        flights = st.number_input("Annual Flights", min_value=0, value=0, step=1)
+        flights = st.number_input("Annual Flights", min_value=0, key="flights", step=1)
         st.info("💡 How many long-distance flights per year?")
         
-
-
-
-    # -------------------------
-    # PDF REPORT GENERATION
-    # -------------------------
-    def generate_pdf(total, eco_score, insight):
-        try:
-            file_name = os.path.join(tempfile.gettempdir(), f"eco_report_{uuid.uuid4().hex}.pdf")
-            doc = SimpleDocTemplate(file_name)
-            styles = getSampleStyleSheet()
-
-            content = [
-                Paragraph("EcoBuddy AI Report", styles["Title"]),
-                Paragraph(f"Carbon Footprint: {total:.2f} kg CO₂", styles["Normal"]),
-                Paragraph(f"Eco Score: {eco_score}/100", styles["Normal"]),
-                Paragraph("Key Insight:", styles["Heading2"]),
-                Paragraph(insight, styles["Normal"])
-            ]
-
-            doc.build(content)
-            return file_name
-        except Exception:
-            st.error("Could not generate the PDF report. Please check disk space and permissions, then try again.")
-            return None
 
 
     # -------------------------
     # CALCULATE & ANALYZE
     # -------------------------
-    
+
 
  
 
@@ -378,15 +1296,35 @@ with tab1:
     # col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
     # with col_btn2:
     #     analyze_btn = st.button("🌿 Analyze My Impact")
+    # Auto-save after every Streamlit rerun caused by form changes.
+    autosave_session_draft(user_id, DEFAULT_VALUES)
+
     col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
     with col_btn1:
         reset_btn = st.button("🔄 Reset Assessment")
         if reset_btn:
-            for key in DEFAULT_VALUES:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.success("✅ Assessment form has been reset.")
+            st.session_state.show_reset_confirm = True
             st.rerun()
+
+    if st.session_state.get("show_reset_confirm", False):
+        st.warning("⚠️ Are you sure you want to reset the assessment? All entered data will be lost.")
+        confirm_col, cancel_col, _ = st.columns([1, 1, 3])
+        with confirm_col:
+            if st.button("✅ Confirm Reset", key="confirm_reset_clear"):
+                for key in DEFAULT_VALUES:
+                    st.session_state[key] = DEFAULT_VALUES[key]
+                st.session_state.pop("extracted_kwh", None)
+                st.session_state.show_reset_confirm = False
+                discard_current_draft(
+                    user_id,
+                    st.session_state,
+                )
+                st.success("✅ Assessment form has been reset.")
+                st.rerun()
+        with cancel_col:
+            if st.button("❌ Cancel", key="cancel_reset_clear"):
+                st.session_state.show_reset_confirm = False
+                st.rerun()
 
     with col_btn2:
         analyze_btn = st.button("🌿 Analyze My Impact")
@@ -401,15 +1339,224 @@ with tab1:
 
         eco_score = calculate_eco_score(total)
 
+        transport_emission = contributors.get("Transportation", 0)
+        electricity_emission = contributors.get("Electricity", 0)
+        diet_emission = contributors.get("Diet", 0)
+        flight_emission = contributors.get("Flights", 0)
+
         insight, recommendations = generate_recommendations(
             transport, electricity, diet, flights, contributors
+        )
+
+        # -------------------------
+        # Cross-Module Smart Suggestions
+        # -------------------------
+
+        cross_module_suggestions = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            cross_module_suggestions.append(
+                "🛣️ Explore the Route Planning module to discover lower-emission travel options."
+            )
+
+        if electricity_emission > 5:
+            cross_module_suggestions.append(
+                "⚡ Open the Home Energy Audit section for personalized electricity-saving recommendations."
+            )
+
+        if flight_emission > 2:
+            cross_module_suggestions.append(
+                "✈️ Visit Carbon Offsets to balance emissions from frequent air travel."
+            )
+
+        if eco_score < 60:
+            cross_module_suggestions.append(
+                "🏆 Complete weekly sustainability challenges to improve your Eco Score faster."
+            )
+
+        if eco_score >= 80:
+            cross_module_suggestions.append(
+                "🌍 Compare your progress on the Community Leaderboard and inspire other users."
+            )
+
+        cross_module_suggestions.append(
+            "📊 Review your Assessment History to monitor long-term sustainability progress."
         )
 
         save_assessment(user_id, 
             transport, distance, electricity, diet, flights, total, eco_score
         )
+        gf.award_freeze_tokens_for_streak_milestones(user_id)
+        gf.check_badge_eligibility(user_id)
+        discard_current_draft(
+            user_id,
+            st.session_state,
+        )
 
         st.success("✅ Analysis completed!")
+
+
+
+        # -------------------------
+        # INPUT CONFIDENCE SCORE
+        # -------------------------
+
+        confidence_score = 100
+        missing_items = []
+
+        if distance == 0:
+            confidence_score -= 15
+            missing_items.append("Transportation distance")
+
+        if electricity == 0:
+            confidence_score -= 20
+            missing_items.append("Electricity usage")
+
+        if flights == 0:
+            confidence_score -= 10
+            missing_items.append("Flight activity")
+
+        if diet.lower() in ["unknown", "", "select"]:
+            confidence_score -= 15
+            missing_items.append("Diet information")
+
+        confidence_score = max(confidence_score, 0)
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🎯 Assessment Confidence</h3>
+            <p>
+                EcoBuddy evaluates the completeness and consistency of your inputs to
+                estimate how reliable your carbon footprint assessment is. Providing
+                detailed and accurate information improves recommendation quality and
+                overall assessment accuracy.
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🔗 Cross-Module Smart Suggestions</h3>
+            <p>
+                Based on your assessment results, EcoBuddy recommends additional
+                modules that can help you further reduce your environmental impact.
+                These suggestions connect different features across the application
+                to provide a more personalized sustainability experience.
+
+
+        st.caption(
+            "These personalized feature recommendations are automatically generated "
+            "after every assessment to help users discover useful EcoBuddy modules "
+            "that match their environmental profile and encourage continued engagement."
+        )
+
+        # -------------------------
+        # SMART FEATURE DISCOVERY
+        # -------------------------
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3 style='margin-bottom:12px;'>💡 Smart Feature Discovery</h3>
+            <p style='color:#6b7280;'>
+                Based on your assessment results, EcoBuddy has identified additional
+                tools that can help you better understand, monitor, and reduce your
+                environmental impact. Explore the suggestions below to continue your
+                sustainability journey with personalized insights.
+
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+        st.markdown("### 🎯 Input Confidence Score")
+
+        st.progress(confidence_score / 100)
+
+        st.metric("Confidence", f"{confidence_score}%")
+
+        if confidence_score >= 90:
+            st.success("🟢 High confidence assessment. Your inputs appear complete and reliable.")
+
+        elif confidence_score >= 70:
+            st.warning("🟡 Medium confidence assessment. Some additional information could improve accuracy.")
+
+        else:
+            st.error("🔴 Low confidence assessment. Consider completing more fields for better estimates.")
+
+        if missing_items:
+
+            st.markdown("#### Missing or Incomplete Information")
+
+            for item in missing_items:
+                st.write(f"• {item}")
+
+            st.info(
+                "Providing more complete information will improve the accuracy "
+                "of your carbon footprint calculations and recommendations."
+            )
+
+        st.markdown("#### 💡 Improvement Suggestions")
+
+        if confidence_score < 100:
+
+            st.write("✅ Provide accurate transportation distance.")
+            st.write("✅ Enter realistic electricity consumption.")
+            st.write("✅ Include annual flight information.")
+            st.write("✅ Select the most appropriate diet type.")
+
+        else:
+
+            st.success(
+                "Excellent! Your assessment contains sufficient information "
+                "to generate highly reliable sustainability insights."
+            )
+
+        st.markdown("### 🔗 Cross-Module Smart Suggestions")
+
+        st.caption(
+            "EcoBuddy analyzed your assessment and identified additional modules "
+            "that can provide relevant guidance based on your current environmental profile."
+        )
+
+        for item in cross_module_suggestions:
+            st.info(item)
+
+
+        feature_suggestions = []
+
+        if contributors.get("transport", 0) > 0:
+            feature_suggestions.append(
+                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport emissions."
+            )
+
+        if electricity > 150:
+            feature_suggestions.append(
+                "⚡ Visit the Home Energy Audit section for recommendations that can reduce electricity consumption."
+            )
+
+        if eco_score < 70:
+            feature_suggestions.append(
+                "🏆 Improve your Eco Score by completing more assessments and earning sustainability badges."
+            )
+
+        feature_suggestions.append(
+            "📈 Track your future environmental progress using the Future Self dashboard."
+        )
+
+        feature_suggestions.append(
+            "🌍 Check the Community Leaderboard to compare your sustainability progress with other users."
+        )
+
+        st.info(
+            "🌱 Personalized Feature Suggestions\n\n"
+            "These recommendations are generated from your latest assessment "
+            "to help you discover useful EcoBuddy features."
+        )
+
+        for suggestion in feature_suggestions:
+            st.write(f"✅ {suggestion}")
+
+        if st.button("❌ Dismiss Suggestions", key="dismiss_feature_suggestions"):
+            st.success("Feature suggestions dismissed. They will appear again after your next assessment.")
+
 
         st.markdown("---")
 
@@ -505,17 +1652,28 @@ with tab1:
         with col_badge2:
             st.markdown("<div class='section-header' style='margin-top: 0;'>📊 Emission Sources</div>", unsafe_allow_html=True)
 
+            selected_categories = st.multiselect(
+                "Filter categories",
+                options=list(contributors.keys()),
+                default=list(contributors.keys()),
+                key="emission_category_filter"
+            )
+            filtered_contributors = {
+                k: v for k, v in contributors.items() if k in selected_categories
+            } or contributors
+
             # Pie chart with Plotly
+            import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
-                labels=list(contributors.keys()),
-                values=list(contributors.values()),
+                labels=list(filtered_contributors.keys()),
+                values=list(filtered_contributors.values()),
                 hole=0.4,
                 marker=dict(
                     colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(0,0,0,0.1)', width=2)
                 ),
                 textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂<br>%{percent}<extra></extra>'
+                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
             )])
 
             fig.update_layout(
@@ -526,39 +1684,37 @@ with tab1:
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#374151', size=12),
                 legend=dict(
-                    x=-0.15,
-                    y=1,
-                    bgcolor='rgba(0,0,0,0.3)',
+                    orientation='h',
+                    x=0.5,
+                    xanchor='center',
+                    y=-0.15,
+                    bgcolor='rgba(255,255,255,0.9)',
                     bordercolor='rgba(74, 222, 128, 0.3)',
                     borderwidth=1
                 )
             )
 
-            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
-
-
-        st.markdown("---")
-
-        # -------------------------
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
         st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
 
-        # Bar chart
+# Bar chart creation
+        total_filtered = sum(filtered_contributors.values()) or 1
         breakdown_fig = go.Figure(data=[
             go.Bar(
-                x=list(contributors.keys()),
-                y=list(contributors.values()),
+                x=list(filtered_contributors.keys()),
+                y=list(filtered_contributors.values()),
                 marker=dict(
                     color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
                     line=dict(color='rgba(255,255,255,0.2)', width=2)
                 ),
-                text=[f'{v:.0f} kg' for v in contributors.values()],
+                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
                 textposition='auto',
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>'
+                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
+                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
             )
         ])
-
         breakdown_fig.update_layout(
             height=350,
             margin=dict(l=40, r=20, t=20, b=40),
@@ -580,7 +1736,41 @@ with tab1:
             showlegend=False
         )
 
+
+        st.caption("This chart shows the breakdown of your carbon footprint by activity.")
+        st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
         st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
+        # Render Chart
+        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+
+        # -------------------------
+        # CHART EXPORT BUTTONS (#277)
+        # -------------------------
+        try:
+            col_exp1, col_exp2 = st.columns(2)
+
+            # Export PNG (High Quality Scale = 3)
+            png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+            col_exp1.download_button(
+                label="📥 Export Chart as PNG",
+                data=png_bytes,
+                file_name="breakdown_chart.png",
+                mime="image/png",
+                use_container_width=True
+            )
+
+            # Export SVG (Vector Quality)
+            svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+            col_exp2.download_button(
+                label="📥 Export Chart as SVG",
+                data=svg_bytes,
+                file_name="breakdown_chart.svg",
+                mime="image/svg+xml",
+                use_container_width=True
+            )
+        except Exception:
+            # Fallback if kaleido or required engine is not available
+            pass
 
         st.markdown("---")
 
@@ -625,6 +1815,41 @@ with tab1:
         st.markdown("---")
 
         # -------------------------
+        # WHAT CHANGED?
+        # -------------------------
+        history_after = get_assessments(user_id)
+        if history_after and len(history_after) >= 2:
+            prev = history_after[1]
+            region_val = st.session_state.get("region", "Global")
+            from emissions import calculate_footprint
+            prev_total, prev_contributors = calculate_footprint(
+                prev[2], prev[3], prev[4], prev[5], prev[6], region_val
+            )
+            current_data = {
+                "transport": transport,
+                "distance": distance,
+                "electricity": electricity,
+                "diet": diet,
+                "flights": flights,
+                "footprint": total,
+                "eco_score": eco_score,
+                "contributors": contributors,
+            }
+            prev_data = {
+                "transport": prev[2],
+                "distance": prev[3],
+                "electricity": prev[4],
+                "diet": prev[5],
+                "flights": prev[6],
+                "footprint": prev[7],
+                "eco_score": prev[8],
+                "contributors": prev_contributors,
+            }
+            diff_result = generate_what_changed_analysis(current_data, prev_data)
+            if diff_result:
+                render_what_changed_ui(diff_result)
+
+        # -------------------------
         # RECOMMENDATIONS
         # -------------------------
         st.markdown("<div class='section-header'>💡 Personalized Recommendations</div>", unsafe_allow_html=True)
@@ -659,23 +1884,95 @@ with tab1:
         # -------------------------
         # PDF DOWNLOAD
         # -------------------------
+
+        
+        st.markdown("---")
+
+        with st.expander("🧮 Interactive Calculation Breakdown", expanded=False):
+
+            st.markdown("### Step-by-Step Carbon Footprint Calculation")
+
+            st.markdown("#### 🚗 Transportation")
+            st.write(f"Mode: **{transport}**")
+            st.write(f"Distance: **{distance} km/day**")
+            st.success(f"Contribution: **{transport_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ⚡ Electricity")
+            st.write(f"Monthly Usage: **{electricity} kWh**")
+            st.success(f"Contribution: **{electricity_emission:.2f} kg CO₂**")
+
+            st.markdown("#### 🥗 Diet")
+            st.write(f"Diet Type: **{diet}**")
+            st.success(f"Contribution: **{diet_emission:.2f} kg CO₂**")
+
+            st.markdown("#### ✈ Flights")
+            st.write(f"Flights per year: **{flights}**")
+            st.success(f"Contribution: **{flight_emission:.2f} kg CO₂**")
+
+            st.markdown("---")
+
+            st.metric("🌍 Total Carbon Footprint", f"{total:.2f} kg CO₂")
+
+            st.info("""
+        ### How the total is calculated
+
+        The final carbon footprint is calculated by combining:
+
+        • Transportation emissions
+
+        • Electricity consumption
+
+        • Diet impact
+
+        • Flight emissions
+
+        Each category contributes independently to the final result. Expanding this section allows users to inspect every intermediate value instead of only viewing the final score, making the assessment more transparent and easier to understand.
+        """)
+
         report = generate_pdf(total, eco_score, insight)
 
-        if report:
-            with open(report, "rb") as f:
-                pdf_bytes = f.read()
-                
-            try:
-                os.remove(report)
-            except OSError:
-                pass
-                
-            st.download_button(
-                "📄 Download Eco Report (PDF)",
-                pdf_bytes,
-                file_name="EcoBuddy_Report.pdf"
+        report_validation = validate_report_data(
+            total,
+            eco_score,
+            insight,
+        )
+
+
+        if not report_validation.is_valid:
+            st.error(
+                "The report could not be generated because the assessment "
+                "contains invalid or incomplete data."
+            )
+            for validation_error in report_validation.errors:
+                st.warning(f"• {validation_error}")
+        else:
+            from report import generate_pdf
+            report = generate_pdf(
+                report_validation.cleaned_data["total"],
+                report_validation.cleaned_data["eco_score"],
+                report_validation.cleaned_data["insight"],
             )
 
+            if report:
+                with open(report, "rb") as report_file:
+                    pdf_bytes = report_file.read()
+
+                try:
+                    os.remove(report)
+                except OSError:
+                    pass
+
+                st.download_button(
+                    "📄 Download Eco Report (PDF)",
+                    pdf_bytes,
+                    file_name="EcoBuddy_Report.pdf",
+                    mime="application/pdf",
+                )
+            else:
+                st.error(
+                    "The assessment data is valid, but the PDF could not be "
+                    "created. Please try again."
+                )
 
     # -------------------------
     # HISTORY & TRACKING
@@ -685,216 +1982,202 @@ with tab1:
         st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
         history = get_assessments(user_id)
-        st.write("History length:", len(history))
 
         if history:
+            import pandas as pd
+            import plotly.graph_objects as go
+            df = pd.DataFrame(
+                history,
+                columns=[
+                    "id",
+                    "date",
+                    "Created At",
+                    "transport",
+                    "distance",
+                    "electricity",
+                    "diet",
+                    "flights",
+                    "footprint",
+                    "eco_score",
+                ],
+            )
 
-            df = pd.DataFrame(history, columns=[
-                "id", "date", "transport", "distance",
-                "electricity", "diet", "flights",
-                "footprint", "eco_score"
-            ])
+            # -----------------------------
+            # Eco Impact Streak Calendar
+            # -----------------------------
+            st.markdown("---")
+            st.subheader("📅 Eco Impact Streak Calendar")
 
+            calendar_df = df.copy()
+            calendar_df["date"] = pd.to_datetime(calendar_df["date"]).dt.date
+
+            today = pd.Timestamp.today().date()
+            last_30_days = pd.date_range(end=today, periods=30)
+
+            activity = []
+
+            for day in last_30_days:
+                if day.date() in calendar_df["date"].values:
+                    activity.append("🟩")
+                else:
+                    activity.append("⬜")
+
+            calendar_html = ""
+
+            for i, box in enumerate(activity):
+                calendar_html += f"<span style='font-size:20px'>{box}</span>"
+                if (i + 1) % 10 == 0:
+                    calendar_html += "<br>"
+
+            st.markdown(calendar_html, unsafe_allow_html=True)
+
+            active_days = len(calendar_df)
+
+            st.metric(
+                "🌱 Active Eco Days",
+                active_days
+            )
+
+            st.caption("🟩 Assessment completed   ⬜ No assessment")
+
+
+
+            # ---------------------------------------------------------------
+            # Format the automatically generated creation timestamps before
+            # displaying them in the Assessment History table.
+            #
+            # The database stores timestamps in the default SQLite format
+            # (YYYY-MM-DD HH:MM:SS), which is suitable for storage and sorting
+            # but not very user-friendly.
+            #
+            # This formatting step converts the raw timestamp into a more
+            # readable format (e.g., "01 Aug 2026 03:45 PM"), improving the
+            # overall user experience while preserving the original data in
+            # the database.
+            #
+            # If a timestamp is missing or unavailable, a placeholder ("-")
+            # is displayed instead of causing formatting errors.
+            # ---------------------------------------------------------------
+            df["Created At"] = df["Created At"].apply(format_timestamp)
             latest = history[0]
-
-            # Latest stats
             stat1, stat2, stat3, stat4 = st.columns(4)
 
-
             with stat1:
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 12px; color: #4b5563;'>Latest Footprint</div>
-                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[7]:.0f}</div>
-                    <div style='font-size: 11px; color: #4b5563;'>kg CO₂</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric("Latest Footprint", f"{latest[7]:.0f} kg CO₂")
 
             with stat2:
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 12px; color: #4b5563;'>Latest Score</div>
-                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{latest[8]}</div>
-                    <div style='font-size: 11px; color: #4b5563;'>out of 100</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric("Latest Score", f"{latest[8]}/100")
 
             if len(history) >= 2:
-                prev = history[1][7]
-                change = ((prev - latest[7]) / prev) * 100 if prev else 0
-
+                previous_footprint = history[1][7]
+                change = (
+                    ((previous_footprint - latest[7]) / previous_footprint) * 100
+                    if previous_footprint
+                    else 0
+                )
                 with stat3:
-                    if change > 0:
-                        color = "#4ade80"
-                        emoji = "📉"
-                        label = "Reduced"
-                    elif change < 0:
-                        color = "#f87171"
-                        emoji = "📈"
-                        label = "Increased"
-                    else:
-                        color = "#60a5fa"
-                        emoji = "→"
-                        label = "No Change"
-
-                    st.markdown(f"""
-                    <div class='card'>
-                        <div style='font-size: 12px; color: #4b5563;'>{emoji} {label}</div>
-                        <div style='font-size: 28px; font-weight: 900; color: {color};'>{abs(change):.1f}%</div>
-                        <div style='font-size: 11px; color: #4b5563;'>vs previous</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.metric(
+                        "Change",
+                        f"{abs(change):.1f}%",
+                        delta=f"{change:.1f}% reduction",
+                    )
+            else:
+                with stat3:
+                    st.metric("Change", "N/A")
 
             with stat4:
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 12px; color: #4b5563;'>Total Records</div>
-                    <div style='font-size: 28px; font-weight: 900; color: #4ade80;'>{len(history)}</div>
-                    <div style='font-size: 11px; color: #4b5563;'>assessments</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.metric("Total Records", len(history))
 
-
-
-            st.markdown("---")
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            # -------------------------
-            # TREND VISUALIZATION
-            # -------------------------
-            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📉 Carbon Footprint Trend</div>", unsafe_allow_html=True)
-
+            st.markdown("### 📉 Carbon Footprint Trend")
             trend_df = df[["date", "footprint"]].iloc[::-1].reset_index(drop=True)
-            trend_df['date'] = pd.to_datetime(trend_df['date'])
+            trend_df["date"] = pd.to_datetime(trend_df["date"])
 
             trend_fig = go.Figure()
-            trend_fig.add_trace(go.Scatter(
-                x=trend_df['date'],
-                y=trend_df['footprint'],
-                mode='lines+markers',
-                name='Carbon Footprint',
-                line=dict(color='#4ade80', width=3),
-                marker=dict(size=8, color='#4ade80', line=dict(color='#86efac', width=2)),
-                fill='tozeroy',
-                fillcolor='rgba(74, 222, 128, 0.2)',
-                hovertemplate='<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>'
-            ))
-
+            trend_fig.add_trace(
+                go.Scatter(
+                    x=trend_df["date"],
+                    y=trend_df["footprint"],
+                    mode="lines+markers",
+                    name="Carbon Footprint",
+                    line=dict(color="#4ade80", width=3),
+                    marker=dict(size=8, color="#4ade80"),
+                    fill="tozeroy",
+                    fillcolor="rgba(74, 222, 128, 0.2)",
+                    hovertemplate="<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+                )
+            )
             trend_fig.update_layout(
-                title="Carbon Footprint Over Time",
                 height=320,
                 margin=dict(l=40, r=20, t=20, b=40),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(55, 65, 81, 0.2)',
-                font=dict(color='#d1d5db', size=12),
-                xaxis=dict(
-                    showgrid=False,
-                    zeroline=False,
-                    color='#9ca3af'
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridwidth=1,
-                    gridcolor='rgba(74, 222, 128, 0.1)',
-                    zeroline=False,
-                    color='#9ca3af'
-                ),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(55, 65, 81, 0.2)",
                 showlegend=False,
-                hovermode='x unified'
+                hovermode="x unified",
             )
+            st.plotly_chart(trend_fig, use_container_width=True)
 
-
-            st.plotly_chart(
-                trend_fig,
-                width="stretch",
-                config={
-                    "displayModeBar": False,
-                    "scrollZoom": False,
-                    "responsive": True
-                }
-            )
-
-            st.markdown("---")
-
-        # -------------------------
-        # HISTORY TABLE
-        # -------------------------
-            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📋 Assessment History</div>", unsafe_allow_html=True)
-            st.markdown("### 📂 Assessment History")
-                # Create a nice table display
-            display_df = df[["date", "transport", "electricity", "footprint", "eco_score"]].copy()
-            display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity (kWh)", "🌍 Footprint (kg CO₂)", "🏆 Score"]
+            st.markdown("### 📋 Assessment History")
+            display_df = df[
+                ["date", "transport", "electricity", "footprint", "eco_score"]
+            ].copy()
+            display_df.columns = [
+                "📅 Date",
+                "🚗 Transport",
+                "⚡ Electricity (kWh)",
+                "🌍 Footprint (kg CO₂)",
+                "⭐ Eco Score",
+            ]
             display_df = display_df.iloc[::-1].reset_index(drop=True)
 
-            st.markdown(
-                "<div class='history-table-wrap'>"
-                + display_df.to_html(index=False, classes="history-table", border=0)
-                + "</div>",
-                unsafe_allow_html=True
+            MAX_SEARCH = 100
+
+            search_text = st.text_input(
+                "🔍 Search by Date",
+                placeholder="Enter date...",
+                key="assessment_history_search",
+                max_chars=MAX_SEARCH,
             )
-            st.markdown("---")
 
-            # -------------------------
-            # STATS & INSIGHTS
-            # -------------------------
-            st.markdown("<div style='font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #4ade80, #86efac); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;'>📊 Your Statistics</div>", unsafe_allow_html=True)
+            st.caption(f"🔎 {len(search_text)}/{MAX_SEARCH} characters")
+            min_score, max_score = st.slider(
+    "🌱 Eco Score Range",
+    0,
+    100,
+    (0, 100),
+    key="assessment_history_score_range",
+    help="Adjust the minimum and maximum Eco Score to filter assessment history and display records within the selected range."
+)
 
-            stats_col1, stats_col2, stats_col3 = st.columns([1.2, 1.2, 1])
+            if search_text:
+                display_df = display_df[
+                    display_df["📅 Date"]
+                    .astype(str)
+                    .str.contains(search_text, case=False, na=False)
+                ]
 
-            avg_footprint = df['footprint'].mean()
-            avg_score = df['eco_score'].mean()
-            max_footprint = df['footprint'].max()
-            min_footprint = df['footprint'].min()
+            display_df = display_df[
+                (display_df["⭐ Eco Score"] >= min_score)
+                & (display_df["⭐ Eco Score"] <= max_score)
+            ]
 
-            with stats_col1:
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📊 Average Footprint</div>
-                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_footprint:.0f}</div>
-                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>kg CO₂ across {len(history)} records</div>
-                </div>
-                """, unsafe_allow_html=True)
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-            with stats_col2:
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>🎯 Average Score</div>
-                    <div style='font-size: 36px; font-weight: 900; color: #4ade80;'>{avg_score:.0f}</div>
-                    <div style='font-size: 12px; color: #4b5563; margin-top: 8px;'>out of 100 points</div>
-                </div>
-                """, unsafe_allow_html=True)
+            avg_footprint = df["footprint"].mean()
+            avg_score = df["eco_score"].mean()
+            min_footprint = df["footprint"].min()
+            max_footprint = df["footprint"].max()
 
-            with stats_col3:
-                range_val = max_footprint - min_footprint
-                st.markdown(f"""
-                <div class='card'>
-                    <div style='font-size: 13px; color: #4b5563; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;'>📈 Range Variation</div>
-                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{min_footprint:.0f}</div>
-                    <div style='font-size: 14px; color: #4b5563;'>to</div>
-                    <div style='font-size: 28px; font-weight: 700; color: #4ade80;'>{max_footprint:.0f}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-
-
+            stats_col1, stats_col2, stats_col3 = st.columns(3)
+            stats_col1.metric("Average Footprint", f"{avg_footprint:.0f} kg CO₂")
+            stats_col2.metric("Average Score", f"{avg_score:.0f}/100")
+            stats_col3.metric(
+                "Footprint Range",
+                f"{min_footprint:.0f}–{max_footprint:.0f} kg CO₂",
+            )
         else:
-            st.markdown("""
-            <div class='card-highlight'>
-                <div style='text-align: center; padding: 48px 32px;'>
-                    <div style='font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite;'>🌱</div>
-                    <div style='font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #22c55e, #4ade80); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;'>No Data Yet</div>
-                    <div style='color: #374151; font-size: 16px; line-height: 1.6; max-width: 400px; margin: 0 auto;'>
-                        Start your eco journey! Complete the lifestyle profile above and click "Analyze My Impact" to generate your personalized carbon footprint report.
-                    </div>
-                </div>
-            </div>
-            <style>
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-10px); }
-                }
-            </style>
-            """, unsafe_allow_html=True)
+            st.info(
+                "No assessment history yet. Complete an assessment to start tracking your progress."
+            )
 
 with tab2:
     import database as db
@@ -910,7 +2193,15 @@ with tab2:
     with st.expander("➕ Add New Appliance", expanded=False):
         with st.form("appliance_form"):
             c1, c2, c3 = st.columns(3)
-            app_name = c1.text_input("Appliance Name")
+            MAX_APP = 50
+
+            app_name = st.text_input(
+                "Appliance Name",
+                max_chars=MAX_APP,
+                help="Enter your appliance name."
+            )
+            
+            st.caption(f"🔌 {len(app_name)}/{MAX_APP} characters")
             app_cat = c2.selectbox("Category", ["AC", "EV Charger", "Heat Pump", "Refrigerator", "Lighting", "Other"])
             app_qty = c3.number_input("Quantity", min_value=1, value=1)
 
@@ -963,9 +2254,19 @@ with tab2:
         st.markdown("")
         del_cols = st.columns([3, 1])
         with del_cols[0]:
-            del_id = st.selectbox("Select appliance to remove", options=[(a['id'], a['name']) for a in appliances], format_func=lambda x: x[1], label_visibility="collapsed")
+            del_id = st.selectbox(
+    "Select appliance to remove",
+    options=[(a['id'], a['name']) for a in appliances],
+    format_func=lambda x: x[1],
+    label_visibility="collapsed",
+    help="Select the appliance you want to remove from your energy inventory."
+)
         with del_cols[1]:
-            if st.button("🗑️ Remove", key="del_app"):
+            if st.button(
+                "🗑️ Remove",
+                key="del_app",
+                help="Remove the selected appliance."
+            ):
                 db.delete_appliance(del_id[0])
                 st.rerun()
 
@@ -1032,20 +2333,45 @@ with tab2:
 with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
-    # Header: Level, XP, Streak
+    # Header: Level, XP, Streak, Freeze Tokens
     total_xp = gf.get_total_xp(user_id)
     level = gf.calculate_level(total_xp)
     progress = gf.calculate_level_progress(total_xp)
     history = get_assessments(user_id)
     activities_dates = [row[1] for row in history] if history else []
-    streak = gf.calculate_streak(1, activities_dates)
+    streak = gf.get_user_streak(user_id)
+    token_balance = gf.get_freeze_token_balance(user_id)
     
-    g_col1, g_col2, g_col3 = st.columns(3)
+    g_col1, g_col2, g_col3, g_col4 = st.columns(4)
     g_col1.metric("Current Level", f"Lvl {level}")
     g_col2.metric("Total XP", f"{total_xp} XP")
     g_col3.metric("Current Streak", f"{streak} Days 🔥")
+    g_col4.metric("🧊 Freeze Tokens", f"{token_balance}")
     
     st.progress(progress, text=f"Progress to Level {level+1}")
+    
+    st.markdown("### 🧊 Green Streak Insurance")
+    with st.expander("About Freeze Tokens"):
+        st.write(
+            "Freeze tokens protect your sustainability streak when you miss a day. "
+            "Earn tokens by maintaining long streaks, then redeem them to keep your streak alive!"
+        )
+        st.markdown("**Milestone rewards:**")
+        for threshold, tokens, _, label in gf.FREEZE_TOKEN_MILESTONES:
+            st.write(f"- {label}: **{tokens}** token{'s' if tokens > 1 else ''}")
+        total_earned = get_total_freeze_tokens_earned(user_id)
+        st.write(f"*You've earned {total_earned} freeze token{'s' if total_earned != 1 else ''} total.*")
+    
+    if token_balance > 0:
+        if st.button("🧊 Protect My Streak", type="primary", use_container_width=True):
+            success, msg = gf.protect_streak_with_freeze(user_id)
+            if success:
+                st.success(msg)
+            else:
+                st.warning(msg)
+            st.rerun()
+    else:
+        st.info("Keep your streak going to earn freeze tokens!")
     
     st.markdown("---")
     st.markdown("### 🏆 Weekly Challenges")
@@ -1113,8 +2439,15 @@ with tab4:
         with st.form("route_form"):
             dist_val = st.number_input("Trip Distance (km)", min_value=0.1, value=15.0, step=1.0)
             pass_val = st.number_input("Number of Passengers", min_value=1, value=1, step=1)
-            freq = st.selectbox("Trip Frequency", ["One-time", "Weekly Commute (10 trips/week)", "Daily (14 trips/week)"])
-            
+            freq = st.selectbox(
+    "Trip Frequency",
+    [
+        "One-time",
+        "Weekly Commute (10 trips/week)",
+        "Daily (14 trips/week)"
+    ],
+    help="Choose how often you make this trip to estimate its long-term carbon impact."
+)
             calc_btn = st.form_submit_button("Compare Emissions")
             
         if calc_btn:
@@ -1123,6 +2456,8 @@ with tab4:
                 st.write(f"**Estimated Emissions for a {dist_val}km trip:**")
                 
                 # Chart
+                import pandas as pd
+                import plotly.express as px
                 df_comp = pd.DataFrame(comparisons)
                 
                 # Handle frequency
@@ -1196,6 +2531,7 @@ with tab4:
         st.subheader("Transaction History")
         transactions = get_offset_transactions(user_id)
         if transactions:
+            import pandas as pd
             df_trans = pd.DataFrame(transactions)
             st.dataframe(df_trans[['created_at', 'project_name', 'offset_tonnes', 'total_cost', 'transaction_status']])
             
@@ -1292,6 +2628,263 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
 
+with tab6:
+    import plotly.graph_objects as go
+
+    st.markdown("<div class='section-header'>🔮 Future Self Sustainability Report</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>See the long-term consequences of today's habits — projected 1, 5, and 10 years into the future.</div>", unsafe_allow_html=True)
+
+    report = generate_future_self_report(user_id)
+
+    if report is None:
+        st.markdown("""
+        <div style='text-align:center; padding:60px 24px; border:1px dashed rgba(134,239,172,0.3); border-radius:16px; background:rgba(15,23,42,0.5);'>
+            <div style='font-size:64px; margin-bottom:16px;'>🔮</div>
+            <div style='font-size:22px; font-weight:700; color:#e5e7eb; margin-bottom:12px;'>No Assessment History Yet</div>
+            <div style='font-size:15px; color:#94a3b8; max-width:500px; margin:0 auto; line-height:1.8;'>
+                Complete your first carbon footprint assessment in the
+                <b>🌍 Carbon Footprint</b> tab to unlock your Future Self report.
+                <br><br>
+                Once you have at least one assessment recorded, this dashboard will
+                project your environmental impact 1, 5, and 10 years from now.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        scenario_labels = {1: "1 Year", 5: "5 Years", 10: "10 Years"}
+
+        metrics_cols = st.columns(4)
+        metrics_cols[0].metric("Current Footprint", f"{report.current_footprint:.0f} kg")
+        metrics_cols[1].metric("Current Eco Score", f"{report.current_eco_score}/100")
+        metrics_cols[2].metric("Assessments Logged", str(report.num_assessments))
+        trend_str = f"{abs(report.trend_slope):.1f} kg/assessment"
+        if report.trend_slope < 0:
+            trend_str = f"↓ {trend_str}"
+        elif report.trend_slope > 0:
+            trend_str = f"↑ {trend_str}"
+        else:
+            trend_str = "→ Stable"
+        metrics_cols[3].metric("Trend", trend_str)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📊 Impact Projections</div>", unsafe_allow_html=True)
+
+        scenario_rows = []
+        for year in (1, 5, 10):
+            s = report.scenarios[year]
+            scenario_rows.append({
+                "Horizon": scenario_labels[year],
+                "Annual Footprint (kg)": f"{s.annual_footprint:.0f}",
+                "Cumulative (kg)": f"{s.cumulative_emissions:.0f}",
+                "Eco Score": f"{s.eco_score}/100",
+            })
+
+        st.dataframe(
+            pd.DataFrame(scenario_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📈 Historical & Projected Trend</div>", unsafe_allow_html=True)
+
+        timeline_df = build_projection_timeline(report)
+
+        timeline_fig = go.Figure()
+
+        hist = timeline_df[timeline_df["type"] == "Historical"]
+        proj = timeline_df[timeline_df["type"] == "Projected"]
+
+        if not hist.empty:
+            timeline_fig.add_trace(go.Scatter(
+                x=hist["label"],
+                y=hist["value"],
+                mode="lines+markers",
+                name="Historical",
+                line=dict(color="#4ade80", width=3),
+                marker=dict(size=8, color="#4ade80"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        if not proj.empty:
+            timeline_fig.add_trace(go.Scatter(
+                x=proj["label"],
+                y=proj["value"],
+                mode="markers+lines",
+                name="Projected",
+                line=dict(color="#fbbf24", width=3, dash="dash"),
+                marker=dict(size=12, color="#fbbf24", symbol="diamond"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        timeline_fig.update_layout(
+            height=380,
+            margin=dict(l=40, r=20, t=20, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(55, 65, 81, 0.2)",
+            hovermode="x unified",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                font=dict(color="#e5e7eb"),
+            ),
+            xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
+            yaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor="rgba(74, 222, 128, 0.1)",
+                zeroline=False,
+                color="#94a3b8",
+                title=dict(text="kg CO₂ / year"),
+            ),
+        )
+
+        st.plotly_chart(timeline_fig, use_container_width=True, config={"displayModeBar": False})
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📊 Contributors Over Time</div>", unsafe_allow_html=True)
+
+        cat_fig = go.Figure()
+        categories = list(report.current_contributors.keys())
+        colors = {"Transport": "#4ade80", "Electricity": "#60a5fa", "Diet": "#fbbf24", "Flights": "#f87171"}
+
+        x_labels = ["Current"] + [scenario_labels[y] for y in (1, 5, 10)]
+
+        for cat in categories:
+            values = [report.current_contributors.get(cat, 0)]
+            for year in (1, 5, 10):
+                values.append(report.scenarios[year].contributors.get(cat, 0))
+            cat_fig.add_trace(go.Bar(
+                name=cat,
+                x=x_labels,
+                y=values,
+                marker_color=colors.get(cat, "#94a3b8"),
+                hovertemplate="<b>%{x}</b><br>%{y:.0f} kg CO₂<extra></extra>",
+            ))
+
+        cat_fig.update_layout(
+            barmode="group",
+            height=380,
+            margin=dict(l=40, r=20, t=20, b=40),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(55, 65, 81, 0.2)",
+            hovermode="x unified",
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                font=dict(color="#e5e7eb"),
+            ),
+            xaxis=dict(showgrid=False, zeroline=False, color="#94a3b8"),
+            yaxis=dict(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor="rgba(74, 222, 128, 0.1)",
+                zeroline=False,
+                color="#94a3b8",
+                title=dict(text="kg CO₂ / year"),
+            ),
+        )
+
+        st.plotly_chart(cat_fig, use_container_width=True, config={"displayModeBar": False})
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>🌍 What This Means</div>", unsafe_allow_html=True)
+
+        ten_yr = report.scenarios[10]
+        avg_person_annual = 4700
+        trees_per_kg = 0.0005
+        offset_trees_10yr = int(ten_yr.cumulative_emissions * trees_per_kg)
+
+        col_n1, col_n2 = st.columns(2)
+
+        with col_n1:
+            st.markdown(f"""
+            <div class='card-highlight' style='padding:24px;'>
+                <div style='font-size:18px; font-weight:700; color:#4ade80; margin-bottom:12px;'>📈 If Habits Continue</div>
+                <div style='color:#374151; font-size:15px; line-height:1.9;'>
+                    In <b>10 years</b>, your annual carbon footprint could be
+                    <b style='color:#f87171;'>{ten_yr.annual_footprint:.0f} kg CO₂</b>
+                    — that's a cumulative total of
+                    <b style='color:#fbbf24;'>{ten_yr.cumulative_emissions:,.0f} kg</b>
+                    over the decade.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_n2:
+            st.markdown(f"""
+            <div class='card-highlight' style='padding:24px;'>
+                <div style='font-size:18px; font-weight:700; color:#4ade80; margin-bottom:12px;'>🌱 The Cost of Inaction</div>
+                <div style='color:#374151; font-size:15px; line-height:1.9;'>
+                    To offset your 10-year projected emissions, you would need to plant
+                    <b style='color:#4ade80;'>~{offset_trees_10yr:,} trees</b>
+                    that each absorb ~48 lbs of CO₂ per year.
+                    <br><br>
+                    Your current footprint is
+                    <b>{'above' if report.current_footprint > avg_person_annual else 'below'}</b>
+                    the global average of {avg_person_annual:,} kg CO₂/year.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>📋 Scenario Details</div>", unsafe_allow_html=True)
+
+        for year in (1, 5, 10):
+            s = report.scenarios[year]
+            direction = "increasing" if s.annual_footprint > report.current_footprint else "decreasing" if s.annual_footprint < report.current_footprint else "stable"
+            emoji = "📈" if direction == "increasing" else "📉" if direction == "decreasing" else "➡️"
+            score_change = s.eco_score - report.current_eco_score
+            score_dir = "improving" if score_change > 0 else "declining" if score_change < 0 else "stable"
+            score_emoji = "✅" if score_change > 0 else "⚠️" if score_change < 0 else "➡️"
+
+            top_category = max(s.contributors, key=s.contributors.get)
+            best_category = min(s.contributors, key=s.contributors.get)
+
+            border_color = "#f87171" if direction == "increasing" else "#4ade80"
+            st.markdown(f"""
+            <div class='card' style='border-left: 4px solid {border_color};'>
+                <div style='display:flex; align-items:center; gap:16px;'>
+                    <div style='font-size:40px;'>{emoji}</div>
+                    <div style='flex:1;'>
+                        <div style='font-size:18px; font-weight:700; color:#4ade80;'>{scenario_labels[year]} Projection</div>
+                        <div style='font-size:14px; color:#374151; margin-top:6px; line-height:1.7;'>
+                            Annual footprint of <b>{s.annual_footprint:.0f} kg CO₂</b> | 
+                            Eco Score <b>{s.eco_score}/100</b> ({score_emoji} {score_dir})
+                            <br>
+                            Biggest contributor: <b>{top_category}</b> | 
+                            Best category: <b>{best_category}</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.markdown("<div class='section-header'>💡 Change Your Trajectory</div>", unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class='card-highlight' style='padding:24px;'>
+            <div style='font-size:15px; color:#374151; line-height:1.9;'>
+                Your Future Self report is a <b>simulation based on your current habits</b>.
+                Every small change you make today can bend the curve.
+                Check the <b>💡 Personalized Recommendations</b> section in the
+                Carbon Footprint tab for actionable steps to reduce your impact.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
