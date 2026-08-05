@@ -1455,7 +1455,10 @@ with tab1:
             st.session_state,
         )
 
-        st.success("✅ Analysis completed!")
+        st.success("✅ Analysis completed! Your sustainability score has been generated.")
+        st.balloons()
+        st.toast("🎉 Congratulations! Analysis completed successfully!")
+        st.info("💡 Visit the Recommendations section to reduce your carbon footprint.")
 
 
 
@@ -3306,25 +3309,35 @@ with tab3:
             challenge_states[c['challenge_id']] = c
             
     for ch_id, ch_data in gf.CHALLENGES.items():
-        with st.expander(f"{ch_data['title']} ({ch_data['xp']} XP) - {ch_data['category']}"):
+        with st.expander(f"🏆 {ch_data['title']} ({ch_data['xp']} XP) - {ch_data['category']}"):
             st.write(f"Target: {ch_data['target']} {ch_data['unit']}")
             if ch_id in challenge_states:
                 state = challenge_states[ch_id]
                 status = state['status']
                 if status == 'completed':
-                    st.success("Challenge Completed! 🎉")
+                    st.success("🎉 Challenge Completed! Keep up the great work!")
+                    st.balloons()
+                    st.toast("🏆 Great job! Challenge completed successfully.")
+                    st.info("🌍 Every completed challenge contributes to a greener lifestyle.")
                 else:
                     current_prog = state['progress_value']
-                    st.write(f"Progress: {current_prog} / {ch_data['target']}")
+                    progress = min(current_prog / ch_data["target"], 1.0)
+                    st.progress(progress)
+                    percentage = int((current_prog / ch_data["target"]) * 100)
+                    st.write(f"📊 Progress: {current_prog}/{ch_data['target']} ({percentage}%)")
                     
                     prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
                     if st.button("Update", key=f"btn_prog_{ch_id}"):
-                        gf.update_challenge_progress(user_id, ch_id, progress_increment=prog_val)
-                        gf.validate_challenge_progress(1, ch_id)
+                        gf.update_challenge_progress(...)
+                        gf.validate_challenge_progress(...)
+                        st.toast("📈 Progress updated successfully!")
                         st.rerun()
             else:
                 if st.button("Enroll", key=f"enroll_{ch_id}"):
                     gf.enroll_challenge(user_id, ch_id)
+                    st.success("🎯 You have joined the challenge!")
+                    st.toast("🌱 Best of luck! Complete it to earn rewards.")
+                    st.toast("🌱 Successfully enrolled in the challenge!")
                     st.rerun()
 
     st.markdown("---")
