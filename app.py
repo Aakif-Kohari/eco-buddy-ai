@@ -2022,7 +2022,87 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+                    # ============================================================
+# 🌍 Environmental Impact Comparison
+# ============================================================
 
+        st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
+        
+        benchmarks = {
+            "Eco Lifestyle": 2000,
+            "Average Citizen": 4500,
+            "High Consumer": 8000
+        }
+        
+        st.markdown(
+            "Compare your estimated annual carbon footprint with common environmental benchmarks."
+        )
+        
+        comparison_data = [
+            ("🌱 Eco Lifestyle", benchmarks["Eco Lifestyle"]),
+            ("🙂 Average Citizen", benchmarks["Average Citizen"]),
+            ("🏭 High Consumer", benchmarks["High Consumer"]),
+            ("👤 You", total),
+        ]
+        
+        for name, value in comparison_data:
+        
+            if name == "👤 You":
+                progress = min(value / benchmarks["High Consumer"], 1.0)
+        
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                border:2px solid #22c55e;
+                background:#f0fdf4;
+                margin-bottom:12px;
+                ">
+                <h4>{name}</h4>
+                <p><b>{value:.0f} kg CO₂/year</b></p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+                st.progress(progress)
+        
+            else:
+                st.markdown(f"""
+                <div style="
+                padding:15px;
+                border-radius:10px;
+                border:1px solid #d1d5db;
+                margin-bottom:8px;
+                ">
+                <b>{name}</b><br>
+                {value:.0f} kg CO₂/year
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("### 📊 Your Position")
+        
+        if total <= benchmarks["Eco Lifestyle"]:
+            st.success("🌱 Excellent! Your footprint is even lower than a typical eco-friendly lifestyle.")
+        elif total <= benchmarks["Average Citizen"]:
+            st.info("😊 Great! Your emissions are below the average citizen.")
+        elif total <= benchmarks["High Consumer"]:
+            st.warning("⚠️ Your emissions are above average. Small lifestyle changes can significantly reduce them.")
+        else:
+            st.error("🚨 Your emissions exceed the high consumer benchmark. Consider reducing transport and electricity usage.")
+        
+        difference = benchmarks["Average Citizen"] - total
+        
+        if difference > 0:
+            st.success(
+                f"You emit approximately **{difference:.0f} kg CO₂ less** than the average citizen each year."
+            )
+        else:
+            st.warning(
+                f"You emit approximately **{abs(difference):.0f} kg CO₂ more** than the average citizen each year."
+            )
+        
+        st.caption(
+            "These benchmark values are illustrative and intended to help users better understand the relative scale of their carbon footprint."
+        )
         # -------------------------
         # PDF DOWNLOAD
         # -------------------------
