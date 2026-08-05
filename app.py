@@ -1338,7 +1338,7 @@ with tab1:
             )
 
         eco_score = calculate_eco_score(total)
-
+        trees_required = max(1, round(total / 22))
         transport_emission = contributors.get("Transportation", 0)
         electricity_emission = contributors.get("Electricity", 0)
         diet_emission = contributors.get("Diet", 0)
@@ -1429,7 +1429,7 @@ with tab1:
                 EcoBuddy evaluates the completeness and consistency of your inputs to
                 estimate how reliable your carbon footprint assessment is. Providing
                 detailed and accurate information improves recommendation quality and
-                overall assessment accuracy.
+                overall assessment accuracy.""")
 
         st.markdown("""
         <div class='card-highlight' style='margin-bottom:18px;'>
@@ -1438,7 +1438,7 @@ with tab1:
                 Based on your assessment results, EcoBuddy recommends additional
                 modules that can help you further reduce your environmental impact.
                 These suggestions connect different features across the application
-                to provide a more personalized sustainability experience.
+                to provide a more personalized sustainability experience.""")
 
 
         st.caption(
@@ -1602,7 +1602,31 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+        st.markdown("<div class='section-header'>🌳 Carbon Offset Estimate</div>", unsafe_allow_html=True)
 
+        st.markdown(f"""
+        <div class='card-highlight'>
+            <h3>🌱 Trees Needed</h3>
+            <p style="font-size:18px;">
+                Based on your estimated annual carbon footprint,
+                you would need approximately
+                <b style="font-size:32px; color:#22c55e;">
+                    {trees_required}
+                </b>
+                mature trees to absorb the same amount of CO₂ in one year.
+            </p>
+            <p style="color:#6b7280;">
+                This estimate assumes one mature tree absorbs around
+                <b>22 kg CO₂/year</b>.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        if trees_required <= 20:
+         st.success("🌿 Great! Your footprint is relatively low.")
+        elif trees_required <= 80:
+            st.warning("🌳 Consider reducing emissions and supporting tree-planting initiatives.")
+        else:
+            st.error("🔥 Your footprint is high. Reducing transport and electricity usage can make a big difference.")
         # -------------------------
         # ECO SCORE PROGRESS & BADGE
         # -------------------------
