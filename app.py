@@ -2103,10 +2103,225 @@ with tab1:
         st.caption(
             "These benchmark values are illustrative and intended to help users better understand the relative scale of their carbon footprint."
         )
-        # -------------------------
-        # PDF DOWNLOAD
-        # -------------------------
-
+                    # ============================================================
+        # 🌍 Carbon Footprint Comparison
+        # ============================================================
+        
+        st.markdown(
+            "<div class='section-header'>🌍 Carbon Footprint Comparison</div>",
+            unsafe_allow_html=True,
+        )
+        
+        st.caption(
+            "See how your annual carbon footprint compares with common lifestyle benchmarks."
+        )
+        
+        comparison_levels = [
+            {
+                "name": "🌱 Eco Lifestyle",
+                "value": 2000,
+                "description": "Highly sustainable transportation, renewable energy, and low-impact diet.",
+            },
+            {
+                "name": "🙂 Average Citizen",
+                "value": 4500,
+                "description": "Represents a typical yearly carbon footprint.",
+            },
+            {
+                "name": "🏭 High Consumer",
+                "value": 8000,
+                "description": "Frequent private transport, high electricity use, and regular air travel.",
+            },
+        ]
+        
+        comparison_levels.append(
+            {
+                "name": "👤 Your Footprint",
+                "value": total,
+                "description": "Calculated from your latest assessment.",
+            }
+        )
+        
+        highest_value = max(item["value"] for item in comparison_levels)
+        
+        st.markdown("### 📊 Comparison Overview")
+        
+        for item in comparison_levels:
+        
+            progress = item["value"] / highest_value
+        
+            if item["name"] == "👤 Your Footprint":
+                border = "#22c55e"
+                background = "#ecfdf5"
+            else:
+                border = "#d1d5db"
+                background = "#ffffff"
+        
+            st.markdown(
+                f"""
+        <div style="
+        padding:18px;
+        margin-bottom:14px;
+        border-radius:12px;
+        border-left:6px solid {border};
+        background:{background};
+        box-shadow:0 4px 12px rgba(0,0,0,0.06);
+        ">
+        <h4>{item["name"]}</h4>
+        
+        <p style="margin-bottom:6px;">
+        <b>{item["value"]:.0f} kg CO₂/year</b>
+        </p>
+        
+        <p style="color:#6b7280;">
+        {item["description"]}
+        </p>
+        </div>
+        """,
+                unsafe_allow_html=True,
+            )
+        
+            st.progress(progress)
+        
+        st.markdown("---")
+        
+        st.markdown("### 🏅 Your Environmental Rating")
+        
+        if total <= 2000:
+            rating = "Excellent"
+            color = "green"
+            message = (
+                "Your carbon footprint is exceptionally low. "
+                "You are following highly sustainable habits."
+            )
+        
+        elif total <= 4500:
+            rating = "Good"
+            color = "blue"
+            message = (
+                "Your footprint is below the average citizen. "
+                "Keep maintaining your sustainable lifestyle."
+            )
+        
+        elif total <= 8000:
+            rating = "Average"
+            color = "orange"
+            message = (
+                "Your emissions are above average. "
+                "There is significant room for improvement."
+            )
+        
+        else:
+            rating = "High Impact"
+            color = "red"
+            message = (
+                "Your annual emissions are considerably higher than recommended."
+            )
+        
+        if color == "green":
+            st.success(f"🏆 Rating: {rating}\n\n{message}")
+        
+        elif color == "blue":
+            st.info(f"🌿 Rating: {rating}\n\n{message}")
+        
+        elif color == "orange":
+            st.warning(f"⚠ Rating: {rating}\n\n{message}")
+        
+        else:
+            st.error(f"🚨 Rating: {rating}\n\n{message}")
+        
+        st.markdown("---")
+        
+        st.markdown("### 📈 Comparison Statistics")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        average_value = 4500
+        difference = average_value - total
+        
+        with col1:
+            st.metric(
+                "Your Footprint",
+                f"{total:.0f} kg",
+            )
+        
+        with col2:
+        
+            if difference >= 0:
+                st.metric(
+                    "Compared to Average",
+                    f"{abs(difference):.0f} kg Less",
+                )
+            else:
+                st.metric(
+                    "Compared to Average",
+                    f"{abs(difference):.0f} kg More",
+                )
+        
+        with col3:
+        
+            percentage = (total / average_value) * 100
+        
+            st.metric(
+                "Average Usage",
+                f"{percentage:.1f}%"
+            )
+        
+        st.markdown("---")
+        
+        st.markdown("### 💡 What This Means")
+        
+        if total <= 2000:
+        
+            st.success(
+                """
+        You are performing better than the eco-lifestyle benchmark.
+        
+        Continue using sustainable transport, renewable energy,
+        and environmentally friendly habits.
+        """
+            )
+        
+        elif total <= 4500:
+        
+            st.info(
+                """
+        You are below the average citizen.
+        
+        Small improvements in transportation or electricity
+        usage can further reduce your emissions.
+        """
+            )
+        
+        elif total <= 8000:
+        
+            st.warning(
+                """
+        Your footprint is higher than the average.
+        
+        Focus on reducing electricity consumption,
+        private vehicle usage, and unnecessary flights.
+        """
+            )
+        
+        else:
+        
+            st.error(
+                """
+        Your emissions are significantly higher than recommended.
+        
+        Consider major improvements in transportation,
+        energy consumption, and travel habits.
+        """
+            )
+        
+        st.caption(
+            "Benchmark values are reference estimates used only for comparison and educational purposes."
+        )
+                # -------------------------
+                # PDF DOWNLOAD
+                # -------------------------
+        
         
         st.markdown("---")
 
