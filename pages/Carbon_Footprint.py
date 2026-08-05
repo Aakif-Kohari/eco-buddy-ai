@@ -1,16 +1,23 @@
 import streamlit as st
 import pandas as pd
 import time
+from database import save_carbon_budget,get_carbon_budget
 from database import *
 from emissions import *
+from emissions import (
+    calculate_remaining_budget,
+    calculate_budget_progress,
+    forecast_monthly_emission,
+    budget_status,
+)
 from recommendations import *
-import os
+from impact_analyzer import analyze_minimal_changeimport os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
 from report import generate_pdf
-import gamification as gf
+from treemap_chart import create_emission_treemapfrom sankey_chart import create_emission_sankeyimport gamification as gf
 from marketplace import *
 from llm_parser import parse_quick_log
 from ocr_utils import extract_text_from_bytes, parse_energy_consumption
@@ -23,7 +30,256 @@ apply_theme()
 
 from cache import cached
 from cache_config import TTL_LLM_RESPONSE
+GLOBAL_POPULATION = 8_200_000_000
 
+CURRENT_GLOBAL_EMISSIONS = 37_400_000_000
+projected_global = user_footprint * GLOBAL_POPULATION
+
+difference = projected_global - CURRENT_GLOBAL_EMISSIONS
+
+percentage = (
+            difference / CURRENT_GLOBAL_EMISSIONS
+        ) * 100
+col1, col2, col3 = st.columns(3)
+
+with col1:
+            st.metric(
+                "Your Footprint",
+                f"{user_footprint:.2f} kg CO₂"
+            )
+
+with col2:
+            st.metric(
+                "Projected Global",
+                f"{projected_global/1_000_000_000:.2f} B kg"
+            )
+
+with col3:
+            st.metric(
+                "Difference",
+                f"{percentage:.2f}%"
+            )
+st.markdown("### 📊 Global Emission Comparison")
+
+comparison = pd.DataFrame({
+    "Scenario": [
+        "Current Earth",
+        "If Everyone Lived Like You"
+    ],
+    "CO₂ Emissions (Billion kg)": [
+        CURRENT_GLOBAL_EMISSIONS / 1_000_000_000,
+        projected_global / 1_000_000_000
+    ]
+})
+
+fig = px.bar(
+    comparison,
+    x="Scenario",
+    y="CO₂ Emissions (Billion kg)",
+    color="Scenario",
+    title="Global Carbon Emissions Comparison",
+    text="CO₂ Emissions (Billion kg)"
+)
+
+fig.update_layout(
+    xaxis_title="Scenario",
+    yaxis_title="Billion kg CO₂"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("### 🌎 Environmental Impact")
+
+if difference < 0:
+
+    st.success(
+        f"""
+🌱 Amazing!
+
+If everyone adopted your lifestyle:
+
+• Global emissions would decrease by **{abs(percentage):.2f}%**
+
+• Your lifestyle promotes sustainability.
+
+• Keep inspiring greener living.
+"""
+    )
+
+else:
+
+    st.error(
+        f"""
+⚠ Warning!
+
+If everyone adopted your lifestyle:
+
+• Global emissions would increase by **{percentage:.2f}%**
+
+• More sustainable habits are recommended.
+"""
+    )
+largest = max(
+    contributors,
+    key=contributors.get
+)
+
+if largest == "Transport":
+
+    st.info("🚶 Consider walking, cycling, or public transport more often.")
+
+elif largest == "Electricity":
+
+    st.info("⚡ Reduce electricity usage and switch to energy-efficient appliances.")
+
+elif largest == "Diet":
+
+    st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+
+elif largest == "Flights":
+
+    st.info("✈ Reduce unnecessary flights whenever possible.")
+st.markdown("### 🌍 Eco Clone Score")
+
+score = max(0, 100 - abs(percentage))
+
+st.metric(
+    "Eco Clone Score",
+    f"{score:.1f}/100"
+)
+st.markdown("---")
+
+st.markdown("""
+### 🌱 Final Insight
+
+The Eco Clone Simulator estimates the environmental impact if everyone on Earth adopted your current lifestyle.
+
+Remember, this is an educational simulation designed to help visualize how individual choices can scale globally.
+
+Every small sustainable action contributes to a healthier planet.
+""")
+st.markdown("### 🥧 Global Impact Distribution")
+
+pie = pd.DataFrame({
+    "Category": [
+        "Current Global Emissions",
+        "Difference"
+    ],
+    "Value": [
+        CURRENT_GLOBAL_EMISSIONS,
+        abs(difference)
+    ]
+})
+
+fig = px.pie(
+    pie,
+    values="Value",
+    names="Category",
+    title="Current vs Simulated Impact"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("### 🤖 AI Sustainability Insight")
+
+if percentage < -10:
+
+    st.success("""
+### Excellent 🌱
+
+Your lifestyle is significantly more sustainable than the current global average.
+
+If everyone adopted similar habits:
+
+✅ Global emissions would reduce dramatically.
+
+🌍 This would contribute positively toward climate goals.
+""")
+
+elif percentage < 0:
+
+    st.info("""
+### Good 👍
+
+Your lifestyle is slightly greener than average.
+
+Small improvements in transportation and electricity usage could create an even greater impact.
+""")
+
+elif percentage < 15:
+
+    st.warning("""
+### Moderate Impact
+
+Your lifestyle is close to the current global average.
+
+A few sustainable changes could noticeably reduce global emissions.
+""")
+
+else:
+
+    st.error("""
+### High Environmental Impact
+
+If everyone lived this way,
+
+global emissions would increase considerably.
+
+Consider reducing:
+
+• Transportation emissions
+
+• Electricity usage
+
+• Flight frequency
+
+• High-carbon diet
+""")
+st.markdown("### 🌍 Sustainability Score")
+
+st.progress(score / 100)
+
+st.metric(
+    "Global Sustainability Score",
+    f"{score:.1f}/100"
+)
+st.markdown("### 🌎 Did You Know?")
+
+facts = [
+    "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
+    "💡 LED bulbs use much less electricity than traditional bulbs.",
+    "🚲 Cycling produces almost zero direct carbon emissions.",
+    "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
+]
+
+import random
+
+st.info(random.choice(facts))
+st.markdown("### 📄 Export Simulation")
+
+report = f"""
+Eco Clone Simulator
+
+Your Footprint: {user_footprint:.2f} kg CO₂
+
+Projected Global Emissions:
+{projected_global:.2f} kg CO₂
+
+Difference:
+{percentage:.2f}%
+
+Eco Clone Score:
+{score:.2f}/100
+"""
+
+st.download_button(
+    "📥 Download Simulation Report",
+    report,
+    file_name="eco_clone_simulation.txt"
+)
+st.markdown("---")
+
+st.caption(
+    "🌍 Eco Clone Simulator is an educational feature that helps visualize the potential global impact of individual lifestyle choices."
+)
 @cached(ttl=TTL_LLM_RESPONSE)
 def compute_arima_forecast(ts_data):
     import warnings
@@ -75,8 +331,11 @@ if user_id and st.session_state.draft_status is None:
 
 ensure_session_state(DEFAULT_VALUES)
 
-tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
-
+tab_assess, tab_forecast, tab_clone = st.tabs([
+    "📝 Assessment",
+    "📈 Forecasting",
+    "🌍 Eco Clone Simulator"
+])
 with tab_assess:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
@@ -349,17 +608,48 @@ if "analysis" in st.session_state:
         title="Monthly Carbon Footprint Trend"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 💡 AI Insight")
-    st.info(data["insight"])
+    st.markdown("### 🌊 Carbon Emission Flow (Sankey Diagram)")
+    st.caption("See how each activity category flows into your total carbon footprint.")
+    sankey_fig = create_emission_sankey(data["contributors"], data["total"])
+st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 🌱 Recommendations")
+    st.markdown("### 🗺️ Carbon Footprint Breakdown (Tree Map)")
+    st.caption("See which categories take up the largest share of your total footprint.")
+    treemap_fig = create_emission_treemap(data["contributors"], data["total"])
+    st.plotly_chart(treemap_fig, use_container_width=True)
+
+    st.markdown("### 💡 AI Insight")    st.info(data["insight"])
+
+st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
         st.success(rec)
 
-    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
+    st.markdown("### 🎯 Minimal Change, Maximum Impact")
+    ranked_changes = analyze_minimal_change(
+        data["transport"], data["distance"], data["electricity"],
+        data["diet"], data["flights"], st.session_state.get("region", "Global"),
+        data["total"]
+    )
+    if ranked_changes:
+        best = ranked_changes[0]
+        st.success(
+            f"⭐ **Best small change:** {best['change']}\n\n"
+            f"**Estimated savings:** {best['savings']:.2f} kg CO₂/year "
+            f"(Effort: {best['effort']})\n\n"
+            f"**Why it works:** {best['reason']}"
+        )
+        with st.expander("📊 See all ranked lifestyle changes"):
+            for c in ranked_changes:
+                st.write(
+                    f"- **{c['change']}** — Effort: {c['effort']}, "
+                    f"Estimated savings: {c['savings']:.2f} kg CO₂/year"
+                )
+    else:
+        st.info("No further small changes detected — your lifestyle is already optimized!")
 
+    st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
     with st.expander("📋 View Calculation Audit Log"):
         audit = data.get("audit_log", {})
         fp_audit = audit.get("footprint_audit", {})
@@ -627,3 +917,172 @@ with tab_forecast:
                 st.success("Great job! Your footprint is on a downward trend. Keep it up!")
         except Exception as e:
             st.error(f"Error generating forecast: {e}")
+st.subheader("🌱 Carbon Budget Planner")
+with tab_clone:
+
+    st.markdown("<div class='section-header'>🌍 Eco Clone Simulator</div>", unsafe_allow_html=True)
+
+    st.write(
+        "Imagine if everyone on Earth lived exactly like you. "
+        "This simulator estimates the impact on global carbon emissions."
+    )
+
+    if "analysis" not in st.session_state:
+
+        st.info("Please complete a Carbon Footprint Assessment first.")
+
+    else:
+                user_footprint = data["total"]
+
+                data = st.session_state.analysis
+budget_type=st.selectbox(
+    "Budget Type",
+    ["Monthly","Yearly"]
+)
+
+budget_limit=st.number_input(
+    "Carbon Budget (kg CO₂)",
+    min_value=0.0,
+    step=10.0
+)
+
+if st.button("Save Budget"):
+    save_carbon_budget(
+        st.session_state.user["id"],
+        budget_type,
+        budget_limit
+    )
+
+    st.success("Budget saved successfully.")
+if progress>=0.9:
+    st.error("⚠ You are close to exceeding your carbon budget.")
+
+elif progress>=0.7:
+    st.warning("Approaching your carbon budget.")
+
+else:
+    st.success("Within budget.")
+forecast=total*1.10
+
+st.metric(
+    "Forecast",
+    f"{forecast:.2f} kg CO₂"
+)
+budget = get_carbon_budget(
+    st.session_state.user["id"]
+)
+
+if budget:
+
+    st.info(
+        f"Current Budget: {budget[1]} kg CO₂ ({budget[0]})"
+    )
+budget = get_carbon_budget(
+    st.session_state.user["id"]
+)
+
+if budget:
+
+    budget_limit = budget[1]
+
+    used = total
+
+    remaining = max(
+        budget_limit - used,
+        0
+    )
+
+    progress = min(
+        used / budget_limit,
+        1.0
+    )
+
+    st.subheader("📊 Budget Overview")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Budget",
+            f"{budget_limit:.2f} kg"
+        )
+
+    with col2:
+        st.metric(
+            "Remaining",
+            f"{remaining:.2f} kg"
+        )
+
+    st.progress(progress)
+if progress >= 0.9:
+
+    st.error(
+        "⚠ You are very close to exceeding your carbon budget."
+    )
+
+elif progress >= 0.7:
+
+    st.warning(
+        "Approaching your carbon budget."
+    )
+
+else:
+
+    st.success(
+        "Great! You are within your carbon budget."
+    )
+forecast = used * 1.10
+
+st.metric(
+    "Estimated End-of-Month Emissions",
+    f"{forecast:.2f} kg CO₂"
+)
+
+if forecast > budget_limit:
+
+    st.error(
+        "Forecast indicates you may exceed your budget."
+    )
+
+else:
+
+    st.success(
+        "Forecast indicates you are likely to stay within budget."
+    )
+col1,col2,col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "Budget",
+        f"{budget_limit:.2f}"
+    )
+
+with col2:
+    st.metric(
+        "Used",
+        f"{total:.2f}"
+    )
+
+with col3:
+    st.metric(
+        "Remaining",
+        f"{remaining:.2f}"
+    )
+st.progress(progress)
+st.subheader("Suggestions")
+
+if forecast > budget_limit:
+
+    st.write("• Reduce electricity consumption")
+
+    st.write("• Prefer walking or cycling")
+
+    st.write("• Use public transport")
+
+    st.write("• Reduce unnecessary flights")
+
+else:
+
+    st.success(
+        "You're on track to stay within your carbon budget."
+    )

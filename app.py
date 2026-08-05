@@ -17,6 +17,10 @@ import tempfile
 import uuid
 import os
 from dotenv import load_dotenv
+from styles import load_css
+from components.header import render_header
+from components.profile import render_profile
+
 
 load_dotenv()
 
@@ -68,6 +72,8 @@ features = [
     "♻️ Waste Management Assistant",
     "📊 Environmental Dashboard",
     "🤖 AI-powered Recommendations",
+    "🎬 Carbon Footprint Replay",
+    "🧾 AI Receipt Categorization",
 ]
 
 for feature in features:
@@ -874,17 +880,7 @@ apply_theme()
 # -------------------------
 # HEADER
 # -------------------------
-st.markdown("<div class='title'>🌱 EcoBuddy AI+</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>Your Personal AI-Powered Carbon Footprint Tracker & Eco Assistant</div>", unsafe_allow_html=True)
-st.markdown("""
-<div style='text-align: center; margin-bottom: 32px;'>
-    <div style='display: inline-flex; gap: 16px; padding: 12px 24px; background: rgba(34, 197, 94, 0.08); border-radius: 50px; border: 1px solid rgba(74, 222, 128, 0.2);'>
-        <span style='color: #000; font-size: 15px; font-weight: 700;'>✨ Track • 📊 Analyze • 💡 Improve</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("---")
+render_header()
 
 
 # -------------------------
@@ -1343,6 +1339,7 @@ with tab1:
 
         eco_score = calculate_eco_score(total)
 
+
         # Circular Economy Score
         circular_score = 100
 
@@ -1360,6 +1357,8 @@ with tab1:
 
         circular_score = max(0, circular_score)
 
+        trees_required = max(1, round(total / 22))
+
         transport_emission = contributors.get("Transportation", 0)
         electricity_emission = contributors.get("Electricity", 0)
         diet_emission = contributors.get("Diet", 0)
@@ -1367,6 +1366,41 @@ with tab1:
 
         insight, recommendations = generate_recommendations(
             transport, electricity, diet, flights, contributors
+        )
+
+        # -------------------------
+        # Cross-Module Smart Suggestions
+        # -------------------------
+
+        cross_module_suggestions = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            cross_module_suggestions.append(
+                "🛣️ Explore the Route Planning module to discover lower-emission travel options."
+            )
+
+        if electricity_emission > 5:
+            cross_module_suggestions.append(
+                "⚡ Open the Home Energy Audit section for personalized electricity-saving recommendations."
+            )
+
+        if flight_emission > 2:
+            cross_module_suggestions.append(
+                "✈️ Visit Carbon Offsets to balance emissions from frequent air travel."
+            )
+
+        if eco_score < 60:
+            cross_module_suggestions.append(
+                "🏆 Complete weekly sustainability challenges to improve your Eco Score faster."
+            )
+
+        if eco_score >= 80:
+            cross_module_suggestions.append(
+                "🌍 Compare your progress on the Community Leaderboard and inspire other users."
+            )
+
+        cross_module_suggestions.append(
+            "📊 Review your Assessment History to monitor long-term sustainability progress."
         )
 
         save_assessment(user_id, 
@@ -1381,7 +1415,171 @@ with tab1:
 
         st.success("✅ Analysis completed!")
 
+
+
+        # -------------------------
+        # INPUT CONFIDENCE SCORE
+        # -------------------------
+
+        confidence_score = 100
+        missing_items = []
+
+        if distance == 0:
+            confidence_score -= 15
+            missing_items.append("Transportation distance")
+
+        if electricity == 0:
+            confidence_score -= 20
+            missing_items.append("Electricity usage")
+
+        if flights == 0:
+            confidence_score -= 10
+            missing_items.append("Flight activity")
+
+        if diet.lower() in ["unknown", "", "select"]:
+            confidence_score -= 15
+            missing_items.append("Diet information")
+
+        confidence_score = max(confidence_score, 0)
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🎯 Assessment Confidence</h3>
+            <p>
+                EcoBuddy evaluates the completeness and consistency of your inputs to
+                estimate how reliable your carbon footprint assessment is. Providing
+                detailed and accurate information improves recommendation quality and
+                overall assessment accuracy.""")
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3>🔗 Cross-Module Smart Suggestions</h3>
+            <p>
+                Based on your assessment results, EcoBuddy recommends additional
+                modules that can help you further reduce your environmental impact.
+                These suggestions connect different features across the application
+                to provide a more personalized sustainability experience.""")
+
+
+        st.caption(
+            "These personalized feature recommendations are automatically generated "
+            "after every assessment to help users discover useful EcoBuddy modules "
+            "that match their environmental profile and encourage continued engagement."
+        )
+
+        # -------------------------
+        # SMART FEATURE DISCOVERY
+        # -------------------------
+
+        st.markdown("""
+        <div class='card-highlight' style='margin-bottom:18px;'>
+            <h3 style='margin-bottom:12px;'>💡 Smart Feature Discovery</h3>
+            <p style='color:#6b7280;'>
+                Based on your assessment results, EcoBuddy has identified additional
+                tools that can help you better understand, monitor, and reduce your
+                environmental impact. Explore the suggestions below to continue your
+                sustainability journey with personalized insights.
+
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+
+        st.markdown("### 🎯 Input Confidence Score")
+
+        st.progress(confidence_score / 100)
+
+        st.metric("Confidence", f"{confidence_score}%")
+
+        if confidence_score >= 90:
+            st.success("🟢 High confidence assessment. Your inputs appear complete and reliable.")
+
+        elif confidence_score >= 70:
+            st.warning("🟡 Medium confidence assessment. Some additional information could improve accuracy.")
+
+        else:
+            st.error("🔴 Low confidence assessment. Consider completing more fields for better estimates.")
+
+        if missing_items:
+
+            st.markdown("#### Missing or Incomplete Information")
+
+            for item in missing_items:
+                st.write(f"• {item}")
+
+            st.info(
+                "Providing more complete information will improve the accuracy "
+                "of your carbon footprint calculations and recommendations."
+            )
+
+        st.markdown("#### 💡 Improvement Suggestions")
+
+        if confidence_score < 100:
+
+            st.write("✅ Provide accurate transportation distance.")
+            st.write("✅ Enter realistic electricity consumption.")
+            st.write("✅ Include annual flight information.")
+            st.write("✅ Select the most appropriate diet type.")
+
+        else:
+
+            st.success(
+                "Excellent! Your assessment contains sufficient information "
+                "to generate highly reliable sustainability insights."
+            )
+
+        st.markdown("### 🔗 Cross-Module Smart Suggestions")
+
+        st.caption(
+            "EcoBuddy analyzed your assessment and identified additional modules "
+            "that can provide relevant guidance based on your current environmental profile."
+        )
+
+        for item in cross_module_suggestions:
+            st.info(item)
+
+
+        feature_suggestions = []
+
+        if contributors.get("transport", 0) > 0:
+            feature_suggestions.append(
+                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport emissions."
+            )
+
+        if electricity > 150:
+            feature_suggestions.append(
+                "⚡ Visit the Home Energy Audit section for recommendations that can reduce electricity consumption."
+            )
+
+        if eco_score < 70:
+            feature_suggestions.append(
+                "🏆 Improve your Eco Score by completing more assessments and earning sustainability badges."
+            )
+
+        feature_suggestions.append(
+            "📈 Track your future environmental progress using the Future Self dashboard."
+        )
+
+        feature_suggestions.append(
+            "🌍 Check the Community Leaderboard to compare your sustainability progress with other users."
+        )
+
+        st.info(
+            "🌱 Personalized Feature Suggestions\n\n"
+            "These recommendations are generated from your latest assessment "
+            "to help you discover useful EcoBuddy features."
+        )
+
+        for suggestion in feature_suggestions:
+            st.write(f"✅ {suggestion}")
+
+        if st.button("❌ Dismiss Suggestions", key="dismiss_feature_suggestions"):
+            st.success("Feature suggestions dismissed. They will appear again after your next assessment.")
+
+
         st.markdown("---")
+
 
 
         # Top metrics row
@@ -1436,6 +1634,65 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+        st.markdown("<div class='section-header'>🌳 Carbon Offset Estimate</div>", unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class='card-highlight'>
+            <h3>🌱 Trees Needed</h3>
+            <p style="font-size:18px;">
+                Based on your estimated annual carbon footprint,
+                you would need approximately
+                <b style="font-size:32px; color:#22c55e;">
+                    {trees_required}
+                </b>
+                mature trees to absorb the same amount of CO₂ in one year.
+            </p>
+            <p style="color:#6b7280;">
+                This estimate assumes one mature tree absorbs around
+                <b>22 kg CO₂/year</b>.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        if trees_required <= 20:
+         st.success("🌿 Great! Your footprint is relatively low.")
+        elif trees_required <= 80:
+            st.warning("🌳 Consider reducing emissions and supporting tree-planting initiatives.")
+        else:
+            st.error("🔥 Your footprint is high. Reducing transport and electricity usage can make a big difference.")
+
+        # ============================================================
+# 🌿 Eco Health Report
+# ============================================================
+
+        st.markdown("<div class='section-header'>🌿 Eco Health Report</div>", unsafe_allow_html=True)
+
+        health_score = eco_score
+
+        if health_score >= 90:
+            grade = "A+"
+            color = "#16a34a"
+            status = "Outstanding Sustainability"
+        elif health_score >= 80:
+            grade = "A"
+            color = "#22c55e"
+            status = "Very Eco Friendly"
+        elif health_score >= 70:
+            grade = "B"
+            color = "#84cc16"
+            status = "Good Environmental Performance"
+        elif health_score >= 60:
+            grade = "C"
+            color = "#eab308"
+            status = "Needs Improvement"
+        elif health_score >= 40:
+            grade = "D"
+            color = "#f97316"
+            status = "High Environmental Impact"
+        else:
+            grade = "F"
+            color = "#ef4444"
+            status = "Critical Environmental Impact"
+
 
         st.info("♻️ Circular Economy Score evaluates how well your lifestyle follows sustainable and circular economy principles.")
 
@@ -1453,6 +1710,92 @@ with tab1:
             )
 
         st.markdown("---")
+
+
+        st.markdown(f"""
+        <div style="
+        padding:25px;
+        border-radius:15px;
+        background:#ffffff;
+        border-left:8px solid {color};
+        box-shadow:0 6px 18px rgba(0,0,0,0.08);
+        margin-bottom:20px;
+        ">
+        <h2 style="color:{color};margin-bottom:5px;">
+        Overall Grade : {grade}
+        </h2>
+
+        <h4 style="margin-top:0;">
+        {status}
+        </h4>
+
+        <p>
+        Your Eco Health Grade summarizes your sustainability habits based on
+        transportation, electricity consumption, diet and air travel.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        strengths = []
+        improvements = []
+
+        if transport in ["Bike", "Walking"]:
+            strengths.append("🚲 Excellent choice of transportation.")
+        else:
+            improvements.append("🚗 Reduce private vehicle usage.")
+
+        if electricity <= 150:
+            strengths.append("⚡ Efficient electricity consumption.")
+        else:
+            improvements.append("⚡ Try lowering monthly electricity usage.")
+
+        if diet == "Vegetarian":
+            strengths.append("🥗 Plant-based diet reduces emissions.")
+        else:
+            improvements.append("🥩 Consider reducing meat consumption.")
+
+        if flights == 0:
+            strengths.append("✈ Minimal flight emissions.")
+        else:
+            improvements.append("✈ Reduce unnecessary air travel.")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+        
+            st.success("### 🌱 Your Strengths")
+
+            if strengths:
+                for item in strengths:
+                    st.write(item)
+            else:
+                st.write("No major strengths identified yet.")
+
+        with col2:
+        
+            st.warning("### 📌 Improvement Areas")
+
+            if improvements:
+                for item in improvements:
+                    st.write(item)
+            else:
+                st.write("Excellent! No major improvements needed.")
+
+        st.markdown("### 📈 Sustainability Summary")
+
+        st.info(
+            f"""
+        • Eco Score : **{eco_score}/100**
+
+        • Annual Carbon Footprint : **{total:.2f} kg CO₂**
+
+        • Biggest Contributor : **{max(contributors, key=contributors.get)}**
+
+        • Estimated Trees Needed : **{max(1, round(total/22))}**
+
+        Continue making sustainable choices to improve your grade in future assessments.
+        """
+        )
 
         # -------------------------
         # ECO SCORE PROGRESS & BADGE
@@ -1731,11 +2074,306 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+                    # ============================================================
+# 🌍 Environmental Impact Comparison
+# ============================================================
 
-        # -------------------------
-        # PDF DOWNLOAD
-        # -------------------------
-
+        st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
+        
+        benchmarks = {
+            "Eco Lifestyle": 2000,
+            "Average Citizen": 4500,
+            "High Consumer": 8000
+        }
+        
+        st.markdown(
+            "Compare your estimated annual carbon footprint with common environmental benchmarks."
+        )
+        
+        comparison_data = [
+            ("🌱 Eco Lifestyle", benchmarks["Eco Lifestyle"]),
+            ("🙂 Average Citizen", benchmarks["Average Citizen"]),
+            ("🏭 High Consumer", benchmarks["High Consumer"]),
+            ("👤 You", total),
+        ]
+        
+        for name, value in comparison_data:
+        
+            if name == "👤 You":
+                progress = min(value / benchmarks["High Consumer"], 1.0)
+        
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                border:2px solid #22c55e;
+                background:#f0fdf4;
+                margin-bottom:12px;
+                ">
+                <h4>{name}</h4>
+                <p><b>{value:.0f} kg CO₂/year</b></p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+                st.progress(progress)
+        
+            else:
+                st.markdown(f"""
+                <div style="
+                padding:15px;
+                border-radius:10px;
+                border:1px solid #d1d5db;
+                margin-bottom:8px;
+                ">
+                <b>{name}</b><br>
+                {value:.0f} kg CO₂/year
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("### 📊 Your Position")
+        
+        if total <= benchmarks["Eco Lifestyle"]:
+            st.success("🌱 Excellent! Your footprint is even lower than a typical eco-friendly lifestyle.")
+        elif total <= benchmarks["Average Citizen"]:
+            st.info("😊 Great! Your emissions are below the average citizen.")
+        elif total <= benchmarks["High Consumer"]:
+            st.warning("⚠️ Your emissions are above average. Small lifestyle changes can significantly reduce them.")
+        else:
+            st.error("🚨 Your emissions exceed the high consumer benchmark. Consider reducing transport and electricity usage.")
+        
+        difference = benchmarks["Average Citizen"] - total
+        
+        if difference > 0:
+            st.success(
+                f"You emit approximately **{difference:.0f} kg CO₂ less** than the average citizen each year."
+            )
+        else:
+            st.warning(
+                f"You emit approximately **{abs(difference):.0f} kg CO₂ more** than the average citizen each year."
+            )
+        
+        st.caption(
+            "These benchmark values are illustrative and intended to help users better understand the relative scale of their carbon footprint."
+        )
+                    # ============================================================
+        # 🌍 Carbon Footprint Comparison
+        # ============================================================
+        
+        st.markdown(
+            "<div class='section-header'>🌍 Carbon Footprint Comparison</div>",
+            unsafe_allow_html=True,
+        )
+        
+        st.caption(
+            "See how your annual carbon footprint compares with common lifestyle benchmarks."
+        )
+        
+        comparison_levels = [
+            {
+                "name": "🌱 Eco Lifestyle",
+                "value": 2000,
+                "description": "Highly sustainable transportation, renewable energy, and low-impact diet.",
+            },
+            {
+                "name": "🙂 Average Citizen",
+                "value": 4500,
+                "description": "Represents a typical yearly carbon footprint.",
+            },
+            {
+                "name": "🏭 High Consumer",
+                "value": 8000,
+                "description": "Frequent private transport, high electricity use, and regular air travel.",
+            },
+        ]
+        
+        comparison_levels.append(
+            {
+                "name": "👤 Your Footprint",
+                "value": total,
+                "description": "Calculated from your latest assessment.",
+            }
+        )
+        
+        highest_value = max(item["value"] for item in comparison_levels)
+        
+        st.markdown("### 📊 Comparison Overview")
+        
+        for item in comparison_levels:
+        
+            progress = item["value"] / highest_value
+        
+            if item["name"] == "👤 Your Footprint":
+                border = "#22c55e"
+                background = "#ecfdf5"
+            else:
+                border = "#d1d5db"
+                background = "#ffffff"
+        
+            st.markdown(
+                f"""
+        <div style="
+        padding:18px;
+        margin-bottom:14px;
+        border-radius:12px;
+        border-left:6px solid {border};
+        background:{background};
+        box-shadow:0 4px 12px rgba(0,0,0,0.06);
+        ">
+        <h4>{item["name"]}</h4>
+        
+        <p style="margin-bottom:6px;">
+        <b>{item["value"]:.0f} kg CO₂/year</b>
+        </p>
+        
+        <p style="color:#6b7280;">
+        {item["description"]}
+        </p>
+        </div>
+        """,
+                unsafe_allow_html=True,
+            )
+        
+            st.progress(progress)
+        
+        st.markdown("---")
+        
+        st.markdown("### 🏅 Your Environmental Rating")
+        
+        if total <= 2000:
+            rating = "Excellent"
+            color = "green"
+            message = (
+                "Your carbon footprint is exceptionally low. "
+                "You are following highly sustainable habits."
+            )
+        
+        elif total <= 4500:
+            rating = "Good"
+            color = "blue"
+            message = (
+                "Your footprint is below the average citizen. "
+                "Keep maintaining your sustainable lifestyle."
+            )
+        
+        elif total <= 8000:
+            rating = "Average"
+            color = "orange"
+            message = (
+                "Your emissions are above average. "
+                "There is significant room for improvement."
+            )
+        
+        else:
+            rating = "High Impact"
+            color = "red"
+            message = (
+                "Your annual emissions are considerably higher than recommended."
+            )
+        
+        if color == "green":
+            st.success(f"🏆 Rating: {rating}\n\n{message}")
+        
+        elif color == "blue":
+            st.info(f"🌿 Rating: {rating}\n\n{message}")
+        
+        elif color == "orange":
+            st.warning(f"⚠ Rating: {rating}\n\n{message}")
+        
+        else:
+            st.error(f"🚨 Rating: {rating}\n\n{message}")
+        
+        st.markdown("---")
+        
+        st.markdown("### 📈 Comparison Statistics")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        average_value = 4500
+        difference = average_value - total
+        
+        with col1:
+            st.metric(
+                "Your Footprint",
+                f"{total:.0f} kg",
+            )
+        
+        with col2:
+        
+            if difference >= 0:
+                st.metric(
+                    "Compared to Average",
+                    f"{abs(difference):.0f} kg Less",
+                )
+            else:
+                st.metric(
+                    "Compared to Average",
+                    f"{abs(difference):.0f} kg More",
+                )
+        
+        with col3:
+        
+            percentage = (total / average_value) * 100
+        
+            st.metric(
+                "Average Usage",
+                f"{percentage:.1f}%"
+            )
+        
+        st.markdown("---")
+        
+        st.markdown("### 💡 What This Means")
+        
+        if total <= 2000:
+        
+            st.success(
+                """
+        You are performing better than the eco-lifestyle benchmark.
+        
+        Continue using sustainable transport, renewable energy,
+        and environmentally friendly habits.
+        """
+            )
+        
+        elif total <= 4500:
+        
+            st.info(
+                """
+        You are below the average citizen.
+        
+        Small improvements in transportation or electricity
+        usage can further reduce your emissions.
+        """
+            )
+        
+        elif total <= 8000:
+        
+            st.warning(
+                """
+        Your footprint is higher than the average.
+        
+        Focus on reducing electricity consumption,
+        private vehicle usage, and unnecessary flights.
+        """
+            )
+        
+        else:
+        
+            st.error(
+                """
+        Your emissions are significantly higher than recommended.
+        
+        Consider major improvements in transportation,
+        energy consumption, and travel habits.
+        """
+            )
+        
+        st.caption(
+            "Benchmark values are reference estimates used only for comparison and educational purposes."
+        )
+                # -------------------------
+                # PDF DOWNLOAD
+                # -------------------------
+        
         
         st.markdown("---")
 
@@ -1852,6 +2490,47 @@ with tab1:
                     "eco_score",
                 ],
             )
+
+            # -----------------------------
+            # Eco Impact Streak Calendar
+            # -----------------------------
+            st.markdown("---")
+            st.subheader("📅 Eco Impact Streak Calendar")
+
+            calendar_df = df.copy()
+            calendar_df["date"] = pd.to_datetime(calendar_df["date"]).dt.date
+
+            today = pd.Timestamp.today().date()
+            last_30_days = pd.date_range(end=today, periods=30)
+
+            activity = []
+
+            for day in last_30_days:
+                if day.date() in calendar_df["date"].values:
+                    activity.append("🟩")
+                else:
+                    activity.append("⬜")
+
+            calendar_html = ""
+
+            for i, box in enumerate(activity):
+                calendar_html += f"<span style='font-size:20px'>{box}</span>"
+                if (i + 1) % 10 == 0:
+                    calendar_html += "<br>"
+
+            st.markdown(calendar_html, unsafe_allow_html=True)
+
+            active_days = len(calendar_df)
+
+            st.metric(
+                "🌱 Active Eco Days",
+                active_days
+            )
+
+            st.caption("🟩 Assessment completed   ⬜ No assessment")
+
+
+
             # ---------------------------------------------------------------
             # Format the automatically generated creation timestamps before
             # displaying them in the Assessment History table.
