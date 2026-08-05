@@ -3,6 +3,8 @@ import logging
 import json
 import datetime
 import math
+from datetime import datetime
+import calendar
 
 logger = logging.getLogger(__name__)
 
@@ -286,3 +288,47 @@ def get_factor_version(region="Global"):
 def export_audit_log_json(audit_log: dict, indent: int = 2) -> str:
     """Exports an audit log dictionary into a formatted JSON string."""
     return json.dumps(audit_log, indent=indent)
+def calculate_remaining_budget(budget_limit, current_emission):
+    """
+    Returns remaining carbon budget.
+    """
+
+    return max(0, budget_limit - current_emission)
+def calculate_budget_progress(budget_limit, current_emission):
+    """
+    Returns percentage of budget used.
+    """
+
+    if budget_limit == 0:
+        return 0
+
+    return min(current_emission / budget_limit, 1.0)
+def forecast_monthly_emission(current_emission):
+    """
+    Estimate end-of-month emissions.
+    """
+
+    today = datetime.today()
+
+    days_elapsed = today.day
+
+    total_days = calendar.monthrange(
+        today.year,
+        today.month
+    )[1]
+
+    average = current_emission / days_elapsed
+
+    return round(
+        average * total_days,
+        2
+    )
+def budget_status(progress):
+
+    if progress >= 0.90:
+        return "Critical"
+
+    elif progress >= 0.70:
+        return "Warning"
+
+    return "Safe"
