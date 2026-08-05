@@ -1348,6 +1348,48 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
+        # --------------------------
+        # Hidden Carbon Source Detector
+        # --------------------------
+
+        hidden_sources = []
+
+        if transport > 20:
+            hidden_sources.append(
+                {
+                    "source": "🚚 Food Delivery Packaging",
+                    "impact": round(total * 0.05, 2),
+                    "tip": "Cook at home occasionally or order multiple meals together."
+                }
+            )
+
+        if flights > 0:
+            hidden_sources.append(
+                {
+                    "source": "🧳 Airport & Travel Waste",
+                    "impact": round(total * 0.08, 2),
+                    "tip": "Pack light and avoid unnecessary short flights."
+                }
+            )
+
+        if electricity > 8:
+            hidden_sources.append(
+                {
+                    "source": "🔌 Idle Electronics",
+                    "impact": round(total * 0.04, 2),
+                    "tip": "Switch off chargers and unused devices."
+                }
+            )
+
+        if diet > 6:
+            hidden_sources.append(
+                {
+                    "source": "🥡 Food Packaging Waste",
+                    "impact": round(total * 0.03, 2),
+                    "tip": "Prefer reusable containers and local produce."
+                }
+            )
+
         # -------------------------
         # Cross-Module Smart Suggestions
         # -------------------------
@@ -2022,9 +2064,49 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
-                    # ============================================================
-# 🌍 Environmental Impact Comparison
-# ============================================================
+
+        # ------------------------------
+        # Hidden Carbon Source Detector
+        # ------------------------------
+
+        st.markdown("---")
+        st.subheader("🕵️ Hidden Carbon Source Detector")
+
+        hidden_sources = []
+
+        if transport > 20:
+            hidden_sources.append(
+                ("🚚 Food Delivery & Packaging",
+                "Frequent transportation often means additional packaging waste and delivery emissions.")
+            )
+
+        if electricity > 5:
+            hidden_sources.append(
+                ("📺 Idle Electronics",
+                "Devices left plugged in or on standby silently consume electricity.")
+            )
+
+        if flights > 0:
+            hidden_sources.append(
+                ("🛍️ Online Shopping Deliveries",
+                "Air shipping and frequent deliveries increase hidden carbon emissions.")
+            )
+
+        if diet.lower() != "vegan":
+            hidden_sources.append(
+                ("🍽️ Food Waste",
+                "Reducing food waste can significantly lower your indirect carbon footprint.")
+            )
+
+        if hidden_sources:
+            for title, desc in hidden_sources:
+                st.warning(f"**{title}**\n\n{desc}")
+        else:
+            st.success("🎉 Great! No major hidden carbon sources detected.")
+            
+        # ============================================================
+        # 🌍 Environmental Impact Comparison
+        # ============================================================
 
         st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
         
