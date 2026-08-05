@@ -1627,6 +1627,124 @@ with tab1:
             st.warning("🌳 Consider reducing emissions and supporting tree-planting initiatives.")
         else:
             st.error("🔥 Your footprint is high. Reducing transport and electricity usage can make a big difference.")
+
+        # ============================================================
+# 🌿 Eco Health Report
+# ============================================================
+
+        st.markdown("<div class='section-header'>🌿 Eco Health Report</div>", unsafe_allow_html=True)
+
+        health_score = eco_score
+
+        if health_score >= 90:
+            grade = "A+"
+            color = "#16a34a"
+            status = "Outstanding Sustainability"
+        elif health_score >= 80:
+            grade = "A"
+            color = "#22c55e"
+            status = "Very Eco Friendly"
+        elif health_score >= 70:
+            grade = "B"
+            color = "#84cc16"
+            status = "Good Environmental Performance"
+        elif health_score >= 60:
+            grade = "C"
+            color = "#eab308"
+            status = "Needs Improvement"
+        elif health_score >= 40:
+            grade = "D"
+            color = "#f97316"
+            status = "High Environmental Impact"
+        else:
+            grade = "F"
+            color = "#ef4444"
+            status = "Critical Environmental Impact"
+
+        st.markdown(f"""
+        <div style="
+        padding:25px;
+        border-radius:15px;
+        background:#ffffff;
+        border-left:8px solid {color};
+        box-shadow:0 6px 18px rgba(0,0,0,0.08);
+        margin-bottom:20px;
+        ">
+        <h2 style="color:{color};margin-bottom:5px;">
+        Overall Grade : {grade}
+        </h2>
+
+        <h4 style="margin-top:0;">
+        {status}
+        </h4>
+
+        <p>
+        Your Eco Health Grade summarizes your sustainability habits based on
+        transportation, electricity consumption, diet and air travel.
+        </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        strengths = []
+        improvements = []
+
+        if transport in ["Bike", "Walking"]:
+            strengths.append("🚲 Excellent choice of transportation.")
+        else:
+            improvements.append("🚗 Reduce private vehicle usage.")
+
+        if electricity <= 150:
+            strengths.append("⚡ Efficient electricity consumption.")
+        else:
+            improvements.append("⚡ Try lowering monthly electricity usage.")
+
+        if diet == "Vegetarian":
+            strengths.append("🥗 Plant-based diet reduces emissions.")
+        else:
+            improvements.append("🥩 Consider reducing meat consumption.")
+
+        if flights == 0:
+            strengths.append("✈ Minimal flight emissions.")
+        else:
+            improvements.append("✈ Reduce unnecessary air travel.")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+        
+            st.success("### 🌱 Your Strengths")
+
+            if strengths:
+                for item in strengths:
+                    st.write(item)
+            else:
+                st.write("No major strengths identified yet.")
+
+        with col2:
+        
+            st.warning("### 📌 Improvement Areas")
+
+            if improvements:
+                for item in improvements:
+                    st.write(item)
+            else:
+                st.write("Excellent! No major improvements needed.")
+
+        st.markdown("### 📈 Sustainability Summary")
+
+        st.info(
+            f"""
+        • Eco Score : **{eco_score}/100**
+
+        • Annual Carbon Footprint : **{total:.2f} kg CO₂**
+
+        • Biggest Contributor : **{max(contributors, key=contributors.get)}**
+
+        • Estimated Trees Needed : **{max(1, round(total/22))}**
+
+        Continue making sustainable choices to improve your grade in future assessments.
+        """
+        )
         # -------------------------
         # ECO SCORE PROGRESS & BADGE
         # -------------------------
