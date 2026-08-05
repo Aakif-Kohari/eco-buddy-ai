@@ -1368,6 +1368,48 @@ with tab1:
             transport, electricity, diet, flights, contributors
         )
 
+        # --------------------------
+        # Hidden Carbon Source Detector
+        # --------------------------
+
+        hidden_sources = []
+
+        if transport > 20:
+            hidden_sources.append(
+                {
+                    "source": "🚚 Food Delivery Packaging",
+                    "impact": round(total * 0.05, 2),
+                    "tip": "Cook at home occasionally or order multiple meals together."
+                }
+            )
+
+        if flights > 0:
+            hidden_sources.append(
+                {
+                    "source": "🧳 Airport & Travel Waste",
+                    "impact": round(total * 0.08, 2),
+                    "tip": "Pack light and avoid unnecessary short flights."
+                }
+            )
+
+        if electricity > 8:
+            hidden_sources.append(
+                {
+                    "source": "🔌 Idle Electronics",
+                    "impact": round(total * 0.04, 2),
+                    "tip": "Switch off chargers and unused devices."
+                }
+            )
+
+        if diet > 6:
+            hidden_sources.append(
+                {
+                    "source": "🥡 Food Packaging Waste",
+                    "impact": round(total * 0.03, 2),
+                    "tip": "Prefer reusable containers and local produce."
+                }
+            )
+
         # -------------------------
         # Cross-Module Smart Suggestions
         # -------------------------
