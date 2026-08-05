@@ -2117,6 +2117,66 @@ with tab1:
 
         st.markdown("---")
 
+        st.markdown("---")
+
+        # =========================
+        # 🌿 Green Decision Comparator
+        # =========================
+
+        st.markdown(
+            "<div class='section-header'>🌿 Green Decision Comparator</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.write("Compare two everyday choices and see which is more eco-friendly.")
+
+        options = {
+            "Drive Car (10 km)": 2.3,
+            "Public Transport (10 km)": 0.8,
+            "Bike (10 km)": 0.0,
+            "Walk (10 km)": 0.0,
+            "Beef Meal": 5.0,
+            "Vegetarian Meal": 1.5,
+            "LED Bulb": 0.2,
+            "Incandescent Bulb": 0.8,
+        }
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            choice1 = st.selectbox(
+                "First Option",
+                list(options.keys()),
+                key="decision_1",
+            )
+
+        with col2:
+            choice2 = st.selectbox(
+                "Second Option",
+                list(options.keys()),
+                key="decision_2",
+            )
+
+        if st.button("Compare Choices"):
+
+            emission1 = options[choice1]
+            emission2 = options[choice2]
+
+            st.metric(choice1, f"{emission1:.2f} kg CO₂")
+            st.metric(choice2, f"{emission2:.2f} kg CO₂")
+
+            if emission1 < emission2:
+                st.success(f"✅ {choice1} is the greener option.")
+                st.info(f"You save approximately {emission2-emission1:.2f} kg CO₂.")
+
+            elif emission2 < emission1:
+                st.success(f"✅ {choice2} is the greener option.")
+                st.info(f"You save approximately {emission1-emission2:.2f} kg CO₂.")
+
+            else:
+                st.info("Both choices have similar environmental impact.")
+
+        
 
         # ---------------------------------
         # Sustainability Learning Hub
