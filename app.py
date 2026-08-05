@@ -1343,6 +1343,23 @@ with tab1:
 
         eco_score = calculate_eco_score(total)
 
+        # Circular Economy Score
+        circular_score = 100
+
+        if transport.lower() in ["car", "taxi"]:
+            circular_score -= 20
+
+        if electricity > 500:
+            circular_score -= 20
+
+        if diet.lower() == "non-vegetarian":
+            circular_score -= 20
+
+        if flights > 2:
+            circular_score -= 20
+
+        circular_score = max(0, circular_score)
+
         transport_emission = contributors.get("Transportation", 0)
         electricity_emission = contributors.get("Electricity", 0)
         diet_emission = contributors.get("Diet", 0)
@@ -1397,6 +1414,18 @@ with tab1:
             </div>
             """.format(max(contributors, key=contributors.get), max(contributors.values())), unsafe_allow_html=True)
 
+            st.markdown(
+                f"""
+            <div class="metric-card">
+                <div style="font-size:14px;color:#6b7280;">♻️ Circular Economy Score</div>
+                <div style="font-size:34px;font-weight:700;color:#22c55e;">
+                    {circular_score}/100
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+            )
+
         with met4:
             st.markdown("""
             <div class='metric-card'>
@@ -1405,6 +1434,23 @@ with tab1:
                 <div style='font-size: 12px; color: #4b5563;'>Tracking enabled</div>
             </div>
             """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        st.info("♻️ Circular Economy Score evaluates how well your lifestyle follows sustainable and circular economy principles.")
+
+        if circular_score < 60:
+            st.warning(
+                "Suggestions: Reduce unnecessary flights, lower electricity usage, prefer public transport, and adopt more sustainable food choices."
+            )
+        elif circular_score < 80:
+            st.success(
+                "Good progress! Small improvements in transport and energy consumption can further increase your Circular Economy Score."
+            )
+        else:
+            st.success(
+                "Excellent! Your current lifestyle strongly aligns with circular economy principles."
+            )
 
         st.markdown("---")
 
