@@ -2022,9 +2022,59 @@ with tab1:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+
+        # ---------------------------------
+        # Sustainability Learning Hub
+        # ---------------------------------
+
+        st.markdown("---")
+        st.subheader("📚 Sustainability Learning Hub")
+
+        learning_cards = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            learning_cards.append(
+                ("🚲 Green Transportation",
+                "Walking, cycling, or public transport can significantly reduce your carbon footprint.")
+            )
+
+        if electricity_emission > 5:
+            learning_cards.append(
+                ("💡 Energy Saving",
+                "Turning off unused appliances and using LED bulbs helps lower electricity emissions.")
+            )
+
+        if flight_emission > 0:
+            learning_cards.append(
+                ("✈️ Sustainable Travel",
+                "Consider trains or virtual meetings whenever possible to reduce travel emissions.")
+            )
+
+        if diet_emission > 2:
+            learning_cards.append(
+                ("🥗 Sustainable Diet",
+                "Eating more plant-based meals can reduce emissions from food production.")
+            )
+
+        if not learning_cards:
+            learning_cards.append(
+                ("🌍 Eco Fact",
+                "Every small sustainable habit contributes to protecting our planet.")
+            )
+
+        search_topic = st.text_input(
+            "🔍 Search sustainability topics",
+            placeholder="transport, electricity, flights, diet..."
+        )
+
+        for title, content in learning_cards:
+            if search_topic == "" or search_topic.lower() in title.lower() or search_topic.lower() in content.lower():
+                with st.expander(title):
+                    st.write(content)
+                    
                     # ============================================================
-# 🌍 Environmental Impact Comparison
-# ============================================================
+                    # 🌍 Environmental Impact Comparison
+                    # ============================================================
 
         st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
         
