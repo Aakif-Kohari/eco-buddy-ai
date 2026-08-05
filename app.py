@@ -1338,7 +1338,27 @@ with tab1:
             )
 
         eco_score = calculate_eco_score(total)
+
+
+        # Circular Economy Score
+        circular_score = 100
+
+        if transport.lower() in ["car", "taxi"]:
+            circular_score -= 20
+
+        if electricity > 500:
+            circular_score -= 20
+
+        if diet.lower() == "non-vegetarian":
+            circular_score -= 20
+
+        if flights > 2:
+            circular_score -= 20
+
+        circular_score = max(0, circular_score)
+
         trees_required = max(1, round(total / 22))
+
         transport_emission = contributors.get("Transportation", 0)
         electricity_emission = contributors.get("Electricity", 0)
         diet_emission = contributors.get("Diet", 0)
@@ -1592,6 +1612,18 @@ with tab1:
             </div>
             """.format(max(contributors, key=contributors.get), max(contributors.values())), unsafe_allow_html=True)
 
+            st.markdown(
+                f"""
+            <div class="metric-card">
+                <div style="font-size:14px;color:#6b7280;">♻️ Circular Economy Score</div>
+                <div style="font-size:34px;font-weight:700;color:#22c55e;">
+                    {circular_score}/100
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+            )
+
         with met4:
             st.markdown("""
             <div class='metric-card'>
@@ -1660,6 +1692,25 @@ with tab1:
             grade = "F"
             color = "#ef4444"
             status = "Critical Environmental Impact"
+
+
+        st.info("♻️ Circular Economy Score evaluates how well your lifestyle follows sustainable and circular economy principles.")
+
+        if circular_score < 60:
+            st.warning(
+                "Suggestions: Reduce unnecessary flights, lower electricity usage, prefer public transport, and adopt more sustainable food choices."
+            )
+        elif circular_score < 80:
+            st.success(
+                "Good progress! Small improvements in transport and energy consumption can further increase your Circular Economy Score."
+            )
+        else:
+            st.success(
+                "Excellent! Your current lifestyle strongly aligns with circular economy principles."
+            )
+
+        st.markdown("---")
+
 
         st.markdown(f"""
         <div style="
@@ -1745,6 +1796,7 @@ with tab1:
         Continue making sustainable choices to improve your grade in future assessments.
         """
         )
+
         # -------------------------
         # ECO SCORE PROGRESS & BADGE
         # -------------------------
@@ -2023,6 +2075,7 @@ with tab1:
 
         st.markdown("---")
 
+
         # ---------------------------------
         # Sustainability Learning Hub
         # ---------------------------------
@@ -2075,6 +2128,148 @@ with tab1:
                     # ============================================================
                     # 🌍 Environmental Impact Comparison
                     # ============================================================
+
+        # ============================================================
+        # 🌎 Eco Performance Summary
+        # ============================================================
+        
+        st.markdown(
+            "<div class='section-header'>🌎 Eco Performance Summary</div>",
+            unsafe_allow_html=True
+        )
+        
+        transport_score = 100
+        energy_score = 100
+        diet_score = 100
+        travel_score = 100
+        
+        if transport == "Car":
+            transport_score = 50
+        elif transport == "Public Transport":
+            transport_score = 80
+        elif transport == "Bike":
+            transport_score = 100
+        elif transport == "Walking":
+            transport_score = 100
+        
+        if electricity > 300:
+            energy_score = 40
+        elif electricity > 200:
+            energy_score = 60
+        elif electricity > 100:
+            energy_score = 80
+        else:
+            energy_score = 100
+        
+        if diet == "Non-Vegetarian":
+            diet_score = 60
+        
+        if flights >= 8:
+            travel_score = 20
+        elif flights >= 5:
+            travel_score = 40
+        elif flights >= 3:
+            travel_score = 60
+        elif flights >= 1:
+            travel_score = 80
+        
+        overall = round(
+            (transport_score +
+             energy_score +
+             diet_score +
+             travel_score) / 4
+        )
+        
+        st.metric("Overall Sustainability Rating", f"{overall}/100")
+        
+        st.markdown("### Category Performance")
+        
+        categories = {
+            "Transportation": transport_score,
+            "Energy Usage": energy_score,
+            "Diet": diet_score,
+            "Air Travel": travel_score
+        }
+        
+        for category, score in categories.items():
+        
+            st.write(f"**{category}**")
+        
+            st.progress(score / 100)
+        
+            if score >= 90:
+                st.success("Excellent")
+            elif score >= 70:
+                st.info("Good")
+            elif score >= 50:
+                st.warning("Average")
+            else:
+                st.error("Needs Improvement")
+        
+        st.markdown("---")
+        
+        st.subheader("🌱 Positive Habits")
+        
+        good = []
+        
+        if transport in ["Bike", "Walking"]:
+            good.append("🚴 Low-carbon transportation")
+        
+        if electricity <= 150:
+            good.append("⚡ Efficient electricity usage")
+        
+        if diet == "Vegetarian":
+            good.append("🥗 Environment-friendly diet")
+        
+        if flights == 0:
+            good.append("✈ Low air travel emissions")
+        
+        if len(good) == 0:
+            st.info("No significant eco-friendly habits identified yet.")
+        else:
+            for item in good:
+                st.success(item)
+        
+        st.markdown("---")
+        
+        st.subheader("📌 Areas to Improve")
+        
+        bad = []
+        
+        if transport == "Car":
+            bad.append("Use public transport or bike whenever possible.")
+        
+        if electricity > 200:
+            bad.append("Reduce unnecessary electricity consumption.")
+        
+        if diet == "Non-Vegetarian":
+            bad.append("Try including more plant-based meals.")
+        
+        if flights > 2:
+            bad.append("Reduce air travel or offset flight emissions.")
+        
+        if len(bad) == 0:
+            st.success("Excellent! No major improvement areas found.")
+        else:
+            for item in bad:
+                st.warning(item)
+        
+        st.markdown("---")
+        
+        st.subheader("📊 Final Assessment")
+        
+        if overall >= 90:
+            st.success("🌍 Outstanding sustainability performance!")
+        elif overall >= 75:
+            st.success("🌱 You're doing very well. Keep improving.")
+        elif overall >= 60:
+            st.info("🙂 Good progress. A few changes can make a big difference.")
+        else:
+            st.error("♻ Your environmental impact can be reduced with better daily habits.")
+# ============================================================
+# 🌍 Environmental Impact Comparison
+# ============================================================
+
 
         st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
         
@@ -2156,16 +2351,16 @@ with tab1:
                     # ============================================================
         # 🌍 Carbon Footprint Comparison
         # ============================================================
-        
+
         st.markdown(
             "<div class='section-header'>🌍 Carbon Footprint Comparison</div>",
             unsafe_allow_html=True,
         )
-        
+
         st.caption(
             "See how your annual carbon footprint compares with common lifestyle benchmarks."
         )
-        
+
         comparison_levels = [
             {
                 "name": "🌱 Eco Lifestyle",
@@ -2183,7 +2378,7 @@ with tab1:
                 "description": "Frequent private transport, high electricity use, and regular air travel.",
             },
         ]
-        
+
         comparison_levels.append(
             {
                 "name": "👤 Your Footprint",
@@ -2191,22 +2386,22 @@ with tab1:
                 "description": "Calculated from your latest assessment.",
             }
         )
-        
+
         highest_value = max(item["value"] for item in comparison_levels)
-        
+
         st.markdown("### 📊 Comparison Overview")
-        
+
         for item in comparison_levels:
         
             progress = item["value"] / highest_value
-        
+
             if item["name"] == "👤 Your Footprint":
                 border = "#22c55e"
                 background = "#ecfdf5"
             else:
                 border = "#d1d5db"
                 background = "#ffffff"
-        
+
             st.markdown(
                 f"""
         <div style="
@@ -2218,11 +2413,11 @@ with tab1:
         box-shadow:0 4px 12px rgba(0,0,0,0.06);
         ">
         <h4>{item["name"]}</h4>
-        
+
         <p style="margin-bottom:6px;">
         <b>{item["value"]:.0f} kg CO₂/year</b>
         </p>
-        
+
         <p style="color:#6b7280;">
         {item["description"]}
         </p>
@@ -2230,13 +2425,13 @@ with tab1:
         """,
                 unsafe_allow_html=True,
             )
-        
+
             st.progress(progress)
-        
+
         st.markdown("---")
-        
+
         st.markdown("### 🏅 Your Environmental Rating")
-        
+
         if total <= 2000:
             rating = "Excellent"
             color = "green"
@@ -2244,7 +2439,7 @@ with tab1:
                 "Your carbon footprint is exceptionally low. "
                 "You are following highly sustainable habits."
             )
-        
+
         elif total <= 4500:
             rating = "Good"
             color = "blue"
@@ -2252,7 +2447,7 @@ with tab1:
                 "Your footprint is below the average citizen. "
                 "Keep maintaining your sustainable lifestyle."
             )
-        
+
         elif total <= 8000:
             rating = "Average"
             color = "orange"
@@ -2260,41 +2455,41 @@ with tab1:
                 "Your emissions are above average. "
                 "There is significant room for improvement."
             )
-        
+
         else:
             rating = "High Impact"
             color = "red"
             message = (
                 "Your annual emissions are considerably higher than recommended."
             )
-        
+
         if color == "green":
             st.success(f"🏆 Rating: {rating}\n\n{message}")
-        
+
         elif color == "blue":
             st.info(f"🌿 Rating: {rating}\n\n{message}")
-        
+
         elif color == "orange":
             st.warning(f"⚠ Rating: {rating}\n\n{message}")
-        
+
         else:
             st.error(f"🚨 Rating: {rating}\n\n{message}")
-        
+
         st.markdown("---")
-        
+
         st.markdown("### 📈 Comparison Statistics")
-        
+
         col1, col2, col3 = st.columns(3)
-        
+
         average_value = 4500
         difference = average_value - total
-        
+
         with col1:
             st.metric(
                 "Your Footprint",
                 f"{total:.0f} kg",
             )
-        
+
         with col2:
         
             if difference >= 0:
@@ -2307,71 +2502,71 @@ with tab1:
                     "Compared to Average",
                     f"{abs(difference):.0f} kg More",
                 )
-        
+
         with col3:
         
             percentage = (total / average_value) * 100
-        
+
             st.metric(
                 "Average Usage",
                 f"{percentage:.1f}%"
             )
-        
+
         st.markdown("---")
-        
+
         st.markdown("### 💡 What This Means")
-        
+
         if total <= 2000:
         
             st.success(
                 """
         You are performing better than the eco-lifestyle benchmark.
-        
+
         Continue using sustainable transport, renewable energy,
         and environmentally friendly habits.
         """
             )
-        
+
         elif total <= 4500:
         
             st.info(
                 """
         You are below the average citizen.
-        
+
         Small improvements in transportation or electricity
         usage can further reduce your emissions.
         """
             )
-        
+
         elif total <= 8000:
         
             st.warning(
                 """
         Your footprint is higher than the average.
-        
+
         Focus on reducing electricity consumption,
         private vehicle usage, and unnecessary flights.
         """
             )
-        
+
         else:
         
             st.error(
                 """
         Your emissions are significantly higher than recommended.
-        
+
         Consider major improvements in transportation,
         energy consumption, and travel habits.
         """
             )
-        
+
         st.caption(
             "Benchmark values are reference estimates used only for comparison and educational purposes."
         )
                 # -------------------------
                 # PDF DOWNLOAD
                 # -------------------------
-        
+
         
         st.markdown("---")
 
@@ -2469,6 +2664,144 @@ with tab1:
         st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
         history = get_assessments(user_id)
+
+        # ----------------------------------
+        # Eco Action Streak Risk Detector
+        # ----------------------------------
+
+        if history and len(history) >= 3:
+            recent_scores = [row[-1] for row in history[:3]]
+
+            score_drop = recent_scores[2] - recent_scores[0]
+
+            if score_drop >= 20:
+                risk = "🔴 High Risk"
+                color = "#ff4d4d"
+            elif score_drop >= 10:
+                risk = "🟠 Medium Risk"
+                color = "#ff9800"
+            else:
+                risk = "🟢 Low Risk"
+                color = "#4caf50"
+
+            st.markdown(
+                f"""
+                <div style="
+                    padding:14px;
+                    border-radius:12px;
+                    background:#111827;
+                    border-left:6px solid {color};
+                    margin-bottom:12px;">
+                    <h4>{risk}</h4>
+                    <p>Your recent assessments were analyzed automatically.</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            if recent_scores[0] < recent_scores[1] < recent_scores[2]:
+                st.warning("⚠️ Eco Action Streak at Risk!")
+
+                st.write(
+                    "Your Eco Score has declined over your last three assessments. "
+                    "Take action now to protect your sustainability streak."
+                )
+
+                st.info(
+                    """
+            ### 🌱 Suggested Recovery Actions
+
+            - 🚶 Walk, cycle, or use public transport.
+            - 💡 Reduce unnecessary electricity consumption.
+            - 🥗 Choose more sustainable food options.
+            - ✈️ Avoid non-essential flights whenever possible.
+                        """
+                )
+            else:
+                st.success("✅ Great! Your sustainability streak is stable.")
+
+            import pandas as pd
+            import plotly.express as px
+
+            trend_df = pd.DataFrame({
+                "Assessment": ["Oldest", "Previous", "Latest"],
+                "Eco Score": [
+                    recent_scores[2],
+                    recent_scores[1],
+                    recent_scores[0]
+                ]
+            })
+
+            fig = px.line(
+                trend_df,
+                x="Assessment",
+                y="Eco Score",
+                markers=True,
+                title="Eco Score Trend"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            recovery = max(0, 100 - score_drop * 5)
+
+            st.markdown("### 🔋 Recovery Readiness")
+
+            st.progress(recovery / 100)
+
+            st.caption(f"Recovery Score: {recovery}%")
+
+            st.markdown("### 🌱 Personalized Recovery Plan")
+
+            tips = []
+
+            if score_drop >= 20:
+                tips.extend([
+                    "🚶 Walk or cycle instead of using a car.",
+                    "💡 Reduce unnecessary electricity usage.",
+                    "🥗 Eat more plant-based meals.",
+                    "✈️ Avoid non-essential flights."
+                ])
+            elif score_drop >= 10:
+                tips.extend([
+                    "🚌 Use public transport whenever possible.",
+                    "🔌 Switch off appliances when not in use.",
+                    "♻️ Recycle household waste regularly."
+                ])
+            else:
+                tips.append("🌿 Great work! Continue your sustainable habits.")
+
+            for tip in tips:
+                st.write(f"✅ {tip}")
+
+            days = max(3, score_drop // 2)
+
+            st.info(
+                f"📅 Estimated time to recover your sustainability streak: **{days} days**"
+            )
+
+            st.markdown("### 📊 Streak Health Summary")
+
+            status = "Healthy"
+            message = "Keep maintaining your current sustainable habits."
+
+            if score_drop >= 20:
+                status = "Critical"
+                message = "Immediate improvements are recommended to avoid losing your streak."
+            elif score_drop >= 10:
+                status = "Needs Attention"
+                message = "Small lifestyle changes can quickly improve your progress."
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric("Streak Status", status)
+
+            with col2:
+                st.metric("Recent Score Drop", f"{score_drop} pts")
+
+            st.caption(message)
+
+                    
 
         if history:
             import pandas as pd
@@ -3282,6 +3615,117 @@ with tab6:
         )
 
         st.plotly_chart(cat_fig, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("""
+<style>
+#scrollTopBtn {
+    display: none;
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 9999;
+    border: none;
+    outline: none;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    cursor: pointer;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+#scrollTopBtn:hover {
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+</style>
+
+<button onclick="scrollToTop()" id="scrollTopBtn" title="Go to top">
+⬆
+</button>
+
+<script>
+let scrollButton = document.getElementById("scrollTopBtn");
+
+window.onscroll = function () {
+    if (
+        document.body.scrollTop > 300 ||
+        document.documentElement.scrollTop > 300
+    ) {
+        scrollButton.style.display = "block";
+    } else {
+        scrollButton.style.display = "none";
+    }
+};
+
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+</script>
+""", unsafe_allow_html=True)
+
+        st.markdown("""
+<style>
+#scrollTopBtn {
+    display: none;
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 9999;
+    border: none;
+    outline: none;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    cursor: pointer;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+#scrollTopBtn:hover {
+    transform: translateY(-4px) scale(1.08);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+</style>
+
+<button onclick="scrollToTop()" id="scrollTopBtn" title="Go to top">
+⬆
+</button>
+
+<script>
+let scrollButton = document.getElementById("scrollTopBtn");
+
+window.onscroll = function () {
+    if (
+        document.body.scrollTop > 300 ||
+        document.documentElement.scrollTop > 300
+    ) {
+        scrollButton.style.display = "block";
+    } else {
+        scrollButton.style.display = "none";
+    }
+};
+
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+</script>
+""", unsafe_allow_html=True)
 
         st.markdown("---")
 
