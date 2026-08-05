@@ -2420,6 +2420,144 @@ with tab1:
 
         history = get_assessments(user_id)
 
+        # ----------------------------------
+        # Eco Action Streak Risk Detector
+        # ----------------------------------
+
+        if history and len(history) >= 3:
+            recent_scores = [row[-1] for row in history[:3]]
+
+            score_drop = recent_scores[2] - recent_scores[0]
+
+            if score_drop >= 20:
+                risk = "🔴 High Risk"
+                color = "#ff4d4d"
+            elif score_drop >= 10:
+                risk = "🟠 Medium Risk"
+                color = "#ff9800"
+            else:
+                risk = "🟢 Low Risk"
+                color = "#4caf50"
+
+            st.markdown(
+                f"""
+                <div style="
+                    padding:14px;
+                    border-radius:12px;
+                    background:#111827;
+                    border-left:6px solid {color};
+                    margin-bottom:12px;">
+                    <h4>{risk}</h4>
+                    <p>Your recent assessments were analyzed automatically.</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            if recent_scores[0] < recent_scores[1] < recent_scores[2]:
+                st.warning("⚠️ Eco Action Streak at Risk!")
+
+                st.write(
+                    "Your Eco Score has declined over your last three assessments. "
+                    "Take action now to protect your sustainability streak."
+                )
+
+                st.info(
+                    """
+            ### 🌱 Suggested Recovery Actions
+
+            - 🚶 Walk, cycle, or use public transport.
+            - 💡 Reduce unnecessary electricity consumption.
+            - 🥗 Choose more sustainable food options.
+            - ✈️ Avoid non-essential flights whenever possible.
+                        """
+                )
+            else:
+                st.success("✅ Great! Your sustainability streak is stable.")
+
+            import pandas as pd
+            import plotly.express as px
+
+            trend_df = pd.DataFrame({
+                "Assessment": ["Oldest", "Previous", "Latest"],
+                "Eco Score": [
+                    recent_scores[2],
+                    recent_scores[1],
+                    recent_scores[0]
+                ]
+            })
+
+            fig = px.line(
+                trend_df,
+                x="Assessment",
+                y="Eco Score",
+                markers=True,
+                title="Eco Score Trend"
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            recovery = max(0, 100 - score_drop * 5)
+
+            st.markdown("### 🔋 Recovery Readiness")
+
+            st.progress(recovery / 100)
+
+            st.caption(f"Recovery Score: {recovery}%")
+
+            st.markdown("### 🌱 Personalized Recovery Plan")
+
+            tips = []
+
+            if score_drop >= 20:
+                tips.extend([
+                    "🚶 Walk or cycle instead of using a car.",
+                    "💡 Reduce unnecessary electricity usage.",
+                    "🥗 Eat more plant-based meals.",
+                    "✈️ Avoid non-essential flights."
+                ])
+            elif score_drop >= 10:
+                tips.extend([
+                    "🚌 Use public transport whenever possible.",
+                    "🔌 Switch off appliances when not in use.",
+                    "♻️ Recycle household waste regularly."
+                ])
+            else:
+                tips.append("🌿 Great work! Continue your sustainable habits.")
+
+            for tip in tips:
+                st.write(f"✅ {tip}")
+
+            days = max(3, score_drop // 2)
+
+            st.info(
+                f"📅 Estimated time to recover your sustainability streak: **{days} days**"
+            )
+
+            st.markdown("### 📊 Streak Health Summary")
+
+            status = "Healthy"
+            message = "Keep maintaining your current sustainable habits."
+
+            if score_drop >= 20:
+                status = "Critical"
+                message = "Immediate improvements are recommended to avoid losing your streak."
+            elif score_drop >= 10:
+                status = "Needs Attention"
+                message = "Small lifestyle changes can quickly improve your progress."
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric("Streak Status", status)
+
+            with col2:
+                st.metric("Recent Score Drop", f"{score_drop} pts")
+
+            st.caption(message)
+
+                    
+
         if history:
             import pandas as pd
             import plotly.graph_objects as go
