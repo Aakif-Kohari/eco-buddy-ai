@@ -30,7 +30,256 @@ apply_theme()
 
 from cache import cached
 from cache_config import TTL_LLM_RESPONSE
+GLOBAL_POPULATION = 8_200_000_000
 
+CURRENT_GLOBAL_EMISSIONS = 37_400_000_000
+projected_global = user_footprint * GLOBAL_POPULATION
+
+difference = projected_global - CURRENT_GLOBAL_EMISSIONS
+
+percentage = (
+            difference / CURRENT_GLOBAL_EMISSIONS
+        ) * 100
+col1, col2, col3 = st.columns(3)
+
+with col1:
+            st.metric(
+                "Your Footprint",
+                f"{user_footprint:.2f} kg CO₂"
+            )
+
+with col2:
+            st.metric(
+                "Projected Global",
+                f"{projected_global/1_000_000_000:.2f} B kg"
+            )
+
+with col3:
+            st.metric(
+                "Difference",
+                f"{percentage:.2f}%"
+            )
+st.markdown("### 📊 Global Emission Comparison")
+
+comparison = pd.DataFrame({
+    "Scenario": [
+        "Current Earth",
+        "If Everyone Lived Like You"
+    ],
+    "CO₂ Emissions (Billion kg)": [
+        CURRENT_GLOBAL_EMISSIONS / 1_000_000_000,
+        projected_global / 1_000_000_000
+    ]
+})
+
+fig = px.bar(
+    comparison,
+    x="Scenario",
+    y="CO₂ Emissions (Billion kg)",
+    color="Scenario",
+    title="Global Carbon Emissions Comparison",
+    text="CO₂ Emissions (Billion kg)"
+)
+
+fig.update_layout(
+    xaxis_title="Scenario",
+    yaxis_title="Billion kg CO₂"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("### 🌎 Environmental Impact")
+
+if difference < 0:
+
+    st.success(
+        f"""
+🌱 Amazing!
+
+If everyone adopted your lifestyle:
+
+• Global emissions would decrease by **{abs(percentage):.2f}%**
+
+• Your lifestyle promotes sustainability.
+
+• Keep inspiring greener living.
+"""
+    )
+
+else:
+
+    st.error(
+        f"""
+⚠ Warning!
+
+If everyone adopted your lifestyle:
+
+• Global emissions would increase by **{percentage:.2f}%**
+
+• More sustainable habits are recommended.
+"""
+    )
+largest = max(
+    contributors,
+    key=contributors.get
+)
+
+if largest == "Transport":
+
+    st.info("🚶 Consider walking, cycling, or public transport more often.")
+
+elif largest == "Electricity":
+
+    st.info("⚡ Reduce electricity usage and switch to energy-efficient appliances.")
+
+elif largest == "Diet":
+
+    st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+
+elif largest == "Flights":
+
+    st.info("✈ Reduce unnecessary flights whenever possible.")
+st.markdown("### 🌍 Eco Clone Score")
+
+score = max(0, 100 - abs(percentage))
+
+st.metric(
+    "Eco Clone Score",
+    f"{score:.1f}/100"
+)
+st.markdown("---")
+
+st.markdown("""
+### 🌱 Final Insight
+
+The Eco Clone Simulator estimates the environmental impact if everyone on Earth adopted your current lifestyle.
+
+Remember, this is an educational simulation designed to help visualize how individual choices can scale globally.
+
+Every small sustainable action contributes to a healthier planet.
+""")
+st.markdown("### 🥧 Global Impact Distribution")
+
+pie = pd.DataFrame({
+    "Category": [
+        "Current Global Emissions",
+        "Difference"
+    ],
+    "Value": [
+        CURRENT_GLOBAL_EMISSIONS,
+        abs(difference)
+    ]
+})
+
+fig = px.pie(
+    pie,
+    values="Value",
+    names="Category",
+    title="Current vs Simulated Impact"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("### 🤖 AI Sustainability Insight")
+
+if percentage < -10:
+
+    st.success("""
+### Excellent 🌱
+
+Your lifestyle is significantly more sustainable than the current global average.
+
+If everyone adopted similar habits:
+
+✅ Global emissions would reduce dramatically.
+
+🌍 This would contribute positively toward climate goals.
+""")
+
+elif percentage < 0:
+
+    st.info("""
+### Good 👍
+
+Your lifestyle is slightly greener than average.
+
+Small improvements in transportation and electricity usage could create an even greater impact.
+""")
+
+elif percentage < 15:
+
+    st.warning("""
+### Moderate Impact
+
+Your lifestyle is close to the current global average.
+
+A few sustainable changes could noticeably reduce global emissions.
+""")
+
+else:
+
+    st.error("""
+### High Environmental Impact
+
+If everyone lived this way,
+
+global emissions would increase considerably.
+
+Consider reducing:
+
+• Transportation emissions
+
+• Electricity usage
+
+• Flight frequency
+
+• High-carbon diet
+""")
+st.markdown("### 🌍 Sustainability Score")
+
+st.progress(score / 100)
+
+st.metric(
+    "Global Sustainability Score",
+    f"{score:.1f}/100"
+)
+st.markdown("### 🌎 Did You Know?")
+
+facts = [
+    "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
+    "💡 LED bulbs use much less electricity than traditional bulbs.",
+    "🚲 Cycling produces almost zero direct carbon emissions.",
+    "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
+]
+
+import random
+
+st.info(random.choice(facts))
+st.markdown("### 📄 Export Simulation")
+
+report = f"""
+Eco Clone Simulator
+
+Your Footprint: {user_footprint:.2f} kg CO₂
+
+Projected Global Emissions:
+{projected_global:.2f} kg CO₂
+
+Difference:
+{percentage:.2f}%
+
+Eco Clone Score:
+{score:.2f}/100
+"""
+
+st.download_button(
+    "📥 Download Simulation Report",
+    report,
+    file_name="eco_clone_simulation.txt"
+)
+st.markdown("---")
+
+st.caption(
+    "🌍 Eco Clone Simulator is an educational feature that helps visualize the potential global impact of individual lifestyle choices."
+)
 @cached(ttl=TTL_LLM_RESPONSE)
 def compute_arima_forecast(ts_data):
     import warnings
@@ -82,8 +331,11 @@ if user_id and st.session_state.draft_status is None:
 
 ensure_session_state(DEFAULT_VALUES)
 
-tab_assess, tab_forecast = st.tabs(['📝 Assessment', '📈 Forecasting'])
-
+tab_assess, tab_forecast, tab_clone = st.tabs([
+    "📝 Assessment",
+    "📈 Forecasting",
+    "🌍 Eco Clone Simulator"
+])
 with tab_assess:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
@@ -666,7 +918,23 @@ with tab_forecast:
         except Exception as e:
             st.error(f"Error generating forecast: {e}")
 st.subheader("🌱 Carbon Budget Planner")
+with tab_clone:
 
+    st.markdown("<div class='section-header'>🌍 Eco Clone Simulator</div>", unsafe_allow_html=True)
+
+    st.write(
+        "Imagine if everyone on Earth lived exactly like you. "
+        "This simulator estimates the impact on global carbon emissions."
+    )
+
+    if "analysis" not in st.session_state:
+
+        st.info("Please complete a Carbon Footprint Assessment first.")
+
+    else:
+                user_footprint = data["total"]
+
+                data = st.session_state.analysis
 budget_type=st.selectbox(
     "Budget Type",
     ["Monthly","Yearly"]
