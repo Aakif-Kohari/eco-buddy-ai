@@ -2830,69 +2830,69 @@ with tab1:
         # ============================================================
         # 🌍 Personalized Eco Action Plan
         # ============================================================
-        
+
         st.markdown(
             "<div class='section-header'>🌍 Personalized Eco Action Plan</div>",
             unsafe_allow_html=True
         )
-        
+
         actions = []
-        
+
         if transport == "Car":
             actions.append({
                 "title": "🚲 Choose Greener Transportation",
                 "priority": "High",
                 "benefit": "Reduce transportation emissions by using public transport, cycling, or walking whenever possible."
             })
-        
+
         if electricity > 200:
             actions.append({
                 "title": "⚡ Reduce Electricity Usage",
                 "priority": "High",
                 "benefit": "Switch off unused appliances and use energy-efficient devices."
             })
-        
+
         if diet == "Non-Vegetarian":
             actions.append({
                 "title": "🥗 Improve Dietary Choices",
                 "priority": "Medium",
                 "benefit": "Adding more plant-based meals can significantly reduce your carbon footprint."
             })
-        
+
         if flights > 2:
             actions.append({
                 "title": "✈ Reduce Air Travel",
                 "priority": "High",
                 "benefit": "Reduce unnecessary flights or offset emissions through verified programs."
             })
-        
+
         if eco_score >= 85:
             actions.append({
                 "title": "🌱 Inspire Others",
                 "priority": "Low",
                 "benefit": "Share your sustainable lifestyle and encourage friends and family."
             })
-        
+
         if len(actions) == 0:
         
             st.success(
                 "🎉 Excellent! Your current lifestyle already follows many sustainable practices."
             )
-        
+
         else:
         
             st.metric("Recommended Actions", len(actions))
-        
+
             priority_colors = {
                 "High": "#ef4444",
                 "Medium": "#f59e0b",
                 "Low": "#22c55e"
             }
-        
+
             for index, action in enumerate(actions, start=1):
             
                 color = priority_colors[action["priority"]]
-        
+
                 st.markdown(f"""
                 <div style="
                     border-left:6px solid {color};
@@ -2903,25 +2903,25 @@ with tab1:
                     box-shadow:0 4px 12px rgba(0,0,0,.06);
                 ">
                     <h4>{index}. {action['title']}</h4>
-        
+
                     <p><b>Priority:</b>
                     <span style="color:{color};">
                     {action['priority']}
                     </span></p>
-        
+
                     <p>{action['benefit']}</p>
-        
+
                 </div>
                 """, unsafe_allow_html=True)
-        
+
         st.markdown("---")
-        
+
         completed = max(0, eco_score)
-        
+
         st.subheader("📈 Sustainability Readiness")
-        
+
         st.progress(completed / 100)
-        
+
         if eco_score >= 90:
             st.success("Your sustainability readiness is outstanding.")
         elif eco_score >= 75:
@@ -2930,7 +2930,7 @@ with tab1:
             st.warning("A few improvements will significantly reduce your emissions.")
         else:
             st.error("Your action plan should focus on high-priority improvements first.")
-        
+
         st.caption(
             "The action plan is generated dynamically based on your latest assessment to help you prioritize sustainability improvements."
         )
@@ -2978,13 +2978,984 @@ with tab1:
                     "The assessment data is valid, but the PDF could not be "
                     "created. Please try again."
                 )
+            # ============================================================
+        # 🌍 Carbon Budget Manager
+        # ============================================================
 
-    # -------------------------
-    # HISTORY & TRACKING
-    # -------------------------
-    st.markdown("---")
-    with st.expander("🕒 Assessment Timeline", expanded=False):
-        st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-header'>💰 Carbon Budget Manager</div>",
+            unsafe_allow_html=True
+        )
+
+        if "monthly_budget" not in st.session_state:
+            st.session_state.monthly_budget = 500
+
+        budget = st.slider(
+            "Set Monthly Carbon Budget (kg CO₂)",
+            min_value=100,
+            max_value=2000,
+            step=50,
+            value=st.session_state.monthly_budget,
+            help="Choose your personal monthly carbon emission target."
+        )
+
+        st.session_state.monthly_budget = budget
+
+        monthly_emission = total / 12
+
+        remaining_budget = budget - monthly_emission
+
+        used_percent = (monthly_emission / budget) * 100
+
+        used_percent = min(used_percent, 100)
+
+        remaining_percent = max(0, 100 - used_percent)
+
+        st.markdown("---")
+
+        card1, card2, card3, card4 = st.columns(4)
+
+        with card1:
+        
+            st.metric(
+                "Monthly Budget",
+                f"{budget:.0f} kg"
+            )
+
+        with card2:
+        
+            st.metric(
+                "Estimated Usage",
+                f"{monthly_emission:.1f} kg"
+            )
+
+        with card3:
+        
+            st.metric(
+                "Remaining",
+                f"{max(0, remaining_budget):.1f} kg"
+            )
+
+        with card4:
+        
+            st.metric(
+                "Budget Used",
+                f"{used_percent:.1f}%"
+            )
+
+        st.markdown("---")
+
+        st.subheader("📊 Budget Progress")
+
+        st.progress(used_percent / 100)
+
+        if used_percent < 50:
+        
+            st.success(
+                "✅ Excellent! You've used less than half of your monthly carbon budget."
+            )
+
+        elif used_percent < 75:
+        
+            st.info(
+                "🌱 You're within your monthly carbon budget."
+            )
+
+        elif used_percent < 90:
+        
+            st.warning(
+                "⚠ You're approaching your monthly carbon budget limit."
+            )
+
+        else:
+        
+            st.error(
+                "🚨 Your estimated emissions are close to or above your monthly budget."
+            )
+
+        st.markdown("---")
+
+        st.subheader("📋 Budget Breakdown")
+
+        left, right = st.columns(2)
+
+        with left:
+        
+            st.info(f"""
+        ### Current Budget
+
+        Monthly Budget
+
+        **{budget:.0f} kg CO₂**
+
+        Estimated Monthly Usage
+
+        **{monthly_emission:.1f} kg CO₂**
+        """)
+
+        with right:
+        
+            st.info(f"""
+        ### Remaining Allowance
+
+        Remaining Budget
+
+        **{max(0, remaining_budget):.1f} kg CO₂**
+
+        Remaining Percentage
+
+        **{remaining_percent:.1f}%**
+        """)
+
+        st.markdown("---")
+
+        st.subheader("🎯 Budget Status")
+
+        if remaining_budget > 250:
+        
+            st.success(
+                "You still have plenty of room within your monthly carbon budget."
+            )
+
+        elif remaining_budget > 100:
+        
+            st.info(
+                "Your budget is healthy, but continue making sustainable choices."
+            )
+
+        elif remaining_budget > 0:
+        
+            st.warning(
+                "Your remaining budget is getting low."
+            )
+
+        else:
+        
+            st.error(
+                "Your monthly carbon budget has been exceeded."
+            )
+
+        st.markdown("---")
+
+        st.subheader("💡 Budget Suggestions")
+
+        tips = []
+
+        if transport == "Car":
+            tips.append(
+                "🚲 Switch to cycling or public transportation to save carbon budget."
+            )
+
+        if electricity > 200:
+            tips.append(
+                "⚡ Reduce electricity usage by switching off unused appliances."
+            )
+
+        if diet == "Non-Vegetarian":
+            tips.append(
+                "🥗 Add more plant-based meals during the week."
+            )
+
+        if flights > 2:
+            tips.append(
+                "✈ Reduce unnecessary air travel."
+            )
+
+        if eco_score >= 90:
+        
+            tips.append(
+                "🌍 Great work! Maintain your current sustainable lifestyle."
+            )
+
+        if len(tips) == 0:
+        
+            st.success(
+                "No immediate suggestions. Your carbon budget is well managed."
+            )
+
+        else:
+        
+            for tip in tips:
+            
+                st.write(f"✅ {tip}")
+
+        st.markdown("---")
+
+        st.subheader("📈 Budget Health")
+
+        health = 100 - used_percent
+
+        health = max(0, health)
+
+        st.progress(health / 100)
+
+        if health >= 80:
+        
+            health_text = "Excellent"
+
+        elif health >= 60:
+        
+            health_text = "Good"
+
+        elif health >= 40:
+        
+            health_text = "Average"
+
+        elif health >= 20:
+        
+            health_text = "Poor"
+
+        else:
+        
+            health_text = "Critical"
+
+        st.metric(
+            "Budget Health Score",
+            f"{health:.0f}/100"
+        )
+
+        st.caption(
+            f"Current Budget Health : {health_text}"
+        )
+
+        st.markdown("---")
+
+        st.subheader("📌 Quick Summary")
+
+        summary = [
+            ("Monthly Budget", f"{budget:.0f} kg"),
+            ("Estimated Usage", f"{monthly_emission:.1f} kg"),
+            ("Remaining Budget", f"{max(0, remaining_budget):.1f} kg"),
+            ("Budget Utilization", f"{used_percent:.1f}%"),
+            ("Eco Score", f"{eco_score}/100")
+        ]
+
+        for title, value in summary:
+        
+            col1, col2 = st.columns([2,1])
+
+            with col1:
+                st.write(title)
+
+            with col2:
+                st.write(f"**{value}**")
+
+        st.info(
+            "Your Carbon Budget Manager helps monitor monthly emissions and encourages sustainable decisions by comparing estimated emissions with your chosen budget."
+        )
+                            # ============================================================
+        # 📊 Carbon Budget Analytics
+        # ============================================================
+
+        import pandas as pd
+        import plotly.graph_objects as go
+        from datetime import datetime
+
+        st.markdown(
+            "<div class='section-header'>📊 Carbon Budget Analytics</div>",
+            unsafe_allow_html=True
+        )
+
+        # ----------------------------
+        # Session History
+        # ----------------------------
+        if "budget_history" not in st.session_state:
+            st.session_state.budget_history = []
+
+        history = st.session_state.budget_history
+
+        history.append({
+            "date": datetime.now().strftime("%d %b %Y"),
+            "budget": budget,
+            "usage": round(monthly_emission,2),
+            "remaining": round(max(0,remaining_budget),2),
+            "eco_score": eco_score
+        })
+
+        # Keep only latest 12 entries
+        if len(history) > 12:
+            history.pop(0)
+
+        df = pd.DataFrame(history)
+
+        st.subheader("📅 Budget History")
+
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Trend Chart
+        # ----------------------------
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["budget"],
+                mode="lines+markers",
+                name="Budget"
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["usage"],
+                mode="lines+markers",
+                name="Usage"
+            )
+        )
+
+        fig.update_layout(
+            height=400,
+            title="Monthly Carbon Budget Trend",
+            xaxis_title="Assessment",
+            yaxis_title="kg CO₂"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Achievement
+        # ----------------------------
+
+        st.subheader("🏆 Budget Achievement")
+
+        if used_percent <= 25:
+        
+            badge = "🥇 Carbon Saver"
+
+        elif used_percent <= 50:
+        
+            badge = "🥈 Eco Performer"
+
+        elif used_percent <= 75:
+        
+            badge = "🥉 Budget Keeper"
+
+        elif used_percent <= 100:
+        
+            badge = "⚠ Budget Watch"
+
+        else:
+        
+            badge = "🚨 Budget Exceeded"
+
+        st.metric(
+            "Current Achievement",
+            badge
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Forecast
+        # ----------------------------
+
+        st.subheader("📈 Budget Forecast")
+
+        days_in_month = 30
+
+        daily_average = monthly_emission / days_in_month
+
+        forecast = daily_average * days_in_month
+
+        st.metric(
+            "Projected Monthly Emission",
+            f"{forecast:.1f} kg"
+        )
+
+        if forecast <= budget:
+        
+            st.success(
+                "Based on current estimates, you are likely to stay within your budget."
+            )
+
+        else:
+        
+            st.error(
+                "Current trend suggests your budget may be exceeded this month."
+            )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Alerts
+        # ----------------------------
+
+        st.subheader("🚨 Budget Alerts")
+
+        alerts = []
+
+        if transport == "Car":
+            alerts.append("Transportation contributes significantly to your budget usage.")
+
+        if electricity > 250:
+            alerts.append("Electricity consumption is above the recommended range.")
+
+        if flights > 3:
+            alerts.append("Frequent air travel greatly increases emissions.")
+
+        if eco_score < 60:
+            alerts.append("Your Eco Score indicates room for improvement.")
+
+        if remaining_budget <= 50:
+            alerts.append("Remaining monthly budget is critically low.")
+
+        if len(alerts) == 0:
+        
+            st.success(
+                "No active budget alerts."
+            )
+
+        else:
+        
+            for alert in alerts:
+            
+                st.warning(alert)
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Insights
+        # ----------------------------
+
+        st.subheader("💡 Budget Insights")
+
+        highest = max(contributors,key=contributors.get)
+
+        lowest = min(contributors,key=contributors.get)
+
+        st.info(
+        f"""
+        Highest Contributor
+
+        **{highest}**
+
+        Lowest Contributor
+
+        **{lowest}**
+        """
+        )
+
+        if highest == "Transportation":
+        
+            st.write("🚲 Switching transportation habits would have the biggest impact.")
+
+        elif highest == "Electricity":
+        
+            st.write("⚡ Reducing electricity consumption offers the greatest savings.")
+
+        elif highest == "Diet":
+        
+            st.write("🥗 Dietary changes can noticeably reduce emissions.")
+
+        elif highest == "Flights":
+        
+            st.write("✈ Reducing flights will significantly improve your budget.")
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Monthly Recommendation
+        # ----------------------------
+
+        st.subheader("🎯 Monthly Recommendation")
+
+        if used_percent < 50:
+        
+            st.success(
+                "Excellent progress. Maintain your current lifestyle."
+            )
+
+        elif used_percent < 80:
+        
+            st.info(
+                "Minor lifestyle improvements can further reduce emissions."
+            )
+
+        else:
+        
+            st.error(
+                "Focus on high-impact emission sources to remain within budget."
+            )
+
+        st.caption(
+                    "Carbon Budget Analytics provides a historical view of your budget usage and helps forecast future emission trends."
+                )
+                                                            # ============================================================
+        # 💾 Carbon Budget Records
+        # ============================================================
+
+        st.markdown(
+            "<div class='section-header'>💾 Budget Records</div>",
+            unsafe_allow_html=True
+        )
+
+        if "saved_budgets" not in st.session_state:
+            st.session_state.saved_budgets = []
+
+        save_col, reset_col = st.columns(2)
+
+        with save_col:
+        
+            if st.button("💾 Save Current Budget"):
+            
+                record = {
+                    "Date": datetime.now().strftime("%d %b %Y %H:%M"),
+                    "Budget": budget,
+                    "Usage": round(monthly_emission,2),
+                    "Remaining": round(max(0,remaining_budget),2),
+                    "Eco Score": eco_score,
+                    "Health": health_text
+                }
+
+                st.session_state.saved_budgets.append(record)
+
+                st.success("Budget snapshot saved successfully.")
+
+        with reset_col:
+        
+            if st.button("🔄 Reset Budget History"):
+            
+                st.session_state.saved_budgets.clear()
+
+                st.success("Budget history cleared.")
+
+        st.markdown("---")
+
+        records = st.session_state.saved_budgets
+
+        if len(records) == 0:
+        
+            st.info("No saved budget records available.")
+
+        else:
+        
+            history_df = pd.DataFrame(records)
+
+            st.subheader("📋 Saved Budget History")
+
+            search = st.text_input(
+                "Search by Date",
+                placeholder="Search..."
+            )
+
+            if search:
+            
+                history_df = history_df[
+                    history_df["Date"].str.contains(
+                        search,
+                        case=False
+                    )
+                ]
+
+            st.dataframe(
+                history_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        st.markdown("---")
+
+        # ============================================================
+        # Budget Statistics
+        # ============================================================
+
+        if len(records) > 0:
+        
+            stats_df = pd.DataFrame(records)
+
+            st.subheader("📊 Budget Statistics")
+
+            c1,c2,c3,c4 = st.columns(4)
+
+            with c1:
+            
+                st.metric(
+                    "Saved Records",
+                    len(stats_df)
+                )
+
+            with c2:
+            
+                st.metric(
+                    "Average Usage",
+                    f"{stats_df['Usage'].mean():.1f} kg"
+                )
+
+            with c3:
+            
+                st.metric(
+                    "Highest Usage",
+                    f"{stats_df['Usage'].max():.1f} kg"
+                )
+
+            with c4:
+            
+                st.metric(
+                    "Lowest Usage",
+                    f"{stats_df['Usage'].min():.1f} kg"
+                )
+
+        st.markdown("---")
+
+        # ============================================================
+        # Delete Individual Record
+        # ============================================================
+
+        if len(records) > 0:
+        
+            st.subheader("🗑 Delete Record")
+
+            options = [
+                f"{i+1}. {r['Date']}"
+                for i,r in enumerate(records)
+            ]
+
+            selected = st.selectbox(
+                "Select Record",
+                options
+            )
+
+            delete_index = options.index(selected)
+
+            if st.button("Delete Selected Record"):
+            
+                st.session_state.saved_budgets.pop(delete_index)
+
+                st.success("Record deleted.")
+
+                st.rerun()
+
+        st.markdown("---")
+
+        # ============================================================
+        # Budget Summary
+        # ============================================================
+
+        st.subheader("📌 Budget Summary")
+
+        if len(records)==0:
+        
+            st.info(
+                "Save budget snapshots to build your monthly history."
+            )
+
+        else:
+        
+            latest = records[-1]
+
+            st.markdown(f"""
+        **Latest Budget**
+
+        • Budget : **{latest['Budget']} kg**
+
+        • Usage : **{latest['Usage']} kg**
+
+        • Remaining : **{latest['Remaining']} kg**
+
+        • Eco Score : **{latest['Eco Score']}**
+
+        • Budget Health : **{latest['Health']}**
+        """)
+
+        st.caption(
+            "Saved budget snapshots allow you to compare your sustainability progress over time."
+        )
+        # ============================================================
+        # 📤 Carbon Budget Reports & Analytics
+        # ============================================================
+        
+        import io
+        import pandas as pd
+        
+        st.markdown(
+            "<div class='section-header'>📤 Budget Reports & Analytics</div>",
+            unsafe_allow_html=True
+        )
+        
+        records = st.session_state.get("saved_budgets", [])
+        
+        # ------------------------------------------------------------
+        # Export CSV
+        # ------------------------------------------------------------
+        
+        if records:
+        
+            export_df = pd.DataFrame(records)
+        
+            csv = export_df.to_csv(index=False).encode("utf-8")
+        
+            st.download_button(
+                "📥 Export Budget History (CSV)",
+                data=csv,
+                file_name="carbon_budget_history.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        
+        else:
+        
+            st.info("Save at least one budget snapshot to enable export.")
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # Annual Projection
+        # ------------------------------------------------------------
+        
+        st.subheader("📅 Annual Carbon Projection")
+        
+        annual_projection = monthly_emission * 12
+        
+        goal_projection = budget * 12
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+        
+            st.metric(
+                "Projected Annual Emissions",
+                f"{annual_projection:.1f} kg"
+            )
+        
+        with col2:
+        
+            st.metric(
+                "Annual Carbon Budget",
+                f"{goal_projection:.1f} kg"
+            )
+        
+        difference = goal_projection - annual_projection
+        
+        if difference >= 0:
+        
+            st.success(
+                f"You are projected to remain within your annual budget by {difference:.1f} kg CO₂."
+            )
+        
+        else:
+        
+            st.error(
+                f"You may exceed your annual budget by {abs(difference):.1f} kg CO₂."
+            )
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # Carbon Savings Calculator
+        # ------------------------------------------------------------
+        
+        st.subheader("💰 Carbon Savings Calculator")
+        
+        saving_options = {
+            "Cycle instead of driving twice a week":80,
+            "Reduce electricity by 10%":120,
+            "Replace 3 meat meals weekly":90,
+            "Skip one domestic flight":250,
+            "Work from home one day/week":70,
+            "Install LED lighting":40
+        }
+        
+        selected = st.multiselect(
+            "Select sustainability actions",
+            list(saving_options.keys())
+        )
+        
+        estimated_savings = sum(
+            saving_options[item]
+            for item in selected
+        )
+        
+        new_emission = max(
+            0,
+            annual_projection-estimated_savings
+        )
+        
+        st.metric(
+            "Estimated Annual Savings",
+            f"{estimated_savings} kg CO₂"
+        )
+        
+        st.metric(
+            "Projected New Annual Emission",
+            f"{new_emission:.1f} kg CO₂"
+        )
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # Smart Notifications
+        # ------------------------------------------------------------
+        
+        st.subheader("🔔 Budget Notifications")
+        
+        notifications = []
+        
+        if used_percent > 90:
+            notifications.append(
+                "🚨 You are very close to exceeding your monthly carbon budget."
+            )
+        
+        if eco_score < 60:
+            notifications.append(
+                "⚠ Your Eco Score is below the recommended level."
+            )
+        
+        if transport == "Car":
+            notifications.append(
+                "🚗 Transportation is a major contributor to your emissions."
+            )
+        
+        if electricity > 250:
+            notifications.append(
+                "⚡ Electricity usage is relatively high this month."
+            )
+        
+        if flights > 2:
+            notifications.append(
+                "✈ Air travel significantly impacts your carbon budget."
+            )
+        
+        if not notifications:
+        
+            st.success(
+                "No important notifications at the moment."
+            )
+        
+        else:
+        
+            for note in notifications:
+            
+                st.warning(note)
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # AI Budget Advisor
+        # ------------------------------------------------------------
+        
+        st.subheader("🤖 AI Budget Advisor")
+        
+        advice = []
+        
+        if transport == "Car":
+            advice.append(
+                "Switching to public transport a few days each week could noticeably reduce your monthly emissions."
+            )
+        
+        if electricity > 200:
+            advice.append(
+                "Consider replacing older appliances with energy-efficient alternatives."
+            )
+        
+        if diet == "Non-Vegetarian":
+            advice.append(
+                "Increasing plant-based meals can reduce food-related emissions."
+            )
+        
+        if flights > 2:
+            advice.append(
+                "Reducing unnecessary flights will have one of the largest impacts on your carbon footprint."
+            )
+        
+        if eco_score >= 90:
+            advice.append(
+                "Excellent progress! Maintain your current habits and inspire others."
+            )
+        
+        if not advice:
+        
+            st.success(
+                "Your lifestyle is already highly sustainable. Keep up the great work!"
+            )
+        
+        else:
+        
+            for index, item in enumerate(advice, start=1):
+            
+                st.info(f"{index}. {item}")
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # Goal Completion
+        # ------------------------------------------------------------
+        
+        st.subheader("🎯 Budget Goal Completion")
+        
+        goal = budget
+        
+        completion = min(
+            monthly_emission / goal,
+            1.0
+        )
+        
+        st.progress(completion)
+        
+        if completion < 0.5:
+        
+            st.success("Excellent progress toward your monthly budget goal.")
+        
+        elif completion < 0.75:
+        
+            st.info("You are comfortably within your budget.")
+        
+        elif completion < 1:
+        
+            st.warning("Approaching your monthly budget limit.")
+        
+        else:
+        
+            st.error("Monthly budget exceeded.")
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------
+        # Sustainability Scorecard
+        # ------------------------------------------------------------
+        
+        st.subheader("🏅 Sustainability Scorecard")
+        
+        scorecard = {
+            "Eco Score": eco_score,
+            "Budget Health": round(health),
+            "Budget Usage": round(100-used_percent),
+            "Carbon Efficiency": round(max(0,100-(monthly_emission/budget*100)))
+        }
+        
+        score_df = pd.DataFrame(
+            scorecard.items(),
+            columns=["Metric","Score"]
+        )
+        
+        st.dataframe(
+            score_df,
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        st.caption(
+            "The Carbon Budget Manager combines budget tracking, analytics, projections, exports, and personalized guidance to help users monitor and improve their sustainability performance over time."
+        )        
+        # -------------------------
+        # HISTORY & TRACKING
+        # -------------------------
+        st.markdown("---")
+        with st.expander("🕒 Assessment Timeline", expanded=False):
+            st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
         history = get_assessments(user_id)
 
