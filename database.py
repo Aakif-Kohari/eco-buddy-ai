@@ -1,11 +1,6 @@
 import os
 import sqlite3
-from challenge_generator import generate_weekly_challenges
-from database import (
-    save_weekly_challenge,
-    get_weekly_challenges,
-    complete_weekly_challenge
-)
+from datetime import datetime, timedelta
 from database_connection import database_connection, execute_with_retry
 from cache import cached
 from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
@@ -117,18 +112,20 @@ def init_db():
                     )
                     """
                 )
-                cursor.execute("""
-CREATE TABLE IF NOT EXISTS weekly_challenges (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    difficulty TEXT NOT NULL,
-    xp INTEGER NOT NULL,
-    category TEXT,
-    status TEXT DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-""")
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS weekly_challenges (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        difficulty TEXT NOT NULL,
+                        xp INTEGER NOT NULL,
+                        category TEXT,
+                        status TEXT DEFAULT 'Pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
 
                 try:
                     cursor.execute(
@@ -159,16 +156,20 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     )
                     """
                 )
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS carbon_budgets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    budget_type TEXT NOT NULL,
-    budget_limit REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-)
-""")
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS carbon_budgets (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        budget_type TEXT NOT NULL,
+                        budget_limit REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(user_id) REFERENCES users(id)
+                    )
+                    """
+                )
+
                 try:
                     cursor.execute(
                         """
@@ -2995,61 +2996,10 @@ def complete_weekly_challenge(challenge_id):
     conn.close()
 
     return True
-if st.button("Generate Weekly Challenges"):
 
-    challenges = generate_weekly_challenges(
-        footprint,
-        transport,
-        electricity,
-        diet,
-        flights
-    )
-
-    for challenge in challenges:
-
-        save_weekly_challenge(
-            user_id,
-            challenge["title"],
-            challenge["difficulty"],
-            challenge["xp"],
-            challenge["category"]
-        )
-
-    st.success("Weekly challenges generated!")
-challenges = get_weekly_challenges(user_id)
-
-for challenge in challenges:
-
-    st.subheader(challenge[2])
-
-    st.write(f"Difficulty : {challenge[3]}")
-
-    st.write(f"XP : {challenge[4]}")
-
-    st.write(f"Category : {challenge[5]}")
-
-    st.write(f"Status : {challenge[6]}")
-if st.button(
-    f"Complete {challenge[0]}"
-):
-
-    complete_weekly_challenge(
-        challenge[0]
-    )
-
-    award_xp(
-        user_id,
-        "challenge",
-        challenge[0],
-        challenge[4],
-        challenge[2]
-    )
-
-    st.success("Challenge Completed!")
-from datetime import datetime, timedelta
 
 def weekly_challenges_exist(user_id):
-
+    """True if this user already has challenges generated in the last 7 days."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -3067,56 +3017,10 @@ def weekly_challenges_exist(user_id):
     conn.close()
 
     return count > 0
-if not weekly_challenges_exist(user_id):
 
-    challenges = generate_weekly_challenges(
-        footprint,
-        transport,
-        electricity,
-        diet,
-        flights
-    )
 
-    for challenge in challenges:
-
-        save_weekly_challenge(
-            user_id,
-            challenge["title"],
-            challenge["difficulty"],
-            challenge["xp"],
-            challenge["category"]
-        )
-
-else:
-
-    st.info("Weekly challenges already generated.")
-completed = sum(
-    1 for c in challenges
-    if c[6] == "Completed"
-)
-
-total = len(challenges)
-
-st.metric(
-    "Weekly Progress",
-    f"{completed}/{total}"
-)
-
-if total > 0:
-    st.progress(completed / total)
-
-xp = sum(
-    c[4]
-    for c in challenges
-    if c[6] == "Completed"
-)
-
-st.metric(
-    "XP Earned",
-    xp
-)
 def get_completed_challenges(user_id):
-
+    """Completed challenges for a user, newest first."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -3133,37 +3037,868 @@ def get_completed_challenges(user_id):
     conn.close()
 
     return data
-history = get_completed_challenges(user_id)
 
-st.subheader("Challenge History")
 
-for row in history:
+# ---------------------------------------------------------------------------
+# The four blocks below were added by their feature PRs and lost by a later
+# merge, while the modules, pages and tests that call them stayed. Restored
+# verbatim from the commits that introduced them:
+#   sustainable brands      b39dbb6
+#   climate careers         b6f1bd7
+#   environmental datasets  3237ce7
+#   historical events       14a0a29
+# ---------------------------------------------------------------------------
 
-    st.write(
-        f"✅ {row[0]} ({row[1]}) - {row[2]}"
-    )
-completed = len(history)
 
-if completed == 5:
 
-    unlock_badge_in_db(
-        user_id,
-        "eco_beginner"
-    )
+# ---------------------------------------------------------------------------
+# Sustainable Brand Directory
+# ---------------------------------------------------------------------------
 
-elif completed == 15:
+def init_brand_directory_db():
+    """Initialize the sustainable brands database table."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sustainable_brands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                sustainability_rating TEXT NOT NULL,
+                eco_score INTEGER NOT NULL,
+                certifications TEXT,
+                description TEXT,
+                website TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Sustainable brand DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
 
-    unlock_badge_in_db(
-        user_id,
-        "eco_master"
-    )
-st.subheader("Recommended Next Step")
 
-highest = max(
-    challenges,
-    key=lambda x: x["xp"]
-)
+def seed_sustainable_brands():
+    """Seed initial sustainable brand listings if table is empty."""
+    init_brand_directory_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sustainable_brands")
+        if cursor.fetchone()[0] > 0:
+            return
 
-st.success(
-    f"Focus on: {highest['title']}"
-)
+        initial_brands = [
+            (
+                "Patagonia",
+                "Apparel & Footwear",
+                "A+",
+                96,
+                "B Corp, Fair Trade Certified, 1% for the Planet",
+                "High-performance outdoor clothing made from recycled materials with lifetime repair warranty.",
+                "https://www.patagonia.com",
+            ),
+            (
+                "Allbirds",
+                "Apparel & Footwear",
+                "A",
+                90,
+                "B Corp, Carbon Neutral, FSC Certified",
+                "Footwear and apparel crafted from natural, sustainable materials like merino wool and eucalyptus tree fiber.",
+                "https://www.allbirds.com",
+            ),
+            (
+                "Beyond Meat",
+                "Food & Beverage",
+                "A",
+                88,
+                "Non-GMO Project Verified, Plant-Based Certified",
+                "Revolutionary plant-based meats designed to replace animal agriculture and cut carbon emissions.",
+                "https://www.beyondmeat.com",
+            ),
+            (
+                "Tentree",
+                "Apparel & Footwear",
+                "A+",
+                94,
+                "B Corp, Climate Neutral, Organic Content Standard",
+                "Eco-friendly lifestyle apparel brand that plants 10 trees for every item purchased.",
+                "https://www.tentree.com",
+            ),
+            (
+                "Seventh Generation",
+                "Home & Energy",
+                "A",
+                89,
+                "B Corp, USDA Certified Biobased, Leaping Bunny",
+                "Plant-derived household cleaning, paper, and personal care products reducing chemical footprint.",
+                "https://www.seventhgeneration.com",
+            ),
+            (
+                "Fairphone",
+                "Tech & Electronics",
+                "A+",
+                95,
+                "B Corp, Fairtrade Gold, EcoVadis Platinum",
+                "Modular, repairable smartphones designed to reduce electronic waste and respect supply chain labor.",
+                "https://www.fairphone.com",
+            ),
+            (
+                "Ethique",
+                "Personal Care",
+                "A+",
+                97,
+                "B Corp, Cruelty-Free, Palm Oil Free, Plastic Free",
+                "Solid beauty and personal care bars replacing single-use plastic bottles.",
+                "https://ethique.com",
+            ),
+            (
+                "Ecover",
+                "Home & Energy",
+                "B+",
+                83,
+                "B Corp, Leaping Bunny",
+                "Eco-friendly cleaning supplies packaged in plant-based plastic bottles.",
+                "https://www.ecover.com",
+            ),
+            (
+                "Oatly",
+                "Food & Beverage",
+                "A",
+                91,
+                "Non-GMO, Climate Footprint Labeled",
+                "Original oat milk producers reducing livestock agriculture impacts.",
+                "https://www.oatly.com",
+            ),
+            (
+                "Tesla",
+                "Transportation",
+                "B+",
+                84,
+                "Zero Emission Vehicle Pioneer",
+                "Electric vehicles and clean solar energy storage systems.",
+                "https://www.tesla.com",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO sustainable_brands
+            (name, category, sustainability_rating, eco_score, certifications, description, website)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, initial_brands)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed sustainable brands: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_sustainable_brands(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve sustainable brands with optional category and search query filtering."""
+    seed_sustainable_brands()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, name, category, sustainability_rating, eco_score, certifications, description, website, created_at FROM sustainable_brands WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (name LIKE ? OR description LIKE ? OR certifications LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY eco_score DESC, name ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        columns = ["id", "name", "category", "sustainability_rating", "eco_score", "certifications", "description", "website", "created_at"]
+        return [dict(zip(columns, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read sustainable brands: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_sustainable_brand(
+    name: str,
+    category: str,
+    sustainability_rating: str,
+    eco_score: int,
+    certifications: str,
+    description: str,
+    website: str,
+) -> bool:
+    """Add a new sustainable brand entry."""
+    init_brand_directory_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sustainable_brands (name, category, sustainability_rating, eco_score, certifications, description, website)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (name, category, sustainability_rating, eco_score, certifications, description, website))
+        conn.commit()
+        get_sustainable_brands.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add sustainable brand: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+
+
+# ---------------------------------------------------------------------------
+# Climate Career Hub
+# ---------------------------------------------------------------------------
+
+def init_climate_careers_db():
+    """Initialize database tables for Climate Career Hub."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS climate_careers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                company TEXT NOT NULL,
+                type TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                location TEXT NOT NULL,
+                description TEXT NOT NULL,
+                apply_url TEXT NOT NULL,
+                posted_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS career_bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                career_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, career_id),
+                FOREIGN KEY (career_id) REFERENCES climate_careers (id) ON DELETE CASCADE
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Climate careers DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_climate_careers():
+    """Seed initial climate career listings if table is empty."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM climate_careers")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        initial_careers = [
+            (
+                "Solar Energy Systems Engineer",
+                "SunPower Technologies",
+                "Full-Time Jobs",
+                "Renewable Energy",
+                "Remote",
+                "Design scalable commercial solar PV systems and grid interconnection architectures.",
+                "https://example.com/careers/solar-engineer",
+            ),
+            (
+                "Climate Tech Policy Fellow",
+                "Global Clean Energy Institute",
+                "Fellowships",
+                "Climate Policy",
+                "Hybrid - Washington DC",
+                "Conduct research on decarbonization policies and present reports to international policymakers.",
+                "https://example.com/careers/policy-fellow",
+            ),
+            (
+                "Carbon Accounting & Footprint Analyst",
+                "Terraform Carbon Solutions",
+                "Full-Time Jobs",
+                "Carbon Capture",
+                "Remote",
+                "Help enterprise clients audit Scope 1, 2, and 3 GHG emissions and achieve net-zero targets.",
+                "https://example.com/careers/carbon-analyst",
+            ),
+            (
+                "Sustainable Agriculture Research Intern",
+                "EcoSoil Labs",
+                "Internships",
+                "Sustainable Agriculture",
+                "On-site - Davis, CA",
+                "Assist field trials evaluating regenerative soil microbiology and organic bio-fertilizers.",
+                "https://example.com/careers/agri-intern",
+            ),
+            (
+                "Circular Economy & Waste Reduction Specialist",
+                "ZeroWaste Solutions",
+                "Full-Time Jobs",
+                "Circular Economy",
+                "Hybrid - Berlin, Germany",
+                "Develop closed-loop product recycling workflows and packaging redesign strategies.",
+                "https://example.com/careers/circular-specialist",
+            ),
+            (
+                "EV Fleet Integration Volunteer",
+                "Clean Transit Alliance",
+                "Volunteer",
+                "Clean Mobility",
+                "Remote",
+                "Support municipal transit agencies in planning electric bus route electrification schedules.",
+                "https://example.com/careers/ev-volunteer",
+            ),
+            (
+                "Direct Air Capture R&D Fellow",
+                "Climeworks Institute",
+                "Fellowships",
+                "Carbon Capture",
+                "On-site - Zurich, Switzerland",
+                "Perform novel chemical sorbent synthesis and test direct air carbon capture efficiency.",
+                "https://example.com/careers/dac-fellow",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, initial_careers)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed climate careers: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_career_opportunities(
+    opportunity_type: str | None = None,
+    domain: str | None = None,
+    location: str | None = None,
+    search_query: str | None = None,
+) -> list[dict]:
+    """Retrieve filtered climate career opportunities."""
+    seed_climate_careers()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, title, company, type, domain, location, description, apply_url, posted_date FROM climate_careers WHERE 1=1"
+        params: list[object] = []
+
+        if opportunity_type and opportunity_type != "All Types":
+            query += " AND type = ?"
+            params.append(opportunity_type)
+
+        if domain and domain != "All Domains":
+            query += " AND domain = ?"
+            params.append(domain)
+
+        if location and location != "All Locations":
+            query += " AND location LIKE ?"
+            params.append(f"%{location}%")
+
+        if search_query:
+            query += " AND (title LIKE ? OR company LIKE ? OR description LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY posted_date DESC, id DESC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read climate careers: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_career_opportunity(
+    title: str,
+    company: str,
+    opportunity_type: str,
+    domain: str,
+    location: str,
+    description: str,
+    apply_url: str,
+) -> bool:
+    """Add a new climate career listing."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO climate_careers (title, company, type, domain, location, description, apply_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, company, opportunity_type, domain, location, description, apply_url))
+        conn.commit()
+        get_career_opportunities.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add career opportunity: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def toggle_career_bookmark(user_id: int, career_id: int) -> bool:
+    """Toggle bookmark status for a career listing."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("DELETE FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        else:
+            cursor.execute("INSERT INTO career_bookmarks (user_id, career_id) VALUES (?, ?)", (user_id, career_id))
+        conn.commit()
+        get_bookmarked_careers.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to toggle career bookmark: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_bookmarked_careers(user_id: int) -> list[dict]:
+    """Retrieve all career listings bookmarked by a user."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT c.id, c.title, c.company, c.type, c.domain, c.location, c.description, c.apply_url, c.posted_date
+            FROM climate_careers c
+            INNER JOIN career_bookmarks b ON c.id = b.career_id
+            WHERE b.user_id = ?
+            ORDER BY b.created_at DESC
+        """, (user_id,))
+        rows = cursor.fetchall()
+        cols = ["id", "title", "company", "type", "domain", "location", "description", "apply_url", "posted_date"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read bookmarked careers: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def is_career_bookmarked(user_id: int, career_id: int) -> bool:
+    """Check if a career listing is bookmarked by user."""
+    init_climate_careers_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM career_bookmarks WHERE user_id = ? AND career_id = ?", (user_id, career_id))
+        return cursor.fetchone() is not None
+    except sqlite3.Error:
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+
+
+# ---------------------------------------------------------------------------
+# Open Environmental Data Explorer
+# ---------------------------------------------------------------------------
+
+def init_environmental_datasets_db():
+    """Initialize database table for open environmental datasets."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS environmental_datasets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                license TEXT DEFAULT 'CC-BY-4.0',
+                update_frequency TEXT DEFAULT 'Monthly',
+                description TEXT NOT NULL,
+                data_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Environmental datasets DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_environmental_datasets():
+    """Seed sample open environmental datasets if table is empty."""
+    init_environmental_datasets_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM environmental_datasets")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        sample_datasets = [
+            (
+                "Global Atmospheric CO2 Concentration Trends (2015-2025)",
+                "Global Carbon Emissions",
+                "NOAA / Mauna Loa Observatory",
+                "Public Domain",
+                "Monthly",
+                "Historical atmospheric carbon dioxide levels measured in parts per million (ppm).",
+                '{"headers":["Year","Average_PPM","Yearly_Increase_PPM"],"records":[['
+                '2015,400.8,2.2],[2017,406.5,2.1],[2019,411.4,2.5],[2021,416.4,2.4],[2023,421.1,2.6],[2025,426.5,2.7]]}',
+            ),
+            (
+                "Major World Cities Air Quality Index (AQI)",
+                "Air Quality Index",
+                "World Air Quality Project",
+                "CC-BY-4.0",
+                "Real-time / Daily",
+                "Air Pollution index tracking PM2.5, PM10, and Ozone across major global capitals.",
+                '{"headers":["City","Country","AQI_Score","Status","PM2_5_ug_m3"],"records":[['
+                '"Tokyo","Japan",24,"Good",5.8],["Reykjavik","Iceland",12,"Good",3.1],["London","UK",42,"Moderate",10.2],["Delhi","India",185,"Unhealthy",112.5],["New York","USA",38,"Good",9.1]]}',
+            ),
+            (
+                "Global Renewable Energy Generation Capacity (GW)",
+                "Renewable Energy Growth",
+                "International Renewable Energy Agency (IRENA)",
+                "Open Data License",
+                "Annual",
+                "Installed capacity breakdown for solar, wind, hydro, and bioenergy worldwide.",
+                '{"headers":["Year","Solar_GW","Wind_GW","Hydro_GW","Bioenergy_GW","Total_GW"],"records":[['
+                '2018,485,564,1292,120,2461],[2020,714,733,1331,130,2908],[2022,1053,899,1393,142,3487],[2024,1418,1070,1440,154,4082],[2026,1820,1260,1480,165,4725]]}',
+            ),
+            (
+                "Tropical Deforestation Loss by Region (Hectares)",
+                "Deforestation Rates",
+                "Global Forest Watch",
+                "CC-BY-4.0",
+                "Annual",
+                "Annual primary rainforest canopy loss in South America, Southeast Asia, and Central Africa.",
+                '{"headers":["Year","Amazon_Ha","Congo_Basin_Ha","Southeast_Asia_Ha"],"records":[['
+                '2020,1850000,820000,640000],[2022,1620000,790000,580000],[2024,1310000,740000,490000],[2025,1150000,690000,430000]]}',
+            ),
+            (
+                "Global Ocean Temperature Anomaly (°C)",
+                "Ocean Temperatures",
+                "NASA Goddard Institute for Space Studies",
+                "Public Domain",
+                "Monthly",
+                "Global sea surface surface temperature anomalies relative to the 1951-1980 baseline.",
+                '{"headers":["Year","Anomaly_C","Heat_Content_ZJ"],"records":[['
+                '2016,0.76,215],[2018,0.70,228],[2020,0.82,242],[2022,0.85,257],[2024,0.98,276],[2026,1.04,291]]}',
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO environmental_datasets
+            (title, category, provider, license, update_frequency, description, data_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, sample_datasets)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed environmental datasets: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_environmental_datasets(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve environmental datasets filtered by category and search term."""
+    seed_environmental_datasets()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, title, category, provider, license, update_frequency, description, data_json, created_at FROM environmental_datasets WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (title LIKE ? OR provider LIKE ? OR description LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term])
+
+        query += " ORDER BY id ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "title", "category", "provider", "license", "update_frequency", "description", "data_json", "created_at"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read environmental datasets: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_environmental_dataset(
+    title: str,
+    category: str,
+    provider: str,
+    license: str,
+    update_frequency: str,
+    description: str,
+    data_json: str,
+) -> bool:
+    """Add a new open environmental dataset."""
+    init_environmental_datasets_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO environmental_datasets (title, category, provider, license, update_frequency, description, data_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, category, provider, license, update_frequency, description, data_json))
+        conn.commit()
+        get_environmental_datasets.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add environmental dataset: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+
+
+# ---------------------------------------------------------------------------
+# Environmental Timeline & Historical Events
+# ---------------------------------------------------------------------------
+
+def init_historical_events_db():
+    """Initialize database table for historical environmental events."""
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historical_environmental_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                year INTEGER NOT NULL,
+                title TEXT UNIQUE NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                impact_summary TEXT NOT NULL,
+                educational_resources TEXT,
+                source_url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Historical events DB init error: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def seed_historical_events():
+    """Seed key global climate history milestones if table is empty."""
+    init_historical_events_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM historical_environmental_events")
+        if cursor.fetchone()[0] > 0:
+            return
+
+        events = [
+            (
+                1970,
+                "First Earth Day Founded",
+                "Climate Movements",
+                "20 million Americans demonstrated across the US, launching the modern environmental movement and leading to the creation of the EPA.",
+                "Catalyzed landmark legislation including the Clean Air Act, Clean Water Act, and Endangered Species Act.",
+                "Earth Day Network Educational Guides, EPA History Archive",
+                "https://www.earthday.org/history/",
+            ),
+            (
+                1987,
+                "Montreal Protocol Signed",
+                "Policy & Treaties",
+                "Landmark international treaty adopted to phase out ozone-depleting substances like CFCs globally.",
+                "Phase-out of over 99% of controlled ozone-depleting substances, putting the stratospheric ozone layer on track to heal by 2060.",
+                "UNEP Ozone Secretariat Reports, NASA Ozone Watch",
+                "https://ozone.unep.org/",
+            ),
+            (
+                1988,
+                "Intergovernmental Panel on Climate Change (IPCC) Established",
+                "Scientific Discoveries",
+                "UN Environment Programme and WMO established the IPCC to assess climate change science objectively.",
+                "Published assessment reports providing the scientific foundation for international negotiations under the UNFCCC.",
+                "IPCC Assessment Reports, Climate Change Science Primers",
+                "https://www.ipcc.ch/",
+            ),
+            (
+                1997,
+                "Kyoto Protocol Adopted",
+                "Policy & Treaties",
+                "First international agreement committing industrialized nations to legally binding greenhouse gas emission reduction targets.",
+                "Established market-based mechanisms such as carbon trading and the Clean Development Mechanism (CDM).",
+                "UNFCCC Kyoto Protocol Guide",
+                "https://unfccc.int/kyoto_protocol",
+            ),
+            (
+                2015,
+                "Paris Climate Agreement Adopted",
+                "Policy & Treaties",
+                "Historic accord signed by 196 parties at COP21 aiming to limit global warming to well below 2.0°C, preferably 1.5°C, above pre-industrial levels.",
+                "Created national Nationally Determined Contributions (NDCs) framework and global net-zero pledge benchmarks.",
+                "UN Climate Change Paris Agreement Overview",
+                "https://unfccc.int/process-and-meetings/the-paris-agreement",
+            ),
+            (
+                2018,
+                "Global Fridays for Future Youth Movement",
+                "Climate Movements",
+                "Greta Thunberg initiated school strikes for climate outside the Swedish parliament, sparking global youth mobilizations.",
+                "Mobilized over 4 million students and activists worldwide to demand urgent political climate action.",
+                "Fridays For Future Movement Archives & Toolkits",
+                "https://fridaysforfuture.org/",
+            ),
+            (
+                2023,
+                "COP28 UAE Consensus on Transitioning Away from Fossil Fuels",
+                "Policy & Treaties",
+                "For the first time in 28 years of UN climate summits, agreement explicitly called on all nations to transition away from fossil fuels in energy systems.",
+                "Pledged to triple global renewable energy capacity and double energy efficiency improvements by 2030.",
+                "UNFCCC COP28 Outcome Reports",
+                "https://cop28.com/",
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO historical_environmental_events
+            (year, title, category, description, impact_summary, educational_resources, source_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, events)
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error("Failed to seed historical events: %s", e)
+    finally:
+        if conn:
+            conn.close()
+
+
+@cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
+def get_historical_events(category: str | None = None, search_query: str | None = None) -> list[dict]:
+    """Retrieve historical environmental events with category and search filtering."""
+    seed_historical_events()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        query = "SELECT id, year, title, category, description, impact_summary, educational_resources, source_url, created_at FROM historical_environmental_events WHERE 1=1"
+        params: list[object] = []
+
+        if category and category != "All Categories":
+            query += " AND category = ?"
+            params.append(category)
+
+        if search_query:
+            query += " AND (title LIKE ? OR description LIKE ? OR impact_summary LIKE ? OR CAST(year AS TEXT) LIKE ?)"
+            term = f"%{search_query}%"
+            params.extend([term, term, term, term])
+
+        query += " ORDER BY year ASC"
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        cols = ["id", "year", "title", "category", "description", "impact_summary", "educational_resources", "source_url", "created_at"]
+        return [dict(zip(cols, row)) for row in rows]
+    except sqlite3.Error as e:
+        logger.error("Failed to read historical events: %s", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def add_historical_event(
+    year: int,
+    title: str,
+    category: str,
+    description: str,
+    impact_summary: str,
+    educational_resources: str = "",
+    source_url: str = "",
+) -> bool:
+    """Add a new historical environmental event."""
+    init_historical_events_db()
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO historical_environmental_events
+            (year, title, category, description, impact_summary, educational_resources, source_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (year, title, category, description, impact_summary, educational_resources, source_url))
+        conn.commit()
+        get_historical_events.clear()
+        return True
+    except sqlite3.Error as e:
+        logger.error("Failed to add historical event: %s", e)
+        return False
+    finally:
+        if conn:
+            conn.close()

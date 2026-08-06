@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import random
 import time
 from database import save_carbon_budget,get_carbon_budget
 from database import *
@@ -11,13 +12,16 @@ from emissions import (
     budget_status,
 )
 from recommendations import *
-from impact_analyzer import analyze_minimal_changeimport os
+from impact_analyzer import analyze_minimal_change
+import os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
 from report import generate_pdf
-from treemap_chart import create_emission_treemapfrom sankey_chart import create_emission_sankeyimport gamification as gf
+from treemap_chart import create_emission_treemap
+from sankey_chart import create_emission_sankey
+import gamification as gf
 from marketplace import *
 from llm_parser import parse_quick_log
 from ocr_utils import extract_text_from_bytes, parse_energy_consumption
@@ -33,122 +37,131 @@ from cache_config import TTL_LLM_RESPONSE
 GLOBAL_POPULATION = 8_200_000_000
 
 CURRENT_GLOBAL_EMISSIONS = 37_400_000_000
-projected_global = user_footprint * GLOBAL_POPULATION
 
-difference = projected_global - CURRENT_GLOBAL_EMISSIONS
 
-percentage = (
-            difference / CURRENT_GLOBAL_EMISSIONS
-        ) * 100
-col1, col2, col3 = st.columns(3)
+def render_eco_clone_simulator(user_footprint, contributors):
+    """Show what the world would look like if everyone lived like this user.
 
-with col1:
-            st.metric(
-                "Your Footprint",
-                f"{user_footprint:.2f} kg CO₂"
-            )
-
-with col2:
-            st.metric(
-                "Projected Global",
-                f"{projected_global/1_000_000_000:.2f} B kg"
-            )
-
-with col3:
-            st.metric(
-                "Difference",
-                f"{percentage:.2f}%"
-            )
-st.markdown("### 📊 Global Emission Comparison")
-
-comparison = pd.DataFrame({
-    "Scenario": [
-        "Current Earth",
-        "If Everyone Lived Like You"
-    ],
-    "CO₂ Emissions (Billion kg)": [
-        CURRENT_GLOBAL_EMISSIONS / 1_000_000_000,
-        projected_global / 1_000_000_000
-    ]
-})
-
-fig = px.bar(
-    comparison,
-    x="Scenario",
-    y="CO₂ Emissions (Billion kg)",
-    color="Scenario",
-    title="Global Carbon Emissions Comparison",
-    text="CO₂ Emissions (Billion kg)"
-)
-
-fig.update_layout(
-    xaxis_title="Scenario",
-    yaxis_title="Billion kg CO₂"
-)
-
-st.plotly_chart(fig, use_container_width=True)
-st.markdown("### 🌎 Environmental Impact")
-
-if difference < 0:
-
-    st.success(
-        f"""
-🌱 Amazing!
-
-If everyone adopted your lifestyle:
-
-• Global emissions would decrease by **{abs(percentage):.2f}%**
-
-• Your lifestyle promotes sustainability.
-
-• Keep inspiring greener living.
+Needs a completed assessment: it reads the user's total footprint and
+their per-category contributors, so it can only run once those exist.
 """
+
+    projected_global = user_footprint * GLOBAL_POPULATION
+
+    difference = projected_global - CURRENT_GLOBAL_EMISSIONS
+
+    percentage = (
+                difference / CURRENT_GLOBAL_EMISSIONS
+            ) * 100
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+                st.metric(
+                    "Your Footprint",
+                    f"{user_footprint:.2f} kg CO₂"
+                )
+
+    with col2:
+                st.metric(
+                    "Projected Global",
+                    f"{projected_global/1_000_000_000:.2f} B kg"
+                )
+
+    with col3:
+                st.metric(
+                    "Difference",
+                    f"{percentage:.2f}%"
+                )
+    st.markdown("### 📊 Global Emission Comparison")
+
+    comparison = pd.DataFrame({
+        "Scenario": [
+            "Current Earth",
+            "If Everyone Lived Like You"
+        ],
+        "CO₂ Emissions (Billion kg)": [
+            CURRENT_GLOBAL_EMISSIONS / 1_000_000_000,
+            projected_global / 1_000_000_000
+        ]
+    })
+
+    fig = px.bar(
+        comparison,
+        x="Scenario",
+        y="CO₂ Emissions (Billion kg)",
+        color="Scenario",
+        title="Global Carbon Emissions Comparison",
+        text="CO₂ Emissions (Billion kg)"
     )
 
-else:
-
-    st.error(
-        f"""
-⚠ Warning!
-
-If everyone adopted your lifestyle:
-
-• Global emissions would increase by **{percentage:.2f}%**
-
-• More sustainable habits are recommended.
-"""
+    fig.update_layout(
+        xaxis_title="Scenario",
+        yaxis_title="Billion kg CO₂"
     )
-largest = max(
-    contributors,
-    key=contributors.get
-)
 
-if largest == "Transport":
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("### 🌎 Environmental Impact")
 
-    st.info("🚶 Consider walking, cycling, or public transport more often.")
+    if difference < 0:
 
-elif largest == "Electricity":
+        st.success(
+            f"""
+    🌱 Amazing!
 
-    st.info("⚡ Reduce electricity usage and switch to energy-efficient appliances.")
+    If everyone adopted your lifestyle:
 
-elif largest == "Diet":
+    • Global emissions would decrease by **{abs(percentage):.2f}%**
 
-    st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+    • Your lifestyle promotes sustainability.
 
-elif largest == "Flights":
+    • Keep inspiring greener living.
+    """
+        )
 
-    st.info("✈ Reduce unnecessary flights whenever possible.")
-st.markdown("### 🌍 Eco Clone Score")
+    else:
 
-score = max(0, 100 - abs(percentage))
+        st.error(
+            f"""
+    ⚠ Warning!
 
-st.metric(
-    "Eco Clone Score",
-    f"{score:.1f}/100"
-)
-st.markdown("---")
+    If everyone adopted your lifestyle:
 
-st.markdown("""
+    • Global emissions would increase by **{percentage:.2f}%**
+
+    • More sustainable habits are recommended.
+    """
+        )
+    largest = max(
+        contributors,
+        key=contributors.get
+    )
+
+    if largest == "Transport":
+
+        st.info("🚶 Consider walking, cycling, or public transport more often.")
+
+    elif largest == "Electricity":
+
+        st.info("⚡ Reduce electricity usage and switch to energy-efficient appliances.")
+
+    elif largest == "Diet":
+
+        st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+
+    elif largest == "Flights":
+
+        st.info("✈ Reduce unnecessary flights whenever possible.")
+    st.markdown("### 🌍 Eco Clone Score")
+
+    score = max(0, 100 - abs(percentage))
+
+    st.metric(
+        "Eco Clone Score",
+        f"{score:.1f}/100"
+    )
+    st.markdown("---")
+
+    st.markdown("""
 ### 🌱 Final Insight
 
 The Eco Clone Simulator estimates the environmental impact if everyone on Earth adopted your current lifestyle.
@@ -157,32 +170,32 @@ Remember, this is an educational simulation designed to help visualize how indiv
 
 Every small sustainable action contributes to a healthier planet.
 """)
-st.markdown("### 🥧 Global Impact Distribution")
+    st.markdown("### 🥧 Global Impact Distribution")
 
-pie = pd.DataFrame({
-    "Category": [
-        "Current Global Emissions",
-        "Difference"
-    ],
-    "Value": [
-        CURRENT_GLOBAL_EMISSIONS,
-        abs(difference)
-    ]
-})
+    pie = pd.DataFrame({
+        "Category": [
+            "Current Global Emissions",
+            "Difference"
+        ],
+        "Value": [
+            CURRENT_GLOBAL_EMISSIONS,
+            abs(difference)
+        ]
+    })
 
-fig = px.pie(
-    pie,
-    values="Value",
-    names="Category",
-    title="Current vs Simulated Impact"
-)
+    fig = px.pie(
+        pie,
+        values="Value",
+        names="Category",
+        title="Current vs Simulated Impact"
+    )
 
-st.plotly_chart(fig, use_container_width=True)
-st.markdown("### 🤖 AI Sustainability Insight")
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("### 🤖 AI Sustainability Insight")
 
-if percentage < -10:
+    if percentage < -10:
 
-    st.success("""
+        st.success("""
 ### Excellent 🌱
 
 Your lifestyle is significantly more sustainable than the current global average.
@@ -194,9 +207,9 @@ If everyone adopted similar habits:
 🌍 This would contribute positively toward climate goals.
 """)
 
-elif percentage < 0:
+    elif percentage < 0:
 
-    st.info("""
+        st.info("""
 ### Good 👍
 
 Your lifestyle is slightly greener than average.
@@ -204,9 +217,9 @@ Your lifestyle is slightly greener than average.
 Small improvements in transportation and electricity usage could create an even greater impact.
 """)
 
-elif percentage < 15:
+    elif percentage < 15:
 
-    st.warning("""
+        st.warning("""
 ### Moderate Impact
 
 Your lifestyle is close to the current global average.
@@ -214,9 +227,9 @@ Your lifestyle is close to the current global average.
 A few sustainable changes could noticeably reduce global emissions.
 """)
 
-else:
+    else:
 
-    st.error("""
+        st.error("""
 ### High Environmental Impact
 
 If everyone lived this way,
@@ -233,29 +246,28 @@ Consider reducing:
 
 • High-carbon diet
 """)
-st.markdown("### 🌍 Sustainability Score")
+    st.markdown("### 🌍 Sustainability Score")
 
-st.progress(score / 100)
+    st.progress(score / 100)
 
-st.metric(
-    "Global Sustainability Score",
-    f"{score:.1f}/100"
-)
-st.markdown("### 🌎 Did You Know?")
+    st.metric(
+        "Global Sustainability Score",
+        f"{score:.1f}/100"
+    )
+    st.markdown("### 🌎 Did You Know?")
 
-facts = [
-    "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
-    "💡 LED bulbs use much less electricity than traditional bulbs.",
-    "🚲 Cycling produces almost zero direct carbon emissions.",
-    "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
-]
+    facts = [
+        "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
+        "💡 LED bulbs use much less electricity than traditional bulbs.",
+        "🚲 Cycling produces almost zero direct carbon emissions.",
+        "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
+    ]
 
-import random
 
-st.info(random.choice(facts))
-st.markdown("### 📄 Export Simulation")
+    st.info(random.choice(facts))
+    st.markdown("### 📄 Export Simulation")
 
-report = f"""
+    report = f"""
 Eco Clone Simulator
 
 Your Footprint: {user_footprint:.2f} kg CO₂
@@ -270,16 +282,18 @@ Eco Clone Score:
 {score:.2f}/100
 """
 
-st.download_button(
-    "📥 Download Simulation Report",
-    report,
-    file_name="eco_clone_simulation.txt"
-)
-st.markdown("---")
+    st.download_button(
+        "📥 Download Simulation Report",
+        report,
+        file_name="eco_clone_simulation.txt"
+    )
+    st.markdown("---")
 
-st.caption(
-    "🌍 Eco Clone Simulator is an educational feature that helps visualize the potential global impact of individual lifestyle choices."
-)
+    st.caption(
+        "🌍 Eco Clone Simulator is an educational feature that helps visualize the potential global impact of individual lifestyle choices."
+    )
+
+
 @cached(ttl=TTL_LLM_RESPONSE)
 def compute_arima_forecast(ts_data):
     import warnings
@@ -608,21 +622,22 @@ if "analysis" in st.session_state:
         title="Monthly Carbon Footprint Trend"
     )
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("### 🌊 Carbon Emission Flow (Sankey Diagram)")
     st.caption("See how each activity category flows into your total carbon footprint.")
     sankey_fig = create_emission_sankey(data["contributors"], data["total"])
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(sankey_fig, use_container_width=True)
 
     st.markdown("### 🗺️ Carbon Footprint Breakdown (Tree Map)")
     st.caption("See which categories take up the largest share of your total footprint.")
     treemap_fig = create_emission_treemap(data["contributors"], data["total"])
     st.plotly_chart(treemap_fig, use_container_width=True)
 
-    st.markdown("### 💡 AI Insight")    st.info(data["insight"])
+    st.markdown("### 💡 AI Insight")
+    st.info(data["insight"])
 
-st.markdown("### 🌱 Recommendations")
+    st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
         st.success(rec)
 
@@ -648,6 +663,11 @@ st.markdown("### 🌱 Recommendations")
                 )
     else:
         st.info("No further small changes detected — your lifestyle is already optimized!")
+
+    st.markdown("---")
+    st.markdown("### 🌍 Eco Clone Simulator")
+    st.caption("What the world would look like if everyone lived the way you do.")
+    render_eco_clone_simulator(data["total"], data["contributors"])
 
     st.markdown("### 🔍 Calculation Audit Log & Step-by-Step Transparency")
     with st.expander("📋 View Calculation Audit Log"):

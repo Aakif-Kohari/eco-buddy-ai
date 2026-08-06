@@ -3,7 +3,6 @@ import logging
 import json
 import datetime
 import math
-from datetime import datetime
 import calendar
 
 logger = logging.getLogger(__name__)
@@ -308,7 +307,7 @@ def forecast_monthly_emission(current_emission):
     Estimate end-of-month emissions.
     """
 
-    today = datetime.today()
+    today = datetime.datetime.today()
 
     days_elapsed = today.day
 

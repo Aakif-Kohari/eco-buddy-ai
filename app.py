@@ -17,9 +17,7 @@ import tempfile
 import uuid
 import os
 from dotenv import load_dotenv
-from styles import load_css
 from components.header import render_header
-from components.profile import render_profile
 
 
 load_dotenv()
