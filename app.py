@@ -133,6 +133,7 @@ from session_recovery import (
     discard_current_draft,
     render_draft_recovery_prompt,
 )
+from story_gen import render_story_hub
 from session_state_utils import (
     ensure_session_state,
     set_session_state_if_changed,
@@ -3954,6 +3955,8 @@ with tab1:
         )        
         render_sustainability_hub()
         render_eco_tip()
+        with tab9:
+            render_story_hub()
         # -------------------------
         # HISTORY & TRACKING
         # -------------------------
