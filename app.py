@@ -3,6 +3,7 @@ import time
 import logging
 import streamlit as st
 from logging_config import setup_logging
+from styles.skeleton import show_card_skeleton, show_chart_skeleton
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -1107,7 +1108,15 @@ with tab1:
 
  
  
-    with st.spinner("🌍 Analyzing your carbon footprint..."):
+    placeholder = st.empty()
+
+with placeholder.container():
+    show_card_skeleton()
+    show_chart_skeleton()
+
+# Existing analysis code here
+
+placeholder.empty()
 
         progress_text = st.empty()
         progress = st.progress(0)
@@ -1332,7 +1341,15 @@ with tab1:
 
     if analyze_btn:
 
-        with st.spinner("🌍 Analyzing your carbon footprint..."):
+      placeholder = st.empty()
+
+with placeholder.container():
+    show_card_skeleton()
+    show_chart_skeleton()
+
+# Existing analysis code here
+
+placeholder.empty()  
             total, contributors = calculate_footprint(
                 transport, distance, electricity, diet, flights, region
             )
