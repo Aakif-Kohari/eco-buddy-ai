@@ -1859,34 +1859,44 @@ with tab1:
             # Pie chart with Plotly
             import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
-                labels=list(filtered_contributors.keys()),
-                values=list(filtered_contributors.values()),
-                hole=0.4,
-                marker=dict(
-                    colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(0,0,0,0.1)', width=2)
-                ),
-                textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
-            )])
+    labels=list(filtered_contributors.keys()),
+    values=list(filtered_contributors.values()),
+    hole=0.55,
+    pull=[0.03] * len(filtered_contributors),
+    textinfo="label+percent",
+    textfont=dict(size=13),
+    marker=dict(
+        colors=['#22c55e', '#3b82f6', '#facc15', '#ef4444'],
+        line=dict(color="white", width=2)
+    ),
+    hovertemplate="""
+    <b>%{label}</b><br>
+    Emissions: %{value:.1f} kg CO₂<br>
+    Share: %{percent}<extra></extra>
+    """
+)])
 
             fig.update_layout(
-                showlegend=True,
-                height=280,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#374151', size=12),
-                legend=dict(
-                    orientation='h',
-                    x=0.5,
-                    xanchor='center',
-                    y=-0.15,
-                    bgcolor='rgba(255,255,255,0.9)',
-                    bordercolor='rgba(74, 222, 128, 0.3)',
-                    borderwidth=1
-                )
-            )
+    height=340,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=10, r=10, t=20, b=20),
+    font=dict(size=13),
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=13,
+        font_family="Arial"
+    ),
+    legend=dict(
+        orientation="h",
+        y=-0.2,
+        x=0.5,
+        xanchor="center",
+        bgcolor="rgba(255,255,255,0.9)",
+        bordercolor="#22c55e",
+        borderwidth=1
+    )
+)
 
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
@@ -1897,43 +1907,49 @@ with tab1:
         total_filtered = sum(filtered_contributors.values()) or 1
         breakdown_fig = go.Figure(data=[
             go.Bar(
-                x=list(filtered_contributors.keys()),
-                y=list(filtered_contributors.values()),
-                marker=dict(
-                    color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(255,255,255,0.2)', width=2)
-                ),
-                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
-                textposition='auto',
-                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
-            )
+    x=list(filtered_contributors.keys()),
+    y=list(filtered_contributors.values()),
+    marker=dict(
+        color=['#22c55e', '#3b82f6', '#facc15', '#ef4444'],
+        line=dict(color="white", width=2)
+    ),
+    text=[f"{v:.1f} kg" for v in filtered_contributors.values()],
+    textposition="outside",
+    customdata=[
+        v / total_filtered * 100
+        for v in filtered_contributors.values()
+    ],
+    hovertemplate="""
+    <b>%{x}</b><br>
+    Emissions: %{y:.1f} kg CO₂<br>
+    Contribution: %{customdata:.1f}%<extra></extra>
+    """
+)
         ])
-        breakdown_fig.update_layout(
-            height=350,
-            margin=dict(l=40, r=20, t=20, b=40),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#374151', size=12),
-            xaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                color='#4b5563'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(74, 222, 128, 0.1)',
-                zeroline=False,
-                color='#4b5563'
-            ),
-            showlegend=False
-        )
+       breakdown_fig.update_layout(
+    height=420,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=30, r=20, t=20, b=50),
+    hovermode="x unified",
+    font=dict(size=13),
+    bargap=0.35,
+    xaxis=dict(
+        title="Emission Category",
+        showgrid=False,
+        tickangle=-15
+    ),
+    yaxis=dict(
+        title="CO₂ Emissions (kg)",
+        gridcolor="rgba(34,197,94,0.15)"
+    )
+)
 
 
-        st.caption("This chart shows the breakdown of your carbon footprint by activity.")
-        st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
-        st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
+st.info(
+    "📊 Hover over each chart element to view detailed emission values and contribution percentages."
+)
+
         # Render Chart
         st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
 
