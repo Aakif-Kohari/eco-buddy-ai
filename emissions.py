@@ -1,8 +1,8 @@
 import os
 import logging
 import json
-import datetime
 import math
+from datetime import datetime, timezone
 import calendar
 
 logger = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ def calculate_footprint(
     total_rounded = round(total, 2)
 
     audit_log = {
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "region": region,
         "is_dynamic_api_used": dynamic_factors.get("is_dynamic", False),
         "factor_version": factor_version,
