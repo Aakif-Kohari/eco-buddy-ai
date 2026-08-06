@@ -2748,21 +2748,19 @@ for category, emission in filtered_contributors.items():
         st.caption(
             "Benchmark values are reference estimates used only for comparison and educational purposes."
         )
-                # -------------------------
-                # PDF DOWNLOAD
-                # -------------------------
+                
 
         
         st.markdown("---")
         # ============================================================
         # 🏆 Sustainability Milestones
         # ============================================================
-        
+
         st.markdown(
             "<div class='section-header'>🏆 Sustainability Milestones</div>",
             unsafe_allow_html=True
         )
-        
+
         milestones = [
             {
                 "title": "Eco Beginner",
@@ -2795,25 +2793,25 @@ for category, emission in filtered_contributors.items():
                 "description": "Achieve an Eco Score above 90."
             }
         ]
-        
+
         completed = 0
-        
+
         for milestone in milestones:
         
             if milestone["condition"]:
                 completed += 1
-        
+
         progress = completed / len(milestones)
-        
+
         st.metric(
             "Milestones Completed",
             f"{completed}/{len(milestones)}"
         )
-        
+
         st.progress(progress)
-        
+
         st.markdown("---")
-        
+
         for milestone in milestones:
         
             if milestone["condition"]:
@@ -2831,7 +2829,7 @@ for category, emission in filtered_contributors.items():
                 <b>Status:</b> Unlocked
                 </div>
                 """, unsafe_allow_html=True)
-        
+
             else:
             
                 st.markdown(f"""
@@ -2847,23 +2845,23 @@ for category, emission in filtered_contributors.items():
                 <b>Status:</b> Locked
                 </div>
                 """, unsafe_allow_html=True)
-        
+
         st.markdown("---")
-        
+
         remaining = len(milestones) - completed
-        
+
         if remaining == 0:
         
             st.success(
                 "🎉 Congratulations! You have unlocked every sustainability milestone."
             )
-        
+
         else:
         
             st.info(
                 f"You are only **{remaining} milestone(s)** away from completing the collection."
             )
-        
+
         st.caption(
             "Complete more eco-friendly activities to unlock additional sustainability milestones and improve your overall environmental performance."
         )
@@ -2909,6 +2907,113 @@ for category, emission in filtered_contributors.items():
         Each category contributes independently to the final result. Expanding this section allows users to inspect every intermediate value instead of only viewing the final score, making the assessment more transparent and easier to understand.
         """)
 
+        # ============================================================
+        # 🌍 Personalized Eco Action Plan
+        # ============================================================
+        
+        st.markdown(
+            "<div class='section-header'>🌍 Personalized Eco Action Plan</div>",
+            unsafe_allow_html=True
+        )
+        
+        actions = []
+        
+        if transport == "Car":
+            actions.append({
+                "title": "🚲 Choose Greener Transportation",
+                "priority": "High",
+                "benefit": "Reduce transportation emissions by using public transport, cycling, or walking whenever possible."
+            })
+        
+        if electricity > 200:
+            actions.append({
+                "title": "⚡ Reduce Electricity Usage",
+                "priority": "High",
+                "benefit": "Switch off unused appliances and use energy-efficient devices."
+            })
+        
+        if diet == "Non-Vegetarian":
+            actions.append({
+                "title": "🥗 Improve Dietary Choices",
+                "priority": "Medium",
+                "benefit": "Adding more plant-based meals can significantly reduce your carbon footprint."
+            })
+        
+        if flights > 2:
+            actions.append({
+                "title": "✈ Reduce Air Travel",
+                "priority": "High",
+                "benefit": "Reduce unnecessary flights or offset emissions through verified programs."
+            })
+        
+        if eco_score >= 85:
+            actions.append({
+                "title": "🌱 Inspire Others",
+                "priority": "Low",
+                "benefit": "Share your sustainable lifestyle and encourage friends and family."
+            })
+        
+        if len(actions) == 0:
+        
+            st.success(
+                "🎉 Excellent! Your current lifestyle already follows many sustainable practices."
+            )
+        
+        else:
+        
+            st.metric("Recommended Actions", len(actions))
+        
+            priority_colors = {
+                "High": "#ef4444",
+                "Medium": "#f59e0b",
+                "Low": "#22c55e"
+            }
+        
+            for index, action in enumerate(actions, start=1):
+            
+                color = priority_colors[action["priority"]]
+        
+                st.markdown(f"""
+                <div style="
+                    border-left:6px solid {color};
+                    background:#ffffff;
+                    padding:18px;
+                    margin-bottom:14px;
+                    border-radius:10px;
+                    box-shadow:0 4px 12px rgba(0,0,0,.06);
+                ">
+                    <h4>{index}. {action['title']}</h4>
+        
+                    <p><b>Priority:</b>
+                    <span style="color:{color};">
+                    {action['priority']}
+                    </span></p>
+        
+                    <p>{action['benefit']}</p>
+        
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        completed = max(0, eco_score)
+        
+        st.subheader("📈 Sustainability Readiness")
+        
+        st.progress(completed / 100)
+        
+        if eco_score >= 90:
+            st.success("Your sustainability readiness is outstanding.")
+        elif eco_score >= 75:
+            st.info("You are close to becoming an Eco Champion.")
+        elif eco_score >= 60:
+            st.warning("A few improvements will significantly reduce your emissions.")
+        else:
+            st.error("Your action plan should focus on high-priority improvements first.")
+        
+        st.caption(
+            "The action plan is generated dynamically based on your latest assessment to help you prioritize sustainability improvements."
+        )
         report = generate_pdf(total, eco_score, insight)
 
         report_validation = validate_report_data(
