@@ -10,10 +10,6 @@ import os
 import tempfile
 import unittest
 
-os.environ.setdefault(
-    "ECO_BUDDY_DB", os.path.join(tempfile.gettempdir(), "test_water_scarcity.db")
-)
-
 import water_scarcity as ws
 
 
@@ -430,12 +426,30 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a throwaway database.
+
+    The module is pointed at its own file rather than sharing the suite's,
+    which several other test modules delete and recreate as they go. Sharing
+    it makes these tests pass alone and fail in a full run, which is worse
+    than either.
+    """
 
     @classmethod
     def setUpClass(cls):
         cls.user_id = 4242
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
+            cls.db_path = handle.name
+        cls.original_db = ws.DB_NAME
+        ws.DB_NAME = cls.db_path
         ws.init_water_scarcity_db()
+
+    @classmethod
+    def tearDownClass(cls):
+        ws.DB_NAME = cls.original_db
+        try:
+            os.unlink(cls.db_path)
+        except OSError:
+            pass
 
     def _assessment(self):
         household = ws.household_profile({"shower": 8}, days=365)
