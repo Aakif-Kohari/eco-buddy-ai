@@ -1921,34 +1921,44 @@ placeholder.empty()
             # Pie chart with Plotly
             import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
-                labels=list(filtered_contributors.keys()),
-                values=list(filtered_contributors.values()),
-                hole=0.4,
-                marker=dict(
-                    colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(0,0,0,0.1)', width=2)
-                ),
-                textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
-            )])
+    labels=list(filtered_contributors.keys()),
+    values=list(filtered_contributors.values()),
+    hole=0.55,
+    pull=[0.03] * len(filtered_contributors),
+    textinfo="label+percent",
+    textfont=dict(size=13),
+    marker=dict(
+        colors=['#22c55e', '#3b82f6', '#facc15', '#ef4444'],
+        line=dict(color="white", width=2)
+    ),
+    hovertemplate="""
+    <b>%{label}</b><br>
+    Emissions: %{value:.1f} kg CO₂<br>
+    Share: %{percent}<extra></extra>
+    """
+)])
 
             fig.update_layout(
-                showlegend=True,
-                height=280,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#374151', size=12),
-                legend=dict(
-                    orientation='h',
-                    x=0.5,
-                    xanchor='center',
-                    y=-0.15,
-                    bgcolor='rgba(255,255,255,0.9)',
-                    bordercolor='rgba(74, 222, 128, 0.3)',
-                    borderwidth=1
-                )
-            )
+    height=340,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=10, r=10, t=20, b=20),
+    font=dict(size=13),
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=13,
+        font_family="Arial"
+    ),
+    legend=dict(
+        orientation="h",
+        y=-0.2,
+        x=0.5,
+        xanchor="center",
+        bgcolor="rgba(255,255,255,0.9)",
+        bordercolor="#22c55e",
+        borderwidth=1
+    )
+)
 
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
