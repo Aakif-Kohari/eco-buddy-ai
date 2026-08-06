@@ -2754,6 +2754,119 @@ for category, emission in filtered_contributors.items():
 
         
         st.markdown("---")
+        # ============================================================
+        # 🏆 Sustainability Milestones
+        # ============================================================
+        
+        st.markdown(
+            "<div class='section-header'>🏆 Sustainability Milestones</div>",
+            unsafe_allow_html=True
+        )
+        
+        milestones = [
+            {
+                "title": "Eco Beginner",
+                "condition": eco_score >= 50,
+                "description": "Achieve an Eco Score of at least 50."
+            },
+            {
+                "title": "Green Commuter",
+                "condition": transport in ["Bike", "Walking", "Public Transport"],
+                "description": "Use sustainable transportation."
+            },
+            {
+                "title": "Energy Saver",
+                "condition": electricity <= 150,
+                "description": "Keep monthly electricity usage below 150 kWh."
+            },
+            {
+                "title": "Plant Friendly",
+                "condition": diet == "Vegetarian",
+                "description": "Follow a vegetarian diet."
+            },
+            {
+                "title": "Flight Free",
+                "condition": flights == 0,
+                "description": "Avoid annual air travel."
+            },
+            {
+                "title": "Eco Expert",
+                "condition": eco_score >= 90,
+                "description": "Achieve an Eco Score above 90."
+            }
+        ]
+        
+        completed = 0
+        
+        for milestone in milestones:
+        
+            if milestone["condition"]:
+                completed += 1
+        
+        progress = completed / len(milestones)
+        
+        st.metric(
+            "Milestones Completed",
+            f"{completed}/{len(milestones)}"
+        )
+        
+        st.progress(progress)
+        
+        st.markdown("---")
+        
+        for milestone in milestones:
+        
+            if milestone["condition"]:
+            
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                background:#ecfdf5;
+                border-left:6px solid #22c55e;
+                margin-bottom:12px;
+                ">
+                <h4>✅ {milestone['title']}</h4>
+                <p>{milestone['description']}</p>
+                <b>Status:</b> Unlocked
+                </div>
+                """, unsafe_allow_html=True)
+        
+            else:
+            
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                background:#f9fafb;
+                border-left:6px solid #9ca3af;
+                margin-bottom:12px;
+                ">
+                <h4>🔒 {milestone['title']}</h4>
+                <p>{milestone['description']}</p>
+                <b>Status:</b> Locked
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        remaining = len(milestones) - completed
+        
+        if remaining == 0:
+        
+            st.success(
+                "🎉 Congratulations! You have unlocked every sustainability milestone."
+            )
+        
+        else:
+        
+            st.info(
+                f"You are only **{remaining} milestone(s)** away from completing the collection."
+            )
+        
+        st.caption(
+            "Complete more eco-friendly activities to unlock additional sustainability milestones and improve your overall environmental performance."
+        )
 
         with st.expander("🧮 Interactive Calculation Breakdown", expanded=False):
 
