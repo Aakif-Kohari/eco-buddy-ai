@@ -19,7 +19,10 @@ import uuid
 import os
 from dotenv import load_dotenv
 from components.header import render_header
-
+from components.profile import render_profile
+from sustainability_hub import (
+    render_sustainability_hub  
+)
 
 load_dotenv()
 
@@ -3757,27 +3760,27 @@ for category, emission in filtered_contributors.items():
         # ============================================================
         # 📤 Carbon Budget Reports & Analytics
         # ============================================================
-        
+
         import io
         import pandas as pd
-        
+
         st.markdown(
             "<div class='section-header'>📤 Budget Reports & Analytics</div>",
             unsafe_allow_html=True
         )
-        
+
         records = st.session_state.get("saved_budgets", [])
-        
+
         # ------------------------------------------------------------
         # Export CSV
         # ------------------------------------------------------------
-        
+
         if records:
         
             export_df = pd.DataFrame(records)
-        
+
             csv = export_df.to_csv(index=False).encode("utf-8")
-        
+
             st.download_button(
                 "📥 Export Budget History (CSV)",
                 data=csv,
@@ -3785,61 +3788,61 @@ for category, emission in filtered_contributors.items():
                 mime="text/csv",
                 use_container_width=True
             )
-        
+
         else:
         
             st.info("Save at least one budget snapshot to enable export.")
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # Annual Projection
         # ------------------------------------------------------------
-        
+
         st.subheader("📅 Annual Carbon Projection")
-        
+
         annual_projection = monthly_emission * 12
-        
+
         goal_projection = budget * 12
-        
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
         
             st.metric(
                 "Projected Annual Emissions",
                 f"{annual_projection:.1f} kg"
             )
-        
+
         with col2:
         
             st.metric(
                 "Annual Carbon Budget",
                 f"{goal_projection:.1f} kg"
             )
-        
+
         difference = goal_projection - annual_projection
-        
+
         if difference >= 0:
         
             st.success(
                 f"You are projected to remain within your annual budget by {difference:.1f} kg CO₂."
             )
-        
+
         else:
         
             st.error(
                 f"You may exceed your annual budget by {abs(difference):.1f} kg CO₂."
             )
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # Carbon Savings Calculator
         # ------------------------------------------------------------
-        
+
         st.subheader("💰 Carbon Savings Calculator")
-        
+
         saving_options = {
             "Cycle instead of driving twice a week":80,
             "Reduce electricity by 10%":120,
@@ -3848,188 +3851,189 @@ for category, emission in filtered_contributors.items():
             "Work from home one day/week":70,
             "Install LED lighting":40
         }
-        
+
         selected = st.multiselect(
             "Select sustainability actions",
             list(saving_options.keys())
         )
-        
+
         estimated_savings = sum(
             saving_options[item]
             for item in selected
         )
-        
+
         new_emission = max(
             0,
             annual_projection-estimated_savings
         )
-        
+
         st.metric(
             "Estimated Annual Savings",
             f"{estimated_savings} kg CO₂"
         )
-        
+
         st.metric(
             "Projected New Annual Emission",
             f"{new_emission:.1f} kg CO₂"
         )
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # Smart Notifications
         # ------------------------------------------------------------
-        
+
         st.subheader("🔔 Budget Notifications")
-        
+
         notifications = []
-        
+
         if used_percent > 90:
             notifications.append(
                 "🚨 You are very close to exceeding your monthly carbon budget."
             )
-        
+
         if eco_score < 60:
             notifications.append(
                 "⚠ Your Eco Score is below the recommended level."
             )
-        
+
         if transport == "Car":
             notifications.append(
                 "🚗 Transportation is a major contributor to your emissions."
             )
-        
+
         if electricity > 250:
             notifications.append(
                 "⚡ Electricity usage is relatively high this month."
             )
-        
+
         if flights > 2:
             notifications.append(
                 "✈ Air travel significantly impacts your carbon budget."
             )
-        
+
         if not notifications:
         
             st.success(
                 "No important notifications at the moment."
             )
-        
+
         else:
         
             for note in notifications:
             
                 st.warning(note)
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # AI Budget Advisor
         # ------------------------------------------------------------
-        
+
         st.subheader("🤖 AI Budget Advisor")
-        
+
         advice = []
-        
+
         if transport == "Car":
             advice.append(
                 "Switching to public transport a few days each week could noticeably reduce your monthly emissions."
             )
-        
+
         if electricity > 200:
             advice.append(
                 "Consider replacing older appliances with energy-efficient alternatives."
             )
-        
+
         if diet == "Non-Vegetarian":
             advice.append(
                 "Increasing plant-based meals can reduce food-related emissions."
             )
-        
+
         if flights > 2:
             advice.append(
                 "Reducing unnecessary flights will have one of the largest impacts on your carbon footprint."
             )
-        
+
         if eco_score >= 90:
             advice.append(
                 "Excellent progress! Maintain your current habits and inspire others."
             )
-        
+
         if not advice:
         
             st.success(
                 "Your lifestyle is already highly sustainable. Keep up the great work!"
             )
-        
+
         else:
         
             for index, item in enumerate(advice, start=1):
             
                 st.info(f"{index}. {item}")
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # Goal Completion
         # ------------------------------------------------------------
-        
+
         st.subheader("🎯 Budget Goal Completion")
-        
+
         goal = budget
-        
+
         completion = min(
             monthly_emission / goal,
             1.0
         )
-        
+
         st.progress(completion)
-        
+
         if completion < 0.5:
         
             st.success("Excellent progress toward your monthly budget goal.")
-        
+
         elif completion < 0.75:
         
             st.info("You are comfortably within your budget.")
-        
+
         elif completion < 1:
         
             st.warning("Approaching your monthly budget limit.")
-        
+
         else:
         
             st.error("Monthly budget exceeded.")
-        
+
         st.markdown("---")
-        
+
         # ------------------------------------------------------------
         # Sustainability Scorecard
         # ------------------------------------------------------------
-        
+
         st.subheader("🏅 Sustainability Scorecard")
-        
+
         scorecard = {
             "Eco Score": eco_score,
             "Budget Health": round(health),
             "Budget Usage": round(100-used_percent),
             "Carbon Efficiency": round(max(0,100-(monthly_emission/budget*100)))
         }
-        
+
         score_df = pd.DataFrame(
             scorecard.items(),
             columns=["Metric","Score"]
         )
-        
+
         st.dataframe(
             score_df,
             use_container_width=True,
             hide_index=True
         )
-        
+
         st.caption(
             "The Carbon Budget Manager combines budget tracking, analytics, projections, exports, and personalized guidance to help users monitor and improve their sustainability performance over time."
         )        
+        render_sustainability_hub()
         # -------------------------
         # HISTORY & TRACKING
         # -------------------------
