@@ -1936,52 +1936,107 @@ with tab1:
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
-        st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
+       # -------------------------
+# DETAILED BREAKDOWN
+# -------------------------
 
-# Bar chart creation
-        total_filtered = sum(filtered_contributors.values()) or 1
-        breakdown_fig = go.Figure(data=[
-            go.Bar(
-                x=list(filtered_contributors.keys()),
-                y=list(filtered_contributors.values()),
-                marker=dict(
-                    color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(255,255,255,0.2)', width=2)
-                ),
-                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
-                textposition='auto',
-                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
+st.markdown(
+    "<div class='section-header'>📋 Detailed Breakdown</div>",
+    unsafe_allow_html=True,
+)
+
+total_filtered = sum(filtered_contributors.values()) or 1
+
+category_icons = {
+    "Transport": "🚗",
+    "Electricity": "⚡",
+    "Food": "🍽️",
+    "Waste": "🗑️",
+}
+
+for category, emission in filtered_contributors.items():
+    percentage = (emission / total_filtered) * 100
+
+    with st.expander(
+        f"{category_icons.get(category, '🌿')} {category} • {emission:.1f} kg CO₂",
+        expanded=False,
+    ):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Emission",
+                f"{emission:.1f} kg CO₂",
             )
-        ])
-        breakdown_fig.update_layout(
-            height=350,
-            margin=dict(l=40, r=20, t=20, b=40),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#374151', size=12),
-            xaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                color='#4b5563'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(74, 222, 128, 0.1)',
-                zeroline=False,
-                color='#4b5563'
-            ),
-            showlegend=False
-        )
 
+        with col2:
+            st.metric(
+                "Contribution",
+                f"{percentage:.1f}%",
+            )
 
-        st.caption("This chart shows the breakdown of your carbon footprint by activity.")
-        st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
-        st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
-        # Render Chart
-        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+        st.progress(min(percentage / 100, 1.0))
 
+        if percentage >= 40:
+            st.warning(
+                "This category contributes significantly to your carbon footprint."
+            )
+
+        elif percentage >= 20:
+            st.info(
+                "There is room for improvement in this category."
+            )
+
+        else:
+            st.success(
+                "Great! This category has a relatively low carbon impact."
+            )
+
+        st.markdown("#### Tips")
+
+        if category == "Transport":
+            st.markdown(
+                """
+- 🚶 Walk or cycle for short trips
+- 🚌 Use public transport
+- 🚗 Carpool whenever possible
+"""
+            )
+
+        elif category == "Electricity":
+            st.markdown(
+                """
+- 💡 Switch to LED bulbs
+- 🔌 Turn off unused appliances
+- 🌞 Consider renewable energy
+"""
+            )
+
+        elif category == "Food":
+            st.markdown(
+                """
+- 🥗 Eat more plant-based meals
+- 🛒 Buy local produce
+- 🍽 Reduce food waste
+"""
+            )
+
+        elif category == "Waste":
+            st.markdown(
+                """
+- ♻ Recycle regularly
+- 🚮 Compost organic waste
+- 🛍 Use reusable bags
+"""
+            )
+
+        else:
+            st.markdown(
+                """
+- 🌱 Continue improving your sustainability habits.
+"""
+            )
         # -------------------------
         # CHART EXPORT BUTTONS (#277)
         # -------------------------
