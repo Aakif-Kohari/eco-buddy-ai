@@ -1,8 +1,10 @@
-name: Auto Assign Issue to Creator
+name: Auto Assign Issue to First Eligible Commenter
 
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
 
 permissions:
   issues: write
@@ -20,41 +22,61 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue = context.payload.issue;
-            const creator = issue.user.login;
 
-            // Don't auto-assign issues opened by the maintainer
-            if (creator === "neeru24") {
-              console.log("Issue opened by maintainer. Skipping auto assignment.");
+            let issue;
+            let candidate;
+
+            // New issue opened
+            if (context.eventName === "issues") {
+              issue = context.payload.issue;
+              candidate = issue.user.login;
+            }
+
+            // Someone commented
+            if (context.eventName === "issue_comment") {
+              issue = context.payload.issue;
+              candidate = context.payload.comment.user.login;
+
+              // Skip if already assigned
+              if (issue.assignees.length > 0) {
+                console.log("Issue already assigned.");
+                return;
+              }
+            }
+
+            // Skip maintainer
+            if (candidate === "neeru24") {
+              console.log("Maintainer detected. Skipping.");
               return;
             }
 
-            // Count open issues currently assigned to this user
-            const { data: issues } = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue is:open assignee:${creator}`
-            });
+            // Count assigned issues
+            const { data: search } =
+              await github.rest.search.issuesAndPullRequests({
+                q: `repo:${owner}/${repo} is:issue is:open assignee:${candidate}`
+              });
 
-            if (issues.total_count >= 5) {
+            if (search.total_count >= 5) {
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: issue.number,
-                body: `⚠️ @${creator}, you already have **5 open assigned issues**.\n\nPlease complete one of your existing issues before taking a new one. To ensure fair participation, contributors can work on a maximum of **5 issues at a time**. 🚀`
+                body: `⚠️ @${candidate}, you already have **5 open assigned issues**.\n\nPlease complete one of your existing issues before taking a new one.`
               });
               return;
             }
 
-            // Assign the issue to its creator
+            // Assign
             await github.rest.issues.addAssignees({
               owner,
               repo,
               issue_number: issue.number,
-              assignees: [creator]
+              assignees: [candidate]
             });
 
             await github.rest.issues.createComment({
               owner,
               repo,
               issue_number: issue.number,
-              body: `🎉 This issue has been automatically assigned to @${creator}.\n\n⏳ Please submit a working PR within **2 days (48 hours)** to keep your assignment active. Happy contributing! 🚀`
+              body: `🎉 Assigned to @${candidate}!\n\n⏳ Please submit a PR within **48 hours** to keep your assignment active.`
             });

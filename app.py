@@ -3,6 +3,7 @@ import time
 import logging
 import streamlit as st
 from logging_config import setup_logging
+from styles.skeleton import show_card_skeleton, show_chart_skeleton
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -1107,7 +1108,15 @@ with tab1:
 
  
  
-    with st.spinner("🌍 Analyzing your carbon footprint..."):
+    placeholder = st.empty()
+
+with placeholder.container():
+    show_card_skeleton()
+    show_chart_skeleton()
+
+# Existing analysis code here
+
+placeholder.empty()
 
         progress_text = st.empty()
         progress = st.progress(0)
@@ -1332,7 +1341,15 @@ with tab1:
 
     if analyze_btn:
 
-        with st.spinner("🌍 Analyzing your carbon footprint..."):
+      placeholder = st.empty()
+
+with placeholder.container():
+    show_card_skeleton()
+    show_chart_skeleton()
+
+# Existing analysis code here
+
+placeholder.empty()  
             total, contributors = calculate_footprint(
                 transport, distance, electricity, diet, flights, region
             )
@@ -1367,6 +1384,48 @@ with tab1:
         insight, recommendations = generate_recommendations(
             transport, electricity, diet, flights, contributors
         )
+
+        # --------------------------
+        # Hidden Carbon Source Detector
+        # --------------------------
+
+        hidden_sources = []
+
+        if transport > 20:
+            hidden_sources.append(
+                {
+                    "source": "🚚 Food Delivery Packaging",
+                    "impact": round(total * 0.05, 2),
+                    "tip": "Cook at home occasionally or order multiple meals together."
+                }
+            )
+
+        if flights > 0:
+            hidden_sources.append(
+                {
+                    "source": "🧳 Airport & Travel Waste",
+                    "impact": round(total * 0.08, 2),
+                    "tip": "Pack light and avoid unnecessary short flights."
+                }
+            )
+
+        if electricity > 8:
+            hidden_sources.append(
+                {
+                    "source": "🔌 Idle Electronics",
+                    "impact": round(total * 0.04, 2),
+                    "tip": "Switch off chargers and unused devices."
+                }
+            )
+
+        if diet > 6:
+            hidden_sources.append(
+                {
+                    "source": "🥡 Food Packaging Waste",
+                    "impact": round(total * 0.03, 2),
+                    "tip": "Prefer reusable containers and local produce."
+                }
+            )
 
         # -------------------------
         # Cross-Module Smart Suggestions
@@ -1413,7 +1472,10 @@ with tab1:
             st.session_state,
         )
 
-        st.success("✅ Analysis completed!")
+        st.success("✅ Analysis completed! Your sustainability score has been generated.")
+        st.balloons()
+        st.toast("🎉 Congratulations! Analysis completed successfully!")
+        st.info("💡 Visit the Recommendations section to reduce your carbon footprint.")
 
 
 
@@ -1901,58 +1963,107 @@ with tab1:
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
-        st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
+       # -------------------------
+# DETAILED BREAKDOWN
+# -------------------------
 
-# Bar chart creation
-        total_filtered = sum(filtered_contributors.values()) or 1
-        breakdown_fig = go.Figure(data=[
-            go.Bar(
-    x=list(filtered_contributors.keys()),
-    y=list(filtered_contributors.values()),
-    marker=dict(
-        color=['#22c55e', '#3b82f6', '#facc15', '#ef4444'],
-        line=dict(color="white", width=2)
-    ),
-    text=[f"{v:.1f} kg" for v in filtered_contributors.values()],
-    textposition="outside",
-    customdata=[
-        v / total_filtered * 100
-        for v in filtered_contributors.values()
-    ],
-    hovertemplate="""
-    <b>%{x}</b><br>
-    Emissions: %{y:.1f} kg CO₂<br>
-    Contribution: %{customdata:.1f}%<extra></extra>
-    """
-)
-        ])
-       breakdown_fig.update_layout(
-    height=420,
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=30, r=20, t=20, b=50),
-    hovermode="x unified",
-    font=dict(size=13),
-    bargap=0.35,
-    xaxis=dict(
-        title="Emission Category",
-        showgrid=False,
-        tickangle=-15
-    ),
-    yaxis=dict(
-        title="CO₂ Emissions (kg)",
-        gridcolor="rgba(34,197,94,0.15)"
-    )
+st.markdown(
+    "<div class='section-header'>📋 Detailed Breakdown</div>",
+    unsafe_allow_html=True,
 )
 
+total_filtered = sum(filtered_contributors.values()) or 1
 
-st.info(
-    "📊 Hover over each chart element to view detailed emission values and contribution percentages."
-)
+category_icons = {
+    "Transport": "🚗",
+    "Electricity": "⚡",
+    "Food": "🍽️",
+    "Waste": "🗑️",
+}
 
-        # Render Chart
-        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+for category, emission in filtered_contributors.items():
+    percentage = (emission / total_filtered) * 100
 
+    with st.expander(
+        f"{category_icons.get(category, '🌿')} {category} • {emission:.1f} kg CO₂",
+        expanded=False,
+    ):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Emission",
+                f"{emission:.1f} kg CO₂",
+            )
+
+        with col2:
+            st.metric(
+                "Contribution",
+                f"{percentage:.1f}%",
+            )
+
+        st.progress(min(percentage / 100, 1.0))
+
+        if percentage >= 40:
+            st.warning(
+                "This category contributes significantly to your carbon footprint."
+            )
+
+        elif percentage >= 20:
+            st.info(
+                "There is room for improvement in this category."
+            )
+
+        else:
+            st.success(
+                "Great! This category has a relatively low carbon impact."
+            )
+
+        st.markdown("#### Tips")
+
+        if category == "Transport":
+            st.markdown(
+                """
+- 🚶 Walk or cycle for short trips
+- 🚌 Use public transport
+- 🚗 Carpool whenever possible
+"""
+            )
+
+        elif category == "Electricity":
+            st.markdown(
+                """
+- 💡 Switch to LED bulbs
+- 🔌 Turn off unused appliances
+- 🌞 Consider renewable energy
+"""
+            )
+
+        elif category == "Food":
+            st.markdown(
+                """
+- 🥗 Eat more plant-based meals
+- 🛒 Buy local produce
+- 🍽 Reduce food waste
+"""
+            )
+
+        elif category == "Waste":
+            st.markdown(
+                """
+- ♻ Recycle regularly
+- 🚮 Compost organic waste
+- 🛍 Use reusable bags
+"""
+            )
+
+        else:
+            st.markdown(
+                """
+- 🌱 Continue improving your sustainability habits.
+"""
+            )
         # -------------------------
         # CHART EXPORT BUTTONS (#277)
         # -------------------------
@@ -2090,6 +2201,121 @@ st.info(
             """, unsafe_allow_html=True)
 
         st.markdown("---")
+
+        st.markdown("---")
+
+        # =========================
+        # 🌿 Green Decision Comparator
+        # =========================
+
+        st.markdown(
+            "<div class='section-header'>🌿 Green Decision Comparator</div>",
+            unsafe_allow_html=True,
+        )
+
+        st.write("Compare two everyday choices and see which is more eco-friendly.")
+
+        options = {
+            "Drive Car (10 km)": 2.3,
+            "Public Transport (10 km)": 0.8,
+            "Bike (10 km)": 0.0,
+            "Walk (10 km)": 0.0,
+            "Beef Meal": 5.0,
+            "Vegetarian Meal": 1.5,
+            "LED Bulb": 0.2,
+            "Incandescent Bulb": 0.8,
+        }
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            choice1 = st.selectbox(
+                "First Option",
+                list(options.keys()),
+                key="decision_1",
+            )
+
+        with col2:
+            choice2 = st.selectbox(
+                "Second Option",
+                list(options.keys()),
+                key="decision_2",
+            )
+
+        if st.button("Compare Choices"):
+
+            emission1 = options[choice1]
+            emission2 = options[choice2]
+
+            st.metric(choice1, f"{emission1:.2f} kg CO₂")
+            st.metric(choice2, f"{emission2:.2f} kg CO₂")
+
+            if emission1 < emission2:
+                st.success(f"✅ {choice1} is the greener option.")
+                st.info(f"You save approximately {emission2-emission1:.2f} kg CO₂.")
+
+            elif emission2 < emission1:
+                st.success(f"✅ {choice2} is the greener option.")
+                st.info(f"You save approximately {emission1-emission2:.2f} kg CO₂.")
+
+            else:
+                st.info("Both choices have similar environmental impact.")
+
+        
+
+        # ---------------------------------
+        # Sustainability Learning Hub
+        # ---------------------------------
+
+        st.markdown("---")
+        st.subheader("📚 Sustainability Learning Hub")
+
+        learning_cards = []
+
+        if transport_emission > max(electricity_emission, diet_emission, flight_emission):
+            learning_cards.append(
+                ("🚲 Green Transportation",
+                "Walking, cycling, or public transport can significantly reduce your carbon footprint.")
+            )
+
+        if electricity_emission > 5:
+            learning_cards.append(
+                ("💡 Energy Saving",
+                "Turning off unused appliances and using LED bulbs helps lower electricity emissions.")
+            )
+
+        if flight_emission > 0:
+            learning_cards.append(
+                ("✈️ Sustainable Travel",
+                "Consider trains or virtual meetings whenever possible to reduce travel emissions.")
+            )
+
+        if diet_emission > 2:
+            learning_cards.append(
+                ("🥗 Sustainable Diet",
+                "Eating more plant-based meals can reduce emissions from food production.")
+            )
+
+        if not learning_cards:
+            learning_cards.append(
+                ("🌍 Eco Fact",
+                "Every small sustainable habit contributes to protecting our planet.")
+            )
+
+        search_topic = st.text_input(
+            "🔍 Search sustainability topics",
+            placeholder="transport, electricity, flights, diet..."
+        )
+
+        for title, content in learning_cards:
+            if search_topic == "" or search_topic.lower() in title.lower() or search_topic.lower() in content.lower():
+                with st.expander(title):
+                    st.write(content)
+                    
+                    # ============================================================
+                    # 🌍 Environmental Impact Comparison
+                    # ============================================================
+
         # ============================================================
         # 🌎 Eco Performance Summary
         # ============================================================
@@ -2230,6 +2456,7 @@ st.info(
 # ============================================================
 # 🌍 Environmental Impact Comparison
 # ============================================================
+
 
         st.markdown("<div class='section-header'>🌍 Environmental Impact Comparison</div>", unsafe_allow_html=True)
         
@@ -3164,25 +3391,35 @@ with tab3:
             challenge_states[c['challenge_id']] = c
             
     for ch_id, ch_data in gf.CHALLENGES.items():
-        with st.expander(f"{ch_data['title']} ({ch_data['xp']} XP) - {ch_data['category']}"):
+        with st.expander(f"🏆 {ch_data['title']} ({ch_data['xp']} XP) - {ch_data['category']}"):
             st.write(f"Target: {ch_data['target']} {ch_data['unit']}")
             if ch_id in challenge_states:
                 state = challenge_states[ch_id]
                 status = state['status']
                 if status == 'completed':
-                    st.success("Challenge Completed! 🎉")
+                    st.success("🎉 Challenge Completed! Keep up the great work!")
+                    st.balloons()
+                    st.toast("🏆 Great job! Challenge completed successfully.")
+                    st.info("🌍 Every completed challenge contributes to a greener lifestyle.")
                 else:
                     current_prog = state['progress_value']
-                    st.write(f"Progress: {current_prog} / {ch_data['target']}")
+                    progress = min(current_prog / ch_data["target"], 1.0)
+                    st.progress(progress)
+                    percentage = int((current_prog / ch_data["target"]) * 100)
+                    st.write(f"📊 Progress: {current_prog}/{ch_data['target']} ({percentage}%)")
                     
                     prog_val = st.number_input(f"Update Progress for {ch_id}", min_value=0.0, step=1.0, key=f"prog_{ch_id}")
                     if st.button("Update", key=f"btn_prog_{ch_id}"):
-                        gf.update_challenge_progress(user_id, ch_id, progress_increment=prog_val)
-                        gf.validate_challenge_progress(1, ch_id)
+                        gf.update_challenge_progress(...)
+                        gf.validate_challenge_progress(...)
+                        st.toast("📈 Progress updated successfully!")
                         st.rerun()
             else:
                 if st.button("Enroll", key=f"enroll_{ch_id}"):
                     gf.enroll_challenge(user_id, ch_id)
+                    st.success("🎯 You have joined the challenge!")
+                    st.toast("🌱 Best of luck! Complete it to earn rewards.")
+                    st.toast("🌱 Successfully enrolled in the challenge!")
                     st.rerun()
 
     st.markdown("---")
