@@ -23,7 +23,7 @@ from components.profile import render_profile
 from sustainability_hub import (
     render_sustainability_hub  
 )
-
+from eco_social import render_eco_social, render_eco_tip
 load_dotenv()
 
 from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
@@ -4034,6 +4034,7 @@ for category, emission in filtered_contributors.items():
             "The Carbon Budget Manager combines budget tracking, analytics, projections, exports, and personalized guidance to help users monitor and improve their sustainability performance over time."
         )        
         render_sustainability_hub()
+        render_eco_tip()
         # -------------------------
         # HISTORY & TRACKING
         # -------------------------
