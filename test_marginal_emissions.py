@@ -4,8 +4,11 @@ import tempfile
 
 import pytest
 
-os.environ["ECO_BUDDY_DB"] = ":memory:"
-
+# Deliberately no ECO_BUDDY_DB assignment here. Setting it at import time
+# applies to the whole process, and every module imported afterwards would
+# capture it — which in a full-suite run leaves other modules' storage tests
+# looking for tables in a database that was never created. The autouse
+# fixture below isolates this module's tests without touching anything else.
 import marginal_emissions
 from marginal_emissions import (
     AVAILABILITY_SHAPES,
