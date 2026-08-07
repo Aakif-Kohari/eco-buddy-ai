@@ -22,6 +22,12 @@ def generate_recommendations(
         f"({contributors[highest_category]:.0f} kg CO₂/year)."
     )
 
+    explanation_details = {
+        "highest_category": highest_category,
+        "highest_category_emissions": contributors[highest_category],
+        "category_factors": {}
+    }
+
     # Transport Recommendations
 
     if transport == "Car":
