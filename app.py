@@ -23,7 +23,6 @@ from components.profile import render_profile
 from sustainability_hub import (
     render_sustainability_hub  
 )
-from waste_manager import render_waste_hub
 from eco_social import render_eco_social, render_eco_tip
 load_dotenv()
 
@@ -4201,7 +4200,6 @@ for category, emission in filtered_contributors.items():
                     "eco_score",
                 ],
             )
-            render_waste_hub()
 
             # -----------------------------
             # Eco Impact Streak Calendar
