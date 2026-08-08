@@ -7,6 +7,7 @@ based on the user's carbon footprint and lifestyle.
 
 import random
 
+
 def generate_weekly_challenges(
     footprint,
     transport,

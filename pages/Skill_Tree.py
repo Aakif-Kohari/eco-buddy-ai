@@ -54,10 +54,7 @@ def get_node_color(status):
     elif status == "Unlocked":
         return "#FFC107"  # Yellow
 
-    else:
-
     else:  # Locked
-
         return "#9E9E9E"  # Gray
 
 
@@ -158,31 +155,12 @@ with col2:
 
                     if success:
                         st.success(
-
-                            f"Completed! You earned {selected_node['xp_reward']} XP."
-
                             f"Completed! You earned "
                             f"{selected_node['xp_reward']} XP."
-
                         )
                         st.balloons()
                         st.rerun()
                     else:
-
-                        st.error("Could not complete the action. Please try again.")
-
-            elif status == "Locked":
-                st.warning(
-                    "You must complete the prerequisite actions before unlocking this node."
-                )
-    else:
-        st.info(
-            "Click on a node in the roadmap to view details and update your progress."
-        )
-
-st.markdown("---")
-total_xp = get_total_xp(USER_ID)
-
                         st.error(
                             "Could not complete the action. Please try again."
                         )

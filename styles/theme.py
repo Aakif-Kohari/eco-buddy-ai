@@ -720,6 +720,16 @@ def apply_theme():
             padding: 16px 14px 42px;
         }}
 
+        .stExpander {
+    border-radius: 14px;
+    border: 1px solid rgba(74,222,128,.25);
+    transition: all .3s ease;
+}
+
+.stExpander:hover {
+    transform: translateY(-2px);
+}
+
         .input-section,
         .card,
         .card-highlight,
