@@ -5,6 +5,7 @@ class AlternativeQuestionEngine:
     """Generate semantically similar interview questions."""
 
     _model = None
+    _embedding_cache = {}  # Cache embeddings to avoid recalculation
 
     @classmethod
     def get_model(cls):
@@ -60,11 +61,16 @@ class AlternativeQuestionEngine:
             normalize_embeddings=True,
         )
 
-        candidate_embeddings = self.model.encode(
-            candidate_questions,
-            convert_to_tensor=True,
-            normalize_embeddings=True,
-        )
+        # Cache candidate embeddings to improve performance
+        cache_key = tuple(candidate_questions)
+        if cache_key not in self._embedding_cache:
+            self._embedding_cache[cache_key] = self.model.encode(
+                candidate_questions,
+                convert_to_tensor=True,
+                normalize_embeddings=True,
+            )
+
+        candidate_embeddings = self._embedding_cache[cache_key]
 
         similarity_scores = util.cos_sim(
             query_embedding,
