@@ -276,6 +276,54 @@ def render_sidebar_auth():
                 st.session_state[key] = val
             st.rerun()
 
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🧭 Navigation")
+
+        st.markdown("""
+        <style>
+
+        /* Sidebar navigation expanders */
+        [data-testid="stSidebar"] [data-testid="stExpander"] {
+            border: 1px solid rgba(34, 197, 94, 0.18);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.25s ease;
+        }
+
+        /* Expander header */
+        [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+            font-weight: 700;
+            transition: all 0.25s ease;
+        }
+
+        /* Hover effect */
+        [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+            border-color: rgba(34, 197, 94, 0.45);
+            transform: translateX(2px);
+        }
+
+        /* Navigation content */
+        [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
+            padding: 4px 8px 8px 8px;
+        }
+
+        </style>
+        """, unsafe_allow_html=True)
+
+        with st.sidebar.expander("🌱 Sustainability", expanded=True):
+            st.write("🌍 Carbon Footprint")
+            st.write("⚡ Home Energy Audit")
+            st.write("🎮 Gamification")
+
+        with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
+            st.write("🗺️ Route Planning & Offsets")
+            st.write("🏆 Community Leaderboard")
+
+        with st.sidebar.expander("🔮 Insights", expanded=False):
+            st.write("🔮 Future Self")
+            st.write("📊 Environmental Timeline")
+
     return st.session_state['user_id']
 
 # -------------------------
@@ -359,6 +407,48 @@ st.markdown("""
         border-right: 1px solid var(--line);
         box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
         backdrop-filter: blur(18px);
+    }
+
+    /* =========================
+    COLLAPSIBLE SIDEBAR NAV
+    ========================= */
+
+    [data-testid="stSidebar"] [data-testid="stExpander"] {
+        border: 1px solid rgba(74, 222, 128, 0.18) !important;
+        border-radius: 12px !important;
+        margin-bottom: 10px !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        transition: all 0.2s ease !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+        border-color: rgba(74, 222, 128, 0.40) !important;
+        background: rgba(74, 222, 128, 0.08) !important;
+    }
+
+    /* Expander header */
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+        padding: 12px 14px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+    }
+
+    /* Navigation text */
+    [data-testid="stSidebar"] [data-testid="stExpander"] p {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+    }
+
+    /* Navigation section heading */
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        font-weight: 800 !important;
+    }
+
+    /* Sidebar divider */
+    [data-testid="stSidebar"] hr {
+        margin: 14px 0 !important;
+        border-color: rgba(74, 222, 128, 0.18) !important;
     }
 
     [data-testid="stSidebar"] * {
