@@ -76,19 +76,15 @@ def fetch_emission_factors(region: str) -> dict:
     return factors
 
 
-def calculate_footprint(
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    region="Global",
-    return_audit=False
-):
-    # Normalize diet input early
+def validate_footprint_inputs(transport, distance, electricity, diet, flights, region):
+    """
+    Validates and normalizes footprint calculation parameters.
+
+    Returns:
+        tuple: (normalized_diet, distance_float, electricity_float, flights_int, validated_region)
+    """
     diet = normalize_diet(diet)
 
-    # Validate categorical inputs to avoid KeyError and provide clear errors
     if transport not in TRANSPORT_EMISSION_FACTORS:
         raise ValueError(
             f"Invalid transport '{transport}'. Must be one of: {', '.join(sorted(TRANSPORT_EMISSION_FACTORS.keys()))}"
@@ -98,11 +94,9 @@ def calculate_footprint(
             f"Invalid diet '{diet}'. Must be one of: {', '.join(sorted(DIET_EMISSION_FACTORS.keys()))}"
         )
 
-    # Validate region; fall back to Global when unknown
     if region not in VALID_REGIONS:
         region = "Global"
 
-    # Coerce and clamp numeric inputs to reasonable ranges
     try:
         distance = float(distance)
     except (TypeError, ValueError):
@@ -121,34 +115,76 @@ def calculate_footprint(
         raise ValueError("flights must be an integer")
     flights = max(0, min(flights, MAX_FLIGHTS))
 
-    contributors = {}
+    return diet, distance, electricity, flights, region
 
-    # Transport emissions (kg CO₂ per km)
+
+def calculate_category_emissions(transport, distance, electricity, diet, flights, dynamic_factors):
+    """
+    Calculates carbon emissions per activity category (Transport, Electricity, Diet, Flights).
+
+    Returns:
+        tuple: (contributors_dict, raw_emissions_dict, emission_factors_dict)
+    """
     transport_factor = TRANSPORT_EMISSION_FACTORS[transport]
     transport_emission = transport_factor * distance * 365
-    contributors["Transport"] = round(transport_emission, 2)
 
-    # Fetch dynamic factors (with fallback and caching)
-    dynamic_factors = fetch_emission_factors(region)
     elec_factor = dynamic_factors["electricity"]
-    flight_factor = dynamic_factors["flight"]
-
-    # Record which versioned factor set produced this result, so the number
-    # stays reproducible and comparable after factors are updated.
-    factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
-
-    # Electricity
     electricity_emission = electricity * elec_factor * 12
-    contributors["Electricity"] = round(electricity_emission, 2)
 
-    # Diet (annual estimate)
     diet_factor = DIET_EMISSION_FACTORS[diet]
     diet_emission = diet_factor
-    contributors["Diet"] = diet_emission
 
-    # Flights
+    flight_factor = dynamic_factors["flight"]
     flight_emission = flights * flight_factor
-    contributors["Flights"] = flight_emission
+
+    contributors = {
+        "Transport": round(transport_emission, 2),
+        "Electricity": round(electricity_emission, 2),
+        "Diet": diet_emission,
+        "Flights": flight_emission,
+    }
+
+    raw_emissions = {
+        "transport": transport_emission,
+        "electricity": electricity_emission,
+        "diet": diet_emission,
+        "flights": flight_emission,
+    }
+
+    factors = {
+        "transport": transport_factor,
+        "electricity": elec_factor,
+        "diet": diet_factor,
+        "flights": flight_factor,
+    }
+
+    return contributors, raw_emissions, factors
+
+
+def calculate_footprint(
+    transport,
+    distance,
+    electricity,
+    diet,
+    flights,
+    region="Global",
+    return_audit=False
+):
+    """
+    Calculates annual carbon footprint (in kg CO2) across user activities.
+    
+    Optionally returns audit log for full calculation reproducibility.
+    """
+    diet, distance, electricity, flights, region = validate_footprint_inputs(
+        transport, distance, electricity, diet, flights, region
+    )
+
+    dynamic_factors = fetch_emission_factors(region)
+    factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
+
+    contributors, raw_emissions, factors = calculate_category_emissions(
+        transport, distance, electricity, diet, flights, dynamic_factors
+    )
 
     total = sum(contributors.values())
     total_rounded = round(total, 2)
@@ -167,34 +203,34 @@ def calculate_footprint(
             "annual_flights": flights,
         },
         "emission_factors": {
-            "transport_kg_co2_per_km": transport_factor,
-            "electricity_kg_co2_per_kwh": elec_factor,
-            "diet_kg_co2_per_year": diet_factor,
-            "flight_kg_co2_per_flight": flight_factor,
+            "transport_kg_co2_per_km": factors["transport"],
+            "electricity_kg_co2_per_kwh": factors["electricity"],
+            "diet_kg_co2_per_year": factors["diet"],
+            "flight_kg_co2_per_flight": factors["flights"],
         },
         "intermediate_calculations": {
             "Transport": {
                 "formula": "daily_distance_km * transport_factor * 365 days",
-                "expression": f"{distance} km * {transport_factor} kg/km * 365",
-                "raw_result": transport_emission,
+                "expression": f"{distance} km * {factors['transport']} kg/km * 365",
+                "raw_result": raw_emissions["transport"],
                 "rounded_result_kg": contributors["Transport"]
             },
             "Electricity": {
                 "formula": "monthly_kwh * electricity_factor * 12 months",
-                "expression": f"{electricity} kWh * {elec_factor} kg/kWh * 12",
-                "raw_result": electricity_emission,
+                "expression": f"{electricity} kWh * {factors['electricity']} kg/kWh * 12",
+                "raw_result": raw_emissions["electricity"],
                 "rounded_result_kg": contributors["Electricity"]
             },
             "Diet": {
                 "formula": "annual_diet_emission_factor",
-                "expression": f"{diet_factor} kg/year ({diet})",
-                "raw_result": diet_emission,
+                "expression": f"{factors['diet']} kg/year ({diet})",
+                "raw_result": raw_emissions["diet"],
                 "rounded_result_kg": contributors["Diet"]
             },
             "Flights": {
                 "formula": "annual_flights * flight_factor",
-                "expression": f"{flights} flights * {flight_factor} kg/flight",
-                "raw_result": flight_emission,
+                "expression": f"{flights} flights * {factors['flights']} kg/flight",
+                "raw_result": raw_emissions["flights"],
                 "rounded_result_kg": contributors["Flights"]
             }
         },
