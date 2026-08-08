@@ -1,11 +1,6 @@
 import os
 import sqlite3
 from challenge_generator import generate_weekly_challenges
-from database import (
-    save_weekly_challenge,
-    get_weekly_challenges,
-    complete_weekly_challenge
-)
 from database_connection import database_connection, execute_with_retry
 from cache import cached
 from cache_config import TTL_DB_READ, CACHE_CATEGORY_DB_READS
@@ -159,16 +154,20 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     )
                     """
                 )
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS carbon_budgets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    budget_type TEXT NOT NULL,
-    budget_limit REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-)
-""")
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS carbon_budgets (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        budget_type TEXT NOT NULL,
+                        budget_limit REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(user_id) REFERENCES users(id)
+                    )
+                    """
+                )
+
                 try:
                     cursor.execute(
                         """
@@ -2995,57 +2994,7 @@ def complete_weekly_challenge(challenge_id):
     conn.close()
 
     return True
-if st.button("Generate Weekly Challenges"):
 
-    challenges = generate_weekly_challenges(
-        footprint,
-        transport,
-        electricity,
-        diet,
-        flights
-    )
-
-    for challenge in challenges:
-
-        save_weekly_challenge(
-            user_id,
-            challenge["title"],
-            challenge["difficulty"],
-            challenge["xp"],
-            challenge["category"]
-        )
-
-    st.success("Weekly challenges generated!")
-challenges = get_weekly_challenges(user_id)
-
-for challenge in challenges:
-
-    st.subheader(challenge[2])
-
-    st.write(f"Difficulty : {challenge[3]}")
-
-    st.write(f"XP : {challenge[4]}")
-
-    st.write(f"Category : {challenge[5]}")
-
-    st.write(f"Status : {challenge[6]}")
-if st.button(
-    f"Complete {challenge[0]}"
-):
-
-    complete_weekly_challenge(
-        challenge[0]
-    )
-
-    award_xp(
-        user_id,
-        "challenge",
-        challenge[0],
-        challenge[4],
-        challenge[2]
-    )
-
-    st.success("Challenge Completed!")
 from datetime import datetime, timedelta
 
 def weekly_challenges_exist(user_id):
@@ -3067,54 +3016,7 @@ def weekly_challenges_exist(user_id):
     conn.close()
 
     return count > 0
-if not weekly_challenges_exist(user_id):
 
-    challenges = generate_weekly_challenges(
-        footprint,
-        transport,
-        electricity,
-        diet,
-        flights
-    )
-
-    for challenge in challenges:
-
-        save_weekly_challenge(
-            user_id,
-            challenge["title"],
-            challenge["difficulty"],
-            challenge["xp"],
-            challenge["category"]
-        )
-
-else:
-
-    st.info("Weekly challenges already generated.")
-completed = sum(
-    1 for c in challenges
-    if c[6] == "Completed"
-)
-
-total = len(challenges)
-
-st.metric(
-    "Weekly Progress",
-    f"{completed}/{total}"
-)
-
-if total > 0:
-    st.progress(completed / total)
-
-xp = sum(
-    c[4]
-    for c in challenges
-    if c[6] == "Completed"
-)
-
-st.metric(
-    "XP Earned",
-    xp
-)
 def get_completed_challenges(user_id):
 
     conn = sqlite3.connect(DB_NAME)
@@ -3133,37 +3035,4 @@ def get_completed_challenges(user_id):
     conn.close()
 
     return data
-history = get_completed_challenges(user_id)
 
-st.subheader("Challenge History")
-
-for row in history:
-
-    st.write(
-        f"✅ {row[0]} ({row[1]}) - {row[2]}"
-    )
-completed = len(history)
-
-if completed == 5:
-
-    unlock_badge_in_db(
-        user_id,
-        "eco_beginner"
-    )
-
-elif completed == 15:
-
-    unlock_badge_in_db(
-        user_id,
-        "eco_master"
-    )
-st.subheader("Recommended Next Step")
-
-highest = max(
-    challenges,
-    key=lambda x: x["xp"]
-)
-
-st.success(
-    f"Focus on: {highest['title']}"
-)

@@ -17,9 +17,8 @@ import tempfile
 import uuid
 import os
 from dotenv import load_dotenv
-from styles import load_css
-from components.header import render_header
-from components.profile import render_profile
+from styles.theme import apply_theme
+from achievement_showcase import render_header
 
 
 load_dotenv()
@@ -149,6 +148,19 @@ DEFAULT_VALUES = {
     "diet": "Vegetarian",
     "flights": 0,
 }
+
+def render_breadcrumbs(current_page, parent_page="Dashboard"):
+    st.markdown(
+        f"""
+        <div class="breadcrumb-container">
+            <span class="breadcrumb-home">🏠</span>
+            <span class="breadcrumb-link">{parent_page}</span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-current">{current_page}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def h(text):
     return html.escape(str(text))
