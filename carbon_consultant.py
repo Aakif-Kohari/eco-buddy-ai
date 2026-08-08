@@ -13,6 +13,7 @@ import json
 import time
 import sqlite3
 import logging
+from typing import Any
 import requests
 import streamlit as st
 from cache import cached
@@ -33,7 +34,7 @@ QUICK_QUESTIONS = [
 ]
 
 
-def _check_rate_limit(provider):
+def _check_rate_limit(provider: str) -> bool:
     key = f"_consultant_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -43,7 +44,7 @@ def _check_rate_limit(provider):
     return True
 
 
-def _call_llm(system_prompt, user_prompt, json_mode=False):
+def _call_llm(system_prompt: str, user_prompt: str, json_mode: bool = False) -> dict[str, Any] | str | None:
     """Call Gemini 2.5 Flash, falling back to Groq. Returns text (or dict in JSON mode)."""
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and _check_rate_limit("gemini"):
@@ -97,7 +98,7 @@ def _call_llm(system_prompt, user_prompt, json_mode=False):
     return None
 
 
-def build_user_context(user_id):
+def build_user_context(user_id: int) -> str:
     """Build a compact sustainability profile from the user's assessment history."""
     from database import get_assessments
 
@@ -130,7 +131,7 @@ def build_user_context(user_id):
 
 
 @cached(ttl=TTL_LLM_RESPONSE)
-def ask_consultant(question, user_context):
+def ask_consultant(question: str, user_context: dict[str, Any]) -> str | None:
     """Ask the carbon consultant a question given the user's context."""
     system_prompt = (
         "You are EcoBuddy's AI Carbon Consultant — a friendly, data-informed "
@@ -147,11 +148,11 @@ def ask_consultant(question, user_context):
     return _call_llm(system_prompt, user_prompt, json_mode=False)
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_consultant_db():
+def init_consultant_db() -> bool:
     conn = None
     try:
         conn = _get_conn()
@@ -176,7 +177,7 @@ def init_consultant_db():
             conn.close()
 
 
-def save_message(user_id, role, message):
+def save_message(user_id: int, role: str, message: str) -> bool:
     init_consultant_db()
     conn = None
     try:
@@ -195,7 +196,7 @@ def save_message(user_id, role, message):
             conn.close()
 
 
-def get_conversation(user_id, limit=50):
+def get_conversation(user_id: int, limit: int = 50) -> list[dict[str, Any]]:
     init_consultant_db()
     conn = None
     try:
@@ -222,7 +223,7 @@ def get_conversation(user_id, limit=50):
             conn.close()
 
 
-def clear_conversation(user_id):
+def clear_conversation(user_id: int) -> bool:
     init_consultant_db()
     conn = None
     try:

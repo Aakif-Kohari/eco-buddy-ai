@@ -5,6 +5,7 @@ import logging
 import tracemalloc
 import pdfplumber
 import pytesseract
+from typing import BinaryIO
 from PIL import Image
 from cache import cached
 from cache_config import CACHE_CATEGORY_SESSION
@@ -91,7 +92,7 @@ def extract_text_from_bytes(file_bytes: bytes, file_type: str) -> str:
 
 
 @cached(category=CACHE_CATEGORY_SESSION)
-def extract_text_from_file(uploaded_file):
+def extract_text_from_file(uploaded_file: BinaryIO) -> str:
     """
     Extracts text from a Streamlit UploadedFile object or file mock.
     Uses caching to avoid re-running OCR on identical files.
@@ -135,7 +136,7 @@ def extract_text_from_file(uploaded_file):
 
 
 @cached(category=CACHE_CATEGORY_SESSION)
-def parse_energy_consumption(text):
+def parse_energy_consumption(text: str | None) -> float | None:
     """
     Parses energy consumption values from text.
     Looks for patterns like '350 kWh', 'Total Consumption: 400', etc.

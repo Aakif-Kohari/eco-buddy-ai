@@ -4,7 +4,8 @@ from config import GLOBAL_WATER_AVERAGE_LITERS, WATER_FACTORS, DIET_VIRTUAL_WATE
 from cache import cached
 from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 
-def validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mins):
+def validate_water_inputs(shower_mins: float, laundry_loads: int, dishwasher_runs: int,
+                          garden_mins: float) -> list[str]:
     warnings = []
     if shower_mins > 120:
         warnings.append("Shower duration exceeds 2 hours — please verify your input.")
@@ -18,7 +19,9 @@ def validate_water_inputs(shower_mins, laundry_loads, dishwasher_runs, garden_mi
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def calculate_water_footprint(shower_mins_per_day, laundry_loads_per_week, dishwasher_runs_per_week, garden_mins_per_week, diet):
+def calculate_water_footprint(shower_mins_per_day: float, laundry_loads_per_week: int,
+                              dishwasher_runs_per_week: int, garden_mins_per_week: float,
+                              diet: str) -> tuple[float, dict[str, float]]:
     """
     Calculates the estimated daily water footprint in liters.
     """

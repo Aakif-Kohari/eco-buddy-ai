@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from typing import Any
 import requests
 import streamlit as st
 from cache import cached
@@ -13,7 +14,7 @@ LLM_COOLDOWN_SECONDS = 2.0
 _REQUIRED_KEYS = ("transport", "distance", "diet")
 
 
-def _check_rate_limit(provider):
+def _check_rate_limit(provider: str) -> bool:
     key = f"_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -23,7 +24,7 @@ def _check_rate_limit(provider):
     return True
 
 
-def _validate_parsed_payload(raw, provider_name):
+def _validate_parsed_payload(raw: dict[str, Any], provider_name: str) -> dict[str, Any]:
     """Ensures the AI returned the fields the rest of the app relies on.
 
     Raises:
@@ -39,7 +40,7 @@ def _validate_parsed_payload(raw, provider_name):
     return raw
 
 
-def _call_gemini(text, system_prompt, api_key):
+def _call_gemini(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
     """Calls the Gemini API and returns the parsed JSON payload.
 
     Raises:
@@ -86,7 +87,7 @@ def _call_gemini(text, system_prompt, api_key):
         ) from exc
 
 
-def _call_groq(text, system_prompt, api_key):
+def _call_groq(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
     """Calls the Groq API and returns the parsed JSON payload.
 
     Raises:

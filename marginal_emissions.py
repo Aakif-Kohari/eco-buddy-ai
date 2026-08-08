@@ -55,6 +55,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +266,7 @@ DIVERGENCE_THRESHOLD = 0.15
 DEFAULT_DAYS_PER_YEAR = 365
 
 
-def _as_float(value, default=0.0):
+def _as_float(value: Any, default: float = 0.0) -> float:
     """Coerce to float, falling back rather than raising on junk input."""
     try:
         number = float(value)
@@ -276,22 +277,22 @@ def _as_float(value, default=0.0):
     return number
 
 
-def _non_negative(value, default=0.0):
+def _non_negative(value: Any, default: float = 0.0) -> float:
     return max(0.0, _as_float(value, default))
 
 
-def list_stacks():
+def list_stacks() -> list[str]:
     """Names of the built-in generation stacks."""
     return sorted(GENERATION_STACKS.keys())
 
 
-def get_stack(name=None):
+def get_stack(name: str | None = None) -> list[dict[str, Any]]:
     """Return a copy of a generation stack, defaulting to the balanced one."""
     key = name if name in GENERATION_STACKS else DEFAULT_STACK
     return [dict(unit) for unit in GENERATION_STACKS[key]]
 
 
-def clean_stack(stack):
+def clean_stack(stack: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Validate a user-supplied stack, dropping units that make no sense.
 
     A unit with no capacity contributes nothing and a negative emission rate
@@ -323,7 +324,7 @@ def clean_stack(stack):
     return cleaned
 
 
-def clean_demand_shape(shape):
+def clean_demand_shape(shape: list[float] | None) -> list[float]:
     """Coerce a 24-value demand shape, falling back to the built-in one."""
     values = list(shape or [])
     if len(values) != HOURS_IN_DAY:
@@ -334,7 +335,7 @@ def clean_demand_shape(shape):
     return cleaned
 
 
-def availability(unit, hour):
+def availability(unit: dict[str, Any], hour: int) -> float:
     """Fraction of a unit's capacity available in a given hour."""
     hour = int(hour) % HOURS_IN_DAY
     shape_name = unit.get("variable")
@@ -346,7 +347,7 @@ def availability(unit, hour):
     return shape[hour]
 
 
-def dispatch_hour(stack, hour, demand=None):
+def dispatch_hour(stack: list[dict[str, Any]] | None, hour: int, demand: float | None = None) -> dict[str, Any]:
     """Dispatch one hour and report what ran and what set the margin.
 
     Returns a dict with the per-unit generation, the average intensity of
@@ -470,7 +471,7 @@ def dispatch_hour(stack, hour, demand=None):
     }
 
 
-def dispatch_day(stack_name=None, stack=None, demand_shape=None):
+def dispatch_day(stack_name: str | None = None, stack: list[dict[str, Any]] | None = None, demand_shape: list[float] | None = None) -> list[dict[str, Any]]:
     """Dispatch all 24 hours and return the per-hour results."""
     units = clean_stack(stack) if stack else get_stack(stack_name)
     if not units:
@@ -481,7 +482,7 @@ def dispatch_day(stack_name=None, stack=None, demand_shape=None):
     ]
 
 
-def average_curve(stack_name=None, stack=None, demand_shape=None):
+def average_curve(stack_name: str | None = None, stack: list[dict[str, Any]] | None = None, demand_shape: list[float] | None = None) -> list[float]:
     """24-hour average (attributional) intensity curve in gCO2/kWh."""
     return [
         result["average_intensity"]
@@ -489,7 +490,7 @@ def average_curve(stack_name=None, stack=None, demand_shape=None):
     ]
 
 
-def marginal_curve(stack_name=None, stack=None, demand_shape=None):
+def marginal_curve(stack_name: str | None = None, stack: list[dict[str, Any]] | None = None, demand_shape: list[float] | None = None) -> list[float]:
     """24-hour marginal (consequential) intensity curve in gCO2/kWh."""
     return [
         result["marginal_intensity"]
@@ -497,7 +498,7 @@ def marginal_curve(stack_name=None, stack=None, demand_shape=None):
     ]
 
 
-def curve_divergence(stack_name=None, stack=None, demand_shape=None):
+def curve_divergence(stack_name: str | None = None, stack: list[dict[str, Any]] | None = None, demand_shape: list[float] | None = None) -> list[dict[str, Any]]:
     """Per-hour gap between the marginal and average curves.
 
     Positive means the marginal factor is higher - the hour looks cleaner
@@ -525,7 +526,7 @@ def curve_divergence(stack_name=None, stack=None, demand_shape=None):
     return rows
 
 
-def curtailment_hours(stack_name=None, stack=None, demand_shape=None):
+def curtailment_hours(stack_name: str | None = None, stack: list[dict[str, Any]] | None = None, demand_shape: list[float] | None = None) -> list[int]:
     """Hours where must-run output exceeds demand.
 
     These are the hours where extra consumption is close to free, and the
@@ -538,7 +539,7 @@ def curtailment_hours(stack_name=None, stack=None, demand_shape=None):
     ]
 
 
-def rank_hours(curve, cleanest_first=True):
+def rank_hours(curve: list[float] | None, cleanest_first: bool = True) -> list[tuple[int, float]]:
     """Rank hours by a curve, returning (hour, value) pairs."""
     values = list(curve or [])
     if len(values) != HOURS_IN_DAY:
@@ -548,7 +549,7 @@ def rank_hours(curve, cleanest_first=True):
     return pairs
 
 
-def ranking_changes(average, marginal, top_n=6):
+def ranking_changes(average: list[float], marginal: list[float], top_n: int = 6) -> list[dict[str, Any]]:
     """Hours whose rank differs between the two accountings.
 
     The useful output of this module is not the numbers, it is the hours that
@@ -582,7 +583,7 @@ def ranking_changes(average, marginal, top_n=6):
     return changes[:top_n]
 
 
-def attributional_delta(kwh_by_hour, curve):
+def attributional_delta(kwh_by_hour: list[float] | None, curve: list[float] | None) -> float:
     """Emissions change under average factors, in kgCO2e.
 
     ``kwh_by_hour`` is a 24-length list of signed energy changes: positive
@@ -599,7 +600,7 @@ def attributional_delta(kwh_by_hour, curve):
     return grams / 1000.0
 
 
-def consequential_delta(kwh_by_hour, curve):
+def consequential_delta(kwh_by_hour: list[float] | None, curve: list[float] | None) -> float:
     """Emissions change under marginal factors, in kgCO2e.
 
     Identical arithmetic to the attributional version - the difference is
@@ -610,7 +611,7 @@ def consequential_delta(kwh_by_hour, curve):
     return attributional_delta(kwh_by_hour, curve)
 
 
-def shift_load(kwh, from_hour, to_hour, duration_hours=1):
+def shift_load(kwh: float, from_hour: int, to_hour: int, duration_hours: int = 1) -> list[float]:
     """Build a signed 24-hour energy vector for moving a load.
 
     Energy is spread evenly across the run duration, which is what a delay
@@ -626,8 +627,9 @@ def shift_load(kwh, from_hour, to_hour, duration_hours=1):
     return vector
 
 
-def compare_shift(kwh, from_hour, to_hour, duration_hours=1,
-                  stack_name=None, stack=None, demand_shape=None):
+def compare_shift(kwh: float, from_hour: int, to_hour: int, duration_hours: int = 1,
+                  stack_name: str | None = None, stack: list[dict[str, Any]] | None = None,
+                  demand_shape: list[float] | None = None) -> dict[str, Any]:
     """Score a load shift under both accountings and report the divergence."""
     vector = shift_load(kwh, from_hour, to_hour, duration_hours)
     average = average_curve(stack_name, stack, demand_shape)
@@ -644,7 +646,7 @@ def compare_shift(kwh, from_hour, to_hour, duration_hours=1,
     )
 
 
-def describe_divergence(attributional, consequential, label=""):
+def describe_divergence(attributional: float, consequential: float, label: str = "") -> dict[str, Any]:
     """Package the two answers with a plain reading of their disagreement."""
     attributional = _as_float(attributional, 0.0)
     consequential = _as_float(consequential, 0.0)
@@ -693,8 +695,8 @@ def describe_divergence(attributional, consequential, label=""):
     }
 
 
-def long_run_factor(base_intensity, years, trajectory=DEFAULT_DECARBONISATION,
-                    rate=None):
+def long_run_factor(base_intensity: float, years: int, trajectory: str = DEFAULT_DECARBONISATION,
+                    rate: float | None = None) -> float:
     """Mean intensity over an asset's life under a decarbonisation path.
 
     A heat pump bought today is routinely scored against today's grid, which
@@ -714,8 +716,8 @@ def long_run_factor(base_intensity, years, trajectory=DEFAULT_DECARBONISATION,
     return total / years
 
 
-def lifetime_comparison(annual_kwh, lifetime_years, base_intensity,
-                        trajectory=DEFAULT_DECARBONISATION, embodied_kg=0.0):
+def lifetime_comparison(annual_kwh: float, lifetime_years: int, base_intensity: float,
+                        trajectory: str = DEFAULT_DECARBONISATION, embodied_kg: float = 0.0) -> dict[str, Any]:
     """Score a long-lived electrical asset today's way and the honest way."""
     annual_kwh = _non_negative(annual_kwh, 0.0)
     lifetime_years = max(1, int(lifetime_years))
@@ -744,12 +746,12 @@ def lifetime_comparison(annual_kwh, lifetime_years, base_intensity,
     }
 
 
-def list_materials():
+def list_materials() -> list[str]:
     """Materials with tabulated average and marginal factors."""
     return sorted(MATERIAL_FACTORS.keys())
 
 
-def material_comparison(material, kg):
+def material_comparison(material: str, kg: float) -> dict[str, Any]:
     """Score recycling or reusing a mass of material under both accountings."""
     if material not in MATERIAL_FACTORS:
         raise KeyError(
@@ -775,12 +777,12 @@ def material_comparison(material, kg):
     return result
 
 
-def list_foods():
+def list_foods() -> list[str]:
     """Foods with tabulated short-run and long-run marginal factors."""
     return sorted(FOOD_FACTORS.keys())
 
 
-def food_comparison(food, kg, horizon="long_run"):
+def food_comparison(food: str, kg: float, horizon: str = "long_run") -> dict[str, Any]:
     """Score a dietary change under average and marginal factors."""
     if food not in FOOD_FACTORS:
         raise KeyError(f"No marginal factor for '{food}'.")
@@ -804,7 +806,7 @@ def food_comparison(food, kg, horizon="long_run"):
     return result
 
 
-def rank_actions(actions, key="consequential_kg"):
+def rank_actions(actions: list[dict[str, Any]] | None, key: str = "consequential_kg") -> list[dict[str, Any]]:
     """Rank scored actions by saving, largest first."""
     if key not in ("attributional_kg", "consequential_kg"):
         raise ValueError("key must be 'attributional_kg' or 'consequential_kg'.")
@@ -812,7 +814,7 @@ def rank_actions(actions, key="consequential_kg"):
     return sorted(scored, key=lambda item: _as_float(item.get(key), 0.0))
 
 
-def rank_movement(actions):
+def rank_movement(actions: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Actions whose position changes between the two accountings.
 
     This is the headline output for a set of options. Two numbers moving is
@@ -846,12 +848,12 @@ def rank_movement(actions):
     return movements
 
 
-def annualise(daily_kg, days=DEFAULT_DAYS_PER_YEAR):
+def annualise(daily_kg: float, days: int = DEFAULT_DAYS_PER_YEAR) -> float:
     """Scale a daily figure to a year."""
     return _as_float(daily_kg, 0.0) * max(0, int(days))
 
 
-def get_marginal_tips(divergences, limit=6):
+def get_marginal_tips(divergences: list[dict[str, Any]] | None, limit: int = 6) -> list[str]:
     """Plain-language guidance drawn from a set of scored comparisons."""
     tips = []
     rows = [row for row in divergences or [] if isinstance(row, dict)]
@@ -910,11 +912,11 @@ def get_marginal_tips(divergences, limit=6):
     return tips[: max(0, int(limit))]
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_marginal_emissions_db():
+def init_marginal_emissions_db() -> bool:
     """Create the comparison table if it does not exist yet."""
     conn = None
     try:
@@ -945,7 +947,7 @@ def init_marginal_emissions_db():
             conn.close()
 
 
-def save_comparison(user_id, comparison_name, comparison, stack_name=None):
+def save_comparison(user_id: int, comparison_name: str | None, comparison: dict[str, Any], stack_name: str | None = None) -> int | None:
     """Persist a scored comparison. Returns the new row id or None."""
     init_marginal_emissions_db()
     conn = None
@@ -980,7 +982,7 @@ def save_comparison(user_id, comparison_name, comparison, stack_name=None):
             conn.close()
 
 
-def get_comparisons(user_id, limit=25):
+def get_comparisons(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return a user's saved comparisons, newest first."""
     init_marginal_emissions_db()
     conn = None
@@ -1018,7 +1020,7 @@ def get_comparisons(user_id, limit=25):
             conn.close()
 
 
-def delete_comparison(comparison_id):
+def delete_comparison(comparison_id: int) -> bool:
     """Delete a saved comparison."""
     init_marginal_emissions_db()
     conn = None

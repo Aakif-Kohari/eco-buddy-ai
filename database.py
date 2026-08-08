@@ -28,26 +28,27 @@ from invalidation import (
 import streamlit as st
 import bcrypt
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
-def get_db_version(conn):
+def get_db_version(conn: sqlite3.Connection) -> int:
     """Get the current database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute("PRAGMA user_version")
     return cursor.fetchone()[0]
 
 
-def set_db_version(conn, version):
+def set_db_version(conn: sqlite3.Connection, version: int) -> None:
     """Set the database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute(f"PRAGMA user_version = {version}")
     conn.commit()
 
 
-def migrate():
+def migrate() -> tuple[bool, str]:
     """
     Apply pending database migrations.
 
@@ -88,7 +89,7 @@ def migrate():
         return False, f"Migration failed: {exc}"
 
 
-def init_db():
+def init_db() -> bool:
     """
     Initialize the database with core tables and run pending migrations.
 
@@ -96,7 +97,7 @@ def init_db():
         bool: True if initialization succeeded, False otherwise
     """
     try:
-        def initialize_schema():
+        def initialize_schema() -> None:
             with database_connection(DB_NAME) as conn:
                 cursor = conn.cursor()
 
@@ -247,12 +248,12 @@ def init_db():
 
 
 def create_user(
-    username,
-    email,
-    password,
-    anonymous_leaderboard=False,
-):
-    def insert_user():
+    username: str,
+    email: str,
+    password: str,
+    anonymous_leaderboard: bool = False,
+) -> bool:
+    def insert_user() -> None:
         with database_connection(DB_NAME) as conn:
             password_hash = bcrypt.hashpw(
                 password.encode("utf-8"),
@@ -286,8 +287,8 @@ def create_user(
         return False
 
 
-def verify_user(username, password):
-    def fetch_user():
+def verify_user(username: str, password: str) -> dict[str, Any] | None:
+    def fetch_user() -> dict[str, Any] | None:
         with database_connection(DB_NAME) as conn:
             return conn.execute(
                 """
@@ -322,8 +323,8 @@ def verify_user(username, password):
         return None
 
 
-def get_user_by_username(username):
-    def fetch_user():
+def get_user_by_username(username: str) -> dict[str, Any] | None:
+    def fetch_user() -> dict[str, Any] | None:
         with database_connection(DB_NAME) as conn:
             return conn.execute(
                 """
@@ -356,7 +357,7 @@ def get_user_by_username(username):
         return None
 
 
-def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
+def update_user_leaderboard_preference(user_id: int, anonymous_leaderboard: bool) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -373,7 +374,7 @@ def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_leaderboard(period="all"):
+def get_leaderboard(period: str = "all") -> list[tuple[str, int, int, int]]:
     """
     Retrieves community leaderboard rankings.
     Returns list of tuples: (display_name, max_eco_score, total_xp, completed_challenges)
@@ -414,18 +415,18 @@ def get_leaderboard(period="all"):
 
 
 def save_assessment(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    footprint,
-    eco_score=0,
-    trip_id=None,
-    date=None,
-    factor_version=None
-):
+    user_id: int,
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    footprint: float,
+    eco_score: int = 0,
+    trip_id: str | None = None,
+    date: str | None = None,
+    factor_version: str | None = None
+) -> bool:
     """
     Persist an assessment.
 
@@ -514,7 +515,7 @@ def save_assessment(
 # automatically populates the timestamp whenever a new record is created.
 # -------------------------------------------------------------------------
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_assessments(user_id=1):
+def get_assessments(user_id: int = 1) -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -534,7 +535,7 @@ def get_assessments(user_id=1):
         print(f"Database read error: {e}")
         return []
 
-def save_carbon_budget(user_id, budget_type, budget_limit):
+def save_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -557,7 +558,7 @@ def save_carbon_budget(user_id, budget_type, budget_limit):
     except sqlite3.Error as e:
         print(e)
         return False
-def get_carbon_budget(user_id):
+def get_carbon_budget(user_id: int) -> tuple[str, float] | None:
 
     try:
         conn=sqlite3.connect(DB_NAME)
@@ -579,7 +580,7 @@ def get_carbon_budget(user_id):
 
     except sqlite3.Error:
         return None
-def update_carbon_budget(user_id,budget_type,budget_limit):
+def update_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
 
     try:
 
@@ -603,7 +604,7 @@ def update_carbon_budget(user_id,budget_type,budget_limit):
 
         return False
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_assessments_with_factors(user_id=1):
+def get_assessments_with_factors(user_id: int = 1) -> list[tuple[Any, ...]]:
     """
     Assessments including the factor version each was computed under.
 
@@ -631,7 +632,7 @@ def get_assessments_with_factors(user_id=1):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_all_assessments():
+def get_all_assessments() -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -651,7 +652,7 @@ def get_all_assessments():
         return []
 
 
-def undo_last_assessment(user_id=1):
+def undo_last_assessment(user_id: int = 1) -> tuple[bool, str, dict[str, Any] | None]:
     """
     Undo the user's most recent assessment record.
     Moves record to deleted_assessments table, logs action in activity log,
@@ -722,7 +723,7 @@ def undo_last_assessment(user_id=1):
         return False, f"Database error during undo: {e}", None
 
 
-def restore_last_deleted_assessment(user_id=1):
+def restore_last_deleted_assessment(user_id: int = 1) -> tuple[bool, str, dict[str, Any] | None]:
     """
     Restore the user's most recently undone assessment.
     Re-inserts record into assessments table and logs action.
@@ -782,7 +783,7 @@ def restore_last_deleted_assessment(user_id=1):
         return False, f"Database error during restore: {e}", None
 
 
-def get_last_undone_assessment(user_id=1):
+def get_last_undone_assessment(user_id: int = 1) -> dict[str, Any] | None:
     """Fetch the latest undone assessment for restore preview."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -817,7 +818,7 @@ def get_last_undone_assessment(user_id=1):
         return None
 
 
-def get_assessment_activity_history(user_id=1):
+def get_assessment_activity_history(user_id: int = 1) -> list[dict[str, Any]]:
     """Retrieve chronological activity log for assessment creations, undos, and restores."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -849,14 +850,14 @@ def get_assessment_activity_history(user_id=1):
 
 
 def save_assessment_draft(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    region,
-):
+    user_id: int,
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    region: str,
+) -> bool:
     """Insert or update one unfinished assessment per user."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -903,7 +904,7 @@ def save_assessment_draft(
             conn.close()
 
 
-def get_diet_history(user_id, limit=7):
+def get_diet_history(user_id: int, limit: int = 7) -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -920,7 +921,7 @@ def get_diet_history(user_id, limit=7):
         return []
 
 
-def get_assessment_draft(user_id):
+def get_assessment_draft(user_id: int) -> dict[str, Any] | None:
     """Return the active user's unfinished assessment, if one exists."""
     conn = None
     try:
@@ -963,7 +964,7 @@ def get_assessment_draft(user_id):
             conn.close()
 
 
-def delete_assessment_draft(user_id):
+def delete_assessment_draft(user_id: int) -> bool:
     """Delete the active user's unfinished assessment."""
     conn = None
     try:
@@ -983,7 +984,7 @@ def delete_assessment_draft(user_id):
             conn.close()
 
 
-def init_energy_db():
+def init_energy_db() -> bool:
     """
     Initialize energy-related tables (appliances, solar_configs).
     
@@ -1038,7 +1039,7 @@ def init_energy_db():
         return False
 
 
-def add_appliance(user_id, name, category, quantity, power_rating, hours_used, standby_draw):
+def add_appliance(user_id: int, name: str, category: str, quantity: int, power_rating: float, hours_used: float, standby_draw: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -1055,7 +1056,7 @@ def add_appliance(user_id, name, category, quantity, power_rating, hours_used, s
         return False
 
 
-def delete_appliance(app_id):
+def delete_appliance(app_id: int) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -1069,7 +1070,7 @@ def delete_appliance(app_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_appliances(user_id=1):
+def get_appliances(user_id: int = 1) -> list[dict[str, Any]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -1082,7 +1083,7 @@ def get_appliances(user_id=1):
         return []
 
 
-def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc):
+def save_solar_config(user_id: int, roof_space: float, peak_sun_hours: float, utility_rate: float, panel_efficiency: float, install_cost: float, maint_cost: float, rate_inc: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -1104,7 +1105,7 @@ def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_e
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_solar_config(user_id=1):
+def get_solar_config(user_id: int = 1) -> dict[str, Any] | None:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -1119,7 +1120,7 @@ def get_solar_config(user_id=1):
         return None
 
 
-def init_gamification_db():
+def init_gamification_db() -> bool:
     """
     Initialize gamification-related tables.
     
@@ -1209,7 +1210,7 @@ def init_gamification_db():
             conn.close()
 
 
-def enroll_challenge(user_id, challenge_id):
+def enroll_challenge(user_id: int, challenge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1234,7 +1235,7 @@ def enroll_challenge(user_id, challenge_id):
             conn.close()
 
 
-def update_challenge_progress(user_id, challenge_id, progress_increment=None, set_progress=None):
+def update_challenge_progress(user_id: int, challenge_id: str, progress_increment: float | None = None, set_progress: float | None = None) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1264,7 +1265,7 @@ def update_challenge_progress(user_id, challenge_id, progress_increment=None, se
             conn.close()
 
 
-def complete_challenge(user_id, challenge_id):
+def complete_challenge(user_id: int, challenge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1288,7 +1289,7 @@ def complete_challenge(user_id, challenge_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_user_challenges(user_id):
+def get_user_challenges(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1304,7 +1305,7 @@ def get_user_challenges(user_id):
             conn.close()
 
 
-def award_xp(user_id, source_type, source_id, xp_amount, description):
+def award_xp(user_id: int, source_type: str, source_id: str, xp_amount: int, description: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1336,7 +1337,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_xp(user_id):
+def get_total_xp(user_id: int) -> int:
     
     conn = None
     try:
@@ -1352,7 +1353,7 @@ def get_total_xp(user_id):
             conn.close()
 
 
-def unlock_badge_in_db(user_id, badge_id):
+def unlock_badge_in_db(user_id: int, badge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1378,7 +1379,7 @@ def unlock_badge_in_db(user_id, badge_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_unlocked_badges(user_id):
+def get_unlocked_badges(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1394,7 +1395,7 @@ def get_unlocked_badges(user_id):
             conn.close()
 
 
-def unlock_card_in_db(user_id, card_id):
+def unlock_card_in_db(user_id: int, card_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1419,7 +1420,7 @@ def unlock_card_in_db(user_id, card_id):
 
 
 @st.cache_data
-def get_unlocked_cards(user_id):
+def get_unlocked_cards(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1436,7 +1437,7 @@ def get_unlocked_cards(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_skill_tree_progress(user_id):
+def get_skill_tree_progress(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1452,7 +1453,7 @@ def get_skill_tree_progress(user_id):
             conn.close()
 
 
-def update_skill_node_status(user_id, node_id, status):
+def update_skill_node_status(user_id: int, node_id: str, status: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1495,7 +1496,7 @@ def update_skill_node_status(user_id, node_id, status):
             conn.close()
 
 
-def init_marketplace_db():
+def init_marketplace_db() -> bool:
     """
     Initialize marketplace-related tables (journey_profiles, offset_transactions).
     
@@ -1551,7 +1552,7 @@ def init_marketplace_db():
             conn.close()
 
 
-def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_count, trips_per_week, is_commute):
+def save_journey_profile(user_id: int, name: str, distance_km: float, transport_mode: str, passenger_count: int, trips_per_week: int, is_commute: bool) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1574,7 +1575,7 @@ def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_c
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_journey_profiles(user_id):
+def get_journey_profiles(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1590,7 +1591,7 @@ def get_journey_profiles(user_id):
             conn.close()
 
 
-def delete_journey_profile(profile_id):
+def delete_journey_profile(profile_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1606,7 +1607,7 @@ def delete_journey_profile(profile_id):
             conn.close()
 
 
-def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, cost_per_tonne, total_cost, transaction_status='completed'):
+def save_offset_transaction(user_id: int, project_id: str, project_name: str, offset_tonnes: float, cost_per_tonne: float, total_cost: float, transaction_status: str = 'completed') -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1629,7 +1630,7 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_offset_transactions(user_id):
+def get_offset_transactions(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1645,7 +1646,7 @@ def get_offset_transactions(user_id):
             conn.close()
 
 
-def delete_offset_transaction(transaction_id):
+def delete_offset_transaction(transaction_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1661,7 +1662,7 @@ def delete_offset_transaction(transaction_id):
             conn.close()
 
 
-def clear_offset_transactions(user_id):
+def clear_offset_transactions(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1678,7 +1679,7 @@ def clear_offset_transactions(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_offsets(user_id):
+def get_total_offsets(user_id: int) -> float:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1694,7 +1695,7 @@ def get_total_offsets(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_spend(user_id):
+def get_total_spend(user_id: int) -> float:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1709,7 +1710,7 @@ def get_total_spend(user_id):
             conn.close()
 
 
-def init_water_db():
+def init_water_db() -> bool:
     """
     Initialize water consumption table.
     
@@ -1748,7 +1749,7 @@ def init_water_db():
             conn.close()
 
 
-def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, total_liters):
+def save_water_assessment(user_id: int, shower: float, laundry: float, dishwasher: float, garden: float, diet: str, total_liters: float) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1771,7 +1772,7 @@ def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, to
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_water_assessments(user_id):
+def get_water_assessments(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -1788,7 +1789,7 @@ def get_water_assessments(user_id):
             conn.close()
 
 
-def save_dashboard_widget_preferences(user_id, widget_ids):
+def save_dashboard_widget_preferences(user_id: int, widget_ids: list[str]) -> bool:
     """Persist the ordered dashboard widget IDs selected by a user."""
     import json
 
@@ -1825,7 +1826,7 @@ def save_dashboard_widget_preferences(user_id, widget_ids):
             conn.close()
 
 
-def get_dashboard_widget_preferences(user_id):
+def get_dashboard_widget_preferences(user_id: int) -> list[str] | None:
     """Return the saved widget IDs, or None when the user has no preference."""
     import json
 
@@ -1860,14 +1861,14 @@ def get_dashboard_widget_preferences(user_id):
 
 
 def record_environmental_milestone(
-    user_id,
-    milestone_type,
-    title,
-    description,
-    icon="🌱",
-    achieved_at=None,
-    metadata=None,
-):
+    user_id: int,
+    milestone_type: str,
+    title: str,
+    description: str,
+    icon: str = "🌱",
+    achieved_at: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> bool:
     """Persist a milestone once per user and milestone type.
 
     Returns True only when a new milestone is inserted.
@@ -1911,7 +1912,7 @@ def record_environmental_milestone(
             conn.close()
 
 
-def get_environmental_milestones(user_id):
+def get_environmental_milestones(user_id: int) -> list[dict[str, Any]]:
     """Return a user's milestones from newest to oldest."""
     import json
 
@@ -1961,7 +1962,7 @@ def get_environmental_milestones(user_id):
             conn.close()
 
 
-def init_freeze_tokens_db():
+def init_freeze_tokens_db() -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2008,7 +2009,7 @@ def init_freeze_tokens_db():
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_freeze_token_balance(user_id):
+def get_freeze_token_balance(user_id: int) -> int:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2023,7 +2024,7 @@ def get_freeze_token_balance(user_id):
             conn.close()
 
 
-def ensure_freeze_token_row(user_id):
+def ensure_freeze_token_row(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2041,7 +2042,7 @@ def ensure_freeze_token_row(user_id):
             conn.close()
 
 
-def award_freeze_tokens(user_id, amount, reason):
+def award_freeze_tokens(user_id: int, amount: int, reason: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2067,7 +2068,7 @@ def award_freeze_tokens(user_id, amount, reason):
             conn.close()
 
 
-def redeem_freeze_token(user_id):
+def redeem_freeze_token(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2096,7 +2097,7 @@ def redeem_freeze_token(user_id):
             conn.close()
 
 
-def use_streak_freeze(user_id, frozen_date):
+def use_streak_freeze(user_id: int, frozen_date: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2117,7 +2118,7 @@ def use_streak_freeze(user_id, frozen_date):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_streak_freeze_dates(user_id):
+def get_streak_freeze_dates(user_id: int) -> list[str]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2135,7 +2136,7 @@ def get_streak_freeze_dates(user_id):
             conn.close()
 
 
-def get_freeze_token_transactions(user_id):
+def get_freeze_token_transactions(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2157,7 +2158,7 @@ def get_freeze_token_transactions(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_freeze_tokens_earned(user_id):
+def get_total_freeze_tokens_earned(user_id: int) -> int:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2176,7 +2177,7 @@ def get_total_freeze_tokens_earned(user_id):
 # Reduction goals
 # ---------------------------------------------------------------------------
 
-def init_goals_db():
+def init_goals_db() -> bool:
     """
     Create the reduction_goals table.
 
@@ -2216,7 +2217,7 @@ def init_goals_db():
             conn.close()
 
 
-def _goal_row_to_dict(row):
+def _goal_row_to_dict(row: Any) -> dict[str, Any] | None:
     """Map a reduction_goals row onto the dict shape goals.py expects."""
     if not row:
         return None
@@ -2232,7 +2233,7 @@ def _goal_row_to_dict(row):
     }
 
 
-def save_reduction_goal(user_id, baseline_kg, target_kg, start_date, target_date):
+def save_reduction_goal(user_id: int, baseline_kg: float, target_kg: float, start_date: str, target_date: str) -> int | None:
     """
     Persist a new goal, archiving any goal the user already had active.
 
@@ -2274,7 +2275,7 @@ def save_reduction_goal(user_id, baseline_kg, target_kg, start_date, target_date
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_active_goal(user_id):
+def get_active_goal(user_id: int) -> dict[str, Any] | None:
     """Return the user's current active goal, or None."""
     init_goals_db()
     conn = None
@@ -2299,7 +2300,7 @@ def get_active_goal(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_goal_history(user_id):
+def get_goal_history(user_id: int) -> list[dict[str, Any]]:
     """Return every goal the user has ever set, newest first."""
     init_goals_db()
     conn = None
@@ -2322,7 +2323,7 @@ def get_goal_history(user_id):
             conn.close()
 
 
-def update_goal_status(goal_id, status):
+def update_goal_status(goal_id: int, status: str) -> bool:
     """Move a goal to a new lifecycle state (archived / completed / active)."""
     if status not in ("active", "archived", "completed"):
         logger.error("Refusing to set unknown goal status: %s", status)
@@ -2349,17 +2350,17 @@ def update_goal_status(goal_id, status):
             conn.close()
 
 
-def archive_goal(goal_id):
+def archive_goal(goal_id: int) -> bool:
     """Retire a goal without marking it as met."""
     return update_goal_status(goal_id, "archived")
 
 
-def complete_goal(goal_id):
+def complete_goal(goal_id: int) -> bool:
     """Mark a goal as successfully achieved."""
     return update_goal_status(goal_id, "completed")
 
 
-def delete_reduction_goal(goal_id):
+def delete_reduction_goal(goal_id: int) -> bool:
     """Permanently remove a goal row."""
     init_goals_db()
     conn = None
@@ -2379,7 +2380,7 @@ def delete_reduction_goal(goal_id):
             conn.close()
 
 
-def init_waste_db():
+def init_waste_db() -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2412,7 +2413,7 @@ def init_waste_db():
             conn.close()
 
 
-def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recyclable_pct):
+def save_waste_assessment(user_id: int, waste_data: dict[str, float], total_weekly_kg: float, annual_co2: float, recyclable_pct: float) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2447,7 +2448,7 @@ def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recy
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_waste_assessments(user_id):
+def get_waste_assessments(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2468,7 +2469,7 @@ def get_waste_assessments(user_id):
 # Unit and currency preferences
 # ---------------------------------------------------------------------------
 
-def init_unit_preferences():
+def init_unit_preferences() -> bool:
     """
     Add the unit_system and currency columns to the users table.
 
@@ -2498,7 +2499,7 @@ def init_unit_preferences():
             conn.close()
 
 
-def save_unit_preference(user_id, unit_system, currency):
+def save_unit_preference(user_id: int, unit_system: str, currency: str) -> bool:
     """
     Persist a user's display preference.
 
@@ -2529,7 +2530,7 @@ def save_unit_preference(user_id, unit_system, currency):
             conn.close()
 
 
-def get_unit_preference(user_id):
+def get_unit_preference(user_id: int) -> dict[str, Any]:
     """
     Return a user's display preference, defaulting to metric + USD.
 
@@ -2564,7 +2565,7 @@ def get_unit_preference(user_id):
 # Community Polls
 # ---------------------------------------------------------------------------
 
-def init_community_polls_db():
+def init_community_polls_db() -> bool:
     """Initialize database tables for community polls."""
     conn = None
     try:
@@ -2611,7 +2612,7 @@ def init_community_polls_db():
             conn.close()
 
 
-def seed_community_polls():
+def seed_community_polls() -> None:
     """Seed sample sustainability community polls if table is empty."""
     init_community_polls_db()
     conn = None
@@ -2848,7 +2849,7 @@ def archive_poll(poll_id: int) -> bool:
         if conn:
             conn.close()
 
-def create_time_capsule(user_id, title, promise_text, category, unlock_date):
+def create_time_capsule(user_id: int, title: str, promise_text: str, category: str, unlock_date: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2869,7 +2870,7 @@ def create_time_capsule(user_id, title, promise_text, category, unlock_date):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_time_capsules(user_id):
+def get_time_capsules(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2892,7 +2893,7 @@ def get_time_capsules(user_id):
             conn.close()
 
 
-def update_time_capsule_unlock(capsule_id):
+def update_time_capsule_unlock(capsule_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2913,7 +2914,7 @@ def update_time_capsule_unlock(capsule_id):
             conn.close()
 
 
-def update_time_capsule_progress(capsule_id, progress_notes):
+def update_time_capsule_progress(capsule_id: int, progress_notes: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2934,7 +2935,7 @@ def update_time_capsule_progress(capsule_id, progress_notes):
             conn.close()
 
 
-def delete_time_capsule(capsule_id):
+def delete_time_capsule(capsule_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -2949,7 +2950,7 @@ def delete_time_capsule(capsule_id):
     finally:
         if conn:
             conn.close()
-def save_weekly_challenge(user_id, title, difficulty, xp, category):
+def save_weekly_challenge(user_id: int, title: str, difficulty: str, xp: int, category: str) -> bool:
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -2963,7 +2964,7 @@ def save_weekly_challenge(user_id, title, difficulty, xp, category):
     conn.close()
 
     return True
-def get_weekly_challenges(user_id):
+def get_weekly_challenges(user_id: int) -> list[tuple[Any, ...]]:
 
     conn=sqlite3.connect(DB_NAME)
     cursor=conn.cursor()
@@ -2980,7 +2981,7 @@ def get_weekly_challenges(user_id):
     conn.close()
 
     return data
-def complete_weekly_challenge(challenge_id):
+def complete_weekly_challenge(challenge_id: int) -> bool:
 
     conn=sqlite3.connect(DB_NAME)
     cursor=conn.cursor()
@@ -2998,7 +2999,7 @@ def complete_weekly_challenge(challenge_id):
     return True
 
 
-def weekly_challenges_exist(user_id):
+def weekly_challenges_exist(user_id: int) -> bool:
     """True if this user already has challenges generated in the last 7 days."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -3019,7 +3020,7 @@ def weekly_challenges_exist(user_id):
     return count > 0
 
 
-def get_completed_challenges(user_id):
+def get_completed_challenges(user_id: int) -> list[tuple[Any, ...]]:
     """Completed challenges for a user, newest first."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -3055,7 +3056,7 @@ def get_completed_challenges(user_id):
 # Sustainable Brand Directory
 # ---------------------------------------------------------------------------
 
-def init_brand_directory_db():
+def init_brand_directory_db() -> bool:
     """Initialize the sustainable brands database table."""
     conn = None
     try:
@@ -3084,7 +3085,7 @@ def init_brand_directory_db():
             conn.close()
 
 
-def seed_sustainable_brands():
+def seed_sustainable_brands() -> None:
     """Seed initial sustainable brand listings if table is empty."""
     init_brand_directory_db()
     conn = None
@@ -3270,7 +3271,7 @@ def add_sustainable_brand(
 # Climate Career Hub
 # ---------------------------------------------------------------------------
 
-def init_climate_careers_db():
+def init_climate_careers_db() -> bool:
     """Initialize database tables for Climate Career Hub."""
     conn = None
     try:
@@ -3309,7 +3310,7 @@ def init_climate_careers_db():
             conn.close()
 
 
-def seed_climate_careers():
+def seed_climate_careers() -> None:
     """Seed initial climate career listings if table is empty."""
     init_climate_careers_db()
     conn = None
@@ -3546,7 +3547,7 @@ def is_career_bookmarked(user_id: int, career_id: int) -> bool:
 # Open Environmental Data Explorer
 # ---------------------------------------------------------------------------
 
-def init_environmental_datasets_db():
+def init_environmental_datasets_db() -> bool:
     """Initialize database table for open environmental datasets."""
     conn = None
     try:
@@ -3575,7 +3576,7 @@ def init_environmental_datasets_db():
             conn.close()
 
 
-def seed_environmental_datasets():
+def seed_environmental_datasets() -> None:
     """Seed sample open environmental datasets if table is empty."""
     init_environmental_datasets_db()
     conn = None
@@ -3721,7 +3722,7 @@ def add_environmental_dataset(
 # Environmental Timeline & Historical Events
 # ---------------------------------------------------------------------------
 
-def init_historical_events_db():
+def init_historical_events_db() -> bool:
     """Initialize database table for historical environmental events."""
     conn = None
     try:
@@ -3750,7 +3751,7 @@ def init_historical_events_db():
             conn.close()
 
 
-def seed_historical_events():
+def seed_historical_events() -> None:
     """Seed key global climate history milestones if table is empty."""
     init_historical_events_db()
     conn = None
@@ -3932,26 +3933,27 @@ from invalidation import (
 import streamlit as st
 import bcrypt
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
-def get_db_version(conn):
+def get_db_version(conn: sqlite3.Connection) -> int:
     """Get the current database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute("PRAGMA user_version")
     return cursor.fetchone()[0]
 
 
-def set_db_version(conn, version):
+def set_db_version(conn: sqlite3.Connection, version: int) -> None:
     """Set the database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute(f"PRAGMA user_version = {version}")
     conn.commit()
 
 
-def migrate():
+def migrate() -> tuple[bool, str]:
     """
     Apply pending database migrations.
 
@@ -3992,7 +3994,7 @@ def migrate():
         return False, f"Migration failed: {exc}"
 
 
-def init_db():
+def init_db() -> bool:
     """
     Initialize the database with core tables and run pending migrations.
 
@@ -4000,7 +4002,7 @@ def init_db():
         bool: True if initialization succeeded, False otherwise
     """
     try:
-        def initialize_schema():
+        def initialize_schema() -> None:
             with database_connection(DB_NAME) as conn:
                 cursor = conn.cursor()
 
@@ -4149,12 +4151,12 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
 
 
 def create_user(
-    username,
-    email,
-    password,
-    anonymous_leaderboard=False,
-):
-    def insert_user():
+    username: str,
+    email: str,
+    password: str,
+    anonymous_leaderboard: bool = False,
+) -> bool:
+    def insert_user() -> None:
         with database_connection(DB_NAME) as conn:
             password_hash = bcrypt.hashpw(
                 password.encode("utf-8"),
@@ -4188,8 +4190,8 @@ def create_user(
         return False
 
 
-def verify_user(username, password):
-    def fetch_user():
+def verify_user(username: str, password: str) -> dict[str, Any] | None:
+    def fetch_user() -> dict[str, Any] | None:
         with database_connection(DB_NAME) as conn:
             return conn.execute(
                 """
@@ -4224,8 +4226,8 @@ def verify_user(username, password):
         return None
 
 
-def get_user_by_username(username):
-    def fetch_user():
+def get_user_by_username(username: str) -> dict[str, Any] | None:
+    def fetch_user() -> dict[str, Any] | None:
         with database_connection(DB_NAME) as conn:
             return conn.execute(
                 """
@@ -4258,7 +4260,7 @@ def get_user_by_username(username):
         return None
 
 
-def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
+def update_user_leaderboard_preference(user_id: int, anonymous_leaderboard: bool) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4275,7 +4277,7 @@ def update_user_leaderboard_preference(user_id, anonymous_leaderboard):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_leaderboard(period="all"):
+def get_leaderboard(period: str = "all") -> list[tuple[str, int, int, int]]:
     """
     Retrieves community leaderboard rankings.
     Returns list of tuples: (display_name, max_eco_score, total_xp, completed_challenges)
@@ -4316,18 +4318,18 @@ def get_leaderboard(period="all"):
 
 
 def save_assessment(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    footprint,
-    eco_score=0,
-    trip_id=None,
-    date=None,
-    factor_version=None
-):
+    user_id: int,
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    footprint: float,
+    eco_score: int = 0,
+    trip_id: str | None = None,
+    date: str | None = None,
+    factor_version: str | None = None
+) -> bool:
     """
     Persist an assessment.
 
@@ -4416,7 +4418,7 @@ def save_assessment(
 # automatically populates the timestamp whenever a new record is created.
 # -------------------------------------------------------------------------
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_assessments(user_id=1):
+def get_assessments(user_id: int = 1) -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4436,7 +4438,7 @@ def get_assessments(user_id=1):
         print(f"Database read error: {e}")
         return []
 
-def save_carbon_budget(user_id, budget_type, budget_limit):
+def save_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4459,7 +4461,7 @@ def save_carbon_budget(user_id, budget_type, budget_limit):
     except sqlite3.Error as e:
         print(e)
         return False
-def get_carbon_budget(user_id):
+def get_carbon_budget(user_id: int) -> tuple[str, float] | None:
 
     try:
         conn=sqlite3.connect(DB_NAME)
@@ -4481,7 +4483,7 @@ def get_carbon_budget(user_id):
 
     except sqlite3.Error:
         return None
-def update_carbon_budget(user_id,budget_type,budget_limit):
+def update_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
 
     try:
 
@@ -4505,7 +4507,7 @@ def update_carbon_budget(user_id,budget_type,budget_limit):
 
         return False
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_assessments_with_factors(user_id=1):
+def get_assessments_with_factors(user_id: int = 1) -> list[tuple[Any, ...]]:
     """
     Assessments including the factor version each was computed under.
 
@@ -4533,7 +4535,7 @@ def get_assessments_with_factors(user_id=1):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_all_assessments():
+def get_all_assessments() -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4553,7 +4555,7 @@ def get_all_assessments():
         return []
 
 
-def undo_last_assessment(user_id=1):
+def undo_last_assessment(user_id: int = 1) -> tuple[bool, str, dict[str, Any] | None]:
     """
     Undo the user's most recent assessment record.
     Moves record to deleted_assessments table, logs action in activity log,
@@ -4624,7 +4626,7 @@ def undo_last_assessment(user_id=1):
         return False, f"Database error during undo: {e}", None
 
 
-def restore_last_deleted_assessment(user_id=1):
+def restore_last_deleted_assessment(user_id: int = 1) -> tuple[bool, str, dict[str, Any] | None]:
     """
     Restore the user's most recently undone assessment.
     Re-inserts record into assessments table and logs action.
@@ -4684,7 +4686,7 @@ def restore_last_deleted_assessment(user_id=1):
         return False, f"Database error during restore: {e}", None
 
 
-def get_last_undone_assessment(user_id=1):
+def get_last_undone_assessment(user_id: int = 1) -> dict[str, Any] | None:
     """Fetch the latest undone assessment for restore preview."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -4719,7 +4721,7 @@ def get_last_undone_assessment(user_id=1):
         return None
 
 
-def get_assessment_activity_history(user_id=1):
+def get_assessment_activity_history(user_id: int = 1) -> list[dict[str, Any]]:
     """Retrieve chronological activity log for assessment creations, undos, and restores."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -4751,14 +4753,14 @@ def get_assessment_activity_history(user_id=1):
 
 
 def save_assessment_draft(
-    user_id,
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    region,
-):
+    user_id: int,
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    region: str,
+) -> bool:
     """Insert or update one unfinished assessment per user."""
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -4805,7 +4807,7 @@ def save_assessment_draft(
             conn.close()
 
 
-def get_diet_history(user_id, limit=7):
+def get_diet_history(user_id: int, limit: int = 7) -> list[tuple[Any, ...]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4822,7 +4824,7 @@ def get_diet_history(user_id, limit=7):
         return []
 
 
-def get_assessment_draft(user_id):
+def get_assessment_draft(user_id: int) -> dict[str, Any] | None:
     """Return the active user's unfinished assessment, if one exists."""
     conn = None
     try:
@@ -4865,7 +4867,7 @@ def get_assessment_draft(user_id):
             conn.close()
 
 
-def delete_assessment_draft(user_id):
+def delete_assessment_draft(user_id: int) -> bool:
     """Delete the active user's unfinished assessment."""
     conn = None
     try:
@@ -4885,7 +4887,7 @@ def delete_assessment_draft(user_id):
             conn.close()
 
 
-def init_energy_db():
+def init_energy_db() -> bool:
     """
     Initialize energy-related tables (appliances, solar_configs).
     
@@ -4940,7 +4942,7 @@ def init_energy_db():
         return False
 
 
-def add_appliance(user_id, name, category, quantity, power_rating, hours_used, standby_draw):
+def add_appliance(user_id: int, name: str, category: str, quantity: int, power_rating: float, hours_used: float, standby_draw: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4957,7 +4959,7 @@ def add_appliance(user_id, name, category, quantity, power_rating, hours_used, s
         return False
 
 
-def delete_appliance(app_id):
+def delete_appliance(app_id: int) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4971,7 +4973,7 @@ def delete_appliance(app_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_appliances(user_id=1):
+def get_appliances(user_id: int = 1) -> list[dict[str, Any]]:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -4984,7 +4986,7 @@ def get_appliances(user_id=1):
         return []
 
 
-def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_efficiency, install_cost, maint_cost, rate_inc):
+def save_solar_config(user_id: int, roof_space: float, peak_sun_hours: float, utility_rate: float, panel_efficiency: float, install_cost: float, maint_cost: float, rate_inc: float) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -5006,7 +5008,7 @@ def save_solar_config(user_id, roof_space, peak_sun_hours, utility_rate, panel_e
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_solar_config(user_id=1):
+def get_solar_config(user_id: int = 1) -> dict[str, Any] | None:
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -5021,7 +5023,7 @@ def get_solar_config(user_id=1):
         return None
 
 
-def init_gamification_db():
+def init_gamification_db() -> bool:
     """
     Initialize gamification-related tables.
     
@@ -5111,7 +5113,7 @@ def init_gamification_db():
             conn.close()
 
 
-def enroll_challenge(user_id, challenge_id):
+def enroll_challenge(user_id: int, challenge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5136,7 +5138,7 @@ def enroll_challenge(user_id, challenge_id):
             conn.close()
 
 
-def update_challenge_progress(user_id, challenge_id, progress_increment=None, set_progress=None):
+def update_challenge_progress(user_id: int, challenge_id: str, progress_increment: float | None = None, set_progress: float | None = None) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5166,7 +5168,7 @@ def update_challenge_progress(user_id, challenge_id, progress_increment=None, se
             conn.close()
 
 
-def complete_challenge(user_id, challenge_id):
+def complete_challenge(user_id: int, challenge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5190,7 +5192,7 @@ def complete_challenge(user_id, challenge_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_user_challenges(user_id):
+def get_user_challenges(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5206,7 +5208,7 @@ def get_user_challenges(user_id):
             conn.close()
 
 
-def award_xp(user_id, source_type, source_id, xp_amount, description):
+def award_xp(user_id: int, source_type: str, source_id: str, xp_amount: int, description: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5238,7 +5240,7 @@ def award_xp(user_id, source_type, source_id, xp_amount, description):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_xp(user_id):
+def get_total_xp(user_id: int) -> int:
     
     conn = None
     try:
@@ -5254,7 +5256,7 @@ def get_total_xp(user_id):
             conn.close()
 
 
-def unlock_badge_in_db(user_id, badge_id):
+def unlock_badge_in_db(user_id: int, badge_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5280,7 +5282,7 @@ def unlock_badge_in_db(user_id, badge_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_unlocked_badges(user_id):
+def get_unlocked_badges(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5296,7 +5298,7 @@ def get_unlocked_badges(user_id):
             conn.close()
 
 
-def unlock_card_in_db(user_id, card_id):
+def unlock_card_in_db(user_id: int, card_id: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5321,7 +5323,7 @@ def unlock_card_in_db(user_id, card_id):
 
 
 @st.cache_data
-def get_unlocked_cards(user_id):
+def get_unlocked_cards(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5338,7 +5340,7 @@ def get_unlocked_cards(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_skill_tree_progress(user_id):
+def get_skill_tree_progress(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5354,7 +5356,7 @@ def get_skill_tree_progress(user_id):
             conn.close()
 
 
-def update_skill_node_status(user_id, node_id, status):
+def update_skill_node_status(user_id: int, node_id: str, status: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5397,7 +5399,7 @@ def update_skill_node_status(user_id, node_id, status):
             conn.close()
 
 
-def init_marketplace_db():
+def init_marketplace_db() -> bool:
     """
     Initialize marketplace-related tables (journey_profiles, offset_transactions).
     
@@ -5453,7 +5455,7 @@ def init_marketplace_db():
             conn.close()
 
 
-def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_count, trips_per_week, is_commute):
+def save_journey_profile(user_id: int, name: str, distance_km: float, transport_mode: str, passenger_count: int, trips_per_week: int, is_commute: bool) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5476,7 +5478,7 @@ def save_journey_profile(user_id, name, distance_km, transport_mode, passenger_c
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_journey_profiles(user_id):
+def get_journey_profiles(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5492,7 +5494,7 @@ def get_journey_profiles(user_id):
             conn.close()
 
 
-def delete_journey_profile(profile_id):
+def delete_journey_profile(profile_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5508,7 +5510,7 @@ def delete_journey_profile(profile_id):
             conn.close()
 
 
-def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, cost_per_tonne, total_cost, transaction_status='completed'):
+def save_offset_transaction(user_id: int, project_id: str, project_name: str, offset_tonnes: float, cost_per_tonne: float, total_cost: float, transaction_status: str = 'completed') -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5531,7 +5533,7 @@ def save_offset_transaction(user_id, project_id, project_name, offset_tonnes, co
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_offset_transactions(user_id):
+def get_offset_transactions(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5547,7 +5549,7 @@ def get_offset_transactions(user_id):
             conn.close()
 
 
-def delete_offset_transaction(transaction_id):
+def delete_offset_transaction(transaction_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5563,7 +5565,7 @@ def delete_offset_transaction(transaction_id):
             conn.close()
 
 
-def clear_offset_transactions(user_id):
+def clear_offset_transactions(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5580,7 +5582,7 @@ def clear_offset_transactions(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_offsets(user_id):
+def get_total_offsets(user_id: int) -> float:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5596,7 +5598,7 @@ def get_total_offsets(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_spend(user_id):
+def get_total_spend(user_id: int) -> float:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5611,7 +5613,7 @@ def get_total_spend(user_id):
             conn.close()
 
 
-def init_water_db():
+def init_water_db() -> bool:
     """
     Initialize water consumption table.
     
@@ -5650,7 +5652,7 @@ def init_water_db():
             conn.close()
 
 
-def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, total_liters):
+def save_water_assessment(user_id: int, shower: float, laundry: float, dishwasher: float, garden: float, diet: str, total_liters: float) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5673,7 +5675,7 @@ def save_water_assessment(user_id, shower, laundry, dishwasher, garden, diet, to
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_water_assessments(user_id):
+def get_water_assessments(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5690,7 +5692,7 @@ def get_water_assessments(user_id):
             conn.close()
 
 
-def save_dashboard_widget_preferences(user_id, widget_ids):
+def save_dashboard_widget_preferences(user_id: int, widget_ids: list[str]) -> bool:
     """Persist the ordered dashboard widget IDs selected by a user."""
     import json
 
@@ -5727,7 +5729,7 @@ def save_dashboard_widget_preferences(user_id, widget_ids):
             conn.close()
 
 
-def get_dashboard_widget_preferences(user_id):
+def get_dashboard_widget_preferences(user_id: int) -> list[str] | None:
     """Return the saved widget IDs, or None when the user has no preference."""
     import json
 
@@ -5762,14 +5764,14 @@ def get_dashboard_widget_preferences(user_id):
 
 
 def record_environmental_milestone(
-    user_id,
-    milestone_type,
-    title,
-    description,
-    icon="🌱",
-    achieved_at=None,
-    metadata=None,
-):
+    user_id: int,
+    milestone_type: str,
+    title: str,
+    description: str,
+    icon: str = "🌱",
+    achieved_at: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> bool:
     """Persist a milestone once per user and milestone type.
 
     Returns True only when a new milestone is inserted.
@@ -5813,7 +5815,7 @@ def record_environmental_milestone(
             conn.close()
 
 
-def get_environmental_milestones(user_id):
+def get_environmental_milestones(user_id: int) -> list[dict[str, Any]]:
     """Return a user's milestones from newest to oldest."""
     import json
 
@@ -5863,7 +5865,7 @@ def get_environmental_milestones(user_id):
             conn.close()
 
 
-def init_freeze_tokens_db():
+def init_freeze_tokens_db() -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5910,7 +5912,7 @@ def init_freeze_tokens_db():
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_freeze_token_balance(user_id):
+def get_freeze_token_balance(user_id: int) -> int:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5925,7 +5927,7 @@ def get_freeze_token_balance(user_id):
             conn.close()
 
 
-def ensure_freeze_token_row(user_id):
+def ensure_freeze_token_row(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5943,7 +5945,7 @@ def ensure_freeze_token_row(user_id):
             conn.close()
 
 
-def award_freeze_tokens(user_id, amount, reason):
+def award_freeze_tokens(user_id: int, amount: int, reason: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5969,7 +5971,7 @@ def award_freeze_tokens(user_id, amount, reason):
             conn.close()
 
 
-def redeem_freeze_token(user_id):
+def redeem_freeze_token(user_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -5998,7 +6000,7 @@ def redeem_freeze_token(user_id):
             conn.close()
 
 
-def use_streak_freeze(user_id, frozen_date):
+def use_streak_freeze(user_id: int, frozen_date: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6019,7 +6021,7 @@ def use_streak_freeze(user_id, frozen_date):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_streak_freeze_dates(user_id):
+def get_streak_freeze_dates(user_id: int) -> list[str]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6037,7 +6039,7 @@ def get_streak_freeze_dates(user_id):
             conn.close()
 
 
-def get_freeze_token_transactions(user_id):
+def get_freeze_token_transactions(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6059,7 +6061,7 @@ def get_freeze_token_transactions(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_total_freeze_tokens_earned(user_id):
+def get_total_freeze_tokens_earned(user_id: int) -> int:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6078,7 +6080,7 @@ def get_total_freeze_tokens_earned(user_id):
 # Reduction goals
 # ---------------------------------------------------------------------------
 
-def init_goals_db():
+def init_goals_db() -> bool:
     """
     Create the reduction_goals table.
 
@@ -6118,7 +6120,7 @@ def init_goals_db():
             conn.close()
 
 
-def _goal_row_to_dict(row):
+def _goal_row_to_dict(row: Any) -> dict[str, Any] | None:
     """Map a reduction_goals row onto the dict shape goals.py expects."""
     if not row:
         return None
@@ -6134,7 +6136,7 @@ def _goal_row_to_dict(row):
     }
 
 
-def save_reduction_goal(user_id, baseline_kg, target_kg, start_date, target_date):
+def save_reduction_goal(user_id: int, baseline_kg: float, target_kg: float, start_date: str, target_date: str) -> int | None:
     """
     Persist a new goal, archiving any goal the user already had active.
 
@@ -6176,7 +6178,7 @@ def save_reduction_goal(user_id, baseline_kg, target_kg, start_date, target_date
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_active_goal(user_id):
+def get_active_goal(user_id: int) -> dict[str, Any] | None:
     """Return the user's current active goal, or None."""
     init_goals_db()
     conn = None
@@ -6201,7 +6203,7 @@ def get_active_goal(user_id):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_goal_history(user_id):
+def get_goal_history(user_id: int) -> list[dict[str, Any]]:
     """Return every goal the user has ever set, newest first."""
     init_goals_db()
     conn = None
@@ -6224,7 +6226,7 @@ def get_goal_history(user_id):
             conn.close()
 
 
-def update_goal_status(goal_id, status):
+def update_goal_status(goal_id: int, status: str) -> bool:
     """Move a goal to a new lifecycle state (archived / completed / active)."""
     if status not in ("active", "archived", "completed"):
         logger.error("Refusing to set unknown goal status: %s", status)
@@ -6251,17 +6253,17 @@ def update_goal_status(goal_id, status):
             conn.close()
 
 
-def archive_goal(goal_id):
+def archive_goal(goal_id: int) -> bool:
     """Retire a goal without marking it as met."""
     return update_goal_status(goal_id, "archived")
 
 
-def complete_goal(goal_id):
+def complete_goal(goal_id: int) -> bool:
     """Mark a goal as successfully achieved."""
     return update_goal_status(goal_id, "completed")
 
 
-def delete_reduction_goal(goal_id):
+def delete_reduction_goal(goal_id: int) -> bool:
     """Permanently remove a goal row."""
     init_goals_db()
     conn = None
@@ -6281,7 +6283,7 @@ def delete_reduction_goal(goal_id):
             conn.close()
 
 
-def init_waste_db():
+def init_waste_db() -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6314,7 +6316,7 @@ def init_waste_db():
             conn.close()
 
 
-def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recyclable_pct):
+def save_waste_assessment(user_id: int, waste_data: dict[str, float], total_weekly_kg: float, annual_co2: float, recyclable_pct: float) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6349,7 +6351,7 @@ def save_waste_assessment(user_id, waste_data, total_weekly_kg, annual_co2, recy
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_waste_assessments(user_id):
+def get_waste_assessments(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6370,7 +6372,7 @@ def get_waste_assessments(user_id):
 # Unit and currency preferences
 # ---------------------------------------------------------------------------
 
-def init_unit_preferences():
+def init_unit_preferences() -> bool:
     """
     Add the unit_system and currency columns to the users table.
 
@@ -6400,7 +6402,7 @@ def init_unit_preferences():
             conn.close()
 
 
-def save_unit_preference(user_id, unit_system, currency):
+def save_unit_preference(user_id: int, unit_system: str, currency: str) -> bool:
     """
     Persist a user's display preference.
 
@@ -6431,7 +6433,7 @@ def save_unit_preference(user_id, unit_system, currency):
             conn.close()
 
 
-def get_unit_preference(user_id):
+def get_unit_preference(user_id: int) -> dict[str, Any]:
     """
     Return a user's display preference, defaulting to metric + USD.
 
@@ -6466,7 +6468,7 @@ def get_unit_preference(user_id):
 # Community Polls
 # ---------------------------------------------------------------------------
 
-def init_community_polls_db():
+def init_community_polls_db() -> bool:
     """Initialize database tables for community polls."""
     conn = None
     try:
@@ -6513,7 +6515,7 @@ def init_community_polls_db():
             conn.close()
 
 
-def seed_community_polls():
+def seed_community_polls() -> None:
     """Seed sample sustainability community polls if table is empty."""
     init_community_polls_db()
     conn = None
@@ -6750,7 +6752,7 @@ def archive_poll(poll_id: int) -> bool:
         if conn:
             conn.close()
 
-def create_time_capsule(user_id, title, promise_text, category, unlock_date):
+def create_time_capsule(user_id: int, title: str, promise_text: str, category: str, unlock_date: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6771,7 +6773,7 @@ def create_time_capsule(user_id, title, promise_text, category, unlock_date):
 
 
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
-def get_time_capsules(user_id):
+def get_time_capsules(user_id: int) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6794,7 +6796,7 @@ def get_time_capsules(user_id):
             conn.close()
 
 
-def update_time_capsule_unlock(capsule_id):
+def update_time_capsule_unlock(capsule_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6815,7 +6817,7 @@ def update_time_capsule_unlock(capsule_id):
             conn.close()
 
 
-def update_time_capsule_progress(capsule_id, progress_notes):
+def update_time_capsule_progress(capsule_id: int, progress_notes: str) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6836,7 +6838,7 @@ def update_time_capsule_progress(capsule_id, progress_notes):
             conn.close()
 
 
-def delete_time_capsule(capsule_id):
+def delete_time_capsule(capsule_id: int) -> bool:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -6851,7 +6853,7 @@ def delete_time_capsule(capsule_id):
     finally:
         if conn:
             conn.close()
-def save_weekly_challenge(user_id, title, difficulty, xp, category):
+def save_weekly_challenge(user_id: int, title: str, difficulty: str, xp: int, category: str) -> bool:
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -6865,7 +6867,7 @@ def save_weekly_challenge(user_id, title, difficulty, xp, category):
     conn.close()
 
     return True
-def get_weekly_challenges(user_id):
+def get_weekly_challenges(user_id: int) -> list[tuple[Any, ...]]:
 
     conn=sqlite3.connect(DB_NAME)
     cursor=conn.cursor()
@@ -6882,7 +6884,7 @@ def get_weekly_challenges(user_id):
     conn.close()
 
     return data
-def complete_weekly_challenge(challenge_id):
+def complete_weekly_challenge(challenge_id: int) -> bool:
 
     conn=sqlite3.connect(DB_NAME)
     cursor=conn.cursor()
@@ -6901,7 +6903,7 @@ def complete_weekly_challenge(challenge_id):
 
 from datetime import datetime, timedelta
 
-def weekly_challenges_exist(user_id):
+def weekly_challenges_exist(user_id: int) -> bool:
 
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -6922,7 +6924,7 @@ def weekly_challenges_exist(user_id):
     return count > 0
 
 
-def get_completed_challenges(user_id):
+def get_completed_challenges(user_id: int) -> list[tuple[Any, ...]]:
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 

@@ -4,12 +4,12 @@ from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
 def generate_recommendations(
-    transport,
-    electricity,
-    diet,
-    flights,
-    contributors
-):
+    transport: str,
+    electricity: float,
+    diet: str,
+    flights: int,
+    contributors: dict[str, float]
+) -> tuple[str, list[str]]:
     diet = normalize_diet(diet)
     recommendations = []
     priority = []
@@ -129,7 +129,8 @@ def generate_recommendations(
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def generate_water_recommendations(contributors, total_daily, diet):
+def generate_water_recommendations(contributors: dict[str, float], total_daily: float,
+                                   diet: str) -> tuple[str, list[str]]:
     diet = normalize_diet(diet)
     recommendations = []
     

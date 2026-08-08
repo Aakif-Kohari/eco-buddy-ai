@@ -16,6 +16,7 @@ import time
 import base64
 import sqlite3
 import logging
+from typing import Any
 import requests
 import streamlit as st
 from PIL import Image
@@ -72,7 +73,7 @@ KEYWORD_ITEMS = {
 }
 
 
-def _check_rate_limit(provider):
+def _check_rate_limit(provider: str) -> bool:
     key = f"_lifestyle_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -82,11 +83,11 @@ def _check_rate_limit(provider):
     return True
 
 
-def _image_to_b64(uploaded_file):
+def _image_to_b64(uploaded_file: io.BytesIO) -> str:
     return base64.b64encode(uploaded_file.getvalue()).decode("utf-8")
 
 
-def _call_gemini_vision(uploaded_file, space_type, hint):
+def _call_gemini_vision(uploaded_file: io.BytesIO, space_type: str, hint: str) -> dict[str, Any] | None:
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if not gemini_key or not _check_rate_limit("gemini"):
         return None
@@ -134,7 +135,7 @@ def _call_gemini_vision(uploaded_file, space_type, hint):
     return None
 
 
-def _extract_text_ocr(uploaded_file):
+def _extract_text_ocr(uploaded_file: io.BytesIO) -> str:
     """Extract text from the image via OCR to support heuristic detection."""
     try:
         from ocr_utils import extract_text_from_file
@@ -144,7 +145,7 @@ def _extract_text_ocr(uploaded_file):
         return ""
 
 
-def _heuristic_detection(ocr_text):
+def _heuristic_detection(ocr_text: str) -> list[dict[str, Any]]:
     """Detect items by keyword matching on OCR text."""
     detected = []
     text_lower = ocr_text.lower()
@@ -161,7 +162,7 @@ def _heuristic_detection(ocr_text):
     return detected
 
 
-def analyze_image(uploaded_file, space_type):
+def analyze_image(uploaded_file: io.BytesIO, space_type: str) -> dict[str, Any]:
     """Analyze an uploaded image and return detected items + summary."""
     space = SPACE_TYPES.get(space_type, {"icon": "🏠", "hint": ""})
 
@@ -207,11 +208,11 @@ def analyze_image(uploaded_file, space_type):
     }
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_lifestyle_db():
+def init_lifestyle_db() -> bool:
     conn = None
     try:
         conn = _get_conn()
@@ -238,7 +239,7 @@ def init_lifestyle_db():
             conn.close()
 
 
-def save_analysis(user_id, space_type, items, annual_co2_kg, savings_co2_kg):
+def save_analysis(user_id: int, space_type: str, items: list[dict[str, Any]], annual_co2_kg: float, savings_co2_kg: float) -> bool:
     init_lifestyle_db()
     conn = None
     try:
@@ -262,7 +263,7 @@ def save_analysis(user_id, space_type, items, annual_co2_kg, savings_co2_kg):
             conn.close()
 
 
-def get_analysis_history(user_id, limit=20):
+def get_analysis_history(user_id: int, limit: int = 20) -> list[dict[str, Any]]:
     init_lifestyle_db()
     conn = None
     try:

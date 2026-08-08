@@ -9,7 +9,7 @@ to allow re-running without errors.
 import sqlite3
 
 
-def migrate(conn):
+def migrate(conn: sqlite3.Connection) -> None:
     """
     Apply migration v1: Create initial schema.
     

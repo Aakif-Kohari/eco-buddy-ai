@@ -32,6 +32,7 @@ the exact row it exists to catch. The median and MAD are resistant to that.
 import datetime
 import math
 import statistics
+from typing import Any
 
 # --- Severities -------------------------------------------------------------
 
@@ -96,7 +97,7 @@ GRADE_BANDS = [
 
 # --- Record normalisation ---------------------------------------------------
 
-def _parse_timestamp(value):
+def _parse_timestamp(value: datetime.datetime | datetime.date | str) -> datetime.datetime | None:
     """Parse the several date shapes the database and importers produce."""
     if isinstance(value, datetime.datetime):
         return value
@@ -117,7 +118,7 @@ def _parse_timestamp(value):
     return None
 
 
-def _to_float(value):
+def _to_float(value: Any) -> float | None:
     """Coerce to float, returning None rather than raising on bad input."""
     try:
         number = float(value)
@@ -128,7 +129,9 @@ def _to_float(value):
     return number
 
 
-def normalize_records(assessments):
+def normalize_records(
+    assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+) -> list[dict[str, Any]]:
     """
     Turn raw rows into dicts the detectors can work with.
 
@@ -182,7 +185,13 @@ def normalize_records(assessments):
     return records
 
 
-def make_issue(code, severity, message, record_ids=None, suggested_action=""):
+def make_issue(
+    code: str,
+    severity: str,
+    message: str,
+    record_ids: list[Any] | None = None,
+    suggested_action: str = "",
+) -> dict[str, Any]:
     """One detected defect."""
     return {
         "code": code,
@@ -195,7 +204,7 @@ def make_issue(code, severity, message, record_ids=None, suggested_action=""):
 
 # --- Detectors --------------------------------------------------------------
 
-def modified_z_scores(values):
+def modified_z_scores(values: list[float | None]) -> list[float]:
     """
     Modified Z-scores based on the median absolute deviation.
 
@@ -221,7 +230,10 @@ def modified_z_scores(values):
     return [0.6745 * (number - median) / mad for number in numbers]
 
 
-def detect_outliers(records, z_threshold=DEFAULT_Z_THRESHOLD):
+def detect_outliers(
+    records: list[dict[str, Any]],
+    z_threshold: float = DEFAULT_Z_THRESHOLD,
+) -> list[dict[str, Any]]:
     """Flag footprints that sit far from the median of the series."""
     usable = [record for record in records if record["footprint"] is not None]
     if len(usable) < 3:
@@ -250,9 +262,11 @@ def detect_outliers(records, z_threshold=DEFAULT_Z_THRESHOLD):
     return issues
 
 
-def detect_duplicates(records,
-                      time_window_minutes=DEFAULT_DUPLICATE_WINDOW_MINUTES,
-                      tolerance=DEFAULT_DUPLICATE_TOLERANCE):
+def detect_duplicates(
+    records: list[dict[str, Any]],
+    time_window_minutes: float = DEFAULT_DUPLICATE_WINDOW_MINUTES,
+    tolerance: float = DEFAULT_DUPLICATE_TOLERANCE,
+) -> list[dict[str, Any]]:
     """
     Flag near-identical assessments submitted within a short window.
 
@@ -290,7 +304,7 @@ def detect_duplicates(records,
     return issues
 
 
-def _inputs_match(left, right, tolerance):
+def _inputs_match(left: dict[str, Any], right: dict[str, Any], tolerance: float) -> bool:
     """True when two records describe the same lifestyle inputs."""
     if left["transport"] != right["transport"] or left["diet"] != right["diet"]:
         return False
@@ -308,7 +322,10 @@ def _inputs_match(left, right, tolerance):
     return True
 
 
-def detect_implausible_jumps(records, max_ratio=DEFAULT_MAX_JUMP_RATIO):
+def detect_implausible_jumps(
+    records: list[dict[str, Any]],
+    max_ratio: float = DEFAULT_MAX_JUMP_RATIO,
+) -> list[dict[str, Any]]:
     """
     Flag consecutive footprints that change by an implausible multiple.
 
@@ -348,7 +365,10 @@ def detect_implausible_jumps(records, max_ratio=DEFAULT_MAX_JUMP_RATIO):
     return issues
 
 
-def detect_calculation_drift(records, tolerance_percent=DEFAULT_DRIFT_TOLERANCE_PERCENT):
+def detect_calculation_drift(
+    records: list[dict[str, Any]],
+    tolerance_percent: float = DEFAULT_DRIFT_TOLERANCE_PERCENT,
+) -> list[dict[str, Any]]:
     """
     Flag rows whose stored footprint no longer matches their own inputs.
 
@@ -404,7 +424,10 @@ def detect_calculation_drift(records, tolerance_percent=DEFAULT_DRIFT_TOLERANCE_
     return issues
 
 
-def detect_timestamp_issues(records, now=None):
+def detect_timestamp_issues(
+    records: list[dict[str, Any]],
+    now: datetime.datetime | None = None,
+) -> list[dict[str, Any]]:
     """Flag future dates, unparseable dates and exact duplicate timestamps."""
     now = now or datetime.datetime.now()
     issues = []
@@ -459,7 +482,7 @@ def detect_timestamp_issues(records, now=None):
     return issues
 
 
-def detect_out_of_order(records):
+def detect_out_of_order(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Flag a history that is not chronologically ordered as stored.
 
@@ -486,7 +509,7 @@ def detect_out_of_order(records):
     )]
 
 
-def detect_missing_fields(records):
+def detect_missing_fields(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Flag null, blank or degenerate required fields."""
     issues = []
     missing_by_field = {}
@@ -525,7 +548,11 @@ def detect_missing_fields(records):
     return issues
 
 
-def detect_staleness(records, max_age_days=DEFAULT_MAX_AGE_DAYS, now=None):
+def detect_staleness(
+    records: list[dict[str, Any]],
+    max_age_days: float = DEFAULT_MAX_AGE_DAYS,
+    now: datetime.datetime | None = None,
+) -> list[dict[str, Any]]:
     """Flag a history whose most recent entry is too old to represent 'now'."""
     now = now or datetime.datetime.now()
     timestamps = [
@@ -549,7 +576,7 @@ def detect_staleness(records, max_age_days=DEFAULT_MAX_AGE_DAYS, now=None):
     )]
 
 
-def detect_small_sample(records):
+def detect_small_sample(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Flag a history too short for its statistics to mean much."""
     usable = [record for record in records if record["footprint"] is not None]
     if len(usable) >= MIN_MEANINGFUL_SAMPLE:
@@ -583,7 +610,11 @@ DETECTORS = (
 )
 
 
-def audit_assessments(assessments, now=None, include_drift=True):
+def audit_assessments(
+    assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+    now: datetime.datetime | None = None,
+    include_drift: bool = True,
+) -> dict[str, Any]:
     """
     Run every detector and return a full quality report.
 
@@ -620,7 +651,7 @@ def audit_assessments(assessments, now=None, include_drift=True):
     }
 
 
-def calculate_confidence_score(issues, record_count):
+def calculate_confidence_score(issues: list[dict[str, Any]], record_count: int) -> float:
     """
     A 0-100 confidence score for the dataset.
 
@@ -648,7 +679,7 @@ def calculate_confidence_score(issues, record_count):
     return round(max(0.0, min(100.0, score)), 1)
 
 
-def quality_grade(score):
+def quality_grade(score: float) -> str:
     """Map a confidence score onto an A-F band."""
     for threshold, grade in GRADE_BANDS:
         if score >= threshold:
@@ -656,7 +687,9 @@ def quality_grade(score):
     return "F"
 
 
-def group_issues_by_severity(issues):
+def group_issues_by_severity(
+    issues: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
     """Bucket issues by severity, most severe first."""
     grouped = {severity: [] for severity in SEVERITY_ORDER}
     for issue in issues:
@@ -664,7 +697,7 @@ def group_issues_by_severity(issues):
     return grouped
 
 
-def summarize_report(report):
+def summarize_report(report: dict[str, Any]) -> str:
     """One-line human summary for a dashboard banner."""
     if report["record_count"] == 0:
         return "No assessments recorded yet — nothing to check."
@@ -693,7 +726,11 @@ def summarize_report(report):
     )
 
 
-def filter_clean_records(assessments, report=None, severities=(SEVERITY_CRITICAL,)):
+def filter_clean_records(
+    assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+    report: dict[str, Any] | None = None,
+    severities: tuple[str, ...] = (SEVERITY_CRITICAL,),
+) -> list[dict[str, Any]] | list[tuple[Any, ...]]:
     """
     Return the subset of rows safe to feed to forecasting and the leaderboard.
 
@@ -725,7 +762,7 @@ def filter_clean_records(assessments, report=None, severities=(SEVERITY_CRITICAL
     return kept
 
 
-def to_dict(report):
+def to_dict(report: dict[str, Any]) -> dict[str, Any]:
     """JSON-safe representation of a report, for export and logging."""
     return {
         "record_count": report["record_count"],

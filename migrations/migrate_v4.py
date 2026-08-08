@@ -1,7 +1,9 @@
 """Migration v4: Persist per-user dashboard widget preferences."""
 
+import sqlite3
 
-def migrate(conn):
+
+def migrate(conn: sqlite3.Connection) -> None:
     """Create the dashboard_widget_preferences table."""
     cursor = conn.cursor()
     cursor.execute(

@@ -13,6 +13,7 @@ energy, water, waste, and offset records.
 
 import logging
 import os
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +241,7 @@ PERSONAS = {
 # Behavior analysis
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _parse_assessment_rows(rows):
+def _parse_assessment_rows(rows: list[tuple]) -> list[dict[str, Any]]:
     """Turn raw assessment rows into normalized dicts."""
     parsed = []
     for row in rows:
@@ -257,7 +258,7 @@ def _parse_assessment_rows(rows):
     return parsed
 
 
-def analyze_user_behavior(user_id):
+def analyze_user_behavior(user_id: int) -> dict[str, Any]:
     """Gather and summarize a user's behavior across the whole app.
 
     Every read is defensive: missing tables or a brand-new user simply
@@ -397,7 +398,7 @@ def analyze_user_behavior(user_id):
 # Persona assignment
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _category_scores(metrics):
+def _category_scores(metrics: dict[str, Any]) -> dict[str, float]:
     """Score each specialist persona domain from 0 to 1."""
     return {
         "green_guardian": min(1.0, metrics["avg_eco_score"] / 90.0)
@@ -414,7 +415,7 @@ def _category_scores(metrics):
     }
 
 
-def _active_domains(metrics):
+def _active_domains(metrics: dict[str, Any]) -> int:
     """Count how many distinct eco domains a user is active in."""
     domains = 0
     if metrics["assessment_count"] > 0:
@@ -438,7 +439,7 @@ def _active_domains(metrics):
     return domains
 
 
-def _persona_rarity(persona_id, metrics):
+def _persona_rarity(persona_id: str, metrics: dict[str, Any]) -> str:
     """Promote common personas to higher rarities for exceptional metrics."""
     thresholds = {
         "streak_star": (30, "legendary", 14, "rare"),
@@ -467,7 +468,7 @@ def _persona_rarity(persona_id, metrics):
     return PERSONAS[persona_id]["rarity"]
 
 
-def assign_persona(metrics):
+def assign_persona(metrics: dict[str, Any]) -> str:
     """Return the persona id that best matches the given metrics."""
     if metrics["assessment_count"] == 0 and metrics["total_xp"] == 0:
         return "eco_rookie"
@@ -511,7 +512,7 @@ def assign_persona(metrics):
 # Profile content
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_strengths(metrics):
+def get_strengths(metrics: dict[str, Any]) -> list[str]:
     """Dynamic strengths derived from the user's actual behavior."""
     strengths = []
     if metrics["assessment_count"] > 0:
@@ -562,7 +563,7 @@ def get_strengths(metrics):
     return strengths
 
 
-def get_improvement_opportunities(metrics):
+def get_improvement_opportunities(metrics: dict[str, Any]) -> list[str]:
     """Weaknesses / improvement opportunities personalized to the user."""
     improvements = []
     if metrics["streak"] < 3 and metrics["assessment_count"] > 0:
@@ -607,7 +608,7 @@ def get_improvement_opportunities(metrics):
     return improvements
 
 
-def get_achievements(metrics):
+def get_achievements(metrics: dict[str, Any]) -> list[str]:
     """Milestones the user has unlocked, from strongest to weakest."""
     achievements = []
     if metrics["streak"] >= 30:
@@ -643,7 +644,7 @@ def get_achievements(metrics):
     return achievements
 
 
-def get_persona_next_steps(metrics, persona_id):
+def get_persona_next_steps(metrics: dict[str, Any], persona_id: str) -> list[str]:
     """Recommended next actions tailored to the persona and data."""
     steps = []
     if persona_id == "eco_rookie":
@@ -669,7 +670,7 @@ def get_persona_next_steps(metrics, persona_id):
     return steps
 
 
-def generate_persona_profile(user_id):
+def generate_persona_profile(user_id: int) -> dict[str, Any]:
     """Build the full persona profile for a user.
 
     The profile recomputes from live data on every call, so it updates
@@ -697,7 +698,7 @@ def generate_persona_profile(user_id):
 # Persona card image
 # ─────────────────────────────────────────────────────────────────────────────
 
-def generate_persona_card_png(user_id, profile, filename="eco_persona_card.png"):
+def generate_persona_card_png(user_id: int, profile: dict[str, Any], filename: str = "eco_persona_card.png") -> str | None:
     """Render a downloadable persona profile card as a PNG."""
     try:
         from PIL import Image, ImageDraw, ImageFont

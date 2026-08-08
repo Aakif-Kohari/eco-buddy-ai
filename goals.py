@@ -20,6 +20,7 @@ variance      actual minus expected. Negative means ahead of schedule.
 
 import datetime
 import math
+from typing import Any
 
 from config import CATEGORY_WEIGHTS
 
@@ -90,7 +91,7 @@ class GoalValidationError(ValueError):
 
 # --- Date helpers -----------------------------------------------------------
 
-def _coerce_date(value, field_name):
+def _coerce_date(value: str | datetime.date, field_name: str) -> datetime.date:
     """
     Accept a date, a datetime, or an ISO-8601 string and return a plain date.
 
@@ -120,7 +121,7 @@ def _coerce_date(value, field_name):
     raise GoalValidationError(f"{field_name} must be a date, got {type(value).__name__}")
 
 
-def _coerce_positive_number(value, field_name, allow_zero=True):
+def _coerce_positive_number(value: Any, field_name: str, allow_zero: bool = True) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -132,7 +133,7 @@ def _coerce_positive_number(value, field_name, allow_zero=True):
     return number
 
 
-def months_between(start, end):
+def months_between(start: str | datetime.date, end: str | datetime.date) -> float:
     """Fractional months between two dates. Negative if end precedes start."""
     start = _coerce_date(start, "start")
     end = _coerce_date(end, "end")
@@ -141,8 +142,9 @@ def months_between(start, end):
 
 # --- Goal construction ------------------------------------------------------
 
-def create_goal(baseline_kg, target_kg, start_date, target_date, goal_id=None,
-                user_id=None, status=GOAL_ACTIVE):
+def create_goal(baseline_kg: float, target_kg: float, start_date: str | datetime.date,
+                target_date: str | datetime.date, goal_id: int | None = None,
+                user_id: int | None = None, status: str = GOAL_ACTIVE) -> dict[str, Any]:
     """
     Build and validate a goal record.
 
@@ -167,7 +169,7 @@ def create_goal(baseline_kg, target_kg, start_date, target_date, goal_id=None,
     return goal
 
 
-def validate_goal(goal):
+def validate_goal(goal: dict[str, Any]) -> bool:
     """Raise GoalValidationError if the goal is internally inconsistent."""
     baseline = goal["baseline_kg"]
     target = goal["target_kg"]
@@ -186,12 +188,12 @@ def validate_goal(goal):
     return True
 
 
-def total_reduction_required(goal):
+def total_reduction_required(goal: dict[str, Any]) -> float:
     """Absolute kg CO2 that must come off between baseline and target."""
     return goal["baseline_kg"] - goal["target_kg"]
 
 
-def reduction_percentage(goal):
+def reduction_percentage(goal: dict[str, Any]) -> float:
     """The goal expressed as a percentage cut from baseline."""
     baseline = goal["baseline_kg"]
     if baseline <= 0:
@@ -199,7 +201,7 @@ def reduction_percentage(goal):
     return (total_reduction_required(goal) / baseline) * 100.0
 
 
-def required_monthly_reduction(goal):
+def required_monthly_reduction(goal: dict[str, Any]) -> float:
     """kg CO2 that must come off every month to land exactly on target."""
     window = months_between(goal["start_date"], goal["target_date"])
     if window <= 0:
@@ -207,14 +209,14 @@ def required_monthly_reduction(goal):
     return total_reduction_required(goal) / window
 
 
-def required_daily_reduction(goal):
+def required_daily_reduction(goal: dict[str, Any]) -> float:
     """The same pace expressed per day, useful for short-window goals."""
     return required_monthly_reduction(goal) / DAYS_PER_MONTH
 
 
 # --- Ideal pathway ----------------------------------------------------------
 
-def build_pathway(goal, points=None):
+def build_pathway(goal: dict[str, Any], points: int | None = None) -> list[dict[str, Any]]:
     """
     The ideal month-by-month trajectory from baseline to target.
 
@@ -250,7 +252,7 @@ def build_pathway(goal, points=None):
     return pathway
 
 
-def expected_footprint_at(goal, on_date):
+def expected_footprint_at(goal: dict[str, Any], on_date: str | datetime.date) -> float:
     """
     Where the pathway says the user should be on a given date.
 
@@ -274,7 +276,7 @@ def expected_footprint_at(goal, on_date):
 
 # --- Observed progress ------------------------------------------------------
 
-def _normalize_records(assessments):
+def _normalize_records(assessments: list[dict[str, Any]] | list[tuple[Any, ...]]) -> list[dict[str, Any]]:
     """
     Accept either the raw tuples get_assessments() returns or a list of dicts,
     and produce a clean, chronologically sorted list of {date, footprint}.
@@ -311,7 +313,7 @@ def _normalize_records(assessments):
     return records
 
 
-def latest_footprint(assessments):
+def latest_footprint(assessments: list[dict[str, Any]] | list[tuple[Any, ...]]) -> float | None:
     """The most recent recorded footprint, or None if there is no usable data."""
     records = _normalize_records(assessments)
     if not records:
@@ -319,7 +321,7 @@ def latest_footprint(assessments):
     return records[-1]["footprint"]
 
 
-def observed_pace(assessments):
+def observed_pace(assessments: list[dict[str, Any]] | list[tuple[Any, ...]]) -> float:
     """
     Reduction actually achieved, in kg CO2 per month, via least-squares slope.
 
@@ -348,7 +350,9 @@ def observed_pace(assessments):
     return -slope
 
 
-def project_final_footprint(goal, assessments, as_of=None):
+def project_final_footprint(goal: dict[str, Any],
+                            assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+                            as_of: str | datetime.date | None = None) -> float:
     """
     Linear projection of where the user lands on the target date if the pace
     observed so far continues unchanged.
@@ -369,7 +373,7 @@ def project_final_footprint(goal, assessments, as_of=None):
     return max(0.0, projected)
 
 
-def classify_status(goal, variance_kg, current_kg):
+def classify_status(goal: dict[str, Any], variance_kg: float, current_kg: float) -> str:
     """
     Map a variance into one of the five status constants.
 
@@ -392,7 +396,9 @@ def classify_status(goal, variance_kg, current_kg):
     return STATUS_OFF_TRACK
 
 
-def evaluate_progress(goal, assessments, as_of=None):
+def evaluate_progress(goal: dict[str, Any],
+                      assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+                      as_of: str | datetime.date | None = None) -> dict[str, Any]:
     """
     The core entry point: everything the UI needs about a goal in one dict.
 
@@ -455,7 +461,7 @@ def evaluate_progress(goal, assessments, as_of=None):
 
 # --- Category allocation ----------------------------------------------------
 
-def allocate_reduction(goal, contributors):
+def allocate_reduction(goal: dict[str, Any], contributors: dict[str, float]) -> dict[str, Any]:
     """
     Split the required reduction across emission categories.
 
@@ -523,7 +529,7 @@ def allocate_reduction(goal, contributors):
     }
 
 
-def suggest_feasible_target(baseline_kg, contributors):
+def suggest_feasible_target(baseline_kg: float, contributors: dict[str, float]) -> float:
     """
     The lowest target that is actually reachable given the reduction ceilings.
 
@@ -547,7 +553,7 @@ def suggest_feasible_target(baseline_kg, contributors):
 
 # --- Presentation helpers ---------------------------------------------------
 
-def summarize_goal(goal, progress):
+def summarize_goal(goal: dict[str, Any], progress: dict[str, Any]) -> str:
     """One-sentence summary for the dashboard banner and the PDF report."""
     status = progress["status"]
     target = progress["target_kg"]
@@ -586,7 +592,7 @@ def summarize_goal(goal, progress):
     )
 
 
-def pathway_to_series(pathway):
+def pathway_to_series(pathway: list[dict[str, Any]]) -> tuple[list[datetime.date], list[float]]:
     """Split a pathway into parallel date/value lists for charting."""
     return (
         [point["date"] for point in pathway],
@@ -594,7 +600,7 @@ def pathway_to_series(pathway):
     )
 
 
-def goal_to_dict(goal):
+def goal_to_dict(goal: dict[str, Any]) -> dict[str, Any]:
     """JSON-safe representation, for export and for storing in session state."""
     return {
         "id": goal.get("id"),

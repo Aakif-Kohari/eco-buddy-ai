@@ -9,11 +9,12 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
 import random
+from typing import Any
 
 class CarbonOffsetMarketplace:
     """Enhanced carbon offset marketplace with real-time pricing simulation"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.projects = [
             {
                 "id": 1,
@@ -82,14 +83,14 @@ class CarbonOffsetMarketplace:
             }
         ]
         
-    def get_project_by_id(self, project_id):
+    def get_project_by_id(self, project_id: int) -> dict[str, Any] | None:
         """Retrieve project by ID"""
         for project in self.projects:
             if project["id"] == project_id:
                 return project
         return None
     
-    def calculate_offset_cost(self, tonnes, cost_per_tonne, quantity_discount=False):
+    def calculate_offset_cost(self, tonnes: float, cost_per_tonne: float, quantity_discount: bool = False) -> float:
         """Calculate cost with potential quantity discounts"""
         base_cost = tonnes * cost_per_tonne
         
@@ -102,7 +103,7 @@ class CarbonOffsetMarketplace:
         
         return base_cost
     
-    def get_market_insights(self):
+    def get_market_insights(self) -> list[str]:
         """Generate market insights based on current data"""
         insights = []
         
@@ -120,7 +121,7 @@ class CarbonOffsetMarketplace:
         
         return insights
     
-    def get_category_summary(self):
+    def get_category_summary(self) -> dict[str, Any]:
         """Get summary statistics by category"""
         categories = {}
         for project in self.projects:
@@ -151,21 +152,21 @@ class CarbonOffsetMarketplace:
 class EcoGoalsManager:
     """Manage and track personalized eco-goals"""
     
-    def __init__(self, user_id):
+    def __init__(self, user_id: int) -> None:
         self.user_id = user_id
         self.goals = self._load_goals()
     
-    def _load_goals(self):
+    def _load_goals(self) -> list[dict[str, Any]]:
         """Load user goals from session state"""
         if "eco_goals" not in st.session_state:
             st.session_state.eco_goals = {}
         return st.session_state.eco_goals.get(self.user_id, [])
     
-    def save_goals(self):
+    def save_goals(self) -> None:
         """Save goals to session state"""
         st.session_state.eco_goals[self.user_id] = self.goals
     
-    def create_goal(self, title, target, category, deadline):
+    def create_goal(self, title: str, target: float, category: str, deadline: str) -> dict[str, Any]:
         """Create a new eco-goal"""
         goal = {
             "id": len(self.goals) + 1,
@@ -182,7 +183,7 @@ class EcoGoalsManager:
         self.save_goals()
         return goal
     
-    def update_progress(self, goal_id, progress_value, note=""):
+    def update_progress(self, goal_id: int, progress_value: float, note: str = "") -> bool:
         """Update progress for a specific goal"""
         for goal in self.goals:
             if goal["id"] == goal_id:
@@ -198,7 +199,7 @@ class EcoGoalsManager:
                 return True
         return False
     
-    def get_goal_stats(self):
+    def get_goal_stats(self) -> dict[str, Any]:
         """Get statistics about user goals"""
         if not self.goals:
             return {
@@ -219,7 +220,7 @@ class EcoGoalsManager:
             "completion_rate": (completed / total * 100) if total > 0 else 0
         }
     
-    def generate_suggestion(self):
+    def generate_suggestion(self) -> tuple[str, str, int, str]:
         """Generate a random eco-goal suggestion"""
         suggestions = [
             ("Reduce monthly electricity usage by 20%", "Energy", 30, "Reduce your electricity consumption through efficiency measures"),
@@ -242,7 +243,7 @@ class ImpactVisualizer:
     """Visualize environmental impact with engaging graphics"""
     
     @staticmethod
-    def calculate_equivalent_impact(footprint_kg):
+    def calculate_equivalent_impact(footprint_kg: float) -> dict[str, Any]:
         """Calculate equivalencies for carbon footprint"""
         equivalents = {
             "trees_absorbed": footprint_kg / 20,  # Trees absorb ~20kg CO2/year
@@ -255,19 +256,19 @@ class ImpactVisualizer:
         return equivalents
     
     @staticmethod
-    def get_water_equivalent(kg_co2):
+    def get_water_equivalent(kg_co2: float) -> float:
         """Calculate water footprint equivalent"""
         # Each kg CO2 roughly equals 3-5 liters of water
         return kg_co2 * 4
     
     @staticmethod
-    def get_forest_equivalent(kg_co2):
+    def get_forest_equivalent(kg_co2: float) -> float:
         """Calculate forest area equivalent (sq meters)"""
         # Each kg CO2 requires ~0.5 sq meters of forest
         return kg_co2 * 0.5
     
     @staticmethod
-    def render_impact_cards(equivalents):
+    def render_impact_cards(equivalents: dict[str, Any]) -> None:
         """Render impact equivalency cards"""
         cols = st.columns(3)
         cards = [
@@ -290,7 +291,7 @@ class ImpactVisualizer:
                 """, unsafe_allow_html=True)
 
     @staticmethod
-    def render_eco_clock(eco_score):
+    def render_eco_clock(eco_score: float) -> None:
         """Render an eco-clock visualization"""
         import math
         
@@ -332,7 +333,7 @@ class GreenInvestmentCalculator:
     """Calculate potential savings and returns from green investments"""
     
     @staticmethod
-    def calculate_solar_roi(roof_area, panel_efficiency, sun_hours, cost_per_watt=3.50):
+    def calculate_solar_roi(roof_area: float, panel_efficiency: float, sun_hours: float, cost_per_watt: float = 3.50) -> dict[str, float]:
         """
         Calculate ROI for solar panel investment
         Returns: dict with financial metrics
@@ -374,7 +375,7 @@ class GreenInvestmentCalculator:
         }
     
     @staticmethod
-    def calculate_ev_savings(annual_miles, current_mpg=25, electricity_cost=0.15):
+    def calculate_ev_savings(annual_miles: float, current_mpg: float = 25, electricity_cost: float = 0.15) -> dict[str, float]:
         """
         Calculate savings from switching to electric vehicle
         """
@@ -403,7 +404,7 @@ class GreenInvestmentCalculator:
         }
     
     @staticmethod
-    def render_calculator():
+    def render_calculator() -> None:
         """Render the green investment calculator interface"""
         st.markdown("### 💰 Green Investment Calculator")
         
@@ -516,7 +517,7 @@ class SustainabilityQuiz:
     ]
     
     @staticmethod
-    def run_quiz():
+    def run_quiz() -> None:
         """Run the sustainability quiz"""
         st.markdown("### 📝 Sustainability Quiz")
         st.markdown("Test your environmental knowledge!")
@@ -585,7 +586,7 @@ class SustainabilityQuiz:
 # INTEGRATION: Add to main app
 # ============================================================
 
-def render_sustainability_hub():
+def render_sustainability_hub() -> None:
     """Render the complete sustainability hub"""
     st.markdown("<div class='section-header'>🌿 Sustainability Hub</div>", unsafe_allow_html=True)
     
@@ -608,7 +609,7 @@ def render_sustainability_hub():
     with hub_tabs[3]:
         SustainabilityQuiz.run_quiz()
 
-def render_eco_goals():
+def render_eco_goals() -> None:
     """Render the eco-goals interface"""
     st.markdown("### 🎯 Your Eco Goals")
     
@@ -690,7 +691,7 @@ def render_eco_goals():
         suggestion = goals_manager.generate_suggestion()
         st.info(f"🎯 Suggested Goal: **{suggestion[0]}** ({suggestion[1]})")
 
-def render_impact_visualizer():
+def render_impact_visualizer() -> None:
     """Render the impact visualizer interface"""
     st.markdown("### 🌍 Visualize Your Impact")
     
@@ -727,7 +728,7 @@ def render_impact_visualizer():
 # ADD TO MAIN APP - Place this in the main navigation
 # ============================================================
 
-def add_sustainability_hub():
+def add_sustainability_hub() -> None:
     """Add Sustainability Hub to main app navigation"""
     # Add this as a new tab in the main app
     pass

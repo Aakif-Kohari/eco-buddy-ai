@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 import threading
 import time
+from typing import Any
 
 
 class CacheMetrics:
@@ -20,7 +21,7 @@ class CacheMetrics:
         "prevented_duplicate_computations",
     )
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lock = threading.Lock()
         self._values = {
             name: defaultdict(int)
@@ -28,41 +29,41 @@ class CacheMetrics:
         }
         self._last_reset = time.time()
 
-    def _record(self, counter, cache_name):
+    def _record(self, counter: str, cache_name: str) -> None:
         with self._lock:
             self._values[counter][cache_name] += 1
 
-    def record_fresh_hit(self, cache_name):
+    def record_fresh_hit(self, cache_name: str) -> None:
         self._record("fresh_hits", cache_name)
 
-    def record_stale_hit(self, cache_name):
+    def record_stale_hit(self, cache_name: str) -> None:
         self._record("stale_hits", cache_name)
 
-    def record_miss(self, cache_name):
+    def record_miss(self, cache_name: str) -> None:
         self._record("misses", cache_name)
 
-    def record_invalidation(self, cache_name):
+    def record_invalidation(self, cache_name: str) -> None:
         self._record("invalidations", cache_name)
 
-    def record_refresh(self, cache_name):
+    def record_refresh(self, cache_name: str) -> None:
         self._record("refreshes", cache_name)
 
-    def record_refresh_failure(self, cache_name):
+    def record_refresh_failure(self, cache_name: str) -> None:
         self._record("refresh_failures", cache_name)
 
-    def record_prevented_duplicate(self, cache_name):
+    def record_prevented_duplicate(self, cache_name: str) -> None:
         self._record(
             "prevented_duplicate_computations",
             cache_name,
         )
 
-    def get_stats(self, cache_name=None):
+    def get_stats(self, cache_name: str | None = None) -> dict[str, Any]:
         with self._lock:
             names = set()
             for counter in self._COUNTERS:
                 names.update(self._values[counter].keys())
 
-            def stats_for(name):
+            def stats_for(name: str) -> dict[str, Any]:
                 fresh = self._values["fresh_hits"].get(name, 0)
                 stale = self._values["stale_hits"].get(name, 0)
                 misses = self._values["misses"].get(name, 0)
@@ -117,7 +118,7 @@ class CacheMetrics:
                 "per_cache": per_cache,
             }
 
-    def reset(self):
+    def reset(self) -> None:
         with self._lock:
             for values in self._values.values():
                 values.clear()
@@ -127,52 +128,52 @@ class CacheMetrics:
 _metrics = CacheMetrics()
 
 
-def record_hit(cache_name):
+def record_hit(cache_name: str) -> None:
     """Backward-compatible alias for a fresh cache hit."""
     _metrics.record_fresh_hit(cache_name)
 
 
-def record_fresh_hit(cache_name):
+def record_fresh_hit(cache_name: str) -> None:
     _metrics.record_fresh_hit(cache_name)
 
 
-def record_stale_hit(cache_name):
+def record_stale_hit(cache_name: str) -> None:
     _metrics.record_stale_hit(cache_name)
 
 
-def record_miss(cache_name):
+def record_miss(cache_name: str) -> None:
     _metrics.record_miss(cache_name)
 
 
-def record_invalidation(cache_name):
+def record_invalidation(cache_name: str) -> None:
     _metrics.record_invalidation(cache_name)
 
 
-def record_refresh(cache_name):
+def record_refresh(cache_name: str) -> None:
     _metrics.record_refresh(cache_name)
 
 
-def record_refresh_failure(cache_name):
+def record_refresh_failure(cache_name: str) -> None:
     _metrics.record_refresh_failure(cache_name)
 
 
-def record_prevented_duplicate(cache_name):
+def record_prevented_duplicate(cache_name: str) -> None:
     _metrics.record_prevented_duplicate(cache_name)
 
 
-def get_cache_stats(cache_name=None):
+def get_cache_stats(cache_name: str | None = None) -> dict[str, Any]:
     return _metrics.get_stats(cache_name)
 
 
-def get_all_cache_stats():
+def get_all_cache_stats() -> dict[str, Any]:
     return _metrics.get_stats()
 
 
-def reset_metrics():
+def reset_metrics() -> None:
     _metrics.reset()
 
 
-def render_metrics_sidebar():
+def render_metrics_sidebar() -> None:
     """Render cache metrics in Streamlit's sidebar."""
     import streamlit as st
 

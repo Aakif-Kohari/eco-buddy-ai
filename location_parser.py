@@ -2,12 +2,14 @@ import io
 import gpxpy
 import ijson
 import datetime
+from collections.abc import Callable
+from typing import Any
 from geopy.distance import geodesic
 
 from errors import AppError, ValidationError, ParsingError, to_error_dict, success_dict
 
 
-def parse_gpx(file_content_str):
+def parse_gpx(file_content_str: str) -> list[dict[str, Any]]:
     """Parses GPX XML content into a list of timestamped waypoints.
 
     Raises:
@@ -34,7 +36,7 @@ def parse_gpx(file_content_str):
                     })
     return waypoints
 
-def parse_google_takeout_json(file_stream):
+def parse_google_takeout_json(file_stream: io.BytesIO) -> list[dict[str, Any]]:
     """Parses a Google Takeout "Location History.json" export into waypoints.
 
     Raises:
@@ -76,7 +78,7 @@ def parse_google_takeout_json(file_stream):
         ) from exc
     return waypoints
 
-def detect_transport_mode(avg_speed_kmh):
+def detect_transport_mode(avg_speed_kmh: float) -> str:
     if avg_speed_kmh < 7:
         return "Walking"
     elif avg_speed_kmh < 25:
@@ -86,7 +88,7 @@ def detect_transport_mode(avg_speed_kmh):
     else:
         return "Car"
 
-def segment_trips(waypoints, time_threshold_minutes=30):
+def segment_trips(waypoints: list[dict[str, Any]], time_threshold_minutes: float = 30) -> list[dict[str, Any]]:
     if not waypoints:
         return []
     
@@ -117,7 +119,7 @@ def segment_trips(waypoints, time_threshold_minutes=30):
         
     return segments
 
-def process_segment(segment_waypoints):
+def process_segment(segment_waypoints: list[dict[str, Any]]) -> dict[str, Any]:
     total_distance_km = 0.0
     for i in range(1, len(segment_waypoints)):
         coord1 = (segment_waypoints[i-1]["lat"], segment_waypoints[i-1]["lon"])
@@ -140,7 +142,11 @@ def process_segment(segment_waypoints):
         "waypoints": segment_waypoints
     }
 
-def parse_and_segment_file_bytes(file_bytes: bytes, filename: str, progress_callback=None):
+def parse_and_segment_file_bytes(
+    file_bytes: bytes,
+    filename: str,
+    progress_callback: Callable[[float, str], None] | None = None,
+) -> dict[str, Any]:
     """
     Parses GPX or Google Takeout JSON bytes and segments trips in a background worker thread.
     Thread-safe helper supporting optional progress callbacks.

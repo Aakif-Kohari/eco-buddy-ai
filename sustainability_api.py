@@ -13,6 +13,7 @@ new version without touching individual route handlers.
 import json
 import http.server
 import urllib.parse
+from typing import Any
 from emissions import calculate_footprint, calculate_eco_score
 from recommendations import generate_recommendations
 from database import get_assessments, get_active_goal
@@ -421,14 +422,14 @@ def process_api_request(
 class SustainabilityAPIRequestHandler(http.server.BaseHTTPRequestHandler):
     """HTTP request handler for the standalone EcoBuddy AI REST API server."""
 
-    def log_message(self, format, *args):  # noqa: A002
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         # Suppress default access-log noise during testing
         pass
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         self._handle("GET")
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         self._handle("POST")
 
     def _handle(self, method: str) -> None:

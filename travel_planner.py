@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import random
 import json
 import math
+from typing import Any
 
 # ============================================================
 # DESTINATION DATABASE
@@ -126,7 +127,7 @@ class EcoDestinations:
     ]
     
     @staticmethod
-    def get_destinations(filters=None):
+    def get_destinations(filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Get destinations with optional filters"""
         destinations = EcoDestinations.DESTINATIONS.copy()
         
@@ -141,7 +142,7 @@ class EcoDestinations:
         return destinations
     
     @staticmethod
-    def get_regions():
+    def get_regions() -> list[str]:
         """Get unique regions"""
         return sorted(set(d["region"] for d in EcoDestinations.DESTINATIONS))
 
@@ -153,7 +154,7 @@ class TripCarbonCalculator:
     """Calculate carbon footprint for trips"""
     
     @staticmethod
-    def calculate_trip_carbon(destination, transport_mode, duration_days, travelers):
+    def calculate_trip_carbon(destination: str, transport_mode: str, duration_days: int, travelers: int) -> dict[str, Any]:
         """Calculate carbon footprint for a trip"""
         
         # Base carbon factors (kg CO2 per km)
@@ -229,12 +230,12 @@ class SustainablePacking:
     ]
     
     @staticmethod
-    def get_checklist():
+    def get_checklist() -> list[dict[str, Any]]:
         """Get sustainable packing checklist"""
         return SustainablePacking.ITEMS
     
     @staticmethod
-    def calculate_savings(selected_items):
+    def calculate_savings(selected_items: list[str]) -> int:
         """Calculate plastic saved from selected items"""
         total_saving = sum(item["saving"] for item in SustainablePacking.ITEMS if item["name"] in selected_items)
         return total_saving
@@ -300,7 +301,7 @@ class EcoTravelTips:
     ]
     
     @staticmethod
-    def get_tips(category=None):
+    def get_tips(category: str | None = None) -> list[dict[str, Any]]:
         """Get travel tips by category"""
         if category:
             return [t for t in EcoTravelTips.TIPS if t["category"] == category]
@@ -310,7 +311,7 @@ class EcoTravelTips:
 # RENDER FUNCTIONS
 # ============================================================
 
-def render_travel_planner():
+def render_travel_planner() -> None:
     """Render the complete travel planner"""
     st.markdown("<div class='section-header'>🌍 Eco-Travel & Sustainable Tourism</div>", unsafe_allow_html=True)
     
@@ -334,7 +335,7 @@ def render_travel_planner():
     with tab4:
         render_travel_tips()
 
-def render_destinations():
+def render_destinations() -> None:
     """Render eco-destinations"""
     st.markdown("### 🌴 Eco-Friendly Destinations")
     
@@ -406,7 +407,7 @@ def render_destinations():
                 st.session_state.trip_destination = dest['name']
                 st.rerun()
 
-def render_trip_planner():
+def render_trip_planner() -> None:
     """Render trip planner"""
     st.markdown("### ✈️ Plan Your Sustainable Trip")
     
@@ -514,7 +515,7 @@ def render_trip_planner():
                     st.balloons()
                     st.success("🎉 Trip offset successfully! You're now carbon neutral for this trip!")
 
-def render_packing_guide():
+def render_packing_guide() -> None:
     """Render sustainable packing guide"""
     st.markdown("### 🧳 Sustainable Packing Checklist")
     
@@ -556,7 +557,7 @@ def render_packing_guide():
         else:
             st.warning("📝 Try adding more reusable items to reduce waste")
 
-def render_travel_tips():
+def render_travel_tips() -> None:
     """Render eco-travel tips"""
     st.markdown("### 💡 Eco-Travel Tips")
     
@@ -618,7 +619,7 @@ def render_travel_tips():
 # INTEGRATION
 # ============================================================
 
-def render_travel_hub():
+def render_travel_hub() -> None:
     """Render the complete travel hub"""
     render_travel_planner()
 

@@ -21,6 +21,7 @@ import os
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -202,23 +203,23 @@ OVERDUE_MULTIPLIER = 1.0
 TODAY_OVERRIDE = None
 
 
-def today():
+def today() -> datetime.date:
     """Return today's date, overridable in tests via ``TODAY_OVERRIDE``."""
     return TODAY_OVERRIDE or datetime.date.today()
 
 
-def list_device_types():
+def list_device_types() -> list[dict[str, Any]]:
     """Return the device catalogue as a list including the type name."""
     return [dict(info, name=name) for name, info in DEVICE_TYPES.items()]
 
 
-def get_device_type(name):
+def get_device_type(name: str) -> dict[str, Any] | None:
     """Return one device type's reference data, or None."""
     info = DEVICE_TYPES.get(name)
     return dict(info, name=name) if info else None
 
 
-def _clean_year(purchase_year):
+def _clean_year(purchase_year: int) -> int:
     """Clamp a purchase year into a sensible range."""
     current = today().year
     try:
@@ -228,7 +229,7 @@ def _clean_year(purchase_year):
     return max(1990, min(year, current))
 
 
-def years_owned(purchase_year, reference_year=None):
+def years_owned(purchase_year: int, reference_year: int | None = None) -> float:
     """Return how long a device has been owned, floored at a partial year."""
     reference_year = reference_year or today().year
     owned = reference_year - _clean_year(purchase_year)
@@ -236,7 +237,7 @@ def years_owned(purchase_year, reference_year=None):
     return max(0.5, float(owned))
 
 
-def operating_emissions(device_type, daily_hours=None, grid_intensity=None):
+def operating_emissions(device_type: str, daily_hours: float | None = None, grid_intensity: float | None = None) -> float:
     """Annual kg CO2 from running a device."""
     info = DEVICE_TYPES.get(device_type)
     if not info:
@@ -252,7 +253,7 @@ def operating_emissions(device_type, daily_hours=None, grid_intensity=None):
     return round(kwh * intensity, 2)
 
 
-def annualized_footprint(device, grid_intensity=None):
+def annualized_footprint(device: dict[str, Any], grid_intensity: float | None = None) -> dict[str, Any]:
     """Annualised emissions for one device: amortised embodied plus operating.
 
     ``device`` needs ``device_type`` and ``purchase_year``; ``daily_hours`` is
@@ -287,7 +288,7 @@ def annualized_footprint(device, grid_intensity=None):
     }
 
 
-def lifetime_footprint(device, grid_intensity=None):
+def lifetime_footprint(device: dict[str, Any], grid_intensity: float | None = None) -> dict[str, Any]:
     """Total emissions across a device's whole expected life."""
     info = DEVICE_TYPES[device["device_type"]]
     quantity = max(1, int(device.get("quantity", 1)))
@@ -305,7 +306,7 @@ def lifetime_footprint(device, grid_intensity=None):
     }
 
 
-def remaining_life(device):
+def remaining_life(device: dict[str, Any]) -> dict[str, Any]:
     """How much of a device's expected life is left."""
     info = DEVICE_TYPES[device["device_type"]]
     owned = years_owned(device.get("purchase_year"))
@@ -321,12 +322,12 @@ def remaining_life(device):
 
 
 def repair_vs_replace(
-    device,
-    repair_extends_years,
-    replacement_type=None,
-    efficiency_gain=DEFAULT_EFFICIENCY_GAIN,
-    grid_intensity=None,
-):
+    device: dict[str, Any],
+    repair_extends_years: float,
+    replacement_type: str | None = None,
+    efficiency_gain: float = DEFAULT_EFFICIENCY_GAIN,
+    grid_intensity: float | None = None,
+) -> dict[str, Any]:
     """Compare repairing a device against replacing it.
 
     Repair carbon is the emissions of continuing to run the old device for
@@ -389,8 +390,8 @@ def repair_vs_replace(
     }
 
 
-def upgrade_break_even(old_type, new_type, daily_hours=None, efficiency_gain=DEFAULT_EFFICIENCY_GAIN,
-                       grid_intensity=None):
+def upgrade_break_even(old_type: str, new_type: str, daily_hours: float | None = None, efficiency_gain: float = DEFAULT_EFFICIENCY_GAIN,
+                       grid_intensity: float | None = None) -> dict[str, Any]:
     """Years of lower running cost needed to repay a new device's manufacturing debt."""
     if old_type not in DEVICE_TYPES or new_type not in DEVICE_TYPES:
         raise KeyError("Unknown device type")
@@ -423,7 +424,7 @@ def upgrade_break_even(old_type, new_type, daily_hours=None, efficiency_gain=DEF
     }
 
 
-def disposal_guidance(device):
+def disposal_guidance(device: dict[str, Any]) -> dict[str, Any]:
     """Recommend a disposal route based on the device's condition and age."""
     device_type = device.get("device_type")
     info = DEVICE_TYPES.get(device_type)
@@ -465,7 +466,7 @@ def disposal_guidance(device):
     }
 
 
-def portfolio_summary(devices, grid_intensity=None):
+def portfolio_summary(devices: list[dict[str, Any]], grid_intensity: float | None = None) -> dict[str, Any]:
     """Aggregate every device a user owns."""
     devices = devices or []
     rows = []
@@ -512,7 +513,7 @@ def portfolio_summary(devices, grid_intensity=None):
     }
 
 
-def extension_savings(devices, extra_years, grid_intensity=None):
+def extension_savings(devices: list[dict[str, Any]], extra_years: float, grid_intensity: float | None = None) -> dict[str, Any]:
     """CO2 avoided by keeping every device ``extra_years`` longer.
 
     Extending ownership does not reduce emissions already released; it spreads
@@ -542,7 +543,7 @@ def extension_savings(devices, extra_years, grid_intensity=None):
     }
 
 
-def get_lifecycle_tips(summary, limit=5):
+def get_lifecycle_tips(summary: dict[str, Any], limit: int = 5) -> list[str]:
     """Return tips ranked by what this particular portfolio looks like."""
     if not summary.get("devices"):
         return ["Register your electronics to see their manufacturing footprint."]
@@ -589,11 +590,11 @@ def get_lifecycle_tips(summary, limit=5):
     return tips[: max(0, int(limit))]
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_device_lifecycle_db():
+def init_device_lifecycle_db() -> bool:
     """Create the device table if it does not exist yet."""
     conn = None
     try:
@@ -625,8 +626,8 @@ def init_device_lifecycle_db():
             conn.close()
 
 
-def register_device(user_id, name, device_type, purchase_year, quantity=1,
-                    daily_hours=None, condition="Working"):
+def register_device(user_id: int, name: str, device_type: str, purchase_year: int, quantity: int = 1,
+                    daily_hours: float | None = None, condition: str = "Working") -> int | None:
     """Register a device. Returns the new row id, or None if invalid."""
     if device_type not in DEVICE_TYPES:
         logger.warning("Refusing to register unknown device type: %s", device_type)
@@ -664,7 +665,7 @@ def register_device(user_id, name, device_type, purchase_year, quantity=1,
             conn.close()
 
 
-def get_devices(user_id, include_retired=False):
+def get_devices(user_id: int, include_retired: bool = False) -> list[dict[str, Any]]:
     """Return a user's devices, newest first."""
     init_device_lifecycle_db()
     conn = None
@@ -691,7 +692,7 @@ def get_devices(user_id, include_retired=False):
             conn.close()
 
 
-def update_device(device_id, condition=None, daily_hours=None, quantity=None):
+def update_device(device_id: int, condition: str | None = None, daily_hours: float | None = None, quantity: int | None = None) -> bool:
     """Update a registered device's condition, usage hours or quantity."""
     init_device_lifecycle_db()
     updates = []
@@ -727,7 +728,7 @@ def update_device(device_id, condition=None, daily_hours=None, quantity=None):
             conn.close()
 
 
-def retire_device(device_id):
+def retire_device(device_id: int) -> bool:
     """Mark a device retired without losing its history."""
     init_device_lifecycle_db()
     conn = None
@@ -751,7 +752,7 @@ def retire_device(device_id):
             conn.close()
 
 
-def delete_device(device_id):
+def delete_device(device_id: int) -> bool:
     """Permanently delete a registered device."""
     init_device_lifecycle_db()
     conn = None
