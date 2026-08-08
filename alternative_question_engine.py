@@ -4,8 +4,17 @@ from sentence_transformers import SentenceTransformer, util
 class AlternativeQuestionEngine:
     """Generate semantically similar interview questions."""
 
+    _model = None
+
+    @classmethod
+    def get_model(cls):
+        """Get or load the model once (singleton pattern)."""
+        if cls._model is None:
+            cls._model = SentenceTransformer("all-MiniLM-L6-v2")
+        return cls._model
+
     def __init__(self):
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.model = self.get_model()
 
     def recommend(
         self,
