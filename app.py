@@ -21,7 +21,6 @@ from dotenv import load_dotenv
 
 from styles.theme import apply_theme
 from achievement_showcase import render_header
-
 from garden_assistant import render_garden_hub
 from voice_assessment import render_voice_assessment
 from components.header import render_header
