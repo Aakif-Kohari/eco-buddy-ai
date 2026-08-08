@@ -70,6 +70,12 @@ QUESTION_BANK = [
 ]
 
 
+# Cache the model to avoid reloading on every interaction
+@st.cache_resource
+def get_engine():
+    return AlternativeQuestionEngine()
+
+
 st.title("🤖 AI Alternative Question Recommendation Engine")
 
 st.write(
@@ -101,7 +107,7 @@ if st.button(
         "🤖 Loading AI model and generating alternatives..."
     ):
 
-        engine = AlternativeQuestionEngine()
+        engine = get_engine()
 
         recommendations = engine.recommend(
             question=question,
