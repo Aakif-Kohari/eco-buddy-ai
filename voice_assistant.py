@@ -8,6 +8,7 @@ import json
 import re
 from datetime import datetime
 import random
+from typing import Any
 
 # ============================================================
 # VOICE COMMAND PARSER
@@ -43,7 +44,7 @@ class VoiceCommandParser:
     }
     
     @staticmethod
-    def parse_voice_input(text):
+    def parse_voice_input(text: str) -> dict[str, Any] | None:
         """Parse voice input into structured assessment data"""
         
         # Clean text
@@ -121,7 +122,7 @@ class VoiceCommandParser:
         return result
     
     @staticmethod
-    def get_example_commands():
+    def get_example_commands() -> list[str]:
         """Get example voice commands"""
         return [
             "I drive 15 kilometers every day to work and I'm vegetarian",
@@ -149,12 +150,12 @@ class SpeechToTextSimulator:
     ]
     
     @staticmethod
-    def get_simulated_voice_input():
+    def get_simulated_voice_input() -> str:
         """Get a simulated voice input"""
         return random.choice(SpeechToTextSimulator.SAMPLE_RESPONSES)
     
     @staticmethod
-    def process_voice_button():
+    def process_voice_button() -> str:
         """Handle voice input button click"""
         # In production, this would connect to a real speech-to-text API
         return SpeechToTextSimulator.get_simulated_voice_input()
@@ -167,7 +168,7 @@ class VoiceAssessmentUI:
     """UI for voice-powered carbon assessment"""
     
     @staticmethod
-    def render_voice_assessment():
+    def render_voice_assessment() -> None:
         """Render the voice assessment interface"""
         st.markdown("""
         <div class='card-highlight'>
@@ -254,7 +255,7 @@ class VoiceAssessmentUI:
                 st.markdown(f"• {step}")
     
     @staticmethod
-    def render_parsed_results(parsed):
+    def render_parsed_results(parsed: dict[str, Any]) -> None:
         """Render the parsed voice results"""
         st.markdown("### 🔍 What We Understood")
         
@@ -412,7 +413,7 @@ class VoiceAssessmentUI:
 # RENDER FUNCTION
 # ============================================================
 
-def render_voice_assessment():
+def render_voice_assessment() -> None:
     """Render the complete voice assessment interface"""
     VoiceAssessmentUI.render_voice_assessment()
 
@@ -420,7 +421,7 @@ def render_voice_assessment():
 # INTEGRATION WITH MAIN APP
 # ============================================================
 
-def integrate_voice_assessment():
+def integrate_voice_assessment() -> None:
     """Integration function for main app"""
     st.markdown("<div class='section-header'>🎤 Voice Assessment</div>", unsafe_allow_html=True)
     render_voice_assessment()

@@ -8,13 +8,15 @@ import tracemalloc
 import time
 import functools
 import logging
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-def profile_cpu(func):
+def profile_cpu(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to profile CPU execution of a function and log top time consumers."""
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         pr = cProfile.Profile()
         pr.enable()
         res = func(*args, **kwargs)
@@ -26,10 +28,10 @@ def profile_cpu(func):
         return res
     return wrapper
 
-def profile_memory(func):
+def profile_memory(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to profile memory allocation (peak & current) during function execution."""
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         tracemalloc.start()
         t0 = time.perf_counter()
         res = func(*args, **kwargs)
@@ -43,7 +45,7 @@ def profile_memory(func):
         return res
     return wrapper
 
-def profile_function(func, *args, **kwargs):
+def profile_function(func: Callable[..., Any], *args: Any, **kwargs: Any) -> dict[str, Any]:
     """Run cProfile & tracemalloc on any callable and return stats dict."""
     tracemalloc.start()
     pr = cProfile.Profile()

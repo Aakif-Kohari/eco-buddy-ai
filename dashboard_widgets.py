@@ -83,7 +83,7 @@ def render_widget_customizer(user_id: int) -> list[str]:
 
 
 @st.cache_data(show_spinner=False)
-def _assessment_rows_to_frame(rows: tuple):
+def _assessment_rows_to_frame(rows: tuple) -> pd.DataFrame:
     import pandas as pd
     columns = [
         "id",

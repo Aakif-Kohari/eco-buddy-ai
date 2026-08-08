@@ -157,13 +157,13 @@ CARDS = {
 }
 
 
-def calculate_level(total_xp):
+def calculate_level(total_xp: int) -> int:
     if total_xp < 0:
         return 1
     return math.floor(math.sqrt(total_xp / 100)) + 1
 
 
-def calculate_level_progress(total_xp):
+def calculate_level_progress(total_xp: int) -> float:
     current_level = calculate_level(total_xp)
     next_level = current_level + 1
     
@@ -181,7 +181,11 @@ def calculate_level_progress(total_xp):
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def calculate_streak(user_id, activities_dates, freeze_dates=None):
+def calculate_streak(
+    user_id: int,
+    activities_dates: list[str | datetime.datetime | datetime.date],
+    freeze_dates: list[str | datetime.datetime | datetime.date] | None = None,
+) -> int:
     # Adjust check to allow yesterday's log to keep streak alive (#86).
     # If the most recent log was yesterday, the streak remains active;
     # only reset if the last log was more than 1 day ago.
@@ -241,7 +245,7 @@ def calculate_streak(user_id, activities_dates, freeze_dates=None):
     return streak
 
 
-def validate_challenge_progress(user_id, challenge_id):
+def validate_challenge_progress(user_id: int, challenge_id: str) -> bool:
     challenges = get_user_challenges(user_id)
     for c in challenges:
         if c['challenge_id'] == challenge_id and c['status'] == 'enrolled':
@@ -254,7 +258,7 @@ def validate_challenge_progress(user_id, challenge_id):
     return False
 
 
-def is_challenge_complete(user_id, challenge_id):
+def is_challenge_complete(user_id: int, challenge_id: str) -> bool:
     ch_def = CHALLENGES.get(challenge_id)
     if not ch_def:
         return False
@@ -267,13 +271,13 @@ def is_challenge_complete(user_id, challenge_id):
     return False
 
 
-def award_challenge_xp(user_id, challenge_id):
+def award_challenge_xp(user_id: int, challenge_id: str) -> None:
     ch_def = CHALLENGES.get(challenge_id)
     if ch_def:
         award_xp(user_id, 'challenge', challenge_id, ch_def['xp'], f"Completed {ch_def['title']}")
 
 
-def check_badge_eligibility(user_id, check_diet=False):
+def check_badge_eligibility(user_id: int, check_diet: bool = False) -> None:
     unlocked_ids = [b['badge_id'] for b in get_unlocked_badges(user_id)]
 
     # b1: Completed at least one footprint assessment
@@ -307,14 +311,14 @@ def check_badge_eligibility(user_id, check_diet=False):
                 unlock_badge(user_id, 'b4')
 
 
-def get_user_streak(user_id):
+def get_user_streak(user_id: int) -> int:
     assessments = get_assessments(user_id)
     activities_dates = [row[1] for row in assessments]
     freeze_dates = get_streak_freeze_dates(user_id)
     return calculate_streak(user_id, activities_dates, freeze_dates)
 
 
-def award_freeze_tokens_for_streak_milestones(user_id):
+def award_freeze_tokens_for_streak_milestones(user_id: int) -> int:
     streak = get_user_streak(user_id)
     awarded = 0
     for threshold, tokens, milestone_type, label in FREEZE_TOKEN_MILESTONES:
@@ -331,7 +335,7 @@ def award_freeze_tokens_for_streak_milestones(user_id):
     return awarded
 
 
-def protect_streak_with_freeze(user_id):
+def protect_streak_with_freeze(user_id: int) -> tuple[bool, str]:
     assessments = get_assessments(user_id)
     activities_dates = [row[1] for row in assessments]
     freeze_dates = get_streak_freeze_dates(user_id)
@@ -380,14 +384,14 @@ def protect_streak_with_freeze(user_id):
     return False, "Failed to apply streak freeze"
 
 
-def unlock_badge(user_id, badge_id):
+def unlock_badge(user_id: int, badge_id: str) -> None:
     if unlock_badge_in_db(user_id, badge_id):
         badge_def = BADGES.get(badge_id)
         if badge_def and badge_def.get('xp'):
             award_xp(user_id, 'badge', badge_id, badge_def['xp'], f"Unlocked badge: {badge_def['name']}")
 
 
-def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
+def generate_achievement_card(user_id: int, badge_id: str, filename: str = "badge_card.png") -> str | None:
     badge_def = BADGES.get(badge_id)
     if not badge_def:
         return None
@@ -436,13 +440,13 @@ def generate_achievement_card(user_id, badge_id, filename="badge_card.png"):
     return filename
 
 
-def unlock_card(user_id, card_id):
+def unlock_card(user_id: int, card_id: str) -> bool:
     if unlock_card_in_db(user_id, card_id):
         return True
     return False
 
 
-def generate_trading_card(user_id, card_id, filename="trading_card.png"):
+def generate_trading_card(user_id: int, card_id: str, filename: str = "trading_card.png") -> str | None:
     card_def = CARDS.get(card_id)
     if not card_def:
         return None
@@ -508,7 +512,7 @@ def generate_trading_card(user_id, card_id, filename="trading_card.png"):
     return filename
 
 
-def check_card_eligibility(user_id):
+def check_card_eligibility(user_id: int) -> list[str]:
     unlocked_ids = [c['card_id'] for c in get_unlocked_cards(user_id)]
     newly_unlocked = []
 
@@ -645,7 +649,7 @@ def check_card_eligibility(user_id):
     return newly_unlocked
 
 
-def evaluate_skill_tree(user_id):
+def evaluate_skill_tree(user_id: int) -> dict[str, str]:
     """Evaluate prerequisites and unlock nodes if ready."""
     progress = get_skill_tree_progress(user_id)
     # Convert list of dicts to a map of node_id -> status
@@ -674,7 +678,7 @@ def evaluate_skill_tree(user_id):
     return {node_id: progress_map.get(node_id, 'Locked') for node_id in SKILL_TREE_NODES}
 
 
-def complete_skill_node(user_id, node_id):
+def complete_skill_node(user_id: int, node_id: str) -> bool:
     node_data = SKILL_TREE_NODES.get(node_id)
     if not node_data:
         return False

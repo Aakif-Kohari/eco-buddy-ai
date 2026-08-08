@@ -1,6 +1,8 @@
 """Migration v6: add streak freeze token system."""
 
-def migrate(conn):
+import sqlite3
+
+def migrate(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS freeze_token_balances (

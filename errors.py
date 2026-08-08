@@ -45,6 +45,8 @@ How to use this in a processing function
 
 from __future__ import annotations
 
+from typing import Any
+
 
 class AppError(Exception):
     """Base class for all application-level, user-facing errors.
@@ -62,7 +64,7 @@ class AppError(Exception):
 
     code = "APP_ERROR"
 
-    def __init__(self, message: str, *, code: str | None = None, details: str | None = None):
+    def __init__(self, message: str, *, code: str | None = None, details: str | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.code = code or self.code
@@ -119,7 +121,7 @@ def to_error_dict(error: AppError) -> dict:
     return result
 
 
-def success_dict(**data) -> dict:
+def success_dict(**data: Any) -> dict[str, Any]:
     """Builds the standard success envelope, merged with the payload fields.
 
     Pairs with :func:`to_error_dict` so callers can always check the same

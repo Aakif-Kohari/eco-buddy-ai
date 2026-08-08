@@ -60,6 +60,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +248,7 @@ class ReboundError(ValueError):
     """Raised when a request cannot be answered honestly."""
 
 
-def _as_float(value, default=0.0):
+def _as_float(value: float, default: float = 0.0) -> float:
     try:
         result = float(value)
     except (TypeError, ValueError):
@@ -257,7 +258,7 @@ def _as_float(value, default=0.0):
     return result
 
 
-def _non_negative(value, default=0.0):
+def _non_negative(value: float, default: float = 0.0) -> float:
     return max(0.0, _as_float(value, default))
 
 
@@ -265,12 +266,12 @@ def _non_negative(value, default=0.0):
 # Lookups
 # ---------------------------------------------------------------------------
 
-def list_action_types():
+def list_action_types() -> list[str]:
     """Action types with a rebound model."""
     return sorted(ACTION_TYPES)
 
 
-def get_action_type(action_type):
+def get_action_type(action_type: str) -> dict[str, Any]:
     """The elasticity, range and rationale for an action type."""
     if action_type not in ACTION_TYPES:
         raise ReboundError(
@@ -282,12 +283,12 @@ def get_action_type(action_type):
     return dict(ACTION_TYPES[action_type])
 
 
-def list_satiation_levels():
+def list_satiation_levels() -> list[str]:
     """Household starting positions that change direct rebound."""
     return list(SATIATION_LEVELS)
 
 
-def get_satiation(level):
+def get_satiation(level: str) -> dict[str, Any]:
     if level not in SATIATION_LEVELS:
         raise ReboundError(
             f"Unknown satiation level '{level}'. Pick one of: "
@@ -296,12 +297,12 @@ def get_satiation(level):
     return dict(SATIATION_LEVELS[level])
 
 
-def list_respending_profiles():
+def list_respending_profiles() -> list[str]:
     """Where a saved pound might go."""
     return list(RESPENDING_PROFILES)
 
 
-def get_respending(profile):
+def get_respending(profile: str) -> dict[str, Any]:
     if profile not in RESPENDING_PROFILES:
         raise ReboundError(
             f"Unknown re-spending profile '{profile}'. Pick one of: "
@@ -314,8 +315,8 @@ def get_respending(profile):
 # Direct rebound
 # ---------------------------------------------------------------------------
 
-def direct_rebound(gross_saving_kg, action_type, satiation=DEFAULT_SATIATION,
-                   elasticity=None):
+def direct_rebound(gross_saving_kg: float, action_type: str, satiation: str = DEFAULT_SATIATION,
+                   elasticity: float | None = None) -> dict[str, Any]:
     """Take-back from consuming more of the service that got cheaper.
 
     Returns the carbon given back, and whether that give-back is a welfare
@@ -353,8 +354,8 @@ def direct_rebound(gross_saving_kg, action_type, satiation=DEFAULT_SATIATION,
 # Indirect rebound
 # ---------------------------------------------------------------------------
 
-def indirect_rebound(money_saved, respending=DEFAULT_RESPENDING,
-                     respent_fraction=1.0, intensity=None):
+def indirect_rebound(money_saved: float, respending: str = DEFAULT_RESPENDING,
+                     respent_fraction: float = 1.0, intensity: float | None = None) -> dict[str, Any]:
     """Carbon caused by spending the money the measure freed up.
 
     This is the term that can produce backfire, and the only one that can.
@@ -384,9 +385,9 @@ def indirect_rebound(money_saved, respending=DEFAULT_RESPENDING,
 # Net effect
 # ---------------------------------------------------------------------------
 
-def net_saving(gross_saving_kg, action_type, money_saved=0.0,
-               satiation=DEFAULT_SATIATION, respending=DEFAULT_RESPENDING,
-               respent_fraction=1.0, elasticity=None):
+def net_saving(gross_saving_kg: float, action_type: str, money_saved: float = 0.0,
+               satiation: str = DEFAULT_SATIATION, respending: str = DEFAULT_RESPENDING,
+               respent_fraction: float = 1.0, elasticity: float | None = None) -> dict[str, Any]:
     """Gross saving, both take-back terms, and what is actually left.
 
     The decomposition is the deliverable. Handing a user a smaller number
@@ -452,9 +453,9 @@ def net_saving(gross_saving_kg, action_type, money_saved=0.0,
     }
 
 
-def sensitivity(gross_saving_kg, action_type, money_saved=0.0,
-                satiation=DEFAULT_SATIATION, respending=DEFAULT_RESPENDING,
-                respent_fraction=1.0):
+def sensitivity(gross_saving_kg: float, action_type: str, money_saved: float = 0.0,
+                satiation: str = DEFAULT_SATIATION, respending: str = DEFAULT_RESPENDING,
+                respent_fraction: float = 1.0) -> dict[str, Any]:
     """Net saving across the published elasticity range.
 
     The elasticities carry real uncertainty. A range with a stated basis is
@@ -491,10 +492,10 @@ def sensitivity(gross_saving_kg, action_type, money_saved=0.0,
 # Corrected payback
 # ---------------------------------------------------------------------------
 
-def corrected_payback_years(embodied_kg, gross_annual_saving_kg, action_type,
-                            money_saved_per_year=0.0,
-                            satiation=DEFAULT_SATIATION,
-                            respending=DEFAULT_RESPENDING):
+def corrected_payback_years(embodied_kg: float, gross_annual_saving_kg: float, action_type: str,
+                            money_saved_per_year: float = 0.0,
+                            satiation: str = DEFAULT_SATIATION,
+                            respending: str = DEFAULT_RESPENDING) -> dict[str, Any]:
     """Payback period computed from net rather than gross saving.
 
     ``carbon_payback.py`` divides embodied carbon by a gross annual saving.
@@ -538,8 +539,8 @@ def corrected_payback_years(embodied_kg, gross_annual_saving_kg, action_type,
 # Ranking
 # ---------------------------------------------------------------------------
 
-def rank_actions(actions, satiation=DEFAULT_SATIATION,
-                 respending=DEFAULT_RESPENDING):
+def rank_actions(actions: list[dict[str, Any]] | None, satiation: str = DEFAULT_SATIATION,
+                 respending: str = DEFAULT_RESPENDING) -> dict[str, Any]:
     """Rank options by gross and by net saving, and report the difference.
 
     Rebound differs by a factor of ten between action types, so this changes
@@ -592,7 +593,7 @@ def rank_actions(actions, satiation=DEFAULT_SATIATION,
     }
 
 
-def get_rebound_insights(results):
+def get_rebound_insights(results: list[dict[str, Any]] | None) -> list[str]:
     """Plain-language guidance from a set of scored actions."""
     insights = []
     rows = [row for row in results or [] if isinstance(row, dict)]
@@ -656,11 +657,11 @@ def get_rebound_insights(results):
 # Storage
 # ---------------------------------------------------------------------------
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_rebound_db():
+def init_rebound_db() -> None:
     """Create the table if it does not exist yet."""
     conn = None
     try:
@@ -691,7 +692,7 @@ def init_rebound_db():
             conn.close()
 
 
-def save_scenario(user_id, name, result):
+def save_scenario(user_id: int, name: str, result: dict[str, Any]) -> int | None:
     """Persist a scored scenario. Returns the row id or None."""
     init_rebound_db()
     conn = None
@@ -725,7 +726,7 @@ def save_scenario(user_id, name, result):
             conn.close()
 
 
-def get_scenarios(user_id, limit=25):
+def get_scenarios(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """A user's saved scenarios, newest first."""
     init_rebound_db()
     conn = None
@@ -762,7 +763,7 @@ def get_scenarios(user_id, limit=25):
             conn.close()
 
 
-def delete_scenario(scenario_id):
+def delete_scenario(scenario_id: int) -> bool:
     """Delete a saved scenario."""
     init_rebound_db()
     conn = None

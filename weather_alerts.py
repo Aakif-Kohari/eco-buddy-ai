@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import random
 import json
 import math
+from typing import Any
 
 # ============================================================
 # WEATHER DATA SIMULATOR
@@ -32,7 +33,7 @@ class WeatherSimulator:
     }
     
     @staticmethod
-    def get_weather(city):
+    def get_weather(city: str) -> dict[str, Any] | None:
         """Get simulated weather data for a city"""
         # Generate realistic-ish weather data
         base_temp = random.randint(-5, 35)
@@ -120,7 +121,7 @@ class SustainabilityAlerts:
     }
     
     @staticmethod
-    def generate_alerts(weather_data, user_data):
+    def generate_alerts(weather_data: dict[str, Any], user_data: dict[str, Any]) -> list[dict[str, Any]]:
         """Generate alerts based on weather and user data"""
         alerts = []
         
@@ -262,7 +263,7 @@ class EcoActivities:
     }
     
     @staticmethod
-    def get_activities(weather_condition, eco_score):
+    def get_activities(weather_condition: str, eco_score: float) -> list[str]:
         """Get personalized eco activities based on weather and eco score"""
         # Get activities for weather condition
         activities = EcoActivities.ACTIVITIES.get(weather_condition, EcoActivities.ACTIVITIES["🌤️ Mostly Sunny"])
@@ -288,7 +289,7 @@ class WeatherImpactCalculator:
     """Calculate environmental impact based on weather"""
     
     @staticmethod
-    def calculate_impact(weather_data, user_data):
+    def calculate_impact(weather_data: dict[str, Any], user_data: dict[str, Any]) -> dict[str, Any]:
         """Calculate impact metrics based on weather"""
         
         # Energy consumption impact
@@ -340,7 +341,7 @@ class WeatherImpactCalculator:
 # RENDER FUNCTIONS
 # ============================================================
 
-def render_weather_alerts():
+def render_weather_alerts() -> None:
     """Render the complete weather & alerts interface"""
     st.markdown("<div class='section-header'>🌤️ Eco-Weather & Alerts</div>", unsafe_allow_html=True)
     
@@ -572,7 +573,7 @@ def render_weather_alerts():
 # INTEGRATION
 # ============================================================
 
-def render_weather_hub():
+def render_weather_hub() -> None:
     """Render the complete weather hub"""
     render_weather_alerts()
 

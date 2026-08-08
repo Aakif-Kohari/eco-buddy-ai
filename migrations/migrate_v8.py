@@ -1,7 +1,9 @@
 """Migration v8: add time capsule and carbon credit marketplace simulation tables."""
 
+import sqlite3
 
-def migrate(conn):
+
+def migrate(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
 
     # --- Eco Time Capsule ---

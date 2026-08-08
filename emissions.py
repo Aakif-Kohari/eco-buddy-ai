@@ -4,6 +4,7 @@ import json
 import math
 from datetime import datetime, timezone
 import calendar
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,8 @@ def fetch_emission_factors(region: str) -> dict:
     return factors
 
 
-def validate_footprint_inputs(transport, distance, electricity, diet, flights, region):
+def validate_footprint_inputs(transport: str, distance: float, electricity: float, diet: str,
+                              flights: int, region: str) -> tuple[str, float, float, int, str]:
     """
     Validates and normalizes footprint calculation parameters.
 
@@ -118,7 +120,9 @@ def validate_footprint_inputs(transport, distance, electricity, diet, flights, r
     return diet, distance, electricity, flights, region
 
 
-def calculate_category_emissions(transport, distance, electricity, diet, flights, dynamic_factors):
+def calculate_category_emissions(transport: str, distance: float, electricity: float, diet: str,
+                                 flights: int,
+                                 dynamic_factors: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """
     Calculates carbon emissions per activity category (Transport, Electricity, Diet, Flights).
 
@@ -162,14 +166,14 @@ def calculate_category_emissions(transport, distance, electricity, diet, flights
 
 
 def calculate_footprint(
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    region="Global",
-    return_audit=False
-):
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    region: str = "Global",
+    return_audit: bool = False
+) -> tuple[float, dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any]]:
     """
     Calculates annual carbon footprint (in kg CO2) across user activities.
     
@@ -242,7 +246,8 @@ def calculate_footprint(
     return total_rounded, contributors
 
 
-def calculate_eco_score(total_footprint, contributors=None, return_audit=False):
+def calculate_eco_score(total_footprint: float, contributors: dict[str, Any] | None = None,
+                        return_audit: bool = False) -> int | tuple[int, dict[str, Any]]:
     """
     Higher score = better sustainability
     Calculates a continuous score based on a sigmoid function.
@@ -287,7 +292,8 @@ def calculate_eco_score(total_footprint, contributors=None, return_audit=False):
     return final_score
 
 
-def generate_full_audit_log(transport, distance, electricity, diet, flights, region="Global") -> dict:
+def generate_full_audit_log(transport: str, distance: float, electricity: float, diet: str,
+                            flights: int, region: str = "Global") -> dict:
     """
     Generates a comprehensive audit log dictionary including both carbon footprint
     and eco score intermediate calculation steps.
@@ -310,7 +316,7 @@ def generate_full_audit_log(transport, distance, electricity, diet, flights, reg
     }
 
 
-def get_factor_version(region="Global"):
+def get_factor_version(region: str = "Global") -> str:
     """
     The factor set version a calculation for this region would currently use.
 
@@ -323,13 +329,13 @@ def get_factor_version(region="Global"):
 def export_audit_log_json(audit_log: dict, indent: int = 2) -> str:
     """Exports an audit log dictionary into a formatted JSON string."""
     return json.dumps(audit_log, indent=indent)
-def calculate_remaining_budget(budget_limit, current_emission):
+def calculate_remaining_budget(budget_limit: float, current_emission: float) -> float:
     """
     Returns remaining carbon budget.
     """
 
     return max(0, budget_limit - current_emission)
-def calculate_budget_progress(budget_limit, current_emission):
+def calculate_budget_progress(budget_limit: float, current_emission: float) -> float:
     """
     Returns percentage of budget used.
     """
@@ -338,7 +344,7 @@ def calculate_budget_progress(budget_limit, current_emission):
         return 0
 
     return min(current_emission / budget_limit, 1.0)
-def forecast_monthly_emission(current_emission):
+def forecast_monthly_emission(current_emission: float) -> float:
     """
     Estimate end-of-month emissions.
     """
@@ -358,7 +364,7 @@ def forecast_monthly_emission(current_emission):
         average * total_days,
         2
     )
-def budget_status(progress):
+def budget_status(progress: float) -> str:
 
     if progress >= 0.90:
         return "Critical"

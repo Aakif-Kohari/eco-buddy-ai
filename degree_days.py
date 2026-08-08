@@ -68,6 +68,7 @@ import math
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ class DegreeDayError(ValueError):
 # --- Climate data -----------------------------------------------------------
 
 
-def list_climate_zones():
+def list_climate_zones() -> list[dict[str, Any]]:
     """Return the built-in climate zones, coldest first."""
     zones = []
     for name, details in CLIMATE_ZONES.items():
@@ -181,13 +182,13 @@ def list_climate_zones():
     return sorted(zones, key=lambda item: item["mean_temperature"])
 
 
-def get_climate_profile(zone):
+def get_climate_profile(zone: str) -> list[float]:
     """Return the 12 monthly mean temperatures for a climate zone."""
     details = CLIMATE_ZONES.get(zone) or CLIMATE_ZONES[DEFAULT_CLIMATE_ZONE]
     return list(details["temperatures"])
 
 
-def clean_base_temperature(base):
+def clean_base_temperature(base: float) -> float:
     """Coerce a base temperature into a physically sensible range."""
     try:
         value = float(base)
@@ -198,7 +199,7 @@ def clean_base_temperature(base):
     return max(MIN_BASE_TEMPERATURE, min(MAX_BASE_TEMPERATURE, value))
 
 
-def clean_temperatures(temperatures, fallback_zone=DEFAULT_CLIMATE_ZONE):
+def clean_temperatures(temperatures: list[float] | None, fallback_zone: str = DEFAULT_CLIMATE_ZONE) -> list[float]:
     """Normalise a user-supplied 12-month temperature series."""
     fallback = get_climate_profile(fallback_zone)
     values = list(temperatures or [])[:12]
@@ -224,7 +225,7 @@ def clean_temperatures(temperatures, fallback_zone=DEFAULT_CLIMATE_ZONE):
 # --- Degree days ------------------------------------------------------------
 
 
-def degree_days_from_daily(temperatures, base=DEFAULT_BASE_TEMPERATURE, cooling_base=None):
+def degree_days_from_daily(temperatures: list[float] | None, base: float = DEFAULT_BASE_TEMPERATURE, cooling_base: float | None = None) -> dict[str, Any]:
     """Heating and cooling degree days from a series of daily mean temperatures.
 
     The textbook definition, used whenever real daily data is available. No
@@ -252,7 +253,7 @@ def degree_days_from_daily(temperatures, base=DEFAULT_BASE_TEMPERATURE, cooling_
     return {"hdd": hdd, "cdd": cdd, "days": days}
 
 
-def _hitchin(difference, days):
+def _hitchin(difference: float, days: int) -> float:
     """Hitchin's formula: degree days from a monthly mean temperature.
 
     ``difference`` is (base - mean) for heating or (mean - base) for cooling.
@@ -271,12 +272,12 @@ def _hitchin(difference, days):
 
 
 def monthly_degree_days(
-    month_index,
-    mean_temperature,
-    base=DEFAULT_BASE_TEMPERATURE,
-    cooling_base=None,
-    days=None,
-):
+    month_index: int,
+    mean_temperature: float,
+    base: float = DEFAULT_BASE_TEMPERATURE,
+    cooling_base: float | None = None,
+    days: int | None = None,
+) -> dict[str, Any]:
     """Degree days for one month, recovered from its mean temperature.
 
     Using ``max(0, base - mean) * days`` instead would report zero heating for
@@ -307,11 +308,11 @@ def monthly_degree_days(
 
 
 def monthly_degree_day_series(
-    zone=DEFAULT_CLIMATE_ZONE,
-    base=DEFAULT_BASE_TEMPERATURE,
-    cooling_base=None,
-    temperatures=None,
-):
+    zone: str = DEFAULT_CLIMATE_ZONE,
+    base: float = DEFAULT_BASE_TEMPERATURE,
+    cooling_base: float | None = None,
+    temperatures: list[float] | None = None,
+) -> list[dict[str, Any]]:
     """Degree days for all twelve months of a climate zone or custom series."""
     profile = clean_temperatures(temperatures, zone) if temperatures else get_climate_profile(zone)
     return [
@@ -320,7 +321,7 @@ def monthly_degree_day_series(
     ]
 
 
-def annual_degree_days(zone=DEFAULT_CLIMATE_ZONE, base=DEFAULT_BASE_TEMPERATURE, cooling_base=None, temperatures=None):
+def annual_degree_days(zone: str = DEFAULT_CLIMATE_ZONE, base: float = DEFAULT_BASE_TEMPERATURE, cooling_base: float | None = None, temperatures: list[float] | None = None) -> dict[str, Any]:
     """Annual heating and cooling degree day totals."""
     series = monthly_degree_day_series(zone, base, cooling_base, temperatures)
     return {
@@ -330,7 +331,7 @@ def annual_degree_days(zone=DEFAULT_CLIMATE_ZONE, base=DEFAULT_BASE_TEMPERATURE,
     }
 
 
-def heating_season_months(zone=DEFAULT_CLIMATE_ZONE, base=DEFAULT_BASE_TEMPERATURE, threshold=0.05):
+def heating_season_months(zone: str = DEFAULT_CLIMATE_ZONE, base: float = DEFAULT_BASE_TEMPERATURE, threshold: float = 0.05) -> list[str]:
     """Months carrying a meaningful share of the year's heating demand.
 
     The absolute floor matters as much as the relative threshold. In a
@@ -348,7 +349,7 @@ def heating_season_months(zone=DEFAULT_CLIMATE_ZONE, base=DEFAULT_BASE_TEMPERATU
 # --- Fitting ----------------------------------------------------------------
 
 
-def _clean_readings(readings):
+def _clean_readings(readings: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     """Validate and normalise meter readings into (hdd, kwh) pairs."""
     cleaned = []
     for reading in readings or []:
@@ -371,7 +372,7 @@ def _clean_readings(readings):
     return cleaned
 
 
-def fit_energy_model(readings):
+def fit_energy_model(readings: list[dict[str, Any]] | None) -> dict[str, Any]:
     """Fit ``kWh = baseload + sensitivity x HDD`` by ordinary least squares.
 
     The baseload is clamped at zero. A negative intercept is arithmetically
@@ -455,7 +456,7 @@ def fit_energy_model(readings):
     }
 
 
-def _fit_quality(r_squared, count, sensitivity, clamped):
+def _fit_quality(r_squared: float, count: int, sensitivity: float, clamped: bool) -> tuple[str, str]:
     """Classify a fit and explain what a poor one usually means."""
     if sensitivity <= 0:
         return (
@@ -491,7 +492,7 @@ def _fit_quality(r_squared, count, sensitivity, clamped):
     return ("good", "")
 
 
-def predict_consumption(fit, hdd):
+def predict_consumption(fit: dict[str, Any], hdd: float) -> float:
     """Consumption the fitted model expects for a given number of degree days."""
     try:
         degree_days = max(0.0, float(hdd))
@@ -500,7 +501,7 @@ def predict_consumption(fit, hdd):
     return max(0.0, fit.get("baseload", 0.0) + fit.get("sensitivity", 0.0) * degree_days)
 
 
-def split_consumption(fit, annual_hdd, periods=12):
+def split_consumption(fit: dict[str, Any], annual_hdd: float, periods: int = 12) -> dict[str, Any]:
     """Split annual consumption into the baseload and weather-driven parts.
 
     This is the output that changes what a household should do next.
@@ -538,7 +539,7 @@ def split_consumption(fit, annual_hdd, periods=12):
 # --- Normalisation and attribution ------------------------------------------
 
 
-def normalise_consumption(kwh, actual_hdd, reference_hdd, fit):
+def normalise_consumption(kwh: float, actual_hdd: float, reference_hdd: float, fit: dict[str, Any]) -> dict[str, Any]:
     """Restate consumption at reference weather.
 
     Only the weather-sensitive part is scaled. Scaling the whole bill by the
@@ -568,7 +569,7 @@ def normalise_consumption(kwh, actual_hdd, reference_hdd, fit):
     }
 
 
-def attribute_change(before_kwh, before_hdd, after_kwh, after_hdd, fit, emission_factor=0.0):
+def attribute_change(before_kwh: float, before_hdd: float, after_kwh: float, after_hdd: float, fit: dict[str, Any], emission_factor: float = 0.0) -> dict[str, Any]:
     """Split a year-on-year change into a weather part and a behaviour part.
 
     The weather part is what the fitted sensitivity says the temperature
@@ -615,7 +616,7 @@ def attribute_change(before_kwh, before_hdd, after_kwh, after_hdd, fit, emission
     }
 
 
-def _attribution_verdict(total_change, behaviour_change):
+def _attribution_verdict(total_change: float, behaviour_change: float) -> str:
     """Classify the four interesting combinations of bill and behaviour."""
     bill_fell = total_change < 0
     behaviour_improved = behaviour_change < 0
@@ -629,7 +630,7 @@ def _attribution_verdict(total_change, behaviour_change):
     return "genuine_increase"
 
 
-def _attribution_explanation(total_change, weather_change, behaviour_change):
+def _attribution_explanation(total_change: float, weather_change: float, behaviour_change: float) -> str:
     """Plain sentence for the attribution, because the signs get misread."""
     verdict = _attribution_verdict(total_change, behaviour_change)
     total = abs(total_change)
@@ -659,7 +660,7 @@ def _attribution_explanation(total_change, weather_change, behaviour_change):
     )
 
 
-def estimate_retrofit(before_fit, after_fit, annual_hdd, emission_factor=0.0):
+def estimate_retrofit(before_fit: dict[str, Any], after_fit: dict[str, Any], annual_hdd: float, emission_factor: float = 0.0) -> dict[str, Any]:
     """What a retrofit actually delivered, measured rather than promised.
 
     Fabric measures show up as a drop in kWh per degree day. A change in
@@ -710,7 +711,7 @@ def estimate_retrofit(before_fit, after_fit, annual_hdd, emission_factor=0.0):
 # --- Narrative --------------------------------------------------------------
 
 
-def get_energy_tips(fit, split):
+def get_energy_tips(fit: dict[str, Any], split: dict[str, Any]) -> list[str]:
     """Advice that follows from the split, not generic energy-saving filler."""
     tips = []
 
@@ -762,7 +763,7 @@ def get_energy_tips(fit, split):
     return tips
 
 
-def compare_to_typical(fit, annual_hdd, floor_area_m2=None):
+def compare_to_typical(fit: dict[str, Any], annual_hdd: float, floor_area_m2: float | None = None) -> dict[str, Any]:
     """Put a household's sensitivity in context.
 
     Sensitivity per square metre is roughly comparable between homes, which
@@ -801,7 +802,7 @@ def compare_to_typical(fit, annual_hdd, floor_area_m2=None):
 # --- Persistence ------------------------------------------------------------
 
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     """Open a connection with the degree-day tables guaranteed to exist."""
     conn = sqlite3.connect(DB_NAME)
     conn.execute(
@@ -837,7 +838,7 @@ def _connect():
     return conn
 
 
-def save_reading(user_id, label, kwh, hdd, period=""):
+def save_reading(user_id: int, label: str, kwh: float, hdd: float, period: str = "") -> int | None:
     """Store one meter reading with the degree days it covered."""
     if not user_id:
         return None
@@ -867,7 +868,7 @@ def save_reading(user_id, label, kwh, hdd, period=""):
         conn.close()
 
 
-def get_readings(user_id, limit=60):
+def get_readings(user_id: int, limit: int = 60) -> list[dict[str, Any]]:
     """Return a user's readings, oldest first so they plot in order."""
     if not user_id:
         return []
@@ -903,7 +904,7 @@ def get_readings(user_id, limit=60):
     ]
 
 
-def delete_reading(user_id, reading_id):
+def delete_reading(user_id: int, reading_id: int) -> bool:
     """Delete one reading. Scoped by user so ids cannot be guessed."""
     if not user_id or not reading_id:
         return False
@@ -923,7 +924,7 @@ def delete_reading(user_id, reading_id):
         conn.close()
 
 
-def save_baseline(user_id, name, fit, climate_zone="", base_temperature=DEFAULT_BASE_TEMPERATURE):
+def save_baseline(user_id: int, name: str, fit: dict[str, Any], climate_zone: str = "", base_temperature: float = DEFAULT_BASE_TEMPERATURE) -> int | None:
     """Persist a fitted model so a later retrofit can be measured against it."""
     if not user_id:
         return None
@@ -958,7 +959,7 @@ def save_baseline(user_id, name, fit, climate_zone="", base_temperature=DEFAULT_
         conn.close()
 
 
-def get_baselines(user_id, limit=25):
+def get_baselines(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return saved baselines for a user, newest first."""
     if not user_id:
         return []
@@ -1007,7 +1008,7 @@ def get_baselines(user_id, limit=25):
     ]
 
 
-def delete_baseline(user_id, baseline_id):
+def delete_baseline(user_id: int, baseline_id: int) -> bool:
     """Delete one saved baseline. Scoped by user."""
     if not user_id or not baseline_id:
         return False

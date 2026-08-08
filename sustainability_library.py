@@ -12,6 +12,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -307,14 +308,14 @@ TAGS = {
 }
 
 
-def get_resources(resource_type=None):
+def get_resources(resource_type: str | None = None) -> dict[str, list[dict[str, Any]]] | list[dict[str, Any]]:
     """Return resources of a given type, or all resources grouped by type."""
     if resource_type and resource_type in LIBRARY:
         return LIBRARY[resource_type]
     return LIBRARY
 
 
-def search_resources(query, category="All"):
+def search_resources(query: str, category: str = "All") -> list[dict[str, Any]]:
     """Search resources by keyword (title, author, summary, tags) with optional category filter."""
     query_lower = (query or "").strip().lower()
 
@@ -344,11 +345,11 @@ def search_resources(query, category="All"):
     return results
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_library_db():
+def init_library_db() -> bool:
     conn = None
     try:
         conn = _get_conn()
@@ -383,7 +384,7 @@ def init_library_db():
             conn.close()
 
 
-def save_favorite(user_id, resource_id):
+def save_favorite(user_id: int, resource_id: str) -> bool:
     init_library_db()
     conn = None
     try:
@@ -402,7 +403,7 @@ def save_favorite(user_id, resource_id):
             conn.close()
 
 
-def remove_favorite(user_id, resource_id):
+def remove_favorite(user_id: int, resource_id: str) -> bool:
     init_library_db()
     conn = None
     try:
@@ -421,7 +422,7 @@ def remove_favorite(user_id, resource_id):
             conn.close()
 
 
-def get_favorites(user_id):
+def get_favorites(user_id: int) -> list[str]:
     init_library_db()
     conn = None
     try:
@@ -438,7 +439,7 @@ def get_favorites(user_id):
             conn.close()
 
 
-def mark_completed(user_id, resource_id):
+def mark_completed(user_id: int, resource_id: str) -> bool:
     init_library_db()
     conn = None
     try:
@@ -457,7 +458,7 @@ def mark_completed(user_id, resource_id):
             conn.close()
 
 
-def get_completed(user_id):
+def get_completed(user_id: int) -> list[str]:
     init_library_db()
     conn = None
     try:
