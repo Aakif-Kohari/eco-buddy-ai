@@ -23,7 +23,7 @@ from styles.theme import apply_theme
 from achievement_showcase import render_header
 
 
-
+from voice_assessment import render_voice_assessment
 from components.header import render_header
 from components.profile import render_profile
 from sustainability_hub import (
@@ -1203,20 +1203,22 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6,tab7 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
     "🗺️ Route Planning & Offsets",
     "🏆 Community Leaderboard",
-    "🔮 Future Self"
+    "🔮 Future Self",
+    "VOice Assistant"
 ])
 
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
-
+with tab7:
+    render_voice_assessment()
  
  
     placeholder = st.empty()
