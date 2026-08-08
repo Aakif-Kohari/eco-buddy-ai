@@ -637,6 +637,63 @@ if "analysis" in st.session_state:
     st.markdown("### 💡 AI Insight")
     st.info(data["insight"])
 
+    st.markdown("### 🧠 Explainable AI (XAI) Recommendation & Eco Score Panel")
+    with st.expander("🔍 View AI Reasoning & Feature Importance Breakdown", expanded=False):
+        st.markdown("#### 📊 Feature Importance Breakdown (Emissions Contribution)")
+        contribs = data["contributors"]
+        tot = data["total"] if data["total"] > 0 else 1.0
+        feat_df = pd.DataFrame([
+            {
+                "Category": cat,
+                "Emissions (kg CO₂)": val,
+                "Contribution Share (%)": round((val / tot) * 100, 1)
+            }
+            for cat, val in contribs.items()
+        ]).sort_values(by="Emissions (kg CO₂)", ascending=False)
+        
+        fig_feat = px.bar(
+            feat_df,
+            x="Contribution Share (%)",
+            y="Category",
+            orientation="h",
+            text="Contribution Share (%)",
+            color="Contribution Share (%)",
+            color_continuous_scale="Viridis",
+            title="Feature Importance by Category Contribution (%)"
+        )
+        fig_feat.update_layout(yaxis={"categoryorder": "total ascending"})
+        st.plotly_chart(fig_feat, use_container_width=True)
+
+        st.markdown("#### 💡 Transparent Recommendation Reasoning")
+        st.write(
+            f"The primary driver for your recommendation stack is **{max(contribs, key=contribs.get)}**, "
+            f"accounting for **{contribs[max(contribs, key=contribs.get)]:.2f} kg CO₂/year** "
+            f"({(contribs[max(contribs, key=contribs.get)]/tot)*100:.1f}% of total)."
+        )
+        st.markdown("""
+- **Transport Impact**: Daily distance x Mode emission factor x 365 days.
+- **Electricity Impact**: Monthly kWh x Grid emission factor x 12 months.
+- **Diet Impact**: Annual baseline emission factor based on dietary choices.
+- **Flight Impact**: Annual flight count x Average per-flight emission factor.
+        """)
+
+        st.markdown("#### 🎯 Eco Score Sigmoid Curve Breakdown")
+        audit_log = data.get("audit_log", {})
+        score_audit = audit_log.get("eco_score_audit", {})
+        if "category_scores" in score_audit and score_audit["category_scores"]:
+            cat_scores_df = pd.DataFrame([
+                {
+                    "Category": cat,
+                    "Weight": details.get("weight"),
+                    "Category Footprint (kg)": details.get("cat_total_kg"),
+                    "Raw Score (0-100)": round(details.get("raw_cat_score", 0), 1),
+                    "Weighted Score Contribution": round(details.get("weighted_component", 0), 1)
+                }
+                for cat, details in score_audit["category_scores"].items()
+            ])
+            st.dataframe(cat_scores_df, use_container_width=True)
+            st.caption(f"Final Weighted Eco Score: **{data['eco_score']} / 100**")
+
     st.markdown("### 🌱 Recommendations")
     for rec in data["recommendations"]:
         st.success(rec)
