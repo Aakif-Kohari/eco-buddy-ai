@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 from styles.theme import apply_theme
 from achievement_showcase import render_header
 
-
+from garden_assistant import render_garden_hub
 from voice_assessment import render_voice_assessment
 from components.header import render_header
 from components.profile import render_profile
@@ -1205,7 +1205,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1214,7 +1214,8 @@ tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9 = st.tabs([
     "🔮 Future Self",
     "🎤 Voice Assistant",
     "🌤️ Eco-Weather",
-    "🌍 Eco-Travel"
+    "🌍 Eco-Travel",
+    "🌱 Eco-Garden"
 ])
 
 
@@ -1230,6 +1231,8 @@ with tab8:
     render_weather_hub()
 with tab9:
     render_travel_hub()
+with tab10:
+    render_garden_hub()
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
