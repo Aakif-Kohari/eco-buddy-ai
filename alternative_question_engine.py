@@ -8,7 +8,7 @@ class AlternativeQuestionEngine:
 
     @classmethod
     def get_model(cls):
-        """Get or load the model once (singleton pattern)."""
+        """Lazy load model (singleton pattern) - load only when needed."""
         if cls._model is None:
             cls._model = SentenceTransformer("all-MiniLM-L6-v2")
         return cls._model
