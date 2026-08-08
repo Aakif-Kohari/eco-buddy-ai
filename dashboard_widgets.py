@@ -109,6 +109,18 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     if not selected:
         return
 
+    # Breadcrumb navigation for the dashboard section
+    st.markdown(
+        """
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <span class="breadcrumb-item">🏠 Home</span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-item active">📊 Dashboard</span>
+        </nav>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("<div class='section-header'>📊 My Dashboard</div>", unsafe_allow_html=True)
     st.caption("Personalized widgets based on your saved dashboard preferences.")
 

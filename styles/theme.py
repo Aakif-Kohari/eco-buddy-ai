@@ -737,6 +737,55 @@ def apply_theme():
             padding: 22px;
         }}
     }}
+
+        /* Breadcrumb navigation */
+    .breadcrumb {{
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0 24px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+        font-size: 14px;
+        font-weight: 600;
+    }}
+
+    .breadcrumb-item {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        transition: color 180ms ease, transform 180ms ease;
+    }}
+
+    .breadcrumb-item:hover {{
+        color: var(--leaf);
+        transform: translateY(-1px);
+    }}
+
+    .breadcrumb-item.active {{
+        color: var(--ink);
+        font-weight: 800;
+    }}
+
+    .breadcrumb-separator {{
+        color: var(--muted);
+        opacity: 0.7;
+        user-select: none;
+    }}
+
+    @media (max-width: 760px) {{
+        .breadcrumb {{
+            gap: 5px;
+            margin-bottom: 18px;
+            padding: 10px 12px;
+            font-size: 13px;
+        }}
+    }}
 {css}
 </style>
 

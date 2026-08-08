@@ -18,12 +18,19 @@ import tempfile
 import uuid
 import os
 from dotenv import load_dotenv
+
+from styles.theme import apply_theme
+from achievement_showcase import render_header
+
+
+
 from components.header import render_header
 from components.profile import render_profile
 from sustainability_hub import (
     render_sustainability_hub  
 )
 from eco_social import render_eco_social, render_eco_tip
+
 load_dotenv()
 
 from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
@@ -151,6 +158,19 @@ DEFAULT_VALUES = {
     "diet": "Vegetarian",
     "flights": 0,
 }
+
+def render_breadcrumbs(current_page, parent_page="Dashboard"):
+    st.markdown(
+        f"""
+        <div class="breadcrumb-container">
+            <span class="breadcrumb-home">🏠</span>
+            <span class="breadcrumb-link">{parent_page}</span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-current">{current_page}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def h(text):
     return html.escape(str(text))

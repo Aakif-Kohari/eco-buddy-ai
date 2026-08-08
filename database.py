@@ -4058,6 +4058,7 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     )
                     """
                 )
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS carbon_budgets (
@@ -4070,6 +4071,7 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     )
                     """
                 )
+
                 try:
                     cursor.execute(
                         """
@@ -6896,6 +6898,7 @@ def complete_weekly_challenge(challenge_id):
     conn.close()
 
 
+
 from datetime import datetime, timedelta
 
 def weekly_challenges_exist(user_id):
@@ -6936,3 +6939,4 @@ def get_completed_challenges(user_id):
     conn.close()
 
     return data
+
