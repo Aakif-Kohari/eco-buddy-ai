@@ -640,7 +640,8 @@ def get_all_assessments() -> list[tuple[Any, ...]]:
         cursor.execute("""
             SELECT id, user_id, date, created_at,transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
-            ORDER BY date DESC, id DESC
+            ORDER BY date DESC
+            LIMIT 100, id DESC
         """)
 
         data = cursor.fetchall()
@@ -911,7 +912,8 @@ def get_diet_history(user_id: int, limit: int = 7) -> list[tuple[Any, ...]]:
         cursor.execute("""
             SELECT date, diet FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC LIMIT ?
+            ORDER BY date DESC
+            LIMIT 100 LIMIT ?
         """, (user_id, limit))
         rows = cursor.fetchall()
         conn.close()
@@ -4543,7 +4545,8 @@ def get_all_assessments() -> list[tuple[Any, ...]]:
         cursor.execute("""
             SELECT id, user_id, date, created_at,transport, distance, electricity, diet, flights, footprint, eco_score
             FROM assessments
-            ORDER BY date DESC, id DESC
+            ORDER BY date DESC
+            LIMIT 100, id DESC
         """)
 
         data = cursor.fetchall()
@@ -4814,7 +4817,8 @@ def get_diet_history(user_id: int, limit: int = 7) -> list[tuple[Any, ...]]:
         cursor.execute("""
             SELECT date, diet FROM assessments
             WHERE user_id = ?
-            ORDER BY date DESC LIMIT ?
+            ORDER BY date DESC
+            LIMIT 100 LIMIT ?
         """, (user_id, limit))
         rows = cursor.fetchall()
         conn.close()
