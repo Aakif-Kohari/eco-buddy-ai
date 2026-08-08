@@ -95,987 +95,989 @@ for feature in features:
 # ----------------------------
 st.subheader("Application Status")
 
-col1, col2, col3 = st.columns(3)
+form = st.form(key='assessment_form')
+with form:
+    col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.metric("Version", "1.0.0")
+    with col1:
+        st.metric("Version", "1.0.0")
 
-with col2:
-    st.metric("Status", "Online")
+    with col2:
+        st.metric("Status", "Online")
 
-with col3:
-    st.metric("Environment", "Development")
+    with col3:
+        st.metric("Environment", "Development")
 
-# ----------------------------
-# Additional Information
-# ----------------------------
-with st.expander("About EcoBuddy AI"):
-    st.write(
-        """
-        EcoBuddy AI empowers users to make environmentally conscious decisions
-        by providing personalized sustainability insights, educational resources,
-        and practical recommendations for reducing their ecological footprint.
-        """
-    )
-
-st.success("EcoBuddy AI is running successfully.")
-
-# Added for Route Planning & Offsets
-from database import (
-    init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
-    save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
-    get_total_offsets, get_total_spend,
-    get_total_freeze_tokens_earned
-)
-from marketplace import (
-    calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
-    calculate_offset_cost, validate_offset_transaction, get_offset_projects,
-    calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
-)
-from styles.theme import apply_theme, render_theme_selector
-from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
-from environmental_timeline import render_environmental_timeline
-from report_validation import validate_report_data
-from future_self import generate_future_self_report, build_projection_timeline
-from session_recovery import (
-    autosave_session_draft,
-    discard_current_draft,
-    render_draft_recovery_prompt,
-)
-from session_state_utils import (
-    ensure_session_state,
-    set_session_state_if_changed,
-    check_session_timeout,
-    update_last_activity,
-    clear_auth_session,
-)
-
-
-
-DEFAULT_VALUES = {
-    "region": "Global",
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
-
-def render_breadcrumbs(current_page, parent_page="Dashboard"):
-    st.markdown(
-        f"""
-        <div class="breadcrumb-container">
-            <span class="breadcrumb-home">🏠</span>
-            <span class="breadcrumb-link">{parent_page}</span>
-            <span class="breadcrumb-separator">›</span>
-            <span class="breadcrumb-current">{current_page}</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-def h(text):
-    return html.escape(str(text))
-def format_timestamp(ts):
-    if ts:
-        return datetime.strptime(
-            ts,
-            "%Y-%m-%d %H:%M:%S"
-        ).strftime("%d %b %Y %I:%M %p")
-    return "-"
-
-def render_sidebar_auth():
-    st.sidebar.title("Authentication")
-    if 'user_id' not in st.session_state:
-        st.session_state['user_id'] = None
-        st.session_state['username'] = None
-
-    if st.session_state.get('user_id'):
-        if check_session_timeout():
-            clear_auth_session()
-            st.sidebar.warning("Your session has expired. Please sign in again.")
-            st.rerun()
-        else:
-            update_last_activity()
-
-    if st.session_state['user_id'] is None:
-        auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
-        if auth_mode == "Login":
-            with st.sidebar.form("login_form"):
-                MAX_USERNAME = 30
-
-                username = st.text_input(
-                    "Username",
-                    key="username",
-                    max_chars=MAX_USERNAME,
-                    help="Enter your registered username."
-                )
-
-                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-
-                password = st.text_input("Password", type="password",
-                help="Enter your account password. Characters will be hidden for security.")
-                if st.form_submit_button("Login"):
-                    user = verify_user(username, password)
-                    if user:
-                        st.session_state['user_id'] = user['id']
-                        st.session_state['username'] = user['username']
-                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
-                        st.sidebar.success("Logged in successfully!")
-                        st.rerun()
-                    else:
-                        st.sidebar.error("Invalid username or password")
-        elif auth_mode == "Register":
-            with st.sidebar.form("register_form"):
-                MAX_USERNAME = 30
-
-                username = st.text_input(
-                    "Username",
-                    max_chars=MAX_USERNAME,
-                    help="Choose a unique username."
-                )
-
-                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-                MAX_EMAIL = 100
-
-                email = st.text_input(
-                    "Email",
-                    max_chars=MAX_EMAIL,
-                    help="Enter a valid email address."
-                )
-
-                st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
-                password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
-                anonymous = st.checkbox("Appear anonymously on leaderboard")
-                if st.form_submit_button("Register"):
-                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
-                        st.sidebar.success("Registration successful! Please login.")
-                    else:
-                        st.sidebar.error("Username or email already exists")
-        elif auth_mode == "Guest":
-            if st.sidebar.button("Continue as Guest"):
-                st.session_state['user_id'] = 1
-                st.session_state['username'] = "Guest"
-                st.rerun()
-        
-        st.sidebar.warning("Please log in or continue as Guest to use the app.")
-        st.stop()
-    else:
-        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
-        anon_pref = st.sidebar.checkbox(
-            "Appear anonymously on leaderboard",
-            value=st.session_state.get("anonymous_leaderboard", False)
+    # ----------------------------
+    # Additional Information
+    # ----------------------------
+    with st.expander("About EcoBuddy AI"):
+        st.write(
+            """
+            EcoBuddy AI empowers users to make environmentally conscious decisions
+            by providing personalized sustainability insights, educational resources,
+            and practical recommendations for reducing their ecological footprint.
+            """
         )
-        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
-            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
-            set_session_state_if_changed('anonymous_leaderboard', anon_pref)
-            st.sidebar.success("Leaderboard preference saved.")
-            st.experimental_rerun()
 
-        if st.sidebar.button("Logout"):
-            clear_auth_session()
-            for key, val in DEFAULT_VALUES.items():
-                st.session_state[key] = val
-            st.rerun()
+    st.success("EcoBuddy AI is running successfully.")
 
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("🧭 Navigation")
+    # Added for Route Planning & Offsets
+    from database import (
+        init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
+        save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
+        get_total_offsets, get_total_spend,
+        get_total_freeze_tokens_earned
+    )
+    from marketplace import (
+        calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
+        calculate_offset_cost, validate_offset_transaction, get_offset_projects,
+        calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
+    )
+    from styles.theme import apply_theme, render_theme_selector
+    from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
+    from environmental_timeline import render_environmental_timeline
+    from report_validation import validate_report_data
+    from future_self import generate_future_self_report, build_projection_timeline
+    from session_recovery import (
+        autosave_session_draft,
+        discard_current_draft,
+        render_draft_recovery_prompt,
+    )
+    from session_state_utils import (
+        ensure_session_state,
+        set_session_state_if_changed,
+        check_session_timeout,
+        update_last_activity,
+        clear_auth_session,
+    )
 
-        st.markdown("""
-        <style>
 
-        /* Sidebar navigation expanders */
+
+    DEFAULT_VALUES = {
+        "region": "Global",
+        "transport": "Car",
+        "distance": 10.0,
+        "electricity": 200.0,
+        "diet": "Vegetarian",
+        "flights": 0,
+    }
+
+    def render_breadcrumbs(current_page, parent_page="Dashboard"):
+        st.markdown(
+            f"""
+            <div class="breadcrumb-container">
+                <span class="breadcrumb-home">🏠</span>
+                <span class="breadcrumb-link">{parent_page}</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-current">{current_page}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    def h(text):
+        return html.escape(str(text))
+    def format_timestamp(ts):
+        if ts:
+            return datetime.strptime(
+                ts,
+                "%Y-%m-%d %H:%M:%S"
+            ).strftime("%d %b %Y %I:%M %p")
+        return "-"
+
+    def render_sidebar_auth():
+        st.sidebar.title("Authentication")
+        if 'user_id' not in st.session_state:
+            st.session_state['user_id'] = None
+            st.session_state['username'] = None
+
+        if st.session_state.get('user_id'):
+            if check_session_timeout():
+                clear_auth_session()
+                st.sidebar.warning("Your session has expired. Please sign in again.")
+                st.rerun()
+            else:
+                update_last_activity()
+
+        if st.session_state['user_id'] is None:
+            auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
+            if auth_mode == "Login":
+                with st.sidebar.form("login_form"):
+                    MAX_USERNAME = 30
+
+                    username = st.text_input(
+                        "Username",
+                        key="username",
+                        max_chars=MAX_USERNAME,
+                        help="Enter your registered username."
+                    )
+
+                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+
+                    password = st.text_input("Password", type="password",
+                    help="Enter your account password. Characters will be hidden for security.")
+                    if st.form_submit_button("Login"):
+                        user = verify_user(username, password)
+                        if user:
+                            st.session_state['user_id'] = user['id']
+                            st.session_state['username'] = user['username']
+                            st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
+                            st.sidebar.success("Logged in successfully!")
+                            st.rerun()
+                        else:
+                            st.sidebar.error("Invalid username or password")
+            elif auth_mode == "Register":
+                with st.sidebar.form("register_form"):
+                    MAX_USERNAME = 30
+
+                    username = st.text_input(
+                        "Username",
+                        max_chars=MAX_USERNAME,
+                        help="Choose a unique username."
+                    )
+
+                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+                    MAX_EMAIL = 100
+
+                    email = st.text_input(
+                        "Email",
+                        max_chars=MAX_EMAIL,
+                        help="Enter a valid email address."
+                    )
+
+                    st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
+                    password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
+                    anonymous = st.checkbox("Appear anonymously on leaderboard")
+                    if st.form_submit_button("Register"):
+                        if create_user(username, email, password, anonymous_leaderboard=anonymous):
+                            st.sidebar.success("Registration successful! Please login.")
+                        else:
+                            st.sidebar.error("Username or email already exists")
+            elif auth_mode == "Guest":
+                if st.sidebar.button("Continue as Guest"):
+                    st.session_state['user_id'] = 1
+                    st.session_state['username'] = "Guest"
+                    st.rerun()
+        
+            st.sidebar.warning("Please log in or continue as Guest to use the app.")
+            st.stop()
+        else:
+            st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+            anon_pref = st.sidebar.checkbox(
+                "Appear anonymously on leaderboard",
+                value=st.session_state.get("anonymous_leaderboard", False)
+            )
+            if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+                update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+                set_session_state_if_changed('anonymous_leaderboard', anon_pref)
+                st.sidebar.success("Leaderboard preference saved.")
+                st.experimental_rerun()
+
+            if st.sidebar.button("Logout"):
+                clear_auth_session()
+                for key, val in DEFAULT_VALUES.items():
+                    st.session_state[key] = val
+                st.rerun()
+
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("🧭 Navigation")
+
+            st.markdown("""
+            <style>
+
+            /* Sidebar navigation expanders */
+            [data-testid="stSidebar"] [data-testid="stExpander"] {
+                border: 1px solid rgba(34, 197, 94, 0.18);
+                border-radius: 12px;
+                margin-bottom: 10px;
+                background: rgba(255, 255, 255, 0.03);
+                transition: all 0.25s ease;
+            }
+
+            /* Expander header */
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+                font-weight: 700;
+                transition: all 0.25s ease;
+            }
+
+            /* Hover effect */
+            [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+                border-color: rgba(34, 197, 94, 0.45);
+                transform: translateX(2px);
+            }
+
+            /* Navigation content */
+            [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
+                padding: 4px 8px 8px 8px;
+            }
+
+            </style>
+            """, unsafe_allow_html=True)
+
+            with st.sidebar.expander("🌱 Sustainability", expanded=True):
+                st.write("🌍 Carbon Footprint")
+                st.write("⚡ Home Energy Audit")
+                st.write("🎮 Gamification")
+
+            with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
+                st.write("🗺️ Route Planning & Offsets")
+                st.write("🏆 Community Leaderboard")
+
+            with st.sidebar.expander("🔮 Insights", expanded=False):
+                st.write("🔮 Future Self")
+                st.write("📊 Environmental Timeline")
+
+        return st.session_state['user_id']
+
+    # -------------------------
+    # INIT
+    # -------------------------
+
+    @st.cache_resource
+    def run_db_initializations():
+        # Run migrations first to ensure database schema is up to date
+        from database import migrate
+        success, message = migrate()
+        if not success:
+            print(f"Warning: Migration failed: {message}")
+        else:
+            print(f"Database: {message}")
+    
+        init_db()
+        init_gamification_db()
+        init_freeze_tokens_db()
+        init_marketplace_db()
+
+    run_db_initializations()
+    user_id = render_sidebar_auth()
+    render_theme_selector()
+    selected_dashboard_widgets = render_widget_customizer(user_id)
+    render_customizable_dashboard(user_id, selected_dashboard_widgets)
+
+    with st.expander("🌍 Environmental Impact Timeline", expanded=False):
+        render_environmental_timeline(user_id)
+
+
+    # -------------------------
+    # DRAFT RECOVERY & DEFAULT FORM VALUES
+    # -------------------------
+    ensure_session_state(DEFAULT_VALUES)
+
+    # page config moved to top
+
+
+    # -------------------------
+    # THEME APPLICATION
+    # -------------------------
+
+    st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --ink: #111827;
+            --muted: #6b7280;
+            --paper: rgba(255,255,255,0.75);
+            --paper-strong: rgba(255,255,255,0.95);
+            --line: rgba(0,0,0,0.08);
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body,
+        [data-testid="stAppViewContainer"] {
+            color: #1f2937;
+            background:
+                radial-gradient(circle at top left, #dcfce7 0%, transparent 30%),
+                radial-gradient(circle at top right, #dbeafe 0%, transparent 30%),
+                #f8fafc !important;
+        }
+
+        .block-container {
+            max-width: 1280px;
+            padding: 24px 32px 56px;
+        }
+
+        [data-testid="stSidebar"] {
+            background: rgba(255, 255, 255, 0.74);
+            border-right: 1px solid var(--line);
+            box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
+            backdrop-filter: blur(18px);
+        }
+
+        /* =========================
+        COLLAPSIBLE SIDEBAR NAV
+        ========================= */
+
         [data-testid="stSidebar"] [data-testid="stExpander"] {
-            border: 1px solid rgba(34, 197, 94, 0.18);
-            border-radius: 12px;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            transition: all 0.25s ease;
+            border: 1px solid rgba(74, 222, 128, 0.18) !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+            border-color: rgba(74, 222, 128, 0.40) !important;
+            background: rgba(74, 222, 128, 0.08) !important;
         }
 
         /* Expander header */
         [data-testid="stSidebar"] [data-testid="stExpander"] summary {
-            font-weight: 700;
-            transition: all 0.25s ease;
+            padding: 12px 14px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
         }
 
-        /* Hover effect */
-        [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
-            border-color: rgba(34, 197, 94, 0.45);
-            transform: translateX(2px);
+        /* Navigation text */
+        [data-testid="stSidebar"] [data-testid="stExpander"] p {
+            font-size: 14px !important;
+            font-weight: 600 !important;
         }
 
-        /* Navigation content */
-        [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
-            padding: 4px 8px 8px 8px;
+        /* Navigation section heading */
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3 {
+            font-weight: 800 !important;
         }
 
-        </style>
-        """, unsafe_allow_html=True)
-
-        with st.sidebar.expander("🌱 Sustainability", expanded=True):
-            st.write("🌍 Carbon Footprint")
-            st.write("⚡ Home Energy Audit")
-            st.write("🎮 Gamification")
-
-        with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
-            st.write("🗺️ Route Planning & Offsets")
-            st.write("🏆 Community Leaderboard")
-
-        with st.sidebar.expander("🔮 Insights", expanded=False):
-            st.write("🔮 Future Self")
-            st.write("📊 Environmental Timeline")
-
-    return st.session_state['user_id']
-
-# -------------------------
-# INIT
-# -------------------------
-
-@st.cache_resource
-def run_db_initializations():
-    # Run migrations first to ensure database schema is up to date
-    from database import migrate
-    success, message = migrate()
-    if not success:
-        print(f"Warning: Migration failed: {message}")
-    else:
-        print(f"Database: {message}")
-    
-    init_db()
-    init_gamification_db()
-    init_freeze_tokens_db()
-    init_marketplace_db()
-
-run_db_initializations()
-user_id = render_sidebar_auth()
-render_theme_selector()
-selected_dashboard_widgets = render_widget_customizer(user_id)
-render_customizable_dashboard(user_id, selected_dashboard_widgets)
-
-with st.expander("🌍 Environmental Impact Timeline", expanded=False):
-    render_environmental_timeline(user_id)
-
-
-# -------------------------
-# DRAFT RECOVERY & DEFAULT FORM VALUES
-# -------------------------
-ensure_session_state(DEFAULT_VALUES)
-
-# page config moved to top
-
-
-# -------------------------
-# THEME APPLICATION
-# -------------------------
-
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-    :root {
-        --ink: #111827;
-        --muted: #6b7280;
-        --paper: rgba(255,255,255,0.75);
-        --paper-strong: rgba(255,255,255,0.95);
-        --line: rgba(0,0,0,0.08);
-        --shadow: 0 10px 30px rgba(0,0,0,0.08);
-    }
-
-    * {
-        box-sizing: border-box;
-    }
-
-    html {
-        scroll-behavior: smooth;
-    }
-
-    body,
-    [data-testid="stAppViewContainer"] {
-        color: #1f2937;
-        background:
-            radial-gradient(circle at top left, #dcfce7 0%, transparent 30%),
-            radial-gradient(circle at top right, #dbeafe 0%, transparent 30%),
-            #f8fafc !important;
-    }
-
-    .block-container {
-        max-width: 1280px;
-        padding: 24px 32px 56px;
-    }
-
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.74);
-        border-right: 1px solid var(--line);
-        box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
-        backdrop-filter: blur(18px);
-    }
-
-    /* =========================
-    COLLAPSIBLE SIDEBAR NAV
-    ========================= */
-
-    [data-testid="stSidebar"] [data-testid="stExpander"] {
-        border: 1px solid rgba(74, 222, 128, 0.18) !important;
-        border-radius: 12px !important;
-        margin-bottom: 10px !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-        transition: all 0.2s ease !important;
-    }
-
-    [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
-        border-color: rgba(74, 222, 128, 0.40) !important;
-        background: rgba(74, 222, 128, 0.08) !important;
-    }
-
-    /* Expander header */
-    [data-testid="stSidebar"] [data-testid="stExpander"] summary {
-        padding: 12px 14px !important;
-        font-weight: 700 !important;
-        cursor: pointer !important;
-    }
-
-    /* Navigation text */
-    [data-testid="stSidebar"] [data-testid="stExpander"] p {
-        font-size: 14px !important;
-        font-weight: 600 !important;
-    }
-
-    /* Navigation section heading */
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        font-weight: 800 !important;
-    }
-
-    /* Sidebar divider */
-    [data-testid="stSidebar"] hr {
-        margin: 14px 0 !important;
-        border-color: rgba(74, 222, 128, 0.18) !important;
-    }
-
-    [data-testid="stSidebar"] * {
-        color: var(--ink);
-    }
-
-    .title {
-        margin: 8px 0 12px;
-        color: var(--ink);
-        font-size: clamp(46px, 6vw, 82px);
-        line-height: 1;
-        font-weight: 800;
-        letter-spacing: 0;
-        text-align: center;
-        animation: fadeUp 700ms ease both;
-    }
-
-    .subtitle {
-        max-width: 720px;
-        margin: 0 auto 30px;
-        color: var(--muted);
-        font-size: 19px;
-        line-height: 1.6;
-        font-weight: 500;
-        text-align: center;
-        animation: fadeUp 800ms 80ms ease both;
-    }
-
-    .section-header {
-        margin: 38px 0 18px;
-        color: var(--ink);
-        font-size: clamp(28px, 3vw, 42px);
-        line-height: 1.08;
-        font-weight: 800;
-        letter-spacing: 0;
-        animation: fadeUp 650ms ease both;
-    }
-
-    .section-header::after {
-        content: '';
-        display: block;
-        width: 88px;
-        height: 4px;
-        margin-top: 14px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #030504, var(--leaf), rgba(120, 169, 69, 0));
-    }
-
-    .input-section,
-    .card,
-    .card-highlight,
-    .metric-card {
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: rgba(255,255,255,0.9);
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-        box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
-        backdrop-filter: blur(18px);
-        position: relative;
-        overflow: hidden;
-        animation: fadeUp 700ms ease both;
-        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-    }
-
-    .input-section {
-        padding: 34px;
-        margin-bottom: 24px;
-    }
-
-    .card,
-    .card-highlight,
-    .metric-card {
-        padding: 26px;
-        margin-bottom: 16px;
-    }
-
-    .metric-card::before,
-    .card-highlight::before {
-        content: '';
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 5px;
-        background: linear-gradient(90deg, #030504, var(--leaf), #b6d274);
-    }
-
-    .metric-card:hover,
-    .card:hover,
-    .card-highlight:hover {
-        transform: translateY(-6px);
-        border-color: rgba(95, 143, 54, 0.28);
-        box-shadow: 0 26px 64px rgba(57, 86, 47, 0.17);
-    }
-
-    .card-highlight {
-        background:
-            linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 216, 0.82)),
-            linear-gradient(135deg, rgba(120, 169, 69, 0.12), transparent);
-    }
-
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 0 20px;
-        border-radius: 999px;
-        border: 1px solid rgba(8, 11, 10, 0.08);
-        background: #030504;
-        color: #fff;
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
-        font-size: 14px;
-        font-weight: 800;
-        letter-spacing: 0;
-    }
-
-    .badge-champion {
-        background: linear-gradient(135deg, #f4c760, #d8831e);
-        color: #2c1804;
-    }
-
-    .badge-guardian {
-        background: linear-gradient(135deg, #acd66f, #5f8f36);
-        color: #0d1c0f;
-    }
-
-    .badge-learner {
-        background: linear-gradient(135deg, #b9d7f4, #6aa0cf);
-        color: #071927;
-    }
-
-    .badge-high {
-        background: linear-gradient(135deg, #ff8e70, #d84b35);
-        color: #2e0904;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 12px;
-        margin-top: 12px;
-        border-radius: 999px;
-        background: rgba(8, 11, 10, 0.08);
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #030504, var(--moss), var(--leaf));
-        box-shadow: 0 0 20px rgba(95, 143, 54, 0.34);
-        transition: width 600ms ease;
-    }
-
-    hr {
-        height: 1px;
-        margin: 32px 0;
-        border: none;
-        background: linear-gradient(90deg, transparent, rgba(8, 11, 10, 0.16), transparent);
-    }
-
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stSelectbox [data-baseweb="select"],
-    .stTextArea textarea {
-        min-height: 48px;
-        border: 1px solid rgba(8, 11, 10, 0.12) !important;
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.88) !important;
-        color: var(--ink) !important;
-        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
-    }
-
-    .stTextInput > div > div > input:focus,
-    .stNumberInput input:focus,
-    .stTextArea textarea:focus {
-        border-color: rgba(95, 143, 54, 0.55) !important;
-        box-shadow: 0 0 0 4px rgba(120, 169, 69, 0.14) !important;
-    }
-
-    .stButton > button,
-    .stDownloadButton > button,
-    [data-testid="stFormSubmitButton"] > button {
-        min-height: 52px;
-        padding: 0 28px !important;
-        border: none !important;
-        border-radius: 12px !important;
-        background: #030504 !important;
-        color: #fff !important;
-        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2) !important;
-        font-size: 15px !important;
-        font-weight: 800 !important;
-        letter-spacing: 0 !important;
-        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
-    }
-
-    .stButton > button:hover,
-    .stDownloadButton > button:hover,
-    [data-testid="stFormSubmitButton"] > button:hover {
-        transform: translateY(-2px);
-        background: #101713 !important;
-        box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26) !important;
-    }
-
-    .stInfo,
-    .stWarning,
-    .stSuccess,
-    .stError {
-        border-radius: 14px !important;
-        border: 1px solid var(--line) !important;
-        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
-    }
-
-    .stInfo {
-        background: rgba(185, 215, 244, 0.42) !important;
-    }
-
-    .stWarning {
-        background: rgba(244, 199, 96, 0.24) !important;
-    }
-
-    .stSuccess {
-        background: rgba(172, 214, 111, 0.26) !important;
-    }
-
-    @media (prefers-color-scheme: dark) {
-    /* DARK PREMIUM THEME OVERRIDES */
-    :root {
-        --sky: #8ec5ff;
-        --sky-soft: #18273a;
-        --field: #4ade80;
-        --leaf: #58d27b;
-        --moss: #86efac;
-        --ink: #f8fafc;
-        --muted: #a7b3c6;
-        --paper: rgba(15, 23, 42, 0.76);
-        --paper-strong: rgba(12, 18, 32, 0.92);
-        --line: rgba(148, 163, 184, 0.18);
-        --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
-        --radius: 18px;
-    }
-
-    body,
-    [data-testid="stAppViewContainer"] {
-        color: var(--ink);
-        background:
-            radial-gradient(circle at 18% 8%, rgba(74, 222, 128, 0.22), transparent 28%),
-            radial-gradient(circle at 84% 12%, rgba(96, 165, 250, 0.18), transparent 30%),
-            linear-gradient(145deg, #030712 0%, #07130d 42%, #111827 100%) !important;
-    }
-
-    .block-container {
-        padding-top: 28px;
-    }
-
-    [data-testid="stSidebar"] {
-        background: rgba(3, 7, 18, 0.84);
-        border-right: 1px solid var(--line);
-        box-shadow: 18px 0 48px rgba(0, 0, 0, 0.26);
-    }
-
-    [data-testid="stSidebar"] * {
-        color: var(--ink);
-    }
-
-    .title {
-        color: var(--ink);
-        text-shadow: 0 18px 48px rgba(74, 222, 128, 0.18);
-    }
-
-    .subtitle,
-    .section-header {
-        color: var(--ink);
-    }
-
-    .subtitle {
-        color: var(--muted);
-    }
-
-    .input-section,
-    .card,
-    .card-highlight,
-    .metric-card {
-        background:
-            linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72)),
-            linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
-        border-color: var(--line);
-        box-shadow: var(--shadow);
-    }
-
-    .card-highlight {
-        background:
-            linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
-            linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
-    }
-
-    .metric-card::before,
-    .card-highlight::before,
-    .section-header::after {
-        background: linear-gradient(90deg, #4ade80, #86efac, rgba(96, 165, 250, 0));
-    }
-
-    .progress-bar {
-        background: rgba(148, 163, 184, 0.14);
-    }
-
-    .progress-fill {
-        background: linear-gradient(90deg, #16a34a, #4ade80, #86efac);
-    }
-
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stSelectbox [data-baseweb="select"],
-    .stTextArea textarea {
-        background: #e6f5e9 !important;
-        border-color: rgba(74, 222, 128, 0.4) !important;
-        color: #05070a !important;
-        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
-    }
-
-    .stTextInput label,
-    .stNumberInput label,
-    .stSelectbox label,
-    [data-testid="stWidgetLabel"],
-    [data-testid="stWidgetLabel"] p {
-        color: #ffffff !important;
-        opacity: 1 !important;
-        font-weight: 800 !important;
-    }
-
-    .stSelectbox [data-baseweb="select"] *,
-    .stNumberInput input,
-    .stTextInput input,
-    .stTextArea textarea {
-        color: #05070a !important;
-        -webkit-text-fill-color: #05070a !important;
-    }
-
-    .stButton > button,
-    .stDownloadButton > button,
-    [data-testid="stFormSubmitButton"] > button {
-        background: linear-gradient(135deg, #0b0f18, #111827) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(134, 239, 172, 0.28) !important;
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
-    }
-    .stButton > button:hover,
-    .stDownloadButton > button:hover,
-    [data-testid="stFormSubmitButton"] > button:hover {
-        background: linear-gradient(135deg, #111827, #0f2a1a) !important;
-        border-color: rgba(134, 239, 172, 0.55) !important;
-    }
-
-    .stInfo,
-    .stWarning,
-    .stSuccess,
-    .stError {
-        color: var(--ink) !important;
-        background: rgba(15, 23, 42, 0.78) !important;
-        border-color: var(--line) !important;
-    }
-
-    [style*="#d1d5db"],
-    [style*="#6b7280"],
-    [style*="rgb(209, 213, 219)"],
-    [style*="rgb(156, 163, 175)"] {
-        color: var(--muted) !important;
-    }
-    
-    [style*="#4ade80"],
-    [style*="rgb(74, 222, 128)"] {
-        color: var(--moss) !important;
-    }
-
-    [data-testid="stDataFrame"] {
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        box-shadow: var(--shadow);
-        background: var(--paper-strong) !important;
-    }
-
-    [data-testid="stDataFrame"] > div,
-    [data-testid="stDataFrame"] iframe,
-    [data-testid="stDataFrame"] [class*="stDataFrame"],
-    [data-testid="stDataFrame"] [class*="dataframe"],
-    [data-testid="stDataFrame"] [class*="glide"],
-    [data-testid="stDataFrame"] [class*="table"] {
-        background: transparent !important;
-    }
-
-    [data-testid="stDataFrame"] canvas {
-        background: transparent !important;
-    }
-
-    [data-testid="stDataFrame"] button,
-    [data-testid="stDataFrame"] [role="button"] {
-        background: rgba(255, 255, 255, 0.8) !important;
-        color: var(--ink) !important;
-        border-color: var(--line) !important;
-    }
-
-    [data-testid="stDataFrame"] svg {
-        color: var(--ink) !important;
-        fill: var(--ink) !important;
-    }
-
-    [data-testid="stDataFrame"] [role="grid"],
-    [data-testid="stDataFrame"] [role="row"],
-    [data-testid="stDataFrame"] [role="columnheader"],
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        background-color: transparent !important;
-        border-color: var(--line) !important;
-    }
-
-    [data-testid="stDataFrame"] [role="columnheader"] {
-        background-color: var(--sky-soft) !important;
-        color: var(--moss) !important;
-        font-weight: 800 !important;
-    }
-
-    .history-table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        border: 1px solid rgba(134, 239, 172, 0.24);
-        border-radius: 16px;
-        background: #0f172a;
-        box-shadow: var(--shadow);
-    }
-
-    .history-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #0f172a;
-        color: #ffffff;
-        font-size: 15px;
-    }
-
-    .history-table thead th {
-        padding: 16px 18px;
-        background: #07130d;
-        color: #ffffff !important;
-        border-bottom: 1px solid rgba(134, 239, 172, 0.3);
-        font-weight: 800;
-        text-align: left;
-        white-space: nowrap;
-    }
-
-    .history-table tbody td {
-        padding: 15px 18px;
-        color: #ffffff !important;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-        text-align: left;
-    }
-
-    .history-table tbody tr:nth-child(odd) {
-        background: #0f172a;
-    }
-
-    .history-table tbody tr:nth-child(even) {
-        background: #111827;
-    }
-
-    .history-table tbody tr:hover {
-        background: rgba(34, 197, 94, 0.14);
-    }
-
-    @keyframes fadeUp {
-        from {
-            opacity: 0;
-            transform: translateY(18px);
+        /* Sidebar divider */
+        [data-testid="stSidebar"] hr {
+            margin: 14px 0 !important;
+            border-color: rgba(74, 222, 128, 0.18) !important;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 
-    @media (max-width: 760px) {
-        .block-container {
-            padding: 16px 14px 42px;
+        [data-testid="stSidebar"] * {
+            color: var(--ink);
+        }
+
+        .title {
+            margin: 8px 0 12px;
+            color: var(--ink);
+            font-size: clamp(46px, 6vw, 82px);
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-align: center;
+            animation: fadeUp 700ms ease both;
+        }
+
+        .subtitle {
+            max-width: 720px;
+            margin: 0 auto 30px;
+            color: var(--muted);
+            font-size: 19px;
+            line-height: 1.6;
+            font-weight: 500;
+            text-align: center;
+            animation: fadeUp 800ms 80ms ease both;
+        }
+
+        .section-header {
+            margin: 38px 0 18px;
+            color: var(--ink);
+            font-size: clamp(28px, 3vw, 42px);
+            line-height: 1.08;
+            font-weight: 800;
+            letter-spacing: 0;
+            animation: fadeUp 650ms ease both;
+        }
+
+        .section-header::after {
+            content: '';
+            display: block;
+            width: 88px;
+            height: 4px;
+            margin-top: 14px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #030504, var(--leaf), rgba(120, 169, 69, 0));
         }
 
         .input-section,
         .card,
         .card-highlight,
         .metric-card {
-            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
+            backdrop-filter: blur(18px);
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 700ms ease both;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
         }
-    }
 
-    button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
-        color: #d1d5db !important;
-        font-weight: 600 !important;
-    }
+        .input-section {
+            padding: 34px;
+            margin-bottom: 24px;
+        }
+
+        .card,
+        .card-highlight,
+        .metric-card {
+            padding: 26px;
+            margin-bottom: 16px;
+        }
+
+        .metric-card::before,
+        .card-highlight::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 5px;
+            background: linear-gradient(90deg, #030504, var(--leaf), #b6d274);
+        }
+
+        .metric-card:hover,
+        .card:hover,
+        .card-highlight:hover {
+            transform: translateY(-6px);
+            border-color: rgba(95, 143, 54, 0.28);
+            box-shadow: 0 26px 64px rgba(57, 86, 47, 0.17);
+        }
+
+        .card-highlight {
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 216, 0.82)),
+                linear-gradient(135deg, rgba(120, 169, 69, 0.12), transparent);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(8, 11, 10, 0.08);
+            background: #030504;
+            color: #fff;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .badge-champion {
+            background: linear-gradient(135deg, #f4c760, #d8831e);
+            color: #2c1804;
+        }
+
+        .badge-guardian {
+            background: linear-gradient(135deg, #acd66f, #5f8f36);
+            color: #0d1c0f;
+        }
+
+        .badge-learner {
+            background: linear-gradient(135deg, #b9d7f4, #6aa0cf);
+            color: #071927;
+        }
+
+        .badge-high {
+            background: linear-gradient(135deg, #ff8e70, #d84b35);
+            color: #2e0904;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            margin-top: 12px;
+            border-radius: 999px;
+            background: rgba(8, 11, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #030504, var(--moss), var(--leaf));
+            box-shadow: 0 0 20px rgba(95, 143, 54, 0.34);
+            transition: width 600ms ease;
+        }
+
+        hr {
+            height: 1px;
+            margin: 32px 0;
+            border: none;
+            background: linear-gradient(90deg, transparent, rgba(8, 11, 10, 0.16), transparent);
+        }
+
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox [data-baseweb="select"],
+        .stTextArea textarea {
+            min-height: 48px;
+            border: 1px solid rgba(8, 11, 10, 0.12) !important;
+            border-radius: 12px !important;
+            background: rgba(255, 255, 255, 0.88) !important;
+            color: var(--ink) !important;
+            box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+        }
+
+        .stTextInput > div > div > input:focus,
+        .stNumberInput input:focus,
+        .stTextArea textarea:focus {
+            border-color: rgba(95, 143, 54, 0.55) !important;
+            box-shadow: 0 0 0 4px rgba(120, 169, 69, 0.14) !important;
+        }
+
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {
+            min-height: 52px;
+            padding: 0 28px !important;
+            border: none !important;
+            border-radius: 12px !important;
+            background: #030504 !important;
+            color: #fff !important;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2) !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        [data-testid="stFormSubmitButton"] > button:hover {
+            transform: translateY(-2px);
+            background: #101713 !important;
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26) !important;
+        }
+
+        .stInfo,
+        .stWarning,
+        .stSuccess,
+        .stError {
+            border-radius: 14px !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+        }
+
+        .stInfo {
+            background: rgba(185, 215, 244, 0.42) !important;
+        }
+
+        .stWarning {
+            background: rgba(244, 199, 96, 0.24) !important;
+        }
+
+        .stSuccess {
+            background: rgba(172, 214, 111, 0.26) !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+        /* DARK PREMIUM THEME OVERRIDES */
+        :root {
+            --sky: #8ec5ff;
+            --sky-soft: #18273a;
+            --field: #4ade80;
+            --leaf: #58d27b;
+            --moss: #86efac;
+            --ink: #f8fafc;
+            --muted: #a7b3c6;
+            --paper: rgba(15, 23, 42, 0.76);
+            --paper-strong: rgba(12, 18, 32, 0.92);
+            --line: rgba(148, 163, 184, 0.18);
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+            --radius: 18px;
+        }
+
+        body,
+        [data-testid="stAppViewContainer"] {
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 18% 8%, rgba(74, 222, 128, 0.22), transparent 28%),
+                radial-gradient(circle at 84% 12%, rgba(96, 165, 250, 0.18), transparent 30%),
+                linear-gradient(145deg, #030712 0%, #07130d 42%, #111827 100%) !important;
+        }
+
+        .block-container {
+            padding-top: 28px;
+        }
+
+        [data-testid="stSidebar"] {
+            background: rgba(3, 7, 18, 0.84);
+            border-right: 1px solid var(--line);
+            box-shadow: 18px 0 48px rgba(0, 0, 0, 0.26);
+        }
+
+        [data-testid="stSidebar"] * {
+            color: var(--ink);
+        }
+
+        .title {
+            color: var(--ink);
+            text-shadow: 0 18px 48px rgba(74, 222, 128, 0.18);
+        }
+
+        .subtitle,
+        .section-header {
+            color: var(--ink);
+        }
+
+        .subtitle {
+            color: var(--muted);
+        }
+
+        .input-section,
+        .card,
+        .card-highlight,
+        .metric-card {
+            background:
+                linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72)),
+                linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
+            border-color: var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .card-highlight {
+            background:
+                linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
+                linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
+        }
+
+        .metric-card::before,
+        .card-highlight::before,
+        .section-header::after {
+            background: linear-gradient(90deg, #4ade80, #86efac, rgba(96, 165, 250, 0));
+        }
+
+        .progress-bar {
+            background: rgba(148, 163, 184, 0.14);
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #16a34a, #4ade80, #86efac);
+        }
+
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox [data-baseweb="select"],
+        .stTextArea textarea {
+            background: #e6f5e9 !important;
+            border-color: rgba(74, 222, 128, 0.4) !important;
+            color: #05070a !important;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+        }
+
+        .stTextInput label,
+        .stNumberInput label,
+        .stSelectbox label,
+        [data-testid="stWidgetLabel"],
+        [data-testid="stWidgetLabel"] p {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            font-weight: 800 !important;
+        }
+
+        .stSelectbox [data-baseweb="select"] *,
+        .stNumberInput input,
+        .stTextInput input,
+        .stTextArea textarea {
+            color: #05070a !important;
+            -webkit-text-fill-color: #05070a !important;
+        }
+
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {
+            background: linear-gradient(135deg, #0b0f18, #111827) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(134, 239, 172, 0.28) !important;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
+        }
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        [data-testid="stFormSubmitButton"] > button:hover {
+            background: linear-gradient(135deg, #111827, #0f2a1a) !important;
+            border-color: rgba(134, 239, 172, 0.55) !important;
+        }
+
+        .stInfo,
+        .stWarning,
+        .stSuccess,
+        .stError {
+            color: var(--ink) !important;
+            background: rgba(15, 23, 42, 0.78) !important;
+            border-color: var(--line) !important;
+        }
+
+        [style*="#d1d5db"],
+        [style*="#6b7280"],
+        [style*="rgb(209, 213, 219)"],
+        [style*="rgb(156, 163, 175)"] {
+            color: var(--muted) !important;
+        }
     
-    button[data-baseweb="tab"][aria-selected="true"] > div[data-testid="stMarkdownContainer"] > p {
-        color: #4ade80 !important;
-        font-weight: 800 !important;
-    }
+        [style*="#4ade80"],
+        [style*="rgb(74, 222, 128)"] {
+            color: var(--moss) !important;
+        }
+
+        [data-testid="stDataFrame"] {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            background: var(--paper-strong) !important;
+        }
+
+        [data-testid="stDataFrame"] > div,
+        [data-testid="stDataFrame"] iframe,
+        [data-testid="stDataFrame"] [class*="stDataFrame"],
+        [data-testid="stDataFrame"] [class*="dataframe"],
+        [data-testid="stDataFrame"] [class*="glide"],
+        [data-testid="stDataFrame"] [class*="table"] {
+            background: transparent !important;
+        }
+
+        [data-testid="stDataFrame"] canvas {
+            background: transparent !important;
+        }
+
+        [data-testid="stDataFrame"] button,
+        [data-testid="stDataFrame"] [role="button"] {
+            background: rgba(255, 255, 255, 0.8) !important;
+            color: var(--ink) !important;
+            border-color: var(--line) !important;
+        }
+
+        [data-testid="stDataFrame"] svg {
+            color: var(--ink) !important;
+            fill: var(--ink) !important;
+        }
+
+        [data-testid="stDataFrame"] [role="grid"],
+        [data-testid="stDataFrame"] [role="row"],
+        [data-testid="stDataFrame"] [role="columnheader"],
+        [data-testid="stDataFrame"] [role="gridcell"] {
+            background-color: transparent !important;
+            border-color: var(--line) !important;
+        }
+
+        [data-testid="stDataFrame"] [role="columnheader"] {
+            background-color: var(--sky-soft) !important;
+            color: var(--moss) !important;
+            font-weight: 800 !important;
+        }
+
+        .history-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid rgba(134, 239, 172, 0.24);
+            border-radius: 16px;
+            background: #0f172a;
+            box-shadow: var(--shadow);
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 15px;
+        }
+
+        .history-table thead th {
+            padding: 16px 18px;
+            background: #07130d;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(134, 239, 172, 0.3);
+            font-weight: 800;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .history-table tbody td {
+            padding: 15px 18px;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            text-align: left;
+        }
+
+        .history-table tbody tr:nth-child(odd) {
+            background: #0f172a;
+        }
+
+        .history-table tbody tr:nth-child(even) {
+            background: #111827;
+        }
+
+        .history-table tbody tr:hover {
+            background: rgba(34, 197, 94, 0.14);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 760px) {
+            .block-container {
+                padding: 16px 14px 42px;
+            }
+
+            .input-section,
+            .card,
+            .card-highlight,
+            .metric-card {
+                padding: 22px;
+            }
+        }
+
+        button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+            color: #d1d5db !important;
+            font-weight: 600 !important;
+        }
     
-    [data-testid="stExpander"] {
-        background: #0f172a !important;
-        border: 1px solid rgba(134, 239, 172, 0.28) !important;
-        border-radius: 8px !important;
-        overflow: hidden;
-    }
+        button[data-baseweb="tab"][aria-selected="true"] > div[data-testid="stMarkdownContainer"] > p {
+            color: #4ade80 !important;
+            font-weight: 800 !important;
+        }
     
-    [data-testid="stExpander"] details {
-        background: #0f172a !important;
-    }
-
-    [data-testid="stExpander"] summary {
-        background-color: #0f172a !important;
-    }
+        [data-testid="stExpander"] {
+            background: #0f172a !important;
+            border: 1px solid rgba(134, 239, 172, 0.28) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
     
-    [data-testid="stExpander"] summary:hover {
-        background-color: #1e293b !important;
-    }
+        [data-testid="stExpander"] details {
+            background: #0f172a !important;
+        }
 
-    [data-testid="stExpander"] summary,
-    [data-testid="stExpander"] summary p,
-    [data-testid="stExpander"] summary span,
-    [data-testid="stExpander"] summary svg {
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        fill: #ffffff !important;
-    }
+        [data-testid="stExpander"] summary {
+            background-color: #0f172a !important;
+        }
     
-    [data-testid="stExpanderDetails"] {
-        background-color: #0f172a !important;
-        color: #d1d5db !important;
-    }
-    } /* end @media (prefers-color-scheme: dark) */
-</style>
-""", unsafe_allow_html=True)
+        [data-testid="stExpander"] summary:hover {
+            background-color: #1e293b !important;
+        }
 
-apply_theme()
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] summary span,
+        [data-testid="stExpander"] summary svg {
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            fill: #ffffff !important;
+        }
+    
+        [data-testid="stExpanderDetails"] {
+            background-color: #0f172a !important;
+            color: #d1d5db !important;
+        }
+        } /* end @media (prefers-color-scheme: dark) */
+    </style>
+    """, unsafe_allow_html=True)
+
+    apply_theme()
 
 
 
-# -------------------------
-# HEADER
-# -------------------------
-render_header()
+    # -------------------------
+    # HEADER
+    # -------------------------
+    render_header()
 
 
-# -------------------------
-# INPUTS SECTION
-# -------------------------
+    # -------------------------
+    # INPUTS SECTION
+    # -------------------------
 
 
-st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
 
  
-col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>🚗</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
-    </div>
-    """, unsafe_allow_html=True)
-    transport = st.selectbox(
-    "Primary Transport",
-    ["Car", "Public Transport", "Bike", "Walking"],
-    key="transport",
-    help="Select the mode of transportation you use most frequently for your daily commute."
-    )
-    diet = st.selectbox(
-    "Diet Type",
-    ["Vegetarian", "Non-Vegetarian"],
-    key="diet",
-    help="Choose the option that best represents your regular dietary habits."
-)
-
-with col2:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>⚡</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
-    </div>
-    """, unsafe_allow_html=True)
-    electricity = st.number_input(
-        "Monthly Electricity (kWh)",
-        min_value=0.0,
-        value=200.0,
-        step=10.0,
-        key="electricity",
-        help="Enter your average monthly electricity consumption in kWh."
+    with col1:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>🚗</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
+        </div>
+        """, unsafe_allow_html=True)
+        transport = st.selectbox(
+        "Primary Transport",
+        ["Car", "Public Transport", "Bike", "Walking"],
+        key="transport",
+        help="Select the mode of transportation you use most frequently for your daily commute."
+        )
+        diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet",
+        help="Choose the option that best represents your regular dietary habits."
     )
 
-    diet = st.selectbox(
-    "Diet Type",
-    ["Vegetarian", "Non-Vegetarian"],
-    key="diet",
-    help="Choose the option that best represents your regular dietary habits."
-)
-with col3:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>✈️</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
-    </div>
-    """, unsafe_allow_html=True)
-    flights = st.number_input(
-        "Annual Flights",
-        min_value=0,
-        value=0,
-        step=1,
-        key="flights",
-        help="Enter the number of long-distance flights you take each year."
+    with col2:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>⚡</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
+        </div>
+        """, unsafe_allow_html=True)
+        electricity = st.number_input(
+            "Monthly Electricity (kWh)",
+            min_value=0.0,
+            value=200.0,
+            step=10.0,
+            key="electricity",
+            help="Enter your average monthly electricity consumption in kWh."
+        )
+
+        diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet",
+        help="Choose the option that best represents your regular dietary habits."
     )
-    st.info("💡 How many long-distance flights per year?")
+    with col3:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>✈️</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
+        </div>
+        """, unsafe_allow_html=True)
+        flights = st.number_input(
+            "Annual Flights",
+            min_value=0,
+            value=0,
+            step=1,
+            key="flights",
+            help="Enter the number of long-distance flights you take each year."
+        )
+        st.info("💡 How many long-distance flights per year?")
 
  
 
-# -------------------------
-# PDF REPORT GENERATION
-# -------------------------
+    # -------------------------
+    # PDF REPORT GENERATION
+    # -------------------------
 
-# -------------------------
-# TABS CONFIGURATION
-# -------------------------
+    # -------------------------
+    # TABS CONFIGURATION
+    # -------------------------
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
 
 # Initialize session state
@@ -1098,7 +1100,7 @@ with col_btn2:
 
     st.caption("✔ All input fields are validated before analysis.")
 
-    analyze_btn = st.button(
+    analyze_btn = form.form_submit_button(
         "🌿 Analyze My Impact",
         use_container_width=True,
         key="analyze_btn"
@@ -1245,12 +1247,12 @@ with placeholder.container():
 
 placeholder.empty()
 
-        progress_text = st.empty()
-        progress = st.progress(0)
+progress_text = st.empty()
+progress = st.progress(0)
 
-        progress_text.info("🔍 Validating user inputs...")
-        progress.progress(20)
-        time.sleep(0.5)  # Simulate validation delay
+progress_text.info("🔍 Validating user inputs...")
+progress.progress(20)
+time.sleep(0.5)  # Simulate validation delay
 
 # TABS CONFIGURATION
 # -------------------------
@@ -1468,18 +1470,18 @@ with tab1:
 
     if analyze_btn:
 
-      placeholder = st.empty()
+        placeholder = st.empty()
 
-with placeholder.container():
-    show_card_skeleton()
-    show_chart_skeleton()
+        with placeholder.container():
+            show_card_skeleton()
+            show_chart_skeleton()
 
 # Existing analysis code here
 
-placeholder.empty()  
-            total, contributors = calculate_footprint(
-                transport, distance, electricity, diet, flights, region
-            )
+        placeholder.empty()  
+        total, contributors = calculate_footprint(
+            transport, distance, electricity, diet, flights, region
+        )
 
         eco_score = calculate_eco_score(total)
 
