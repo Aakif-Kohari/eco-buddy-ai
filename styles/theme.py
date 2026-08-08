@@ -720,11 +720,133 @@ def apply_theme():
             padding: 16px 14px 42px;
         }}
 
+        /* Mobile-friendly typography */
+        .title {{
+            font-size: clamp(34px, 10vw, 52px);
+            line-height: 1.05;
+            margin-bottom: 10px;
+        }}
+
+        .subtitle {{
+            font-size: 16px;
+            line-height: 1.5;
+            padding: 0 8px;
+            margin-bottom: 22px;
+        }}
+
+        .section-header {{
+            font-size: clamp(24px, 7vw, 34px);
+            margin-top: 28px;
+        }}
+
+        /* Prevent cards from feeling cramped */
+        .input-section,
+        .card,
+        .card-highlight,
+        .metric-card {{
+            padding: 18px;
+            margin-bottom: 14px;
+        }}
+
+        /* Make buttons easier to tap on mobile */
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {{
+            width: 100%;
+            min-height: 50px;
+            font-size: 14px !important;
+        }}
+
+        /* Improve form controls on smaller screens */
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox [data-baseweb="select"],
+        .stTextArea textarea {{
+            min-height: 46px;
+            font-size: 15px;
+        }}
+
+        /* Keep tables usable without breaking the page */
+        .history-table-wrap {{
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }}
+
+        .history-table {{
+            min-width: 620px;
+        }}
+
+        /* Reduce hover movement on touch devices */
+        .metric-card:hover,
+        .card:hover,
+        .card-highlight:hover {{
+            transform: none;
+        }}
+
+        .stExpander {
+    border-radius: 14px;
+    border: 1px solid rgba(74,222,128,.25);
+    transition: all .3s ease;
+}
+
+.stExpander:hover {
+    transform: translateY(-2px);
+}
+
         .input-section,
         .card,
         .card-highlight,
         .metric-card {{
             padding: 22px;
+        }}
+    }}
+
+        /* Breadcrumb navigation */
+    .breadcrumb {{
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0 24px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+        font-size: 14px;
+        font-weight: 600;
+    }}
+
+    .breadcrumb-item {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        transition: color 180ms ease, transform 180ms ease;
+    }}
+
+    .breadcrumb-item:hover {{
+        color: var(--leaf);
+        transform: translateY(-1px);
+    }}
+
+    .breadcrumb-item.active {{
+        color: var(--ink);
+        font-weight: 800;
+    }}
+
+    .breadcrumb-separator {{
+        color: var(--muted);
+        opacity: 0.7;
+        user-select: none;
+    }}
+
+    @media (max-width: 760px) {{
+        .breadcrumb {{
+            gap: 5px;
+            margin-bottom: 18px;
+            padding: 10px 12px;
+            font-size: 13px;
         }}
     }}
 {css}

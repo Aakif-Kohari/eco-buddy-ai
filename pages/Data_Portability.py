@@ -3,7 +3,8 @@ import json
 import os
 import sys
 from datetime import datetime
-from data_io import export_data_json, export_data_csv_zip, import_data_json, import_assessments_bulkfrom database import get_assessments
+from data_io import export_data_json, export_data_csv_zip, import_data_json, import_assessments_bulk
+from database import get_assessments
 from background_tasks import submit_background_task, render_task_progress, clear_background_task
 from styles.theme import apply_theme
 
@@ -211,7 +212,7 @@ is_done, import_result = render_task_progress(
 if is_done and import_result is not None:
     success, message = import_result
     if success:
-                # Success notification
+        # Success notification
         st.toast("Backup restored successfully!", icon="🎉")
         st.success("✅ Data restored successfully!")
         st.balloons()
@@ -224,50 +225,50 @@ if is_done and import_result is not None:
 
         try:
             file_size = uploaded_file.size
-                if file_size < 1024:
-                    file_size = f"{file_size} Bytes"
-                elif file_size < 1024 * 1024:
-                    file_size = f"{file_size / 1024:.2f} KB"
-                else:
-                    file_size = f"{file_size / (1024 * 1024):.2f} MB"
-        except:
+            if file_size < 1024:
+                file_size = f"{file_size} Bytes"
+            elif file_size < 1024 * 1024:
+                file_size = f"{file_size / 1024:.2f} KB"
+            else:
+                file_size = f"{file_size / (1024 * 1024):.2f} MB"
+        except AttributeError:
             file_size = "Unknown"
 
-# Success Summary Card
-with st.container(border=True):
+        # Success Summary Card
+        with st.container(border=True):
 
-    st.subheader("📦 Restore Summary")
+            st.subheader("📦 Restore Summary")
 
-    col1, col2 = st.columns(2)
+            col1, col2 = st.columns(2)
 
-    with col1:
-        st.metric("Status", "Success")
-        st.metric("File", filename)
+            with col1:
+                st.metric("Status", "Success")
+                st.metric("File", filename)
 
-    with col2:
-        st.metric("Restore Time", restore_time)
-        st.metric("File Size", file_size)
+            with col2:
+                st.metric("Restore Time", restore_time)
+                st.metric("File Size", file_size)
 
-    st.divider()
+            st.divider()
 
-    st.info(message)
+            st.info(message)
 
-# Expandable Details
-with st.expander("📋 Restore Details", expanded=False):
+        # Expandable Details
+        with st.expander("📋 Restore Details", expanded=False):
 
-    st.write("### Imported Backup Information")
+            st.write("### Imported Backup Information")
 
-    st.write(f"**Filename:** {filename}")
-    st.write(f"**Restore Time:** {restore_time}")
-    st.write(f"**File Size:** {file_size}")
+            st.write(f"**Filename:** {filename}")
+            st.write(f"**Restore Time:** {restore_time}")
+            st.write(f"**File Size:** {file_size}")
 
-    st.divider()
+            st.divider()
 
-    st.write("### Import Log")
+            st.write("### Import Log")
 
-    st.code(message)
-            else:
-                st.error(message)
+            st.code(message)
+    else:
+        st.error(message)
 
 st.markdown("---")
 st.header("📥 Bulk Import Historical Assessments")

@@ -19,6 +19,8 @@ boundary — `to_preferred()` on the way out, `from_preferred()` on the way back
 in — so no calculation module has to change and no stored value is rewritten.
 """
 
+from typing import Any
+
 # --- Dimensions -------------------------------------------------------------
 
 DIM_DISTANCE = "distance"
@@ -44,7 +46,8 @@ class UnitError(ValueError):
 
 # --- Unit registry ----------------------------------------------------------
 
-def _unit(key, symbol, name, plural, dimension, factor, precision=1):
+def _unit(key: str, symbol: str, name: str, plural: str, dimension: str,
+          factor: float, precision: int = 1) -> dict[str, Any]:
     """
     One unit definition.
 
@@ -126,7 +129,7 @@ STORAGE_UNITS = {
 }
 
 
-def get_unit(key):
+def get_unit(key: str) -> dict[str, Any]:
     """Look up a unit definition by key."""
     if key not in UNITS:
         raise UnitError(
@@ -135,7 +138,7 @@ def get_unit(key):
     return UNITS[key]
 
 
-def list_units(dimension=None):
+def list_units(dimension: str | None = None) -> list[str]:
     """Unit keys, optionally restricted to one dimension."""
     return sorted(
         key for key, unit in UNITS.items()
@@ -143,7 +146,7 @@ def list_units(dimension=None):
     )
 
 
-def same_dimension(unit_a, unit_b):
+def same_dimension(unit_a: str, unit_b: str) -> bool:
     """True when two units measure the same physical quantity."""
     return get_unit(unit_a)["dimension"] == get_unit(unit_b)["dimension"]
 
@@ -181,7 +184,8 @@ SYSTEM_LABELS = {
 
 # --- Currencies -------------------------------------------------------------
 
-def _currency(code, symbol, name, symbol_first=True, decimals=2):
+def _currency(code: str, symbol: str, name: str, symbol_first: bool = True,
+              decimals: int = 2) -> dict[str, Any]:
     return {
         "code": code,
         "symbol": symbol,
@@ -207,7 +211,7 @@ CURRENCIES = {
 DEFAULT_CURRENCY = "USD"
 
 
-def get_currency(code):
+def get_currency(code: str) -> dict[str, Any]:
     """Look up a currency definition by ISO code."""
     if code not in CURRENCIES:
         raise UnitError(
@@ -216,14 +220,14 @@ def get_currency(code):
     return CURRENCIES[code]
 
 
-def list_currencies():
+def list_currencies() -> list[str]:
     """Every supported currency code, alphabetically."""
     return sorted(CURRENCIES)
 
 
 # --- Preferences ------------------------------------------------------------
 
-def make_preference(system=METRIC, currency=DEFAULT_CURRENCY):
+def make_preference(system: str = METRIC, currency: str = DEFAULT_CURRENCY) -> dict[str, Any]:
     """
     A user's display preference: a unit system plus a currency.
 
@@ -241,7 +245,7 @@ def make_preference(system=METRIC, currency=DEFAULT_CURRENCY):
 DEFAULT_PREFERENCE = make_preference()
 
 
-def preferred_unit(dimension, preference=None):
+def preferred_unit(dimension: str, preference: dict[str, Any] | None = None) -> str:
     """The unit this preference wants for a given dimension."""
     preference = preference or DEFAULT_PREFERENCE
     if dimension not in DIMENSIONS:
@@ -251,7 +255,7 @@ def preferred_unit(dimension, preference=None):
 
 # --- Conversion -------------------------------------------------------------
 
-def convert(value, from_unit, to_unit):
+def convert(value: float, from_unit: str, to_unit: str) -> float:
     """
     Convert between two units of the same dimension.
 
@@ -283,7 +287,7 @@ def convert(value, from_unit, to_unit):
     return number * source["factor"] / target["factor"]
 
 
-def convert_temperature(value, from_unit, to_unit):
+def convert_temperature(value: float, from_unit: str, to_unit: str) -> float:
     """Convert between Celsius, Fahrenheit and Kelvin."""
     for unit in (from_unit, to_unit):
         if get_unit(unit)["dimension"] != DIM_TEMPERATURE:
@@ -312,7 +316,7 @@ def convert_temperature(value, from_unit, to_unit):
     return celsius
 
 
-def to_preferred(value, storage_unit, preference=None):
+def to_preferred(value: float, storage_unit: str, preference: dict[str, Any] | None = None) -> tuple[float, str]:
     """
     Convert a stored (metric) value into the user's display unit.
 
@@ -328,7 +332,7 @@ def to_preferred(value, storage_unit, preference=None):
     return convert(value, storage_unit, target), target
 
 
-def from_preferred(value, storage_unit, preference=None):
+def from_preferred(value: float, storage_unit: str, preference: dict[str, Any] | None = None) -> float:
     """
     Convert a value the user typed in their own units back to storage units.
 
@@ -356,7 +360,7 @@ SCALE_LADDERS = {
 }
 
 
-def auto_scale(value, unit):
+def auto_scale(value: float, unit: str) -> tuple[float, str]:
     """
     Pick the most readable magnitude for a value.
 
@@ -403,7 +407,7 @@ def auto_scale(value, unit):
 
 # --- Formatting -------------------------------------------------------------
 
-def format_number(value, precision=1):
+def format_number(value: float, precision: int = 1) -> str:
     """A number with thousands separators and fixed precision."""
     try:
         number = float(value)
@@ -412,8 +416,9 @@ def format_number(value, precision=1):
     return f"{number:,.{max(0, int(precision))}f}"
 
 
-def format_quantity(value, unit, preference=None, precision=None, scale=False,
-                    convert_to_preference=True):
+def format_quantity(value: float, unit: str, preference: dict[str, Any] | None = None,
+                    precision: int | None = None, scale: bool = False,
+                    convert_to_preference: bool = True) -> str:
     """
     Format a stored value for display: converted, scaled, and labelled.
 
@@ -437,7 +442,7 @@ def format_quantity(value, unit, preference=None, precision=None, scale=False,
     return f"{format_number(display_value, precision)} {definition['symbol']}"
 
 
-def format_co2(value_kg, preference=None, scale=True):
+def format_co2(value_kg: float, preference: dict[str, Any] | None = None, scale: bool = True) -> str:
     """
     The app-wide canonical footprint formatter.
 
@@ -454,7 +459,7 @@ def format_co2(value_kg, preference=None, scale=True):
     return f"{format_number(display_value, precision)} {definition['symbol']} CO₂"
 
 
-def format_currency(value, preference=None, show_code=False):
+def format_currency(value: float, preference: dict[str, Any] | None = None, show_code: bool = False) -> str:
     """Format a monetary amount with the right symbol, placement and precision."""
     preference = preference or DEFAULT_PREFERENCE
     currency = get_currency(preference["currency"])
@@ -479,7 +484,8 @@ def format_currency(value, preference=None, show_code=False):
     return text
 
 
-def label_with_unit(base_label, dimension, preference=None, per=None):
+def label_with_unit(base_label: str, dimension: str, preference: dict[str, Any] | None = None,
+                    per: str | None = None) -> str:
     """
     Build a form label carrying the user's unit, e.g. "Daily Distance (mi)".
 
@@ -494,24 +500,24 @@ def label_with_unit(base_label, dimension, preference=None, per=None):
     return f"{base_label} ({symbol})"
 
 
-def unit_symbol(dimension, preference=None):
+def unit_symbol(dimension: str, preference: dict[str, Any] | None = None) -> str:
     """Just the symbol a preference wants for a dimension."""
     return get_unit(preferred_unit(dimension, preference))["symbol"]
 
 
-def describe_preference(preference=None):
+def describe_preference(preference: dict[str, Any] | None = None) -> str:
     """Human-readable summary for a settings panel."""
     preference = preference or DEFAULT_PREFERENCE
     currency = get_currency(preference["currency"])
     return f"{SYSTEM_LABELS[preference['system']]} · {currency['name']} ({currency['symbol']})"
 
 
-def preference_to_dict(preference):
+def preference_to_dict(preference: dict[str, Any]) -> dict[str, Any]:
     """JSON-safe representation for storage and session state."""
     return {"system": preference["system"], "currency": preference["currency"]}
 
 
-def preference_from_dict(payload):
+def preference_from_dict(payload: dict[str, Any]) -> dict[str, Any]:
     """Rebuild a preference from stored data, defaulting on anything invalid."""
     if not isinstance(payload, dict):
         return make_preference()
@@ -523,21 +529,25 @@ def preference_from_dict(payload):
 
 # --- Convenience wrappers for the app's actual quantities -------------------
 
-def format_distance(value_km, preference=None, precision=None):
+def format_distance(value_km: float, preference: dict[str, Any] | None = None,
+                    precision: int | None = None) -> str:
     """Format a stored distance (km)."""
     return format_quantity(value_km, "km", preference, precision=precision)
 
 
-def format_volume(value_litres, preference=None, precision=None):
+def format_volume(value_litres: float, preference: dict[str, Any] | None = None,
+                  precision: int | None = None) -> str:
     """Format a stored water volume (litres)."""
     return format_quantity(value_litres, "L", preference, precision=precision)
 
 
-def format_energy(value_kwh, preference=None, precision=None, scale=False):
+def format_energy(value_kwh: float, preference: dict[str, Any] | None = None,
+                  precision: int | None = None, scale: bool = False) -> str:
     """Format a stored energy amount (kWh)."""
     return format_quantity(value_kwh, "kWh", preference, precision=precision, scale=scale)
 
 
-def format_area(value_sqm, preference=None, precision=None):
+def format_area(value_sqm: float, preference: dict[str, Any] | None = None,
+                precision: int | None = None) -> str:
     """Format a stored area (m²)."""
     return format_quantity(value_sqm, "m2", preference, precision=precision)
