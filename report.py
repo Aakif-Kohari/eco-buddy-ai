@@ -8,12 +8,6 @@ import os
 import tempfile
 import uuid
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
 from report_validation import validate_report_data
 
 
@@ -31,6 +25,12 @@ def generate_pdf(total: float, eco_score: int | float, insight: str) -> str | No
         return None
 
     cleaned = validation.cleaned_data
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     try:
         file_name = os.path.join(

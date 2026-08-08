@@ -2,7 +2,6 @@ import os
 import json
 import time
 from typing import Any
-import requests
 import streamlit as st
 from cache import cached
 from cache_config import TTL_LLM_RESPONSE
@@ -12,6 +11,13 @@ LLM_COOLDOWN_SECONDS = 2.0
 
 # Keys the parsed AI response must contain to be considered usable.
 _REQUIRED_KEYS = ("transport", "distance", "diet")
+
+
+def __getattr__(name):
+    if name == "requests":
+        import requests
+        return requests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _check_rate_limit(provider: str) -> bool:
@@ -49,6 +55,8 @@ def _call_gemini(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
         ParsingError: Gemini responded with 200 but the body wasn't the
             JSON shape we expect.
     """
+    import requests
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = {
         "systemInstruction": {
@@ -96,6 +104,8 @@ def _call_groq(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
         ParsingError: Groq responded with 200 but the body wasn't the
             JSON shape we expect.
     """
+    import requests
+
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",

@@ -3,8 +3,6 @@ import io
 import gc
 import logging
 import tracemalloc
-import pdfplumber
-import pytesseract
 from typing import BinaryIO
 from PIL import Image
 from cache import cached
@@ -13,6 +11,12 @@ from cache_config import CACHE_CATEGORY_SESSION
 logger = logging.getLogger(__name__)
 
 MAX_OCR_IMAGE_DIMENSION = 1800
+
+
+def __getattr__(name):
+    if name in ("pdfplumber", "pytesseract"):
+        return __import__(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def optimize_image_for_ocr(image: Image.Image, max_dim: int = MAX_OCR_IMAGE_DIMENSION) -> Image.Image:
@@ -57,6 +61,9 @@ def extract_text_from_bytes(file_bytes: bytes, file_type: str) -> str:
     Pure, thread-safe function suitable for background processing.
     Efficiently releases resources after processing to minimize peak memory usage.
     """
+    import pdfplumber
+    import pytesseract
+
     if not file_bytes:
         return ""
     text = ""
@@ -98,6 +105,9 @@ def extract_text_from_file(uploaded_file: BinaryIO) -> str:
     Uses caching to avoid re-running OCR on identical files.
     Optimizes image memory and releases resources efficiently.
     """
+    import pdfplumber
+    import pytesseract
+
     if uploaded_file is None:
         return ""
 
@@ -170,6 +180,8 @@ def benchmark_ocr_memory(image_bytes: bytes) -> dict:
     Benchmarks memory usage during OCR processing of an image.
     Returns peak memory allocated (in KB) and reduction statistics.
     """
+    import pytesseract
+
     tracemalloc.start()
     snapshot_before = tracemalloc.take_snapshot()
     
