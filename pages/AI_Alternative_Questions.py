@@ -1,6 +1,10 @@
 import streamlit as st
 
-from alternative_question_engine import AlternativeQuestionEngine
+
+# Lazy import - only load when user interacts
+def get_engine():
+    from alternative_question_engine import AlternativeQuestionEngine
+    return AlternativeQuestionEngine()
 
 
 st.set_page_config(
@@ -68,12 +72,6 @@ QUESTION_BANK = [
         "concept": "Python Exception Handling",
     },
 ]
-
-
-# Cache the model to avoid reloading on every interaction
-@st.cache_resource
-def get_engine():
-    return AlternativeQuestionEngine()
 
 
 st.title("🤖 AI Alternative Question Recommendation Engine")
