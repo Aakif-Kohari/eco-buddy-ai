@@ -29,6 +29,7 @@ from components.profile import render_profile
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from weather_alerts import render_weather_hub
 from eco_social import render_eco_social, render_eco_tip
 
 load_dotenv()
@@ -1203,14 +1204,15 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6,tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
     "🗺️ Route Planning & Offsets",
     "🏆 Community Leaderboard",
     "🔮 Future Self",
-    "VOice Assistant"
+    "🎤 Voice Assistant"
+    "🌤️ Eco-Weather"
 ])
 
 
@@ -1220,9 +1222,10 @@ with tab1:
 with tab7:
     render_voice_assessment()
  
- 
-    placeholder = st.empty()
 
+    placeholder = st.empty()
+with tab8:
+    render_weather_hub()
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
