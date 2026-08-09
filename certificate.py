@@ -6,14 +6,6 @@ import tempfile
 import uuid
 from typing import Optional
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import landscape, letter
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +24,15 @@ def generate_certificate(
             tempfile.gettempdir(),
             f"certificate_{uuid.uuid4().hex[:8]}.pdf"
         )
-        
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import landscape, letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+
     try:
         # Font registration
         base_dir = os.path.dirname(os.path.abspath(__file__))
