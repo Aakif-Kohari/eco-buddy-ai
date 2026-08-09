@@ -18,12 +18,13 @@ ranking_type = st.radio(
     horizontal=True
 )
 
-if ranking_type == "Weekly":
-    leaderboard = get_leaderboard("weekly")
-elif ranking_type == "Monthly":
-    leaderboard = get_leaderboard("monthly")
-else:
-    leaderboard = get_leaderboard("all")
+with st.spinner("Computing community rankings..."):
+    if ranking_type == "Weekly":
+        leaderboard = get_leaderboard("weekly")
+    elif ranking_type == "Monthly":
+        leaderboard = get_leaderboard("monthly")
+    else:
+        leaderboard = get_leaderboard("all")
 
 if leaderboard:
 

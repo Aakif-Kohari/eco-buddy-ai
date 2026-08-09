@@ -302,7 +302,8 @@ def render_carbon_footprint_replay(user_id: int = 1) -> None:
         
     # Export Replay as GIF
     st.subheader("📥 Export Replay Visualization")
-    gif_bytes = export_replay_gif(df_history)
+    with st.spinner("Generating your replay GIF..."):
+        gif_bytes = export_replay_gif(df_history)
     st.download_button(
         label="🎥 Download Replay as GIF",
         data=gif_bytes,
