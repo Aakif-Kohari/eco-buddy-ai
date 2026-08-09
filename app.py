@@ -20,9 +20,9 @@ import os
 from dotenv import load_dotenv
 
 from styles.theme import apply_theme
-from achievement_showcase import render_header
-from garden_assistant import render_garden_hub
-from voice_assessment import render_voice_assessment
+from achievement_showcase import render_achievement_showcase
+from garden_Assistant import render_garden_hub
+from voice_assistant import render_voice_assessment
 from components.header import render_header
 #from components.profile import render_profile
 from sustainability_hub import (
