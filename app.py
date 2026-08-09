@@ -17,6 +17,7 @@ st.set_page_config(    page_title="EcoBuddy",
 import tempfile
 import uuid
 import os
+from global_search import render_global_search
 from dotenv import load_dotenv
 
 from styles.theme import apply_theme
@@ -295,6 +296,23 @@ with form:
                 transition: all 0.25s ease;
             }
 
+
+run_db_initializations()
+user_id = render_sidebar_auth()
+render_theme_selector()
+selected_dashboard_widgets = render_widget_customizer(user_id)
+render_customizable_dashboard(user_id, selected_dashboard_widgets)
+run_db_initializations()
+user_id = render_sidebar_auth()
+render_theme_selector()
+
+render_global_search(user_id)
+
+selected_dashboard_widgets = render_widget_customizer(user_id)
+render_customizable_dashboard(user_id, selected_dashboard_widgets)
+with st.expander("🌍 Environmental Impact Timeline", expanded=False):
+    render_environmental_timeline(user_id)
+
             /* Expander header */
             [data-testid="stSidebar"] [data-testid="stExpander"] summary {
                 font-weight: 700;
@@ -306,6 +324,7 @@ with form:
                 border-color: rgba(34, 197, 94, 0.45);
                 transform: translateX(2px);
             }
+
 
             /* Navigation content */
             [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
