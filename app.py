@@ -1036,8 +1036,9 @@ with tab1:
         if uploaded_bill is not None:
             # We use a button to trigger extraction so it doesn't re-run infinitely on every interaction
             if st.button("Extract Energy Usage"):
-                with st.spinner("Extracting data from bill..."):
-                    extracted_text = extract_text_from_file(uploaded_bill)
+                try:
+                    with st.spinner("Extracting data from bill..."):
+                        extracted_text = extract_text_from_file(uploaded_bill)
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
@@ -1045,6 +1046,11 @@ with tab1:
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
+                except Exception:
+                    st.error(
+                    "⚠️ Unable to process the uploaded bill. "
+                    "Please check the file and try again."
+            )
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
         diet = st.selectbox("Diet Type", ["Vegetarian", "Non-Vegetarian"], key="diet")
@@ -1417,48 +1423,90 @@ with tab1:
         st.markdown("---")
 
         # -------------------------
-        # PDF DOWNLOAD
-        # -------------------------
-        report_validation = validate_report_data(
-            total,
-            eco_score,
-            insight,
+# PDF DOWNLOAD
+# -------------------------
+
+try:
+    # Validate report data before generating PDF
+    report_validation = validate_report_data(
+        total,
+        eco_score,
+        insight
+    )
+
+    if not report_validation.is_valid:
+        st.error(
+            "The report could not be generated because the assessment "
+            "contains invalid or incomplete data."
         )
 
-        if not report_validation.is_valid:
-            st.error(
-                "The report could not be generated because the assessment "
-                "contains invalid or incomplete data."
-            )
-            for validation_error in report_validation.errors:
-                st.warning(f"• {validation_error}")
-        else:
+        for validation_error in report_validation.errors:
+            st.warning(f"• {validation_error}")
+
+    else:
+        report = None
+
+        try:
+            # Generate PDF
             report = generate_pdf(
                 report_validation.cleaned_data["total"],
                 report_validation.cleaned_data["eco_score"],
-                report_validation.cleaned_data["insight"],
+                report_validation.cleaned_data["insight"]
             )
 
-            if report:
+            if not report:
+                st.error(
+                    "The assessment data is valid, but the PDF could not "
+                    "be created. Please try again."
+                )
+
+            else:
+                # Read generated PDF
                 with open(report, "rb") as report_file:
                     pdf_bytes = report_file.read()
 
+                # Make sure PDF contains data
+                if not pdf_bytes:
+                    st.error(
+                        "The generated PDF is empty. Please try again."
+                    )
+
+                else:
+                    st.download_button(
+                        "📄 Download Eco Report (PDF)",
+                        data=pdf_bytes,
+                        file_name="EcoBuddy_Report.pdf",
+                        mime="application/pdf"
+                    )
+
+                    st.success("✅ PDF report generated successfully!")
+
+        except (OSError, IOError):
+            st.error(
+                "⚠️ Unable to read the generated PDF file. "
+                "Please try again."
+            )
+
+        except Exception:
+            st.error(
+                "⚠️ Unable to generate the PDF right now. "
+                "Please try again later."
+            )
+
+        finally:
+            # Remove temporary PDF file
+            if report:
                 try:
                     os.remove(report)
                 except OSError:
                     pass
 
-                st.download_button(
-                    "📄 Download Eco Report (PDF)",
-                    pdf_bytes,
-                    file_name="EcoBuddy_Report.pdf",
-                    mime="application/pdf",
-                )
-            else:
-                st.error(
-                    "The assessment data is valid, but the PDF could not be "
-                    "created. Please try again."
-                )
+except Exception:
+    # Handles unexpected errors in validation or the PDF workflow
+    st.error(
+        "⚠️ Something went wrong while preparing your Eco Report. "
+        "Please try again."
+    )
 
     # -------------------------
     # HISTORY & TRACKING

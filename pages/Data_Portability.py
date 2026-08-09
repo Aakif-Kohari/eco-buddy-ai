@@ -226,12 +226,12 @@ if is_done and import_result is not None:
 
         try:
             file_size = uploaded_file.size
-                if file_size < 1024:
-                    file_size = f"{file_size} Bytes"
-                elif file_size < 1024 * 1024:
-                    file_size = f"{file_size / 1024:.2f} KB"
-                else:
-                    file_size = f"{file_size / (1024 * 1024):.2f} MB"
+            if file_size < 1024:
+                file_size = f"{file_size} Bytes"
+            elif file_size < 1024 * 1024:
+                file_size = f"{file_size / 1024:.2f} KB"
+            else:
+                file_size = f"{file_size / (1024 * 1024):.2f} MB"
         except:
             file_size = "Unknown"
 
