@@ -1401,6 +1401,11 @@ with tab1:
                         st.success(f"Extracted {parsed_val} kWh from bill!")
                     else:
                         st.warning("Could not extract energy consumption. Please enter manually.")
+                except Exception:
+                    st.error(
+                    "⚠️ Unable to process the uploaded bill. "
+                    "Please check the file and try again."
+            )
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
         diet = st.selectbox(
