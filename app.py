@@ -4608,7 +4608,7 @@ with tab2:
         profile = ea.generate_hourly_energy_profile(appliances)
         fig_hr = go.Figure(data=[go.Bar(x=list(range(24)), y=profile, marker_color='#fbbf24')])
         fig_hr.update_layout(title="Hourly Energy Demand (kWh)", xaxis_title="Hour of Day", yaxis_title="kWh", template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_hr, width="stretch")
+        st.plotly_chart(fig_hr, use_container_width=True)
 
     else:
         st.markdown("""
@@ -4806,7 +4806,7 @@ with tab4:
                 fig = px.bar(df_comp, x='mode', y='emissions_kg', 
                             title='CO2e by Transit Mode (Lower is Better)',
                             color='emissions_kg', color_continuous_scale='Greens_r')
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
                 
                 st.dataframe(df_comp.style.format({'emissions_kg': '{:.2f}'}))
                 
