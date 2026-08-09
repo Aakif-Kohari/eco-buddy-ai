@@ -24,7 +24,7 @@ from achievement_showcase import render_header
 from garden_assistant import render_garden_hub
 from voice_assessment import render_voice_assessment
 from components.header import render_header
-from components.profile import render_profile
+#from components.profile import render_profile
 from sustainability_hub import (
     render_sustainability_hub  
 )
