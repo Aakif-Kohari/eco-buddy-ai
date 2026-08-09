@@ -30,6 +30,7 @@ from sustainability_hub import (
     render_sustainability_hub  
 )
 from pet_care import render_pet_hub
+from community_dashboard import render_community_analytics
 from home_guide import render_home_hub
 from wellness_center import render_wellness_hub
 from learning_center import render_learning_hub
@@ -1229,22 +1230,31 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10,tab11,tab12,tab13,tab14 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
     "🗺️ Route Planning & Offsets",
     "🏆 Community Leaderboard",
     "🔮 Future Self",
-    "🎤 Voice Assistant",
+    "🌿 Sustainability Hub",
+    "🌍 Eco-Social",
+    "📖 Eco-Stories",
+    "♻️ Waste Manager",
+    "💰 Eco-Finance",
+    "🎤 Voice Assessment",
     "🌤️ Eco-Weather",
     "🌍 Eco-Travel",
     "🌱 Eco-Garden",
     "📚 Learning Center",
     "🧘 Eco-Wellness",
     "🏠 Eco-Home",
-    "🐾 Pet Care" 
+    "🐾 Pet Care",
+    "📊 Community Analytics"  # NEW
 ])
+
+with tab20:
+    render_community_analytics()
 
 
 with tab1:
