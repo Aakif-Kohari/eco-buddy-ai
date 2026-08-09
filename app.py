@@ -29,6 +29,7 @@ from components.header import render_header
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from wellness_center import render_wellness_hub
 from learning_center import render_learning_hub
 from travel_planner import render_travel_hub
 from weather_alerts import render_weather_hub
@@ -1226,7 +1227,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10,tab11 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10,tab11,tab12 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1237,7 +1238,8 @@ tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10,tab11 = st.tabs([
     "🌤️ Eco-Weather",
     "🌍 Eco-Travel",
     "🌱 Eco-Garden",
-    "📚 Learning Center"
+    "📚 Learning Center",
+    "🧘 Eco-Wellness"
 ])
 
 
@@ -1258,6 +1260,8 @@ with tab10:
 
 with tab11:
     render_learning_hub()
+with tab17:
+    render_wellness_hub()
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
