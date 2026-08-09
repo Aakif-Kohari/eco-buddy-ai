@@ -952,11 +952,11 @@ def get_assessment_draft(user_id: int) -> dict[str, Any] | None:
         return {
             "transport": row[0],
             "distance": row[1],
-            "electricity": row[2],
-            "diet": row[3],
-            "flights": row[4],
-            "region": row[5],
-            "updated_at": row[6],
+            "electricity": row[3],
+            "diet": row[4],
+            "flights": row[5],
+            "region": row[6],
+            "updated_at": row[7],
         }
     except sqlite3.Error as exc:
         logger.error("Database draft read error: %s", exc)
@@ -4857,11 +4857,11 @@ def get_assessment_draft(user_id: int) -> dict[str, Any] | None:
         return {
             "transport": row[0],
             "distance": row[1],
-            "electricity": row[2],
-            "diet": row[3],
-            "flights": row[4],
-            "region": row[5],
-            "updated_at": row[6],
+            "electricity": row[3],
+            "diet": row[4],
+            "flights": row[5],
+            "region": row[6],
+            "updated_at": row[7],
         }
     except sqlite3.Error as exc:
         logger.error("Database draft read error: %s", exc)
