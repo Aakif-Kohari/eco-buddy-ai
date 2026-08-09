@@ -12,6 +12,7 @@ import os
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ DEFAULT_DAILY_MISSIONS = [
 ]
 
 
-def _event_for_date(target_date):
+def _event_for_date(target_date: datetime.date) -> dict[str, Any] | None:
     for event in ENVIRONMENTAL_EVENTS:
         month, day = event["month_day"]
         if (target_date.month, target_date.day) == (month, day):
@@ -190,7 +191,7 @@ def _event_for_date(target_date):
     return None
 
 
-def get_active_events(reference_date=None):
+def get_active_events(reference_date: datetime.date | None = None) -> dict[str, Any]:
     """Return today's event (if any) plus the next upcoming event."""
     reference_date = reference_date or datetime.date.today()
     today_event = _event_for_date(reference_date)
@@ -206,15 +207,15 @@ def get_active_events(reference_date=None):
     return {"today": today_event, "upcoming": upcoming}
 
 
-def get_all_events():
+def get_all_events() -> list[dict[str, Any]]:
     return list(ENVIRONMENTAL_EVENTS)
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_missions_db():
+def init_missions_db() -> bool:
     conn = None
     try:
         conn = _get_conn()
@@ -244,7 +245,7 @@ def init_missions_db():
             conn.close()
 
 
-def save_mission(user_id, mission):
+def save_mission(user_id: int, mission: dict[str, Any]) -> bool:
     """Persist an event-specific mission for the user (idempotent by key)."""
     init_missions_db()
     conn = None
@@ -275,7 +276,7 @@ def save_mission(user_id, mission):
             conn.close()
 
 
-def get_user_missions(user_id):
+def get_user_missions(user_id: int) -> list[dict[str, Any]]:
     init_missions_db()
     conn = None
     try:
@@ -300,7 +301,7 @@ def get_user_missions(user_id):
             conn.close()
 
 
-def get_active_mission(user_id):
+def get_active_mission(user_id: int) -> dict[str, Any] | None:
     missions = get_user_missions(user_id)
     for mission in missions:
         if mission["status"] == "active":
@@ -308,7 +309,7 @@ def get_active_mission(user_id):
     return None
 
 
-def complete_mission(user_id, mission_key):
+def complete_mission(user_id: int, mission_key: str) -> tuple[bool, str]:
     """Mark a mission complete and award bonus XP once."""
     init_missions_db()
     conn = None
@@ -352,7 +353,7 @@ def complete_mission(user_id, mission_key):
             conn.close()
 
 
-def build_mission_from_event(event, reference_date=None):
+def build_mission_from_event(event: dict[str, Any], reference_date: datetime.date | None = None) -> dict[str, Any]:
     reference_date = reference_date or datetime.date.today()
     mission = event["mission"]
     return {
@@ -366,7 +367,7 @@ def build_mission_from_event(event, reference_date=None):
     }
 
 
-def build_mission_dict(mission, key_prefix=""):
+def build_mission_dict(mission: dict[str, Any], key_prefix: str = "") -> dict[str, Any]:
     return {
         "key": mission["key"],
         "title": mission["title"],

@@ -6,26 +6,16 @@ based on the user's carbon footprint and lifestyle.
 """
 
 import random
-from utils.challenge_generator import generate_weekly_challenges
+from typing import Any
 
-challenges = generate_weekly_challenges(
-    footprint=245,
-    transport="Car",
-    electricity=220,
-    diet="Mixed",
-    flights=1,
-)
-
-for challenge in challenges:
-    print(challenge)
 
 def generate_weekly_challenges(
-    footprint,
-    transport,
-    electricity,
-    diet,
-    flights,
-):
+    footprint: float,
+    transport: str,
+    electricity: float,
+    diet: str,
+    flights: int,
+) -> list[dict[str, Any]]:
     """
     Generate personalized weekly sustainability challenges.
 

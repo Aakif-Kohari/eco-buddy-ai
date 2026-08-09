@@ -13,7 +13,9 @@ def setup_teardown():
     # Setup
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
+    db.init_db()
     db.init_energy_db()
+    db.init_marketplace_db()
     yield
     # Teardown
     db.DB_NAME = original_db_name
@@ -116,3 +118,53 @@ def test_get_total_offsets_and_spend():
     
     assert total_offsets == 5.0
     assert total_spend == 65.0
+
+def test_user_crud():
+    # Create user
+    success = db.create_user("testuser", "test@example.com", "password123", False)
+    assert success is True
+    
+    # Try creating duplicate
+    success2 = db.create_user("testuser", "test2@example.com", "pass", False)
+    assert success2 is False
+    
+    # Verify user
+    user = db.verify_user("testuser", "password123")
+    assert user is not None
+    assert user["username"] == "testuser"
+    
+    # Verify invalid password
+    bad_user = db.verify_user("testuser", "wrongpass")
+    assert bad_user is None
+    
+    # Get user by username
+    user_data = db.get_user_by_username("testuser")
+    assert user_data is not None
+    assert user_data["email"] == "test@example.com"
+    
+    # Update preference
+    assert db.update_user_leaderboard_preference(user["id"], True) is True
+    
+def test_carbon_budget_crud():
+    db.create_user("budgetuser", "budget@example.com", "pass", False)
+    user = db.get_user_by_username("budgetuser")
+    user_id = user["id"]
+    
+    # Create budget
+    success = db.save_carbon_budget(user_id, "monthly", 500.0)
+    assert success is True
+    
+    # Get budget
+    budget = db.get_carbon_budget(user_id)
+    assert budget is not None
+    assert budget[0] == "monthly"
+    assert budget[1] == 500.0
+    
+    # Update budget
+    update_success = db.update_carbon_budget(user_id, "yearly", 6000.0)
+    assert update_success is True
+    
+    budget_after = db.get_carbon_budget(user_id)
+    assert budget_after[0] == "yearly"
+    assert budget_after[1] == 6000.0
+

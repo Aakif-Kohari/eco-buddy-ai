@@ -1,5 +1,6 @@
 import streamlit as st
 from collections import Counter
+from typing import Any
 from cache import cached
 from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
 from database import get_all_assessments
@@ -7,7 +8,9 @@ from emissions import calculate_footprint
 from recommendations import generate_recommendations
 
 
-def calculate_platform_stats(assessments):
+def calculate_platform_stats(
+    assessments: list[dict[str, Any]] | list[tuple[Any, ...]],
+) -> dict[str, Any]:
     """
     Computes anonymized platform statistics from assessment records.
 
@@ -112,7 +115,7 @@ def calculate_platform_stats(assessments):
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def get_admin_platform_stats():
+def get_admin_platform_stats() -> dict[str, Any]:
     """
     Queries all assessments and returns aggregated platform statistics.
     """

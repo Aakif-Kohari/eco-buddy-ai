@@ -24,6 +24,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ LITRES_PER_PERSON_PER_DAY = 90.0
 GARDEN_LITRES_PER_M2_PER_MONTH = 40.0
 
 
-def list_roof_materials():
+def list_roof_materials() -> list[dict[str, Any]]:
     """Return roof materials, best harvesting surface first."""
     return sorted(
         ({"name": name, **info} for name, info in ROOF_MATERIALS.items()),
@@ -91,7 +92,7 @@ def list_roof_materials():
     )
 
 
-def get_runoff_coefficient(roof_material):
+def get_runoff_coefficient(roof_material: str) -> float:
     """Return the runoff coefficient for a roof material."""
     info = ROOF_MATERIALS.get(roof_material)
     if not info:
@@ -99,12 +100,12 @@ def get_runoff_coefficient(roof_material):
     return info["runoff"]
 
 
-def get_climate_profile(zone):
+def get_climate_profile(zone: str) -> list[float]:
     """Return the 12-month rainfall profile for a climate zone, in mm."""
     return list(CLIMATE_ZONES.get(zone, CLIMATE_ZONES[DEFAULT_CLIMATE_ZONE]))
 
 
-def _clean_positive(value, maximum, default=0.0):
+def _clean_positive(value: float, maximum: float, default: float = 0.0) -> float:
     """Coerce a user-supplied number into a sane, non-negative range."""
     try:
         number = float(value)
@@ -115,7 +116,7 @@ def _clean_positive(value, maximum, default=0.0):
     return max(0.0, min(number, maximum))
 
 
-def _clean_rainfall_series(monthly_rainfall_mm):
+def _clean_rainfall_series(monthly_rainfall_mm: list[float] | None) -> list[float]:
     """Normalise a rainfall series to exactly 12 non-negative months."""
     series = list(monthly_rainfall_mm or [])[:12]
     series = [_clean_positive(value, 3000.0) for value in series]
@@ -123,7 +124,7 @@ def _clean_rainfall_series(monthly_rainfall_mm):
     return series
 
 
-def annual_harvest_potential(roof_area_m2, annual_rainfall_mm, roof_material):
+def annual_harvest_potential(roof_area_m2: float, annual_rainfall_mm: float, roof_material: str) -> float:
     """Litres of rainwater that can be captured in a year."""
     area = _clean_positive(roof_area_m2, 10000.0)
     rainfall = _clean_positive(annual_rainfall_mm, 20000.0)
@@ -131,7 +132,7 @@ def annual_harvest_potential(roof_area_m2, annual_rainfall_mm, roof_material):
     return round(area * rainfall * runoff * SYSTEM_EFFICIENCY, 1)
 
 
-def monthly_harvest(roof_area_m2, monthly_rainfall_mm, roof_material):
+def monthly_harvest(roof_area_m2: float, monthly_rainfall_mm: list[float] | None, roof_material: str) -> list[float]:
     """Return the 12-month harvest series in litres."""
     area = _clean_positive(roof_area_m2, 10000.0)
     runoff = get_runoff_coefficient(roof_material)
@@ -139,7 +140,7 @@ def monthly_harvest(roof_area_m2, monthly_rainfall_mm, roof_material):
     return [round(area * mm * runoff * SYSTEM_EFFICIENCY, 1) for mm in rainfall]
 
 
-def estimate_household_demand(people, garden_m2=0.0, monthly_profile=None):
+def estimate_household_demand(people: int, garden_m2: float = 0.0, monthly_profile: list[float] | None = None) -> list[float]:
     """Estimate the monthly household demand rainwater could serve, in litres.
 
     ``monthly_profile`` optionally scales garden watering by month (a list of
@@ -161,7 +162,7 @@ def estimate_household_demand(people, garden_m2=0.0, monthly_profile=None):
     return demand
 
 
-def demand_from_water_assessment(assessment, people=1, garden_m2=0.0):
+def demand_from_water_assessment(assessment: dict[str, Any] | None, people: int = 1, garden_m2: float = 0.0) -> list[float]:
     """Build a monthly demand series from a saved Water Footprint assessment.
 
     The water feature stores a daily litre total, so it is expanded across the
@@ -180,7 +181,7 @@ def demand_from_water_assessment(assessment, people=1, garden_m2=0.0):
     return [round(daily * days, 1) for days in DAYS_IN_MONTH]
 
 
-def simulate_storage(tank_litres, monthly_harvest_l, monthly_demand_l):
+def simulate_storage(tank_litres: float, monthly_harvest_l: list[float] | None, monthly_demand_l: list[float] | None) -> dict[str, Any]:
     """Simulate a month-by-month tank water balance.
 
     Returns the per-month stored, supplied, overflow and shortfall figures.
@@ -245,7 +246,7 @@ def simulate_storage(tank_litres, monthly_harvest_l, monthly_demand_l):
     }
 
 
-def recommend_tank_size(monthly_harvest_l, monthly_demand_l, candidates=None):
+def recommend_tank_size(monthly_harvest_l: list[float], monthly_demand_l: list[float], candidates: list[float] | None = None) -> dict[str, Any]:
     """Pick the tank size with the best coverage per litre of storage.
 
     Bigger is always at least as good hydraulically, so the recommendation
@@ -288,7 +289,7 @@ def recommend_tank_size(monthly_harvest_l, monthly_demand_l, candidates=None):
     }
 
 
-def demand_coverage(supplied_l, demand_l):
+def demand_coverage(supplied_l: float, demand_l: float) -> float:
     """Percentage of demand met by harvested water, bounded to 0-100."""
     demand_l = max(0.0, float(demand_l or 0.0))
     if demand_l <= 0:
@@ -298,11 +299,11 @@ def demand_coverage(supplied_l, demand_l):
 
 
 def savings_estimate(
-    litres_supplied,
-    water_price_per_kl=DEFAULT_WATER_PRICE_PER_KL,
-    tank_litres=0,
-    install_cost=DEFAULT_INSTALL_COST,
-):
+    litres_supplied: float,
+    water_price_per_kl: float = DEFAULT_WATER_PRICE_PER_KL,
+    tank_litres: float = 0,
+    install_cost: float = DEFAULT_INSTALL_COST,
+) -> dict[str, Any]:
     """Annual money saved and simple payback period in years."""
     litres = max(0.0, float(litres_supplied or 0.0))
     price = max(0.0, float(water_price_per_kl or 0.0))
@@ -323,7 +324,7 @@ def savings_estimate(
     }
 
 
-def co2_savings(litres_supplied, treatment_intensity=DEFAULT_TREATMENT_INTENSITY):
+def co2_savings(litres_supplied: float, treatment_intensity: float = DEFAULT_TREATMENT_INTENSITY) -> dict[str, Any]:
     """CO2 avoided by not treating and pumping the equivalent mains water."""
     litres = max(0.0, float(litres_supplied or 0.0))
     intensity = max(0.0, float(treatment_intensity or 0.0))
@@ -338,16 +339,16 @@ def co2_savings(litres_supplied, treatment_intensity=DEFAULT_TREATMENT_INTENSITY
 
 
 def build_plan(
-    roof_area_m2,
-    roof_material,
-    climate_zone=DEFAULT_CLIMATE_ZONE,
-    monthly_rainfall_mm=None,
-    people=2,
-    garden_m2=0.0,
-    tank_litres=None,
-    water_price_per_kl=DEFAULT_WATER_PRICE_PER_KL,
-    install_cost=DEFAULT_INSTALL_COST,
-):
+    roof_area_m2: float,
+    roof_material: str,
+    climate_zone: str = DEFAULT_CLIMATE_ZONE,
+    monthly_rainfall_mm: list[float] | None = None,
+    people: int = 2,
+    garden_m2: float = 0.0,
+    tank_litres: float | None = None,
+    water_price_per_kl: float = DEFAULT_WATER_PRICE_PER_KL,
+    install_cost: float = DEFAULT_INSTALL_COST,
+) -> dict[str, Any]:
     """Build a complete harvesting plan in one call."""
     rainfall = (
         _clean_rainfall_series(monthly_rainfall_mm)
@@ -389,7 +390,7 @@ def build_plan(
     }
 
 
-def get_harvesting_tips(plan, limit=5):
+def get_harvesting_tips(plan: dict[str, Any], limit: int = 5) -> list[str]:
     """Return guidance ranked by what this particular plan looks like."""
     simulation = plan.get("simulation", {})
     if not simulation.get("total_demand_l"):
@@ -437,11 +438,11 @@ def get_harvesting_tips(plan, limit=5):
     return tips[: max(0, int(limit))]
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_rainwater_db():
+def init_rainwater_db() -> None:
     """Create the rainwater plan table if it does not exist yet."""
     conn = None
     try:
@@ -474,7 +475,7 @@ def init_rainwater_db():
             conn.close()
 
 
-def save_harvest_plan(user_id, plan_name, plan):
+def save_harvest_plan(user_id: int, plan_name: str, plan: dict[str, Any]) -> int | None:
     """Persist a harvesting plan. Returns the new row id or None."""
     init_rainwater_db()
     conn = None
@@ -517,7 +518,7 @@ def save_harvest_plan(user_id, plan_name, plan):
             conn.close()
 
 
-def get_harvest_plans(user_id, limit=25):
+def get_harvest_plans(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return a user's saved harvesting plans, newest first."""
     init_rainwater_db()
     conn = None
@@ -554,7 +555,7 @@ def get_harvest_plans(user_id, limit=25):
             conn.close()
 
 
-def delete_harvest_plan(plan_id):
+def delete_harvest_plan(plan_id: int) -> bool:
     """Delete a saved harvesting plan."""
     init_rainwater_db()
     conn = None

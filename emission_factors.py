@@ -26,6 +26,7 @@ Design rules
 import datetime
 import hashlib
 import json
+from typing import Any
 
 from config import (
     DIET_EMISSION_FACTORS,
@@ -61,8 +62,9 @@ class UnknownFactorSetError(KeyError):
 
 # --- Sources ----------------------------------------------------------------
 
-def make_source(name, publisher, year, region="Global", url="", licence="",
-                uncertainty_percent=0.0):
+def make_source(name: str, publisher: str, year: int, region: str = "Global",
+                url: str = "", licence: str = "",
+                uncertainty_percent: float = 0.0) -> dict[str, Any]:
     """
     Describe where a factor set's numbers came from.
 
@@ -114,8 +116,9 @@ SOURCE_CLIMATIQ = make_source(
 
 # --- Factor sets ------------------------------------------------------------
 
-def make_factor_set(version, kind, effective_date, source, transport, electricity,
-                    diet, flight, region="Global", notes=""):
+def make_factor_set(version: str, kind: str, effective_date: str, source: dict[str, Any],
+                    transport: dict[str, Any], electricity: float, diet: dict[str, Any],
+                    flight: float, region: str = "Global", notes: str = "") -> dict[str, Any]:
     """
     Build a factor set record.
 
@@ -143,7 +146,7 @@ def make_factor_set(version, kind, effective_date, source, transport, electricit
     return factor_set
 
 
-def factor_set_fingerprint(factor_set):
+def factor_set_fingerprint(factor_set: dict[str, Any]) -> str:
     """
     Deterministic hash of a factor set's numbers only.
 
@@ -164,7 +167,7 @@ def factor_set_fingerprint(factor_set):
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:12]
 
 
-def validate_factor_set(factor_set):
+def validate_factor_set(factor_set: dict[str, Any]) -> bool:
     """
     Reject malformed or physically implausible factor sets.
 
@@ -200,7 +203,7 @@ def validate_factor_set(factor_set):
     return True
 
 
-def _check_bounds(value, bound_key, label):
+def _check_bounds(value: Any, bound_key: str, label: str) -> float:
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -219,7 +222,7 @@ def _check_bounds(value, bound_key, label):
 _REGISTRY = {}
 
 
-def register_factor_set(factor_set, overwrite=False):
+def register_factor_set(factor_set: dict[str, Any], overwrite: bool = False) -> str:
     """
     Add a factor set to the registry after validating it.
 
@@ -238,7 +241,7 @@ def register_factor_set(factor_set, overwrite=False):
     return version
 
 
-def get_factor_set(version):
+def get_factor_set(version: str) -> dict[str, Any]:
     """Return a deep copy of a registered factor set."""
     if version not in _REGISTRY:
         raise UnknownFactorSetError(
@@ -248,12 +251,12 @@ def get_factor_set(version):
     return json.loads(json.dumps(_REGISTRY[version]))
 
 
-def has_factor_set(version):
+def has_factor_set(version: str) -> bool:
     """True if the version is registered."""
     return version in _REGISTRY
 
 
-def list_factor_versions(kind=None):
+def list_factor_versions(kind: str | None = None) -> list[str]:
     """Registered versions, optionally filtered by kind, sorted by date."""
     versions = [
         version for version, factor_set in _REGISTRY.items()
@@ -262,7 +265,7 @@ def list_factor_versions(kind=None):
     return sorted(versions, key=lambda v: (_REGISTRY[v]["effective_date"], v))
 
 
-def get_latest_factor_set(kind=KIND_STATIC):
+def get_latest_factor_set(kind: str = KIND_STATIC) -> dict[str, Any]:
     """The most recently effective registered set of the given kind."""
     versions = list_factor_versions(kind=kind)
     if not versions:
@@ -270,7 +273,7 @@ def get_latest_factor_set(kind=KIND_STATIC):
     return get_factor_set(versions[-1])
 
 
-def find_by_fingerprint(fingerprint):
+def find_by_fingerprint(fingerprint: str) -> str | None:
     """Return the version whose numbers hash to this fingerprint, or None."""
     for version, factor_set in _REGISTRY.items():
         if factor_set.get("fingerprint") == fingerprint:
@@ -329,8 +332,9 @@ register_factor_set(make_factor_set(
 ))
 
 
-def _build_candidate_set(api_payload, region, effective_date=None,
-                         base_version=DEFAULT_VERSION):
+def _build_candidate_set(api_payload: dict[str, Any], region: str,
+                         effective_date: str | None = None,
+                         base_version: str = DEFAULT_VERSION) -> dict[str, Any]:
     """
     Assemble a factor set from an API payload.
 
@@ -359,8 +363,9 @@ def _build_candidate_set(api_payload, region, effective_date=None,
     return candidate
 
 
-def register_dynamic_factor_set(api_payload, region="Global", effective_date=None,
-                                base_version=DEFAULT_VERSION):
+def register_dynamic_factor_set(api_payload: dict[str, Any], region: str = "Global",
+                                effective_date: str | None = None,
+                                base_version: str = DEFAULT_VERSION) -> str:
     """
     Wrap a live API response into a validated, fingerprinted factor set.
 
@@ -379,7 +384,8 @@ def register_dynamic_factor_set(api_payload, region="Global", effective_date=Non
     return version
 
 
-def resolve_factor_set(region="Global", api_factors=None):
+def resolve_factor_set(region: str = "Global",
+                       api_factors: dict[str, Any] | None = None) -> str:
     """
     Identify the factor set a calculation is actually using.
 
@@ -422,7 +428,7 @@ def resolve_factor_set(region="Global", api_factors=None):
 
 # --- Comparison and recalculation -------------------------------------------
 
-def diff_factor_sets(version_a, version_b):
+def diff_factor_sets(version_a: str, version_b: str) -> dict[str, Any]:
     """
     Per-factor absolute and percentage delta between two versions.
 
@@ -458,7 +464,7 @@ def diff_factor_sets(version_a, version_b):
     }
 
 
-def _delta(before, after):
+def _delta(before: float | None, after: float | None) -> dict[str, Any]:
     if before is None or after is None:
         return {
             "before": before,
@@ -480,7 +486,7 @@ def _delta(before, after):
     }
 
 
-def recalculate_with_factor_set(inputs, version):
+def recalculate_with_factor_set(inputs: dict[str, Any], version: str) -> dict[str, Any]:
     """
     Recompute a footprint under an arbitrary registered factor set.
 
@@ -525,7 +531,8 @@ def recalculate_with_factor_set(inputs, version):
     }
 
 
-def compare_assessment_across_versions(inputs, versions):
+def compare_assessment_across_versions(inputs: dict[str, Any],
+                                       versions: list[str]) -> dict[str, Any]:
     """
     Recompute one set of inputs under several factor versions.
 
@@ -549,7 +556,8 @@ def compare_assessment_across_versions(inputs, versions):
     }
 
 
-def explain_footprint_change(inputs_before, inputs_after, version_before, version_after):
+def explain_footprint_change(inputs_before: dict[str, Any], inputs_after: dict[str, Any],
+                             version_before: str, version_after: str) -> dict[str, Any]:
     """
     Split a footprint change into the part caused by behaviour and the part
     caused by the factor set changing underneath the user.
@@ -578,7 +586,7 @@ def explain_footprint_change(inputs_before, inputs_after, version_before, versio
 
 # --- Provenance presentation ------------------------------------------------
 
-def describe_provenance(version):
+def describe_provenance(version: str) -> str:
     """Human-readable citation for the UI, the audit log and the PDF report."""
     factor_set = get_factor_set(version)
     source = factor_set["source"]
@@ -589,7 +597,7 @@ def describe_provenance(version):
     )
 
 
-def provenance_block(version):
+def provenance_block(version: str) -> dict[str, Any]:
     """Structured provenance for embedding in the existing audit log dict."""
     factor_set = get_factor_set(version)
     return {
@@ -605,7 +613,7 @@ def provenance_block(version):
     }
 
 
-def normalize_version(version):
+def normalize_version(version: str | None) -> str:
     """
     Map a stored value onto a usable version id.
 
@@ -619,7 +627,7 @@ def normalize_version(version):
     return version
 
 
-def group_assessments_by_version(assessments):
+def group_assessments_by_version(assessments: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     """
     Bucket assessment rows by the factor version they were computed under.
 
@@ -638,6 +646,6 @@ def group_assessments_by_version(assessments):
     return groups
 
 
-def is_history_comparable(assessments):
+def is_history_comparable(assessments: list[dict[str, Any]]) -> bool:
     """True when every assessment shares one factor version."""
     return len(group_assessments_by_version(assessments)) <= 1

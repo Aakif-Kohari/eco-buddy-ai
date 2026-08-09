@@ -18,6 +18,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ GRADE_BANDS = [
 LOWEST_GRADE = "E"
 
 
-def list_ingredients(category=None):
+def list_ingredients(category: str | None = None) -> list[dict[str, Any]]:
     """Return the ingredient catalogue, optionally filtered by category."""
     items = [
         dict(info, name=name)
@@ -149,13 +150,13 @@ def list_ingredients(category=None):
     return sorted(items, key=lambda item: item["co2_kg"])
 
 
-def get_ingredient(name):
+def get_ingredient(name: str) -> dict[str, Any] | None:
     """Return one ingredient's factors, or None if it is not in the catalogue."""
     info = INGREDIENTS.get(name)
     return dict(info, name=name) if info else None
 
 
-def impact_tier(co2_per_kg):
+def impact_tier(co2_per_kg: float) -> str:
     """Classify an ingredient's per-kg carbon intensity into a tier."""
     try:
         value = float(co2_per_kg)
@@ -167,7 +168,7 @@ def impact_tier(co2_per_kg):
     return HIGHEST_TIER
 
 
-def _clean_grams(grams):
+def _clean_grams(grams: float) -> float:
     """Coerce a portion size into a sane, non-negative number of grams."""
     try:
         value = float(grams)
@@ -178,7 +179,7 @@ def _clean_grams(grams):
     return max(0.0, min(value, 5000.0))
 
 
-def build_meal(name, items, slot="Dinner"):
+def build_meal(name: str, items: list[tuple[str, float]] | None, slot: str = "Dinner") -> dict[str, Any]:
     """Build a meal from ``items`` - a list of ``(ingredient_name, grams)``.
 
     Unknown ingredients are skipped so a stale saved plan never crashes the
@@ -241,7 +242,7 @@ def build_meal(name, items, slot="Dinner"):
     }
 
 
-def plan_week(meals_by_day):
+def plan_week(meals_by_day: dict[str, list[dict[str, Any]]] | None) -> dict[str, Any]:
     """Aggregate a week of meals.
 
     ``meals_by_day`` maps day names to lists of meals built by ``build_meal``.
@@ -318,7 +319,7 @@ def plan_week(meals_by_day):
     }
 
 
-def suggest_swaps(meal, max_suggestions=3):
+def suggest_swaps(meal: dict[str, Any], max_suggestions: int = 3) -> list[dict[str, Any]]:
     """Suggest lower-impact, same-category replacements for a meal.
 
     A suggestion is only returned when the alternative is genuinely lower
@@ -364,12 +365,12 @@ def suggest_swaps(meal, max_suggestions=3):
     return suggestions[: max(0, int(max_suggestions))]
 
 
-def needs_swaps(meal):
+def needs_swaps(meal: dict[str, Any]) -> bool:
     """True when a meal is heavy enough to be worth showing swaps for."""
     return meal.get("co2_kg", 0.0) >= SWAP_TRIGGER_KG and bool(suggest_swaps(meal, 1))
 
 
-def heaviest_meals(meals_by_day, limit=3):
+def heaviest_meals(meals_by_day: dict[str, list[dict[str, Any]]] | None, limit: int = 3) -> list[dict[str, Any]]:
     """Return the week's heaviest meals, tagged with the day they fall on."""
     tagged = []
     for day in DAYS_OF_WEEK:
@@ -379,7 +380,7 @@ def heaviest_meals(meals_by_day, limit=3):
     return tagged[: max(0, int(limit))]
 
 
-def apply_swaps(meal, swaps):
+def apply_swaps(meal: dict[str, Any], swaps: list[dict[str, Any]] | None) -> dict[str, Any]:
     """Return a new meal with the given swaps applied."""
     replacements = {swap["from"]: swap["to"] for swap in swaps or []}
     items = [
@@ -389,7 +390,7 @@ def apply_swaps(meal, swaps):
     return build_meal(meal.get("name"), items, meal.get("slot"))
 
 
-def score_plan(weekly):
+def score_plan(weekly: dict[str, Any]) -> dict[str, Any]:
     """Score a weekly plan from 0 to 100 and assign a letter grade."""
     total = max(0.0, float(weekly.get("total_co2_kg", 0.0)))
 
@@ -417,7 +418,7 @@ def score_plan(weekly):
     return {"score": score, "grade": grade, "label": labels[grade]}
 
 
-def compare_to_baseline(weekly, diet_type="Omnivore"):
+def compare_to_baseline(weekly: dict[str, Any], diet_type: str = "Omnivore") -> dict[str, Any]:
     """Compare a weekly plan against the average week for a diet type."""
     baseline_daily = DIET_DAILY_BASELINE_KG.get(
         diet_type, DIET_DAILY_BASELINE_KG["Omnivore"]
@@ -438,7 +439,7 @@ def compare_to_baseline(weekly, diet_type="Omnivore"):
     }
 
 
-def generate_shopping_list(weekly):
+def generate_shopping_list(weekly: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     """Aggregate the week's ingredients into a shopping list by category."""
     grouped = {}
     for bucket in weekly.get("top_ingredients", []):
@@ -459,7 +460,7 @@ def generate_shopping_list(weekly):
     return {category: grouped[category] for category in sorted(grouped)}
 
 
-def plan_insights(weekly, limit=4):
+def plan_insights(weekly: dict[str, Any], limit: int = 4) -> list[str]:
     """Generate plain-language observations about a weekly plan."""
     insights = []
 
@@ -498,11 +499,11 @@ def plan_insights(weekly, limit=4):
     return insights[: max(0, int(limit))]
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_meal_planner_db():
+def init_meal_planner_db() -> None:
     """Create the meal plan table if it does not exist yet."""
     conn = None
     try:
@@ -532,7 +533,7 @@ def init_meal_planner_db():
             conn.close()
 
 
-def serialize_plan(meals_by_day):
+def serialize_plan(meals_by_day: dict[str, list[dict[str, Any]]]) -> dict[str, list[dict[str, Any]]]:
     """Reduce a week of meals to the minimum needed to rebuild it."""
     return {
         day: [
@@ -547,7 +548,7 @@ def serialize_plan(meals_by_day):
     }
 
 
-def deserialize_plan(raw):
+def deserialize_plan(raw: dict[str, list[dict[str, Any]]] | None) -> dict[str, list[dict[str, Any]]]:
     """Rebuild a week of meals from its serialized form."""
     raw = raw or {}
     return {
@@ -563,7 +564,7 @@ def deserialize_plan(raw):
     }
 
 
-def save_meal_plan(user_id, plan_name, meals_by_day):
+def save_meal_plan(user_id: int, plan_name: str, meals_by_day: dict[str, list[dict[str, Any]]]) -> int | None:
     """Persist a weekly plan. Returns the new row id or None on failure."""
     init_meal_planner_db()
     conn = None
@@ -599,7 +600,7 @@ def save_meal_plan(user_id, plan_name, meals_by_day):
             conn.close()
 
 
-def get_meal_plans(user_id, limit=25):
+def get_meal_plans(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return a user's saved plans, newest first."""
     init_meal_planner_db()
     conn = None
@@ -635,7 +636,7 @@ def get_meal_plans(user_id, limit=25):
             conn.close()
 
 
-def get_plan_history(user_id, limit=12):
+def get_plan_history(user_id: int, limit: int = 12) -> dict[str, Any]:
     """Return a chronological carbon series across a user's saved plans."""
     plans = get_meal_plans(user_id, limit=limit)
     series = [
@@ -661,7 +662,7 @@ def get_plan_history(user_id, limit=12):
     }
 
 
-def delete_meal_plan(plan_id):
+def delete_meal_plan(plan_id: int) -> bool:
     """Delete a saved plan. Returns True when a row was removed."""
     init_meal_planner_db()
     conn = None
@@ -678,6 +679,6 @@ def delete_meal_plan(plan_id):
             conn.close()
 
 
-def empty_week():
+def empty_week() -> dict[str, list[dict[str, Any]]]:
     """Return an empty week structure."""
     return {day: [] for day in DAYS_OF_WEEK}

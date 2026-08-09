@@ -58,6 +58,7 @@ import math
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +294,7 @@ class CoBenefitError(ValueError):
 # --- Catalogue --------------------------------------------------------------
 
 
-def list_activities(category=None):
+def list_activities(category: str | None = None) -> list[dict[str, Any]]:
     """Return the activity catalogue, cleanest PM2.5 first."""
     activities = [
         {"name": name, **details}
@@ -303,24 +304,24 @@ def list_activities(category=None):
     return sorted(activities, key=lambda item: item["pm25"])
 
 
-def list_categories():
+def list_categories() -> list[str]:
     """Return the distinct activity categories."""
     return sorted({details["category"] for details in ACTIVITIES.values()})
 
 
-def list_release_settings():
+def list_release_settings() -> list[dict[str, Any]]:
     """Return release settings, most exposing first."""
     settings = [{"key": key, **value} for key, value in RELEASE_SETTINGS.items()]
     return sorted(settings, key=lambda item: item["multiplier"], reverse=True)
 
 
-def list_density_options():
+def list_density_options() -> list[dict[str, Any]]:
     """Return population density options, densest first."""
     options = [{"name": name, **value} for name, value in POPULATION_DENSITY.items()]
     return sorted(options, key=lambda item: item["multiplier"], reverse=True)
 
 
-def get_activity(name):
+def get_activity(name: str) -> dict[str, Any]:
     """Return one activity, or raise if it is not in the catalogue.
 
     Unlike the fund catalogue elsewhere in the app, silently substituting a
@@ -333,19 +334,19 @@ def get_activity(name):
     return {"name": name, **details}
 
 
-def density_multiplier(density):
+def density_multiplier(density: str) -> float:
     """Exposure multiplier for a population density."""
     entry = POPULATION_DENSITY.get(density) or POPULATION_DENSITY[DEFAULT_DENSITY]
     return entry["multiplier"]
 
 
-def release_multiplier(setting):
+def release_multiplier(setting: str) -> float:
     """Exposure multiplier for a release height."""
     entry = RELEASE_SETTINGS.get(setting) or RELEASE_SETTINGS[DEFAULT_RELEASE_SETTING]
     return entry["multiplier"]
 
 
-def exposure_multiplier(setting, density):
+def exposure_multiplier(setting: str, density: str) -> float:
     """Combined intake weighting for a release height and population density."""
     return release_multiplier(setting) * density_multiplier(density)
 
@@ -353,7 +354,7 @@ def exposure_multiplier(setting, density):
 # --- Emissions --------------------------------------------------------------
 
 
-def _clean_amount(value, field="Amount"):
+def _clean_amount(value: Any, field: str = "Amount") -> float:
     """Coerce an activity amount into a usable non-negative float."""
     try:
         number = float(value)
@@ -366,7 +367,7 @@ def _clean_amount(value, field="Amount"):
     return number
 
 
-def pollutant_emissions(activity_name, amount):
+def pollutant_emissions(activity_name: str, amount: float) -> dict[str, Any]:
     """Grams of each pollutant, and of CO2e, from an amount of an activity."""
     activity = get_activity(activity_name)
     quantity = _clean_amount(amount, "Activity amount")
@@ -382,7 +383,9 @@ def pollutant_emissions(activity_name, amount):
     }
 
 
-def exposure_weighted_emissions(grams, setting, density=DEFAULT_DENSITY):
+def exposure_weighted_emissions(
+    grams: dict[str, float], setting: str, density: str = DEFAULT_DENSITY
+) -> dict[str, Any]:
     """Apply the intake weighting to a set of pollutant emissions.
 
     Carbon is deliberately left unweighted: a tonne of CO2e does the same
@@ -398,7 +401,7 @@ def exposure_weighted_emissions(grams, setting, density=DEFAULT_DENSITY):
     return {"weighted_grams": weighted, "multiplier": multiplier}
 
 
-def health_outcomes(pm25_grams):
+def health_outcomes(pm25_grams: float) -> dict[str, float]:
     """Health outcomes from a quantity of exposure-weighted PM2.5.
 
     Deaths come back as a fraction, and they should. One household's change is
@@ -417,7 +420,7 @@ def health_outcomes(pm25_grams):
     }
 
 
-def damage_cost(weighted_grams):
+def damage_cost(weighted_grams: dict[str, float]) -> dict[str, Any]:
     """Monetised damage from a set of exposure-weighted emissions.
 
     Returns air quality damage and carbon damage separately as well as
@@ -445,7 +448,12 @@ def damage_cost(weighted_grams):
     }
 
 
-def assess_activity(activity_name, amount, density=DEFAULT_DENSITY, setting=None):
+def assess_activity(
+    activity_name: str,
+    amount: float,
+    density: str = DEFAULT_DENSITY,
+    setting: str | None = None,
+) -> dict[str, Any]:
     """Full chain for one activity: emissions, exposure, outcomes, cost."""
     emissions = pollutant_emissions(activity_name, amount)
     release = setting or emissions["setting"]
@@ -470,7 +478,12 @@ def assess_activity(activity_name, amount, density=DEFAULT_DENSITY, setting=None
 # --- Comparing actions ------------------------------------------------------
 
 
-def assess_switch(from_activity, to_activity, amount, density=DEFAULT_DENSITY):
+def assess_switch(
+    from_activity: str,
+    to_activity: str,
+    amount: float,
+    density: str = DEFAULT_DENSITY,
+) -> dict[str, Any]:
     """What switching from one activity to another avoids.
 
     The central operation of the module. Both sides are assessed on the same
@@ -517,7 +530,7 @@ def assess_switch(from_activity, to_activity, amount, density=DEFAULT_DENSITY):
     }
 
 
-def _switch_verdict(carbon_saving, air_quality_saving):
+def _switch_verdict(carbon_saving: float, air_quality_saving: float) -> str:
     """Classify a switch on both axes at once."""
     if carbon_saving > 0 and air_quality_saving > 0:
         return "win_win"
@@ -528,7 +541,12 @@ def _switch_verdict(carbon_saving, air_quality_saving):
     return "worse_on_both"
 
 
-def _switch_explanation(from_activity, to_activity, carbon_saving, air_quality_saving):
+def _switch_explanation(
+    from_activity: str,
+    to_activity: str,
+    carbon_saving: float,
+    air_quality_saving: float,
+) -> str:
     """Plain sentence for a switch, naming the trade-off where there is one."""
     verdict = _switch_verdict(carbon_saving, air_quality_saving)
 
@@ -556,7 +574,9 @@ def _switch_explanation(from_activity, to_activity, carbon_saving, air_quality_s
     )
 
 
-def rank_actions(actions, density=DEFAULT_DENSITY):
+def rank_actions(
+    actions: list[dict[str, Any]], density: str = DEFAULT_DENSITY
+) -> dict[str, Any]:
     """Rank candidate switches by combined benefit, and flag the disagreements.
 
     ``actions`` is a list of dicts with ``from``, ``to`` and ``amount``.
@@ -602,7 +622,9 @@ def rank_actions(actions, density=DEFAULT_DENSITY):
     }
 
 
-def scale_to_population(assessment, households):
+def scale_to_population(
+    assessment: dict[str, Any], households: int
+) -> dict[str, Any]:
     """Scale one household's result up to a neighbourhood, town or city.
 
     One household's avoided PM2.5 is genuinely tiny, and quoting a fractional
@@ -624,7 +646,7 @@ def scale_to_population(assessment, households):
     }
 
 
-def describe_outcomes(outcomes, households=1):
+def describe_outcomes(outcomes: dict[str, Any], households: int = 1) -> list[str]:
     """Turn outcome numbers into sentences that do not overclaim.
 
     A fractional death is a statistical expectation across a population, not
@@ -662,7 +684,7 @@ def describe_outcomes(outcomes, households=1):
     return lines
 
 
-def get_method_caveats():
+def get_method_caveats() -> list[str]:
     """Limitations of the method, kept in the module so they cannot be dropped."""
     return [
         (
@@ -697,7 +719,7 @@ def get_method_caveats():
 # --- Persistence ------------------------------------------------------------
 
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     """Open a connection with the co-benefit table guaranteed to exist."""
     conn = sqlite3.connect(DB_NAME)
     conn.execute(
@@ -722,7 +744,9 @@ def _connect():
     return conn
 
 
-def save_assessment(user_id, name, assessment):
+def save_assessment(
+    user_id: int, name: str, assessment: dict[str, Any]
+) -> int | None:
     """Persist a switch assessment."""
     if not user_id:
         return None
@@ -759,7 +783,7 @@ def save_assessment(user_id, name, assessment):
         conn.close()
 
 
-def get_assessments(user_id, limit=25):
+def get_assessments(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return saved assessments for a user, newest first."""
     if not user_id:
         return []
@@ -807,7 +831,7 @@ def get_assessments(user_id, limit=25):
     return assessments
 
 
-def delete_assessment(user_id, assessment_id):
+def delete_assessment(user_id: int, assessment_id: int) -> bool:
     """Delete one saved assessment. Scoped by user so ids cannot be guessed."""
     if not user_id or not assessment_id:
         return False

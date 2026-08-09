@@ -6,6 +6,7 @@ from plugins.base import CalculatorPlugin, InputField, CalcResult
 from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
 from recommendations import generate_recommendations
 from config import DIET_TYPES, TRANSPORT_EMISSION_FACTORS, VALID_REGIONS
+from typing import Any
 
 
 class CarbonFootprintPlugin(CalculatorPlugin):
@@ -74,15 +75,15 @@ class CarbonFootprintPlugin(CalculatorPlugin):
 
     def _build_metadata(
         self,
-        transport,
-        distance,
-        electricity,
-        diet,
-        flights,
-        region,
-        eco_score,
-        audit_log,
-    ) -> dict:
+        transport: str,
+        distance: float,
+        electricity: float,
+        diet: str,
+        flights: int,
+        region: str,
+        eco_score: int,
+        audit_log: dict[str, Any],
+    ) -> dict[str, Any]:
         """Build metadata for the calculation result."""
         return {
             "eco_score": eco_score,

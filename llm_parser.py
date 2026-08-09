@@ -1,7 +1,7 @@
 import os
 import json
 import time
-import requests
+from typing import Any
 import streamlit as st
 from cache import cached
 from cache_config import TTL_LLM_RESPONSE
@@ -13,7 +13,14 @@ LLM_COOLDOWN_SECONDS = 2.0
 _REQUIRED_KEYS = ("transport", "distance", "diet")
 
 
-def _check_rate_limit(provider):
+def __getattr__(name):
+    if name == "requests":
+        import requests
+        return requests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _check_rate_limit(provider: str) -> bool:
     key = f"_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -23,7 +30,7 @@ def _check_rate_limit(provider):
     return True
 
 
-def _validate_parsed_payload(raw, provider_name):
+def _validate_parsed_payload(raw: dict[str, Any], provider_name: str) -> dict[str, Any]:
     """Ensures the AI returned the fields the rest of the app relies on.
 
     Raises:
@@ -39,7 +46,7 @@ def _validate_parsed_payload(raw, provider_name):
     return raw
 
 
-def _call_gemini(text, system_prompt, api_key):
+def _call_gemini(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
     """Calls the Gemini API and returns the parsed JSON payload.
 
     Raises:
@@ -48,6 +55,8 @@ def _call_gemini(text, system_prompt, api_key):
         ParsingError: Gemini responded with 200 but the body wasn't the
             JSON shape we expect.
     """
+    import requests
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = {
         "systemInstruction": {
@@ -86,7 +95,7 @@ def _call_gemini(text, system_prompt, api_key):
         ) from exc
 
 
-def _call_groq(text, system_prompt, api_key):
+def _call_groq(text: str, system_prompt: str, api_key: str) -> dict[str, Any]:
     """Calls the Groq API and returns the parsed JSON payload.
 
     Raises:
@@ -95,6 +104,8 @@ def _call_groq(text, system_prompt, api_key):
         ParsingError: Groq responded with 200 but the body wasn't the
             JSON shape we expect.
     """
+    import requests
+
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",

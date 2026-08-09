@@ -3,6 +3,7 @@ import time
 import logging
 import streamlit as st
 from logging_config import setup_logging
+from styles.skeleton import show_card_skeleton, show_chart_skeleton
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -18,10 +19,20 @@ import uuid
 import os
 from global_search import render_global_search
 from dotenv import load_dotenv
-from styles import load_css
+
+from styles.theme import apply_theme
+from achievement_showcase import render_header
+from garden_assistant import render_garden_hub
+from voice_assessment import render_voice_assessment
 from components.header import render_header
 from components.profile import render_profile
-
+from sustainability_hub import (
+    render_sustainability_hub  
+)
+from learning_center import render_learning_hub
+from travel_planner import render_travel_hub
+from weather_alerts import render_weather_hub
+from eco_social import render_eco_social, render_eco_tip
 
 load_dotenv()
 
@@ -85,196 +96,206 @@ for feature in features:
 # ----------------------------
 st.subheader("Application Status")
 
-col1, col2, col3 = st.columns(3)
+form = st.form(key='assessment_form')
+with form:
+    col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.metric("Version", "1.0.0")
+    with col1:
+        st.metric("Version", "1.0.0")
 
-with col2:
-    st.metric("Status", "Online")
+    with col2:
+        st.metric("Status", "Online")
 
-with col3:
-    st.metric("Environment", "Development")
+    with col3:
+        st.metric("Environment", "Development")
 
-# ----------------------------
-# Additional Information
-# ----------------------------
-with st.expander("About EcoBuddy AI"):
-    st.write(
-        """
-        EcoBuddy AI empowers users to make environmentally conscious decisions
-        by providing personalized sustainability insights, educational resources,
-        and practical recommendations for reducing their ecological footprint.
-        """
+    # ----------------------------
+    # Additional Information
+    # ----------------------------
+    with st.expander("About EcoBuddy AI"):
+        st.write(
+            """
+            EcoBuddy AI empowers users to make environmentally conscious decisions
+            by providing personalized sustainability insights, educational resources,
+            and practical recommendations for reducing their ecological footprint.
+            """
+        )
+
+    st.success("EcoBuddy AI is running successfully.")
+
+    # Added for Route Planning & Offsets
+    from database import (
+        init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
+        save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
+        get_total_offsets, get_total_spend,
+        get_total_freeze_tokens_earned
+    )
+    from marketplace import (
+        calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
+        calculate_offset_cost, validate_offset_transaction, get_offset_projects,
+        calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
+    )
+    from styles.theme import apply_theme, render_theme_selector
+    from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
+    from environmental_timeline import render_environmental_timeline
+    from report_validation import validate_report_data
+    from future_self import generate_future_self_report, build_projection_timeline
+    from session_recovery import (
+        autosave_session_draft,
+        discard_current_draft,
+        render_draft_recovery_prompt,
+    )
+    from session_state_utils import (
+        ensure_session_state,
+        set_session_state_if_changed,
+        check_session_timeout,
+        update_last_activity,
+        clear_auth_session,
     )
 
-st.success("EcoBuddy AI is running successfully.")
-
-# Added for Route Planning & Offsets
-from database import (
-    init_marketplace_db, save_journey_profile, get_journey_profiles, delete_journey_profile,
-    save_offset_transaction, get_offset_transactions, delete_offset_transaction, clear_offset_transactions,
-    get_total_offsets, get_total_spend,
-    get_total_freeze_tokens_earned
-)
-from marketplace import (
-    calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
-    calculate_offset_cost, validate_offset_transaction, get_offset_projects,
-    calculate_net_emissions, calculate_net_zero_progress, get_project_by_id, EMISSION_FACTORS
-)
-from styles.theme import apply_theme, render_theme_selector
-from dashboard_widgets import render_customizable_dashboard, render_widget_customizer
-from environmental_timeline import render_environmental_timeline
-from report_validation import validate_report_data
-from future_self import generate_future_self_report, build_projection_timeline
-from session_recovery import (
-    autosave_session_draft,
-    discard_current_draft,
-    render_draft_recovery_prompt,
-)
-from session_state_utils import (
-    ensure_session_state,
-    set_session_state_if_changed,
-    check_session_timeout,
-    update_last_activity,
-    clear_auth_session,
-)
 
 
+    DEFAULT_VALUES = {
+        "region": "Global",
+        "transport": "Car",
+        "distance": 10.0,
+        "electricity": 200.0,
+        "diet": "Vegetarian",
+        "flights": 0,
+    }
 
-DEFAULT_VALUES = {
-    "region": "Global",
-    "transport": "Car",
-    "distance": 10.0,
-    "electricity": 200.0,
-    "diet": "Vegetarian",
-    "flights": 0,
-}
-
-def h(text):
-    return html.escape(str(text))
-def format_timestamp(ts):
-    if ts:
-        return datetime.strptime(
-            ts,
-            "%Y-%m-%d %H:%M:%S"
-        ).strftime("%d %b %Y %I:%M %p")
-    return "-"
-
-def render_sidebar_auth():
-    st.sidebar.title("Authentication")
-    if 'user_id' not in st.session_state:
-        st.session_state['user_id'] = None
-        st.session_state['username'] = None
-
-    if st.session_state.get('user_id'):
-        if check_session_timeout():
-            clear_auth_session()
-            st.sidebar.warning("Your session has expired. Please sign in again.")
-            st.rerun()
-        else:
-            update_last_activity()
-
-    if st.session_state['user_id'] is None:
-        auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
-        if auth_mode == "Login":
-            with st.sidebar.form("login_form"):
-                MAX_USERNAME = 30
-
-                username = st.text_input(
-                    "Username",
-                    key="username",
-                    max_chars=MAX_USERNAME,
-                    help="Enter your registered username."
-                )
-
-                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-
-                password = st.text_input("Password", type="password",
-                help="Enter your account password. Characters will be hidden for security.")
-                if st.form_submit_button("Login"):
-                    user = verify_user(username, password)
-                    if user:
-                        st.session_state['user_id'] = user['id']
-                        st.session_state['username'] = user['username']
-                        st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
-                        st.sidebar.success("Logged in successfully!")
-                        st.rerun()
-                    else:
-                        st.sidebar.error("Invalid username or password")
-        elif auth_mode == "Register":
-            with st.sidebar.form("register_form"):
-                MAX_USERNAME = 30
-
-                username = st.text_input(
-                    "Username",
-                    max_chars=MAX_USERNAME,
-                    help="Choose a unique username."
-                )
-
-                st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-                MAX_EMAIL = 100
-
-                email = st.text_input(
-                    "Email",
-                    max_chars=MAX_EMAIL,
-                    help="Enter a valid email address."
-                )
-
-                st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
-                password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
-                anonymous = st.checkbox("Appear anonymously on leaderboard")
-                if st.form_submit_button("Register"):
-                    if create_user(username, email, password, anonymous_leaderboard=anonymous):
-                        st.sidebar.success("Registration successful! Please login.")
-                    else:
-                        st.sidebar.error("Username or email already exists")
-        elif auth_mode == "Guest":
-            if st.sidebar.button("Continue as Guest"):
-                st.session_state['user_id'] = 1
-                st.session_state['username'] = "Guest"
-                st.rerun()
-        
-        st.sidebar.warning("Please log in or continue as Guest to use the app.")
-        st.stop()
-    else:
-        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
-        anon_pref = st.sidebar.checkbox(
-            "Appear anonymously on leaderboard",
-            value=st.session_state.get("anonymous_leaderboard", False)
+    def render_breadcrumbs(current_page, parent_page="Dashboard"):
+        st.markdown(
+            f"""
+            <div class="breadcrumb-container">
+                <span class="breadcrumb-home">🏠</span>
+                <span class="breadcrumb-link">{parent_page}</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-current">{current_page}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
-        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
-            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
-            set_session_state_if_changed('anonymous_leaderboard', anon_pref)
-            st.sidebar.success("Leaderboard preference saved.")
-            st.experimental_rerun()
 
-        if st.sidebar.button("Logout"):
-            clear_auth_session()
-            for key, val in DEFAULT_VALUES.items():
-                st.session_state[key] = val
-            st.rerun()
+    def h(text):
+        return html.escape(str(text))
+    def format_timestamp(ts):
+        if ts:
+            return datetime.strptime(
+                ts,
+                "%Y-%m-%d %H:%M:%S"
+            ).strftime("%d %b %Y %I:%M %p")
+        return "-"
 
-    return st.session_state['user_id']
+    def render_sidebar_auth():
+        st.sidebar.title("Authentication")
+        if 'user_id' not in st.session_state:
+            st.session_state['user_id'] = None
+            st.session_state['username'] = None
 
-# -------------------------
-# INIT
-# -------------------------
+        if st.session_state.get('user_id'):
+            if check_session_timeout():
+                clear_auth_session()
+                st.sidebar.warning("Your session has expired. Please sign in again.")
+                st.rerun()
+            else:
+                update_last_activity()
 
-@st.cache_resource
-def run_db_initializations():
-    # Run migrations first to ensure database schema is up to date
-    from database import migrate
-    success, message = migrate()
-    if not success:
-        print(f"Warning: Migration failed: {message}")
-    else:
-        print(f"Database: {message}")
-    
-    init_db()
-    init_gamification_db()
-    init_freeze_tokens_db()
-    init_marketplace_db()
+        if st.session_state['user_id'] is None:
+            auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
+            if auth_mode == "Login":
+                with st.sidebar.form("login_form"):
+                    MAX_USERNAME = 30
+
+                    username = st.text_input(
+                        "Username",
+                        key="username",
+                        max_chars=MAX_USERNAME,
+                        help="Enter your registered username."
+                    )
+
+                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+
+                    password = st.text_input("Password", type="password",
+                    help="Enter your account password. Characters will be hidden for security.")
+                    if st.form_submit_button("Login"):
+                        user = verify_user(username, password)
+                        if user:
+                            st.session_state['user_id'] = user['id']
+                            st.session_state['username'] = user['username']
+                            st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
+                            st.sidebar.success("Logged in successfully!")
+                            st.rerun()
+                        else:
+                            st.sidebar.error("Invalid username or password")
+            elif auth_mode == "Register":
+                with st.sidebar.form("register_form"):
+                    MAX_USERNAME = 30
+
+                    username = st.text_input(
+                        "Username",
+                        max_chars=MAX_USERNAME,
+                        help="Choose a unique username."
+                    )
+
+                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
+                    MAX_EMAIL = 100
+
+                    email = st.text_input(
+                        "Email",
+                        max_chars=MAX_EMAIL,
+                        help="Enter a valid email address."
+                    )
+
+                    st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
+                    password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
+                    anonymous = st.checkbox("Appear anonymously on leaderboard")
+                    if st.form_submit_button("Register"):
+                        if create_user(username, email, password, anonymous_leaderboard=anonymous):
+                            st.sidebar.success("Registration successful! Please login.")
+                        else:
+                            st.sidebar.error("Username or email already exists")
+            elif auth_mode == "Guest":
+                if st.sidebar.button("Continue as Guest"):
+                    st.session_state['user_id'] = 1
+                    st.session_state['username'] = "Guest"
+                    st.rerun()
+        
+            st.sidebar.warning("Please log in or continue as Guest to use the app.")
+            st.stop()
+        else:
+            st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+            anon_pref = st.sidebar.checkbox(
+                "Appear anonymously on leaderboard",
+                value=st.session_state.get("anonymous_leaderboard", False)
+            )
+            if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+                update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+                set_session_state_if_changed('anonymous_leaderboard', anon_pref)
+                st.sidebar.success("Leaderboard preference saved.")
+                st.experimental_rerun()
+
+            if st.sidebar.button("Logout"):
+                clear_auth_session()
+                for key, val in DEFAULT_VALUES.items():
+                    st.session_state[key] = val
+                st.rerun()
+
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("🧭 Navigation")
+
+            st.markdown("""
+            <style>
+
+            /* Sidebar navigation expanders */
+            [data-testid="stSidebar"] [data-testid="stExpander"] {
+                border: 1px solid rgba(34, 197, 94, 0.18);
+                border-radius: 12px;
+                margin-bottom: 10px;
+                background: rgba(255, 255, 255, 0.03);
+                transition: all 0.25s ease;
+            }
+
 
 run_db_initializations()
 user_id = render_sidebar_auth()
@@ -292,684 +313,790 @@ render_customizable_dashboard(user_id, selected_dashboard_widgets)
 with st.expander("🌍 Environmental Impact Timeline", expanded=False):
     render_environmental_timeline(user_id)
 
+            /* Expander header */
+            [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+                font-weight: 700;
+                transition: all 0.25s ease;
+            }
 
-# -------------------------
-# DRAFT RECOVERY & DEFAULT FORM VALUES
-# -------------------------
-ensure_session_state(DEFAULT_VALUES)
+            /* Hover effect */
+            [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+                border-color: rgba(34, 197, 94, 0.45);
+                transform: translateX(2px);
+            }
 
-# page config moved to top
 
+            /* Navigation content */
+            [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
+                padding: 4px 8px 8px 8px;
+            }
 
-# -------------------------
-# THEME APPLICATION
-# -------------------------
+            </style>
+            """, unsafe_allow_html=True)
 
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+            with st.sidebar.expander("🌱 Sustainability", expanded=True):
+                st.write("🌍 Carbon Footprint")
+                st.write("⚡ Home Energy Audit")
+                st.write("🎮 Gamification")
 
-    :root {
-        --ink: #111827;
-        --muted: #6b7280;
-        --paper: rgba(255,255,255,0.75);
-        --paper-strong: rgba(255,255,255,0.95);
-        --line: rgba(0,0,0,0.08);
-        --shadow: 0 10px 30px rgba(0,0,0,0.08);
-    }
+            with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
+                st.write("🗺️ Route Planning & Offsets")
+                st.write("🏆 Community Leaderboard")
 
-    * {
-        box-sizing: border-box;
-    }
+            with st.sidebar.expander("🔮 Insights", expanded=False):
+                st.write("🔮 Future Self")
+                st.write("📊 Environmental Timeline")
 
-    html {
-        scroll-behavior: smooth;
-    }
+        return st.session_state['user_id']
 
-    body,
-    [data-testid="stAppViewContainer"] {
-        color: #1f2937;
-        background:
-            radial-gradient(circle at top left, #dcfce7 0%, transparent 30%),
-            radial-gradient(circle at top right, #dbeafe 0%, transparent 30%),
-            #f8fafc !important;
-    }
+    # -------------------------
+    # INIT
+    # -------------------------
 
-    .block-container {
-        max-width: 1280px;
-        padding: 24px 32px 56px;
-    }
-
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.74);
-        border-right: 1px solid var(--line);
-        box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
-        backdrop-filter: blur(18px);
-    }
-
-    [data-testid="stSidebar"] * {
-        color: var(--ink);
-    }
-
-    .title {
-        margin: 8px 0 12px;
-        color: var(--ink);
-        font-size: clamp(46px, 6vw, 82px);
-        line-height: 1;
-        font-weight: 800;
-        letter-spacing: 0;
-        text-align: center;
-        animation: fadeUp 700ms ease both;
-    }
-
-    .subtitle {
-        max-width: 720px;
-        margin: 0 auto 30px;
-        color: var(--muted);
-        font-size: 19px;
-        line-height: 1.6;
-        font-weight: 500;
-        text-align: center;
-        animation: fadeUp 800ms 80ms ease both;
-    }
-
-    .section-header {
-        margin: 38px 0 18px;
-        color: var(--ink);
-        font-size: clamp(28px, 3vw, 42px);
-        line-height: 1.08;
-        font-weight: 800;
-        letter-spacing: 0;
-        animation: fadeUp 650ms ease both;
-    }
-
-    .section-header::after {
-        content: '';
-        display: block;
-        width: 88px;
-        height: 4px;
-        margin-top: 14px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, #030504, var(--leaf), rgba(120, 169, 69, 0));
-    }
-
-    .input-section,
-    .card,
-    .card-highlight,
-    .metric-card {
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: rgba(255,255,255,0.9);
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-        box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
-        backdrop-filter: blur(18px);
-        position: relative;
-        overflow: hidden;
-        animation: fadeUp 700ms ease both;
-        transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-    }
-
-    .input-section {
-        padding: 34px;
-        margin-bottom: 24px;
-    }
-
-    .card,
-    .card-highlight,
-    .metric-card {
-        padding: 26px;
-        margin-bottom: 16px;
-    }
-
-    .metric-card::before,
-    .card-highlight::before {
-        content: '';
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 5px;
-        background: linear-gradient(90deg, #030504, var(--leaf), #b6d274);
-    }
-
-    .metric-card:hover,
-    .card:hover,
-    .card-highlight:hover {
-        transform: translateY(-6px);
-        border-color: rgba(95, 143, 54, 0.28);
-        box-shadow: 0 26px 64px rgba(57, 86, 47, 0.17);
-    }
-
-    .card-highlight {
-        background:
-            linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 216, 0.82)),
-            linear-gradient(135deg, rgba(120, 169, 69, 0.12), transparent);
-    }
-
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 0 20px;
-        border-radius: 999px;
-        border: 1px solid rgba(8, 11, 10, 0.08);
-        background: #030504;
-        color: #fff;
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
-        font-size: 14px;
-        font-weight: 800;
-        letter-spacing: 0;
-    }
-
-    .badge-champion {
-        background: linear-gradient(135deg, #f4c760, #d8831e);
-        color: #2c1804;
-    }
-
-    .badge-guardian {
-        background: linear-gradient(135deg, #acd66f, #5f8f36);
-        color: #0d1c0f;
-    }
-
-    .badge-learner {
-        background: linear-gradient(135deg, #b9d7f4, #6aa0cf);
-        color: #071927;
-    }
-
-    .badge-high {
-        background: linear-gradient(135deg, #ff8e70, #d84b35);
-        color: #2e0904;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 12px;
-        margin-top: 12px;
-        border-radius: 999px;
-        background: rgba(8, 11, 10, 0.08);
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #030504, var(--moss), var(--leaf));
-        box-shadow: 0 0 20px rgba(95, 143, 54, 0.34);
-        transition: width 600ms ease;
-    }
-
-    hr {
-        height: 1px;
-        margin: 32px 0;
-        border: none;
-        background: linear-gradient(90deg, transparent, rgba(8, 11, 10, 0.16), transparent);
-    }
-
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stSelectbox [data-baseweb="select"],
-    .stTextArea textarea {
-        min-height: 48px;
-        border: 1px solid rgba(8, 11, 10, 0.12) !important;
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.88) !important;
-        color: var(--ink) !important;
-        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
-    }
-
-    .stTextInput > div > div > input:focus,
-    .stNumberInput input:focus,
-    .stTextArea textarea:focus {
-        border-color: rgba(95, 143, 54, 0.55) !important;
-        box-shadow: 0 0 0 4px rgba(120, 169, 69, 0.14) !important;
-    }
-
-    .stButton > button,
-    .stDownloadButton > button,
-    [data-testid="stFormSubmitButton"] > button {
-        min-height: 52px;
-        padding: 0 28px !important;
-        border: none !important;
-        border-radius: 12px !important;
-        background: #030504 !important;
-        color: #fff !important;
-        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2) !important;
-        font-size: 15px !important;
-        font-weight: 800 !important;
-        letter-spacing: 0 !important;
-        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
-    }
-
-    .stButton > button:hover,
-    .stDownloadButton > button:hover,
-    [data-testid="stFormSubmitButton"] > button:hover {
-        transform: translateY(-2px);
-        background: #101713 !important;
-        box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26) !important;
-    }
-
-    .stInfo,
-    .stWarning,
-    .stSuccess,
-    .stError {
-        border-radius: 14px !important;
-        border: 1px solid var(--line) !important;
-        box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
-    }
-
-    .stInfo {
-        background: rgba(185, 215, 244, 0.42) !important;
-    }
-
-    .stWarning {
-        background: rgba(244, 199, 96, 0.24) !important;
-    }
-
-    .stSuccess {
-        background: rgba(172, 214, 111, 0.26) !important;
-    }
-
-    @media (prefers-color-scheme: dark) {
-    /* DARK PREMIUM THEME OVERRIDES */
-    :root {
-        --sky: #8ec5ff;
-        --sky-soft: #18273a;
-        --field: #4ade80;
-        --leaf: #58d27b;
-        --moss: #86efac;
-        --ink: #f8fafc;
-        --muted: #a7b3c6;
-        --paper: rgba(15, 23, 42, 0.76);
-        --paper-strong: rgba(12, 18, 32, 0.92);
-        --line: rgba(148, 163, 184, 0.18);
-        --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
-        --radius: 18px;
-    }
-
-    body,
-    [data-testid="stAppViewContainer"] {
-        color: var(--ink);
-        background:
-            radial-gradient(circle at 18% 8%, rgba(74, 222, 128, 0.22), transparent 28%),
-            radial-gradient(circle at 84% 12%, rgba(96, 165, 250, 0.18), transparent 30%),
-            linear-gradient(145deg, #030712 0%, #07130d 42%, #111827 100%) !important;
-    }
-
-    .block-container {
-        padding-top: 28px;
-    }
-
-    [data-testid="stSidebar"] {
-        background: rgba(3, 7, 18, 0.84);
-        border-right: 1px solid var(--line);
-        box-shadow: 18px 0 48px rgba(0, 0, 0, 0.26);
-    }
-
-    [data-testid="stSidebar"] * {
-        color: var(--ink);
-    }
-
-    .title {
-        color: var(--ink);
-        text-shadow: 0 18px 48px rgba(74, 222, 128, 0.18);
-    }
-
-    .subtitle,
-    .section-header {
-        color: var(--ink);
-    }
-
-    .subtitle {
-        color: var(--muted);
-    }
-
-    .input-section,
-    .card,
-    .card-highlight,
-    .metric-card {
-        background:
-            linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72)),
-            linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
-        border-color: var(--line);
-        box-shadow: var(--shadow);
-    }
-
-    .card-highlight {
-        background:
-            linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
-            linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
-    }
-
-    .metric-card::before,
-    .card-highlight::before,
-    .section-header::after {
-        background: linear-gradient(90deg, #4ade80, #86efac, rgba(96, 165, 250, 0));
-    }
-
-    .progress-bar {
-        background: rgba(148, 163, 184, 0.14);
-    }
-
-    .progress-fill {
-        background: linear-gradient(90deg, #16a34a, #4ade80, #86efac);
-    }
-
-    .stTextInput > div > div > input,
-    .stNumberInput input,
-    .stSelectbox [data-baseweb="select"],
-    .stTextArea textarea {
-        background: #e6f5e9 !important;
-        border-color: rgba(74, 222, 128, 0.4) !important;
-        color: #05070a !important;
-        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
-    }
-
-    .stTextInput label,
-    .stNumberInput label,
-    .stSelectbox label,
-    [data-testid="stWidgetLabel"],
-    [data-testid="stWidgetLabel"] p {
-        color: #ffffff !important;
-        opacity: 1 !important;
-        font-weight: 800 !important;
-    }
-
-    .stSelectbox [data-baseweb="select"] *,
-    .stNumberInput input,
-    .stTextInput input,
-    .stTextArea textarea {
-        color: #05070a !important;
-        -webkit-text-fill-color: #05070a !important;
-    }
-
-    .stButton > button,
-    .stDownloadButton > button,
-    [data-testid="stFormSubmitButton"] > button {
-        background: linear-gradient(135deg, #0b0f18, #111827) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(134, 239, 172, 0.28) !important;
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
-    }
-    .stButton > button:hover,
-    .stDownloadButton > button:hover,
-    [data-testid="stFormSubmitButton"] > button:hover {
-        background: linear-gradient(135deg, #111827, #0f2a1a) !important;
-        border-color: rgba(134, 239, 172, 0.55) !important;
-    }
-
-    .stInfo,
-    .stWarning,
-    .stSuccess,
-    .stError {
-        color: var(--ink) !important;
-        background: rgba(15, 23, 42, 0.78) !important;
-        border-color: var(--line) !important;
-    }
-
-    [style*="#d1d5db"],
-    [style*="#6b7280"],
-    [style*="rgb(209, 213, 219)"],
-    [style*="rgb(156, 163, 175)"] {
-        color: var(--muted) !important;
-    }
+    @st.cache_resource
+    def run_db_initializations():
+        # Run migrations first to ensure database schema is up to date
+        from database import migrate
+        success, message = migrate()
+        if not success:
+            print(f"Warning: Migration failed: {message}")
+        else:
+            print(f"Database: {message}")
     
-    [style*="#4ade80"],
-    [style*="rgb(74, 222, 128)"] {
-        color: var(--moss) !important;
-    }
+        init_db()
+        init_gamification_db()
+        init_freeze_tokens_db()
+        init_marketplace_db()
 
-    [data-testid="stDataFrame"] {
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        box-shadow: var(--shadow);
-        background: var(--paper-strong) !important;
-    }
+    run_db_initializations()
+    user_id = render_sidebar_auth()
+    render_theme_selector()
+    selected_dashboard_widgets = render_widget_customizer(user_id)
+    render_customizable_dashboard(user_id, selected_dashboard_widgets)
 
-    [data-testid="stDataFrame"] > div,
-    [data-testid="stDataFrame"] iframe,
-    [data-testid="stDataFrame"] [class*="stDataFrame"],
-    [data-testid="stDataFrame"] [class*="dataframe"],
-    [data-testid="stDataFrame"] [class*="glide"],
-    [data-testid="stDataFrame"] [class*="table"] {
-        background: transparent !important;
-    }
+    with st.expander("🌍 Environmental Impact Timeline", expanded=False):
+        render_environmental_timeline(user_id)
 
-    [data-testid="stDataFrame"] canvas {
-        background: transparent !important;
-    }
 
-    [data-testid="stDataFrame"] button,
-    [data-testid="stDataFrame"] [role="button"] {
-        background: rgba(255, 255, 255, 0.8) !important;
-        color: var(--ink) !important;
-        border-color: var(--line) !important;
-    }
+    # -------------------------
+    # DRAFT RECOVERY & DEFAULT FORM VALUES
+    # -------------------------
+    ensure_session_state(DEFAULT_VALUES)
 
-    [data-testid="stDataFrame"] svg {
-        color: var(--ink) !important;
-        fill: var(--ink) !important;
-    }
+    # page config moved to top
 
-    [data-testid="stDataFrame"] [role="grid"],
-    [data-testid="stDataFrame"] [role="row"],
-    [data-testid="stDataFrame"] [role="columnheader"],
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        background-color: transparent !important;
-        border-color: var(--line) !important;
-    }
 
-    [data-testid="stDataFrame"] [role="columnheader"] {
-        background-color: var(--sky-soft) !important;
-        color: var(--moss) !important;
-        font-weight: 800 !important;
-    }
+    # -------------------------
+    # THEME APPLICATION
+    # -------------------------
 
-    .history-table-wrap {
-        width: 100%;
-        overflow-x: auto;
-        border: 1px solid rgba(134, 239, 172, 0.24);
-        border-radius: 16px;
-        background: #0f172a;
-        box-shadow: var(--shadow);
-    }
+    st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    .history-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #0f172a;
-        color: #ffffff;
-        font-size: 15px;
-    }
-
-    .history-table thead th {
-        padding: 16px 18px;
-        background: #07130d;
-        color: #ffffff !important;
-        border-bottom: 1px solid rgba(134, 239, 172, 0.3);
-        font-weight: 800;
-        text-align: left;
-        white-space: nowrap;
-    }
-
-    .history-table tbody td {
-        padding: 15px 18px;
-        color: #ffffff !important;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-        text-align: left;
-    }
-
-    .history-table tbody tr:nth-child(odd) {
-        background: #0f172a;
-    }
-
-    .history-table tbody tr:nth-child(even) {
-        background: #111827;
-    }
-
-    .history-table tbody tr:hover {
-        background: rgba(34, 197, 94, 0.14);
-    }
-
-    @keyframes fadeUp {
-        from {
-            opacity: 0;
-            transform: translateY(18px);
+        :root {
+            --ink: #111827;
+            --muted: #6b7280;
+            --paper: rgba(255,255,255,0.75);
+            --paper-strong: rgba(255,255,255,0.95);
+            --line: rgba(0,0,0,0.08);
+            --shadow: 0 10px 30px rgba(0,0,0,0.08);
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 
-    @media (max-width: 760px) {
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body,
+        [data-testid="stAppViewContainer"] {
+            color: #1f2937;
+            background:
+                radial-gradient(circle at top left, #dcfce7 0%, transparent 30%),
+                radial-gradient(circle at top right, #dbeafe 0%, transparent 30%),
+                #f8fafc !important;
+        }
+
         .block-container {
-            padding: 16px 14px 42px;
+            max-width: 1280px;
+            padding: 24px 32px 56px;
+        }
+
+        [data-testid="stSidebar"] {
+            background: rgba(255, 255, 255, 0.74);
+            border-right: 1px solid var(--line);
+            box-shadow: 18px 0 48px rgba(44, 72, 47, 0.08);
+            backdrop-filter: blur(18px);
+        }
+
+        /* =========================
+        COLLAPSIBLE SIDEBAR NAV
+        ========================= */
+
+        [data-testid="stSidebar"] [data-testid="stExpander"] {
+            border: 1px solid rgba(74, 222, 128, 0.18) !important;
+            border-radius: 12px !important;
+            margin-bottom: 10px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+            border-color: rgba(74, 222, 128, 0.40) !important;
+            background: rgba(74, 222, 128, 0.08) !important;
+        }
+
+        /* Expander header */
+        [data-testid="stSidebar"] [data-testid="stExpander"] summary {
+            padding: 12px 14px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+        }
+
+        /* Navigation text */
+        [data-testid="stSidebar"] [data-testid="stExpander"] p {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+        }
+
+        /* Navigation section heading */
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3 {
+            font-weight: 800 !important;
+        }
+
+        /* Sidebar divider */
+        [data-testid="stSidebar"] hr {
+            margin: 14px 0 !important;
+            border-color: rgba(74, 222, 128, 0.18) !important;
+        }
+
+        [data-testid="stSidebar"] * {
+            color: var(--ink);
+        }
+
+        .title {
+            margin: 8px 0 12px;
+            color: var(--ink);
+            font-size: clamp(46px, 6vw, 82px);
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-align: center;
+            animation: fadeUp 700ms ease both;
+        }
+
+        .subtitle {
+            max-width: 720px;
+            margin: 0 auto 30px;
+            color: var(--muted);
+            font-size: 19px;
+            line-height: 1.6;
+            font-weight: 500;
+            text-align: center;
+            animation: fadeUp 800ms 80ms ease both;
+        }
+
+        .section-header {
+            margin: 38px 0 18px;
+            color: var(--ink);
+            font-size: clamp(28px, 3vw, 42px);
+            line-height: 1.08;
+            font-weight: 800;
+            letter-spacing: 0;
+            animation: fadeUp 650ms ease both;
+        }
+
+        .section-header::after {
+            content: '';
+            display: block;
+            width: 88px;
+            height: 4px;
+            margin-top: 14px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #030504, var(--leaf), rgba(120, 169, 69, 0));
         }
 
         .input-section,
         .card,
         .card-highlight,
         .metric-card {
-            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            box-shadow: 0 18px 50px rgba(57, 86, 47, 0.12);
+            backdrop-filter: blur(18px);
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 700ms ease both;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
         }
-    }
 
-    button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
-        color: #d1d5db !important;
-        font-weight: 600 !important;
-    }
+        .input-section {
+            padding: 34px;
+            margin-bottom: 24px;
+        }
+
+        .card,
+        .card-highlight,
+        .metric-card {
+            padding: 26px;
+            margin-bottom: 16px;
+        }
+
+        .metric-card::before,
+        .card-highlight::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 5px;
+            background: linear-gradient(90deg, #030504, var(--leaf), #b6d274);
+        }
+
+        .metric-card:hover,
+        .card:hover,
+        .card-highlight:hover {
+            transform: translateY(-6px);
+            border-color: rgba(95, 143, 54, 0.28);
+            box-shadow: 0 26px 64px rgba(57, 86, 47, 0.17);
+        }
+
+        .card-highlight {
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(232, 244, 216, 0.82)),
+                linear-gradient(135deg, rgba(120, 169, 69, 0.12), transparent);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(8, 11, 10, 0.08);
+            background: #030504;
+            color: #fff;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .badge-champion {
+            background: linear-gradient(135deg, #f4c760, #d8831e);
+            color: #2c1804;
+        }
+
+        .badge-guardian {
+            background: linear-gradient(135deg, #acd66f, #5f8f36);
+            color: #0d1c0f;
+        }
+
+        .badge-learner {
+            background: linear-gradient(135deg, #b9d7f4, #6aa0cf);
+            color: #071927;
+        }
+
+        .badge-high {
+            background: linear-gradient(135deg, #ff8e70, #d84b35);
+            color: #2e0904;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            margin-top: 12px;
+            border-radius: 999px;
+            background: rgba(8, 11, 10, 0.08);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #030504, var(--moss), var(--leaf));
+            box-shadow: 0 0 20px rgba(95, 143, 54, 0.34);
+            transition: width 600ms ease;
+        }
+
+        hr {
+            height: 1px;
+            margin: 32px 0;
+            border: none;
+            background: linear-gradient(90deg, transparent, rgba(8, 11, 10, 0.16), transparent);
+        }
+
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox [data-baseweb="select"],
+        .stTextArea textarea {
+            min-height: 48px;
+            border: 1px solid rgba(8, 11, 10, 0.12) !important;
+            border-radius: 12px !important;
+            background: rgba(255, 255, 255, 0.88) !important;
+            color: var(--ink) !important;
+            box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+        }
+
+        .stTextInput > div > div > input:focus,
+        .stNumberInput input:focus,
+        .stTextArea textarea:focus {
+            border-color: rgba(95, 143, 54, 0.55) !important;
+            box-shadow: 0 0 0 4px rgba(120, 169, 69, 0.14) !important;
+        }
+
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {
+            min-height: 52px;
+            padding: 0 28px !important;
+            border: none !important;
+            border-radius: 12px !important;
+            background: #030504 !important;
+            color: #fff !important;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2) !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0 !important;
+            transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+        }
+
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        [data-testid="stFormSubmitButton"] > button:hover {
+            transform: translateY(-2px);
+            background: #101713 !important;
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.26) !important;
+        }
+
+        .stInfo,
+        .stWarning,
+        .stSuccess,
+        .stError {
+            border-radius: 14px !important;
+            border: 1px solid var(--line) !important;
+            box-shadow: 0 12px 30px rgba(57, 86, 47, 0.08);
+        }
+
+        .stInfo {
+            background: rgba(185, 215, 244, 0.42) !important;
+        }
+
+        .stWarning {
+            background: rgba(244, 199, 96, 0.24) !important;
+        }
+
+        .stSuccess {
+            background: rgba(172, 214, 111, 0.26) !important;
+        }
+
+        @media (prefers-color-scheme: dark) {
+        /* DARK PREMIUM THEME OVERRIDES */
+        :root {
+            --sky: #8ec5ff;
+            --sky-soft: #18273a;
+            --field: #4ade80;
+            --leaf: #58d27b;
+            --moss: #86efac;
+            --ink: #f8fafc;
+            --muted: #a7b3c6;
+            --paper: rgba(15, 23, 42, 0.76);
+            --paper-strong: rgba(12, 18, 32, 0.92);
+            --line: rgba(148, 163, 184, 0.18);
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+            --radius: 18px;
+        }
+
+        body,
+        [data-testid="stAppViewContainer"] {
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 18% 8%, rgba(74, 222, 128, 0.22), transparent 28%),
+                radial-gradient(circle at 84% 12%, rgba(96, 165, 250, 0.18), transparent 30%),
+                linear-gradient(145deg, #030712 0%, #07130d 42%, #111827 100%) !important;
+        }
+
+        .block-container {
+            padding-top: 28px;
+        }
+
+        [data-testid="stSidebar"] {
+            background: rgba(3, 7, 18, 0.84);
+            border-right: 1px solid var(--line);
+            box-shadow: 18px 0 48px rgba(0, 0, 0, 0.26);
+        }
+
+        [data-testid="stSidebar"] * {
+            color: var(--ink);
+        }
+
+        .title {
+            color: var(--ink);
+            text-shadow: 0 18px 48px rgba(74, 222, 128, 0.18);
+        }
+
+        .subtitle,
+        .section-header {
+            color: var(--ink);
+        }
+
+        .subtitle {
+            color: var(--muted);
+        }
+
+        .input-section,
+        .card,
+        .card-highlight,
+        .metric-card {
+            background:
+                linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72)),
+                linear-gradient(135deg, rgba(74, 222, 128, 0.08), transparent);
+            border-color: var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .card-highlight {
+            background:
+                linear-gradient(145deg, rgba(13, 36, 25, 0.92), rgba(12, 18, 32, 0.84)),
+                linear-gradient(135deg, rgba(74, 222, 128, 0.14), transparent);
+        }
+
+        .metric-card::before,
+        .card-highlight::before,
+        .section-header::after {
+            background: linear-gradient(90deg, #4ade80, #86efac, rgba(96, 165, 250, 0));
+        }
+
+        .progress-bar {
+            background: rgba(148, 163, 184, 0.14);
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #16a34a, #4ade80, #86efac);
+        }
+
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox [data-baseweb="select"],
+        .stTextArea textarea {
+            background: #e6f5e9 !important;
+            border-color: rgba(74, 222, 128, 0.4) !important;
+            color: #05070a !important;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+        }
+
+        .stTextInput label,
+        .stNumberInput label,
+        .stSelectbox label,
+        [data-testid="stWidgetLabel"],
+        [data-testid="stWidgetLabel"] p {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            font-weight: 800 !important;
+        }
+
+        .stSelectbox [data-baseweb="select"] *,
+        .stNumberInput input,
+        .stTextInput input,
+        .stTextArea textarea {
+            color: #05070a !important;
+            -webkit-text-fill-color: #05070a !important;
+        }
+
+        .stButton > button,
+        .stDownloadButton > button,
+        [data-testid="stFormSubmitButton"] > button {
+            background: linear-gradient(135deg, #0b0f18, #111827) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(134, 239, 172, 0.28) !important;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32) !important;
+        }
+        .stButton > button:hover,
+        .stDownloadButton > button:hover,
+        [data-testid="stFormSubmitButton"] > button:hover {
+            background: linear-gradient(135deg, #111827, #0f2a1a) !important;
+            border-color: rgba(134, 239, 172, 0.55) !important;
+        }
+
+        .stInfo,
+        .stWarning,
+        .stSuccess,
+        .stError {
+            color: var(--ink) !important;
+            background: rgba(15, 23, 42, 0.78) !important;
+            border-color: var(--line) !important;
+        }
+
+        [style*="#d1d5db"],
+        [style*="#6b7280"],
+        [style*="rgb(209, 213, 219)"],
+        [style*="rgb(156, 163, 175)"] {
+            color: var(--muted) !important;
+        }
     
-    button[data-baseweb="tab"][aria-selected="true"] > div[data-testid="stMarkdownContainer"] > p {
-        color: #4ade80 !important;
-        font-weight: 800 !important;
-    }
+        [style*="#4ade80"],
+        [style*="rgb(74, 222, 128)"] {
+            color: var(--moss) !important;
+        }
+
+        [data-testid="stDataFrame"] {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            background: var(--paper-strong) !important;
+        }
+
+        [data-testid="stDataFrame"] > div,
+        [data-testid="stDataFrame"] iframe,
+        [data-testid="stDataFrame"] [class*="stDataFrame"],
+        [data-testid="stDataFrame"] [class*="dataframe"],
+        [data-testid="stDataFrame"] [class*="glide"],
+        [data-testid="stDataFrame"] [class*="table"] {
+            background: transparent !important;
+        }
+
+        [data-testid="stDataFrame"] canvas {
+            background: transparent !important;
+        }
+
+        [data-testid="stDataFrame"] button,
+        [data-testid="stDataFrame"] [role="button"] {
+            background: rgba(255, 255, 255, 0.8) !important;
+            color: var(--ink) !important;
+            border-color: var(--line) !important;
+        }
+
+        [data-testid="stDataFrame"] svg {
+            color: var(--ink) !important;
+            fill: var(--ink) !important;
+        }
+
+        [data-testid="stDataFrame"] [role="grid"],
+        [data-testid="stDataFrame"] [role="row"],
+        [data-testid="stDataFrame"] [role="columnheader"],
+        [data-testid="stDataFrame"] [role="gridcell"] {
+            background-color: transparent !important;
+            border-color: var(--line) !important;
+        }
+
+        [data-testid="stDataFrame"] [role="columnheader"] {
+            background-color: var(--sky-soft) !important;
+            color: var(--moss) !important;
+            font-weight: 800 !important;
+        }
+
+        .history-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid rgba(134, 239, 172, 0.24);
+            border-radius: 16px;
+            background: #0f172a;
+            box-shadow: var(--shadow);
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 15px;
+        }
+
+        .history-table thead th {
+            padding: 16px 18px;
+            background: #07130d;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(134, 239, 172, 0.3);
+            font-weight: 800;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .history-table tbody td {
+            padding: 15px 18px;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            text-align: left;
+        }
+
+        .history-table tbody tr:nth-child(odd) {
+            background: #0f172a;
+        }
+
+        .history-table tbody tr:nth-child(even) {
+            background: #111827;
+        }
+
+        .history-table tbody tr:hover {
+            background: rgba(34, 197, 94, 0.14);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 760px) {
+            .block-container {
+                padding: 16px 14px 42px;
+            }
+
+            .input-section,
+            .card,
+            .card-highlight,
+            .metric-card {
+                padding: 22px;
+            }
+        }
+
+        button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+            color: #d1d5db !important;
+            font-weight: 600 !important;
+        }
     
-    [data-testid="stExpander"] {
-        background: #0f172a !important;
-        border: 1px solid rgba(134, 239, 172, 0.28) !important;
-        border-radius: 8px !important;
-        overflow: hidden;
-    }
+        button[data-baseweb="tab"][aria-selected="true"] > div[data-testid="stMarkdownContainer"] > p {
+            color: #4ade80 !important;
+            font-weight: 800 !important;
+        }
     
-    [data-testid="stExpander"] details {
-        background: #0f172a !important;
-    }
-
-    [data-testid="stExpander"] summary {
-        background-color: #0f172a !important;
-    }
+        [data-testid="stExpander"] {
+            background: #0f172a !important;
+            border: 1px solid rgba(134, 239, 172, 0.28) !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
     
-    [data-testid="stExpander"] summary:hover {
-        background-color: #1e293b !important;
-    }
+        [data-testid="stExpander"] details {
+            background: #0f172a !important;
+        }
 
-    [data-testid="stExpander"] summary,
-    [data-testid="stExpander"] summary p,
-    [data-testid="stExpander"] summary span,
-    [data-testid="stExpander"] summary svg {
-        color: #ffffff !important;
-        font-weight: 600 !important;
-        fill: #ffffff !important;
-    }
+        [data-testid="stExpander"] summary {
+            background-color: #0f172a !important;
+        }
     
-    [data-testid="stExpanderDetails"] {
-        background-color: #0f172a !important;
-        color: #d1d5db !important;
-    }
-    } /* end @media (prefers-color-scheme: dark) */
-</style>
-""", unsafe_allow_html=True)
+        [data-testid="stExpander"] summary:hover {
+            background-color: #1e293b !important;
+        }
 
-apply_theme()
+        [data-testid="stExpander"] summary,
+        [data-testid="stExpander"] summary p,
+        [data-testid="stExpander"] summary span,
+        [data-testid="stExpander"] summary svg {
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            fill: #ffffff !important;
+        }
+    
+        [data-testid="stExpanderDetails"] {
+            background-color: #0f172a !important;
+            color: #d1d5db !important;
+        }
+        } /* end @media (prefers-color-scheme: dark) */
+    </style>
+    """, unsafe_allow_html=True)
+
+    apply_theme()
 
 
 
-# -------------------------
-# HEADER
-# -------------------------
-render_header()
+    # -------------------------
+    # HEADER
+    # -------------------------
+    render_header()
 
 
-# -------------------------
-# INPUTS SECTION
-# -------------------------
+    # -------------------------
+    # INPUTS SECTION
+    # -------------------------
 
 
-st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
 
  
-col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>🚗</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
-    </div>
-    """, unsafe_allow_html=True)
-    transport = st.selectbox(
-    "Primary Transport",
-    ["Car", "Public Transport", "Bike", "Walking"],
-    key="transport",
-    help="Select the mode of transportation you use most frequently for your daily commute."
-    )
-    diet = st.selectbox(
-    "Diet Type",
-    ["Vegetarian", "Non-Vegetarian"],
-    key="diet",
-    help="Choose the option that best represents your regular dietary habits."
-)
-
-with col2:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>⚡</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
-    </div>
-    """, unsafe_allow_html=True)
-    electricity = st.number_input(
-        "Monthly Electricity (kWh)",
-        min_value=0.0,
-        value=200.0,
-        step=10.0,
-        key="electricity",
-        help="Enter your average monthly electricity consumption in kWh."
+    with col1:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>🚗</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
+        </div>
+        """, unsafe_allow_html=True)
+        transport = st.selectbox(
+        "Primary Transport",
+        ["Car", "Public Transport", "Bike", "Walking"],
+        key="transport",
+        help="Select the mode of transportation you use most frequently for your daily commute."
+        )
+        diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet",
+        help="Choose the option that best represents your regular dietary habits."
     )
 
-    diet = st.selectbox(
-    "Diet Type",
-    ["Vegetarian", "Non-Vegetarian"],
-    key="diet",
-    help="Choose the option that best represents your regular dietary habits."
-)
-with col3:
-    st.markdown("""
-    <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-        <span style='font-size: 24px;'>✈️</span>
-        <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
-    </div>
-    """, unsafe_allow_html=True)
-    flights = st.number_input(
-        "Annual Flights",
-        min_value=0,
-        value=0,
-        step=1,
-        key="flights",
-        help="Enter the number of long-distance flights you take each year."
+    with col2:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>⚡</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
+        </div>
+        """, unsafe_allow_html=True)
+        electricity = st.number_input(
+            "Monthly Electricity (kWh)",
+            min_value=0.0,
+            value=200.0,
+            step=10.0,
+            key="electricity",
+            help="Enter your average monthly electricity consumption in kWh."
+        )
+
+        diet = st.selectbox(
+        "Diet Type",
+        ["Vegetarian", "Non-Vegetarian"],
+        key="diet",
+        help="Choose the option that best represents your regular dietary habits."
     )
-    st.info("💡 How many long-distance flights per year?")
+    with col3:
+        st.markdown("""
+        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
+            <span style='font-size: 24px;'>✈️</span>
+            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
+        </div>
+        """, unsafe_allow_html=True)
+        flights = st.number_input(
+            "Annual Flights",
+            min_value=0,
+            value=0,
+            step=1,
+            key="flights",
+            help="Enter the number of long-distance flights you take each year."
+        )
+        st.info("💡 How many long-distance flights per year?")
 
  
 
-# -------------------------
-# PDF REPORT GENERATION
-# -------------------------
+    # -------------------------
+    # PDF REPORT GENERATION
+    # -------------------------
 
-# -------------------------
-# TABS CONFIGURATION
-# -------------------------
+    # -------------------------
+    # TABS CONFIGURATION
+    # -------------------------
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1.5, 1])
 
 # Initialize session state
@@ -992,7 +1119,7 @@ with col_btn2:
 
     st.caption("✔ All input fields are validated before analysis.")
 
-    analyze_btn = st.button(
+    analyze_btn = form.form_submit_button(
         "🌿 Analyze My Impact",
         use_container_width=True,
         key="analyze_btn"
@@ -1099,30 +1226,52 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6,tab7,tab8,tab9,tab10,tab11 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
     "🗺️ Route Planning & Offsets",
     "🏆 Community Leaderboard",
-    "🔮 Future Self"
+    "🔮 Future Self",
+    "🎤 Voice Assistant",
+    "🌤️ Eco-Weather",
+    "🌍 Eco-Travel",
+    "🌱 Eco-Garden",
+    "📚 Learning Center"
 ])
 
 
 with tab1:
     st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
 
-
+with tab7:
+    render_voice_assessment()
  
- 
-    with st.spinner("🌍 Analyzing your carbon footprint..."):
 
-        progress_text = st.empty()
-        progress = st.progress(0)
+    placeholder = st.empty()
+with tab8:
+    render_weather_hub()
+with tab9:
+    render_travel_hub()
+with tab10:
+    render_garden_hub()
 
-        progress_text.info("🔍 Validating user inputs...")
-        progress.progress(20)
-        time.sleep(0.5)  # Simulate validation delay
+with tab11:
+    render_learning_hub()
+with placeholder.container():
+    show_card_skeleton()
+    show_chart_skeleton()
+
+# Existing analysis code here
+
+placeholder.empty()
+
+progress_text = st.empty()
+progress = st.progress(0)
+
+progress_text.info("🔍 Validating user inputs...")
+progress.progress(20)
+time.sleep(0.5)  # Simulate validation delay
 
 # TABS CONFIGURATION
 # -------------------------
@@ -1340,10 +1489,18 @@ with tab1:
 
     if analyze_btn:
 
-        with st.spinner("🌍 Analyzing your carbon footprint..."):
-            total, contributors = calculate_footprint(
-                transport, distance, electricity, diet, flights, region
-            )
+        placeholder = st.empty()
+
+        with placeholder.container():
+            show_card_skeleton()
+            show_chart_skeleton()
+
+# Existing analysis code here
+
+        placeholder.empty()  
+        total, contributors = calculate_footprint(
+            transport, distance, electricity, diet, flights, region
+        )
 
         eco_score = calculate_eco_score(total)
 
@@ -1912,84 +2069,149 @@ with tab1:
             # Pie chart with Plotly
             import plotly.graph_objects as go
             fig = go.Figure(data=[go.Pie(
-                labels=list(filtered_contributors.keys()),
-                values=list(filtered_contributors.values()),
-                hole=0.4,
-                marker=dict(
-                    colors=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(0,0,0,0.1)', width=2)
-                ),
-                textposition='auto',
-                hovertemplate='<b>%{label}</b><br>%{value:.0f} kg CO₂ (%{percent})<extra></extra>'
-            )])
+    labels=list(filtered_contributors.keys()),
+    values=list(filtered_contributors.values()),
+    hole=0.55,
+    pull=[0.03] * len(filtered_contributors),
+    textinfo="label+percent",
+    textfont=dict(size=13),
+    marker=dict(
+        colors=['#22c55e', '#3b82f6', '#facc15', '#ef4444'],
+        line=dict(color="white", width=2)
+    ),
+    hovertemplate="""
+    <b>%{label}</b><br>
+    Emissions: %{value:.1f} kg CO₂<br>
+    Share: %{percent}<extra></extra>
+    """
+)])
 
             fig.update_layout(
-                showlegend=True,
-                height=280,
-                margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#374151', size=12),
-                legend=dict(
-                    orientation='h',
-                    x=0.5,
-                    xanchor='center',
-                    y=-0.15,
-                    bgcolor='rgba(255,255,255,0.9)',
-                    bordercolor='rgba(74, 222, 128, 0.3)',
-                    borderwidth=1
-                )
-            )
+    height=340,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=10, r=10, t=20, b=20),
+    font=dict(size=13),
+    hoverlabel=dict(
+        bgcolor="white",
+        font_size=13,
+        font_family="Arial"
+    ),
+    legend=dict(
+        orientation="h",
+        y=-0.2,
+        x=0.5,
+        xanchor="center",
+        bgcolor="rgba(255,255,255,0.9)",
+        bordercolor="#22c55e",
+        borderwidth=1
+    )
+)
 
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})        # -------------------------
         # DETAILED BREAKDOWN
         # -------------------------
-        st.markdown("<div class='section-header'>📋 Detailed Breakdown</div>", unsafe_allow_html=True)
+       # -------------------------
+# DETAILED BREAKDOWN
+# -------------------------
 
-# Bar chart creation
-        total_filtered = sum(filtered_contributors.values()) or 1
-        breakdown_fig = go.Figure(data=[
-            go.Bar(
-                x=list(filtered_contributors.keys()),
-                y=list(filtered_contributors.values()),
-                marker=dict(
-                    color=['#4ade80', '#60a5fa', '#fbbf24', '#f87171'],
-                    line=dict(color='rgba(255,255,255,0.2)', width=2)
-                ),
-                text=[f'{v:.0f} kg' for v in filtered_contributors.values()],
-                textposition='auto',
-                customdata=[v / total_filtered * 100 for v in filtered_contributors.values()],
-                hovertemplate='<b>%{x}</b><br>%{y:.0f} kg CO₂<br>%{customdata:.1f}% of total<extra></extra>'
+st.markdown(
+    "<div class='section-header'>📋 Detailed Breakdown</div>",
+    unsafe_allow_html=True,
+)
+
+total_filtered = sum(filtered_contributors.values()) or 1
+
+category_icons = {
+    "Transport": "🚗",
+    "Electricity": "⚡",
+    "Food": "🍽️",
+    "Waste": "🗑️",
+}
+
+for category, emission in filtered_contributors.items():
+    percentage = (emission / total_filtered) * 100
+
+    with st.expander(
+        f"{category_icons.get(category, '🌿')} {category} • {emission:.1f} kg CO₂",
+        expanded=False,
+    ):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Emission",
+                f"{emission:.1f} kg CO₂",
             )
-        ])
-        breakdown_fig.update_layout(
-            height=350,
-            margin=dict(l=40, r=20, t=20, b=40),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(55, 65, 81, 0.2)',
-            font=dict(color='#374151', size=12),
-            xaxis=dict(
-                showgrid=False,
-                zeroline=False,
-                color='#4b5563'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridwidth=1,
-                gridcolor='rgba(74, 222, 128, 0.1)',
-                zeroline=False,
-                color='#4b5563'
-            ),
-            showlegend=False
-        )
 
+        with col2:
+            st.metric(
+                "Contribution",
+                f"{percentage:.1f}%",
+            )
 
-        st.caption("This chart shows the breakdown of your carbon footprint by activity.")
-        st.plotly_chart(breakdown_fig, width="stretch", config={"displayModeBar": False})
-        st.plotly_chart(breakdown_fig, width="stretch", config={'displayModeBar': False})
-        # Render Chart
-        st.plotly_chart(breakdown_fig, use_container_width=True, config={'displayModeBar': False})
+        st.progress(min(percentage / 100, 1.0))
 
+        if percentage >= 40:
+            st.warning(
+                "This category contributes significantly to your carbon footprint."
+            )
+
+        elif percentage >= 20:
+            st.info(
+                "There is room for improvement in this category."
+            )
+
+        else:
+            st.success(
+                "Great! This category has a relatively low carbon impact."
+            )
+
+        st.markdown("#### Tips")
+
+        if category == "Transport":
+            st.markdown(
+                """
+- 🚶 Walk or cycle for short trips
+- 🚌 Use public transport
+- 🚗 Carpool whenever possible
+"""
+            )
+
+        elif category == "Electricity":
+            st.markdown(
+                """
+- 💡 Switch to LED bulbs
+- 🔌 Turn off unused appliances
+- 🌞 Consider renewable energy
+"""
+            )
+
+        elif category == "Food":
+            st.markdown(
+                """
+- 🥗 Eat more plant-based meals
+- 🛒 Buy local produce
+- 🍽 Reduce food waste
+"""
+            )
+
+        elif category == "Waste":
+            st.markdown(
+                """
+- ♻ Recycle regularly
+- 🚮 Compost organic waste
+- 🛍 Use reusable bags
+"""
+            )
+
+        else:
+            st.markdown(
+                """
+- 🌱 Continue improving your sustainability habits.
+"""
+            )
         # -------------------------
         # CHART EXPORT BUTTONS (#277)
         # -------------------------
@@ -2676,12 +2898,123 @@ with tab1:
         st.caption(
             "Benchmark values are reference estimates used only for comparison and educational purposes."
         )
-                # -------------------------
-                # PDF DOWNLOAD
-                # -------------------------
+                
 
         
         st.markdown("---")
+        # ============================================================
+        # 🏆 Sustainability Milestones
+        # ============================================================
+
+        st.markdown(
+            "<div class='section-header'>🏆 Sustainability Milestones</div>",
+            unsafe_allow_html=True
+        )
+
+        milestones = [
+            {
+                "title": "Eco Beginner",
+                "condition": eco_score >= 50,
+                "description": "Achieve an Eco Score of at least 50."
+            },
+            {
+                "title": "Green Commuter",
+                "condition": transport in ["Bike", "Walking", "Public Transport"],
+                "description": "Use sustainable transportation."
+            },
+            {
+                "title": "Energy Saver",
+                "condition": electricity <= 150,
+                "description": "Keep monthly electricity usage below 150 kWh."
+            },
+            {
+                "title": "Plant Friendly",
+                "condition": diet == "Vegetarian",
+                "description": "Follow a vegetarian diet."
+            },
+            {
+                "title": "Flight Free",
+                "condition": flights == 0,
+                "description": "Avoid annual air travel."
+            },
+            {
+                "title": "Eco Expert",
+                "condition": eco_score >= 90,
+                "description": "Achieve an Eco Score above 90."
+            }
+        ]
+
+        completed = 0
+
+        for milestone in milestones:
+        
+            if milestone["condition"]:
+                completed += 1
+
+        progress = completed / len(milestones)
+
+        st.metric(
+            "Milestones Completed",
+            f"{completed}/{len(milestones)}"
+        )
+
+        st.progress(progress)
+
+        st.markdown("---")
+
+        for milestone in milestones:
+        
+            if milestone["condition"]:
+            
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                background:#ecfdf5;
+                border-left:6px solid #22c55e;
+                margin-bottom:12px;
+                ">
+                <h4>✅ {milestone['title']}</h4>
+                <p>{milestone['description']}</p>
+                <b>Status:</b> Unlocked
+                </div>
+                """, unsafe_allow_html=True)
+
+            else:
+            
+                st.markdown(f"""
+                <div style="
+                padding:18px;
+                border-radius:12px;
+                background:#f9fafb;
+                border-left:6px solid #9ca3af;
+                margin-bottom:12px;
+                ">
+                <h4>🔒 {milestone['title']}</h4>
+                <p>{milestone['description']}</p>
+                <b>Status:</b> Locked
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        remaining = len(milestones) - completed
+
+        if remaining == 0:
+        
+            st.success(
+                "🎉 Congratulations! You have unlocked every sustainability milestone."
+            )
+
+        else:
+        
+            st.info(
+                f"You are only **{remaining} milestone(s)** away from completing the collection."
+            )
+
+        st.caption(
+            "Complete more eco-friendly activities to unlock additional sustainability milestones and improve your overall environmental performance."
+        )
 
         with st.expander("🧮 Interactive Calculation Breakdown", expanded=False):
 
@@ -2724,6 +3057,113 @@ with tab1:
         Each category contributes independently to the final result. Expanding this section allows users to inspect every intermediate value instead of only viewing the final score, making the assessment more transparent and easier to understand.
         """)
 
+        # ============================================================
+        # 🌍 Personalized Eco Action Plan
+        # ============================================================
+
+        st.markdown(
+            "<div class='section-header'>🌍 Personalized Eco Action Plan</div>",
+            unsafe_allow_html=True
+        )
+
+        actions = []
+
+        if transport == "Car":
+            actions.append({
+                "title": "🚲 Choose Greener Transportation",
+                "priority": "High",
+                "benefit": "Reduce transportation emissions by using public transport, cycling, or walking whenever possible."
+            })
+
+        if electricity > 200:
+            actions.append({
+                "title": "⚡ Reduce Electricity Usage",
+                "priority": "High",
+                "benefit": "Switch off unused appliances and use energy-efficient devices."
+            })
+
+        if diet == "Non-Vegetarian":
+            actions.append({
+                "title": "🥗 Improve Dietary Choices",
+                "priority": "Medium",
+                "benefit": "Adding more plant-based meals can significantly reduce your carbon footprint."
+            })
+
+        if flights > 2:
+            actions.append({
+                "title": "✈ Reduce Air Travel",
+                "priority": "High",
+                "benefit": "Reduce unnecessary flights or offset emissions through verified programs."
+            })
+
+        if eco_score >= 85:
+            actions.append({
+                "title": "🌱 Inspire Others",
+                "priority": "Low",
+                "benefit": "Share your sustainable lifestyle and encourage friends and family."
+            })
+
+        if len(actions) == 0:
+        
+            st.success(
+                "🎉 Excellent! Your current lifestyle already follows many sustainable practices."
+            )
+
+        else:
+        
+            st.metric("Recommended Actions", len(actions))
+
+            priority_colors = {
+                "High": "#ef4444",
+                "Medium": "#f59e0b",
+                "Low": "#22c55e"
+            }
+
+            for index, action in enumerate(actions, start=1):
+            
+                color = priority_colors[action["priority"]]
+
+                st.markdown(f"""
+                <div style="
+                    border-left:6px solid {color};
+                    background:#ffffff;
+                    padding:18px;
+                    margin-bottom:14px;
+                    border-radius:10px;
+                    box-shadow:0 4px 12px rgba(0,0,0,.06);
+                ">
+                    <h4>{index}. {action['title']}</h4>
+
+                    <p><b>Priority:</b>
+                    <span style="color:{color};">
+                    {action['priority']}
+                    </span></p>
+
+                    <p>{action['benefit']}</p>
+
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        completed = max(0, eco_score)
+
+        st.subheader("📈 Sustainability Readiness")
+
+        st.progress(completed / 100)
+
+        if eco_score >= 90:
+            st.success("Your sustainability readiness is outstanding.")
+        elif eco_score >= 75:
+            st.info("You are close to becoming an Eco Champion.")
+        elif eco_score >= 60:
+            st.warning("A few improvements will significantly reduce your emissions.")
+        else:
+            st.error("Your action plan should focus on high-priority improvements first.")
+
+        st.caption(
+            "The action plan is generated dynamically based on your latest assessment to help you prioritize sustainability improvements."
+        )
         report = generate_pdf(total, eco_score, insight)
 
         report_validation = validate_report_data(
@@ -2768,13 +3208,986 @@ with tab1:
                     "The assessment data is valid, but the PDF could not be "
                     "created. Please try again."
                 )
+            # ============================================================
+        # 🌍 Carbon Budget Manager
+        # ============================================================
 
-    # -------------------------
-    # HISTORY & TRACKING
-    # -------------------------
-    st.markdown("---")
-    with st.expander("🕒 Assessment Timeline", expanded=False):
-        st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-header'>💰 Carbon Budget Manager</div>",
+            unsafe_allow_html=True
+        )
+
+        if "monthly_budget" not in st.session_state:
+            st.session_state.monthly_budget = 500
+
+        budget = st.slider(
+            "Set Monthly Carbon Budget (kg CO₂)",
+            min_value=100,
+            max_value=2000,
+            step=50,
+            value=st.session_state.monthly_budget,
+            help="Choose your personal monthly carbon emission target."
+        )
+
+        st.session_state.monthly_budget = budget
+
+        monthly_emission = total / 12
+
+        remaining_budget = budget - monthly_emission
+
+        used_percent = (monthly_emission / budget) * 100
+
+        used_percent = min(used_percent, 100)
+
+        remaining_percent = max(0, 100 - used_percent)
+
+        st.markdown("---")
+
+        card1, card2, card3, card4 = st.columns(4)
+
+        with card1:
+        
+            st.metric(
+                "Monthly Budget",
+                f"{budget:.0f} kg"
+            )
+
+        with card2:
+        
+            st.metric(
+                "Estimated Usage",
+                f"{monthly_emission:.1f} kg"
+            )
+
+        with card3:
+        
+            st.metric(
+                "Remaining",
+                f"{max(0, remaining_budget):.1f} kg"
+            )
+
+        with card4:
+        
+            st.metric(
+                "Budget Used",
+                f"{used_percent:.1f}%"
+            )
+
+        st.markdown("---")
+
+        st.subheader("📊 Budget Progress")
+
+        st.progress(used_percent / 100)
+
+        if used_percent < 50:
+        
+            st.success(
+                "✅ Excellent! You've used less than half of your monthly carbon budget."
+            )
+
+        elif used_percent < 75:
+        
+            st.info(
+                "🌱 You're within your monthly carbon budget."
+            )
+
+        elif used_percent < 90:
+        
+            st.warning(
+                "⚠ You're approaching your monthly carbon budget limit."
+            )
+
+        else:
+        
+            st.error(
+                "🚨 Your estimated emissions are close to or above your monthly budget."
+            )
+
+        st.markdown("---")
+
+        st.subheader("📋 Budget Breakdown")
+
+        left, right = st.columns(2)
+
+        with left:
+        
+            st.info(f"""
+        ### Current Budget
+
+        Monthly Budget
+
+        **{budget:.0f} kg CO₂**
+
+        Estimated Monthly Usage
+
+        **{monthly_emission:.1f} kg CO₂**
+        """)
+
+        with right:
+        
+            st.info(f"""
+        ### Remaining Allowance
+
+        Remaining Budget
+
+        **{max(0, remaining_budget):.1f} kg CO₂**
+
+        Remaining Percentage
+
+        **{remaining_percent:.1f}%**
+        """)
+
+        st.markdown("---")
+
+        st.subheader("🎯 Budget Status")
+
+        if remaining_budget > 250:
+        
+            st.success(
+                "You still have plenty of room within your monthly carbon budget."
+            )
+
+        elif remaining_budget > 100:
+        
+            st.info(
+                "Your budget is healthy, but continue making sustainable choices."
+            )
+
+        elif remaining_budget > 0:
+        
+            st.warning(
+                "Your remaining budget is getting low."
+            )
+
+        else:
+        
+            st.error(
+                "Your monthly carbon budget has been exceeded."
+            )
+
+        st.markdown("---")
+
+        st.subheader("💡 Budget Suggestions")
+
+        tips = []
+
+        if transport == "Car":
+            tips.append(
+                "🚲 Switch to cycling or public transportation to save carbon budget."
+            )
+
+        if electricity > 200:
+            tips.append(
+                "⚡ Reduce electricity usage by switching off unused appliances."
+            )
+
+        if diet == "Non-Vegetarian":
+            tips.append(
+                "🥗 Add more plant-based meals during the week."
+            )
+
+        if flights > 2:
+            tips.append(
+                "✈ Reduce unnecessary air travel."
+            )
+
+        if eco_score >= 90:
+        
+            tips.append(
+                "🌍 Great work! Maintain your current sustainable lifestyle."
+            )
+
+        if len(tips) == 0:
+        
+            st.success(
+                "No immediate suggestions. Your carbon budget is well managed."
+            )
+
+        else:
+        
+            for tip in tips:
+            
+                st.write(f"✅ {tip}")
+
+        st.markdown("---")
+
+        st.subheader("📈 Budget Health")
+
+        health = 100 - used_percent
+
+        health = max(0, health)
+
+        st.progress(health / 100)
+
+        if health >= 80:
+        
+            health_text = "Excellent"
+
+        elif health >= 60:
+        
+            health_text = "Good"
+
+        elif health >= 40:
+        
+            health_text = "Average"
+
+        elif health >= 20:
+        
+            health_text = "Poor"
+
+        else:
+        
+            health_text = "Critical"
+
+        st.metric(
+            "Budget Health Score",
+            f"{health:.0f}/100"
+        )
+
+        st.caption(
+            f"Current Budget Health : {health_text}"
+        )
+
+        st.markdown("---")
+
+        st.subheader("📌 Quick Summary")
+
+        summary = [
+            ("Monthly Budget", f"{budget:.0f} kg"),
+            ("Estimated Usage", f"{monthly_emission:.1f} kg"),
+            ("Remaining Budget", f"{max(0, remaining_budget):.1f} kg"),
+            ("Budget Utilization", f"{used_percent:.1f}%"),
+            ("Eco Score", f"{eco_score}/100")
+        ]
+
+        for title, value in summary:
+        
+            col1, col2 = st.columns([2,1])
+
+            with col1:
+                st.write(title)
+
+            with col2:
+                st.write(f"**{value}**")
+
+        st.info(
+            "Your Carbon Budget Manager helps monitor monthly emissions and encourages sustainable decisions by comparing estimated emissions with your chosen budget."
+        )
+                            # ============================================================
+        # 📊 Carbon Budget Analytics
+        # ============================================================
+
+        import pandas as pd
+        import plotly.graph_objects as go
+        from datetime import datetime
+
+        st.markdown(
+            "<div class='section-header'>📊 Carbon Budget Analytics</div>",
+            unsafe_allow_html=True
+        )
+
+        # ----------------------------
+        # Session History
+        # ----------------------------
+        if "budget_history" not in st.session_state:
+            st.session_state.budget_history = []
+
+        history = st.session_state.budget_history
+
+        history.append({
+            "date": datetime.now().strftime("%d %b %Y"),
+            "budget": budget,
+            "usage": round(monthly_emission,2),
+            "remaining": round(max(0,remaining_budget),2),
+            "eco_score": eco_score
+        })
+
+        # Keep only latest 12 entries
+        if len(history) > 12:
+            history.pop(0)
+
+        df = pd.DataFrame(history)
+
+        st.subheader("📅 Budget History")
+
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Trend Chart
+        # ----------------------------
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["budget"],
+                mode="lines+markers",
+                name="Budget"
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["usage"],
+                mode="lines+markers",
+                name="Usage"
+            )
+        )
+
+        fig.update_layout(
+            height=400,
+            title="Monthly Carbon Budget Trend",
+            xaxis_title="Assessment",
+            yaxis_title="kg CO₂"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Achievement
+        # ----------------------------
+
+        st.subheader("🏆 Budget Achievement")
+
+        if used_percent <= 25:
+        
+            badge = "🥇 Carbon Saver"
+
+        elif used_percent <= 50:
+        
+            badge = "🥈 Eco Performer"
+
+        elif used_percent <= 75:
+        
+            badge = "🥉 Budget Keeper"
+
+        elif used_percent <= 100:
+        
+            badge = "⚠ Budget Watch"
+
+        else:
+        
+            badge = "🚨 Budget Exceeded"
+
+        st.metric(
+            "Current Achievement",
+            badge
+        )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Forecast
+        # ----------------------------
+
+        st.subheader("📈 Budget Forecast")
+
+        days_in_month = 30
+
+        daily_average = monthly_emission / days_in_month
+
+        forecast = daily_average * days_in_month
+
+        st.metric(
+            "Projected Monthly Emission",
+            f"{forecast:.1f} kg"
+        )
+
+        if forecast <= budget:
+        
+            st.success(
+                "Based on current estimates, you are likely to stay within your budget."
+            )
+
+        else:
+        
+            st.error(
+                "Current trend suggests your budget may be exceeded this month."
+            )
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Alerts
+        # ----------------------------
+
+        st.subheader("🚨 Budget Alerts")
+
+        alerts = []
+
+        if transport == "Car":
+            alerts.append("Transportation contributes significantly to your budget usage.")
+
+        if electricity > 250:
+            alerts.append("Electricity consumption is above the recommended range.")
+
+        if flights > 3:
+            alerts.append("Frequent air travel greatly increases emissions.")
+
+        if eco_score < 60:
+            alerts.append("Your Eco Score indicates room for improvement.")
+
+        if remaining_budget <= 50:
+            alerts.append("Remaining monthly budget is critically low.")
+
+        if len(alerts) == 0:
+        
+            st.success(
+                "No active budget alerts."
+            )
+
+        else:
+        
+            for alert in alerts:
+            
+                st.warning(alert)
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Budget Insights
+        # ----------------------------
+
+        st.subheader("💡 Budget Insights")
+
+        highest = max(contributors,key=contributors.get)
+
+        lowest = min(contributors,key=contributors.get)
+
+        st.info(
+        f"""
+        Highest Contributor
+
+        **{highest}**
+
+        Lowest Contributor
+
+        **{lowest}**
+        """
+        )
+
+        if highest == "Transportation":
+        
+            st.write("🚲 Switching transportation habits would have the biggest impact.")
+
+        elif highest == "Electricity":
+        
+            st.write("⚡ Reducing electricity consumption offers the greatest savings.")
+
+        elif highest == "Diet":
+        
+            st.write("🥗 Dietary changes can noticeably reduce emissions.")
+
+        elif highest == "Flights":
+        
+            st.write("✈ Reducing flights will significantly improve your budget.")
+
+        st.markdown("---")
+
+        # ----------------------------
+        # Monthly Recommendation
+        # ----------------------------
+
+        st.subheader("🎯 Monthly Recommendation")
+
+        if used_percent < 50:
+        
+            st.success(
+                "Excellent progress. Maintain your current lifestyle."
+            )
+
+        elif used_percent < 80:
+        
+            st.info(
+                "Minor lifestyle improvements can further reduce emissions."
+            )
+
+        else:
+        
+            st.error(
+                "Focus on high-impact emission sources to remain within budget."
+            )
+
+        st.caption(
+                    "Carbon Budget Analytics provides a historical view of your budget usage and helps forecast future emission trends."
+                )
+                                                            # ============================================================
+        # 💾 Carbon Budget Records
+        # ============================================================
+
+        st.markdown(
+            "<div class='section-header'>💾 Budget Records</div>",
+            unsafe_allow_html=True
+        )
+
+        if "saved_budgets" not in st.session_state:
+            st.session_state.saved_budgets = []
+
+        save_col, reset_col = st.columns(2)
+
+        with save_col:
+        
+            if st.button("💾 Save Current Budget"):
+            
+                record = {
+                    "Date": datetime.now().strftime("%d %b %Y %H:%M"),
+                    "Budget": budget,
+                    "Usage": round(monthly_emission,2),
+                    "Remaining": round(max(0,remaining_budget),2),
+                    "Eco Score": eco_score,
+                    "Health": health_text
+                }
+
+                st.session_state.saved_budgets.append(record)
+
+                st.success("Budget snapshot saved successfully.")
+
+        with reset_col:
+        
+            if st.button("🔄 Reset Budget History"):
+            
+                st.session_state.saved_budgets.clear()
+
+                st.success("Budget history cleared.")
+
+        st.markdown("---")
+
+        records = st.session_state.saved_budgets
+
+        if len(records) == 0:
+        
+            st.info("No saved budget records available.")
+
+        else:
+        
+            history_df = pd.DataFrame(records)
+
+            st.subheader("📋 Saved Budget History")
+
+            search = st.text_input(
+                "Search by Date",
+                placeholder="Search..."
+            )
+
+            if search:
+            
+                history_df = history_df[
+                    history_df["Date"].str.contains(
+                        search,
+                        case=False
+                    )
+                ]
+
+            st.dataframe(
+                history_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        st.markdown("---")
+
+        # ============================================================
+        # Budget Statistics
+        # ============================================================
+
+        if len(records) > 0:
+        
+            stats_df = pd.DataFrame(records)
+
+            st.subheader("📊 Budget Statistics")
+
+            c1,c2,c3,c4 = st.columns(4)
+
+            with c1:
+            
+                st.metric(
+                    "Saved Records",
+                    len(stats_df)
+                )
+
+            with c2:
+            
+                st.metric(
+                    "Average Usage",
+                    f"{stats_df['Usage'].mean():.1f} kg"
+                )
+
+            with c3:
+            
+                st.metric(
+                    "Highest Usage",
+                    f"{stats_df['Usage'].max():.1f} kg"
+                )
+
+            with c4:
+            
+                st.metric(
+                    "Lowest Usage",
+                    f"{stats_df['Usage'].min():.1f} kg"
+                )
+
+        st.markdown("---")
+
+        # ============================================================
+        # Delete Individual Record
+        # ============================================================
+
+        if len(records) > 0:
+        
+            st.subheader("🗑 Delete Record")
+
+            options = [
+                f"{i+1}. {r['Date']}"
+                for i,r in enumerate(records)
+            ]
+
+            selected = st.selectbox(
+                "Select Record",
+                options
+            )
+
+            delete_index = options.index(selected)
+
+            if st.button("Delete Selected Record"):
+            
+                st.session_state.saved_budgets.pop(delete_index)
+
+                st.success("Record deleted.")
+
+                st.rerun()
+
+        st.markdown("---")
+
+        # ============================================================
+        # Budget Summary
+        # ============================================================
+
+        st.subheader("📌 Budget Summary")
+
+        if len(records)==0:
+        
+            st.info(
+                "Save budget snapshots to build your monthly history."
+            )
+
+        else:
+        
+            latest = records[-1]
+
+            st.markdown(f"""
+        **Latest Budget**
+
+        • Budget : **{latest['Budget']} kg**
+
+        • Usage : **{latest['Usage']} kg**
+
+        • Remaining : **{latest['Remaining']} kg**
+
+        • Eco Score : **{latest['Eco Score']}**
+
+        • Budget Health : **{latest['Health']}**
+        """)
+
+        st.caption(
+            "Saved budget snapshots allow you to compare your sustainability progress over time."
+        )
+        # ============================================================
+        # 📤 Carbon Budget Reports & Analytics
+        # ============================================================
+
+        import io
+        import pandas as pd
+
+        st.markdown(
+            "<div class='section-header'>📤 Budget Reports & Analytics</div>",
+            unsafe_allow_html=True
+        )
+
+        records = st.session_state.get("saved_budgets", [])
+
+        # ------------------------------------------------------------
+        # Export CSV
+        # ------------------------------------------------------------
+
+        if records:
+        
+            export_df = pd.DataFrame(records)
+
+            csv = export_df.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                "📥 Export Budget History (CSV)",
+                data=csv,
+                file_name="carbon_budget_history.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        else:
+        
+            st.info("Save at least one budget snapshot to enable export.")
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # Annual Projection
+        # ------------------------------------------------------------
+
+        st.subheader("📅 Annual Carbon Projection")
+
+        annual_projection = monthly_emission * 12
+
+        goal_projection = budget * 12
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+        
+            st.metric(
+                "Projected Annual Emissions",
+                f"{annual_projection:.1f} kg"
+            )
+
+        with col2:
+        
+            st.metric(
+                "Annual Carbon Budget",
+                f"{goal_projection:.1f} kg"
+            )
+
+        difference = goal_projection - annual_projection
+
+        if difference >= 0:
+        
+            st.success(
+                f"You are projected to remain within your annual budget by {difference:.1f} kg CO₂."
+            )
+
+        else:
+        
+            st.error(
+                f"You may exceed your annual budget by {abs(difference):.1f} kg CO₂."
+            )
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # Carbon Savings Calculator
+        # ------------------------------------------------------------
+
+        st.subheader("💰 Carbon Savings Calculator")
+
+        saving_options = {
+            "Cycle instead of driving twice a week":80,
+            "Reduce electricity by 10%":120,
+            "Replace 3 meat meals weekly":90,
+            "Skip one domestic flight":250,
+            "Work from home one day/week":70,
+            "Install LED lighting":40
+        }
+
+        selected = st.multiselect(
+            "Select sustainability actions",
+            list(saving_options.keys())
+        )
+
+        estimated_savings = sum(
+            saving_options[item]
+            for item in selected
+        )
+
+        new_emission = max(
+            0,
+            annual_projection-estimated_savings
+        )
+
+        st.metric(
+            "Estimated Annual Savings",
+            f"{estimated_savings} kg CO₂"
+        )
+
+        st.metric(
+            "Projected New Annual Emission",
+            f"{new_emission:.1f} kg CO₂"
+        )
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # Smart Notifications
+        # ------------------------------------------------------------
+
+        st.subheader("🔔 Budget Notifications")
+
+        notifications = []
+
+        if used_percent > 90:
+            notifications.append(
+                "🚨 You are very close to exceeding your monthly carbon budget."
+            )
+
+        if eco_score < 60:
+            notifications.append(
+                "⚠ Your Eco Score is below the recommended level."
+            )
+
+        if transport == "Car":
+            notifications.append(
+                "🚗 Transportation is a major contributor to your emissions."
+            )
+
+        if electricity > 250:
+            notifications.append(
+                "⚡ Electricity usage is relatively high this month."
+            )
+
+        if flights > 2:
+            notifications.append(
+                "✈ Air travel significantly impacts your carbon budget."
+            )
+
+        if not notifications:
+        
+            st.success(
+                "No important notifications at the moment."
+            )
+
+        else:
+        
+            for note in notifications:
+            
+                st.warning(note)
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # AI Budget Advisor
+        # ------------------------------------------------------------
+
+        st.subheader("🤖 AI Budget Advisor")
+
+        advice = []
+
+        if transport == "Car":
+            advice.append(
+                "Switching to public transport a few days each week could noticeably reduce your monthly emissions."
+            )
+
+        if electricity > 200:
+            advice.append(
+                "Consider replacing older appliances with energy-efficient alternatives."
+            )
+
+        if diet == "Non-Vegetarian":
+            advice.append(
+                "Increasing plant-based meals can reduce food-related emissions."
+            )
+
+        if flights > 2:
+            advice.append(
+                "Reducing unnecessary flights will have one of the largest impacts on your carbon footprint."
+            )
+
+        if eco_score >= 90:
+            advice.append(
+                "Excellent progress! Maintain your current habits and inspire others."
+            )
+
+        if not advice:
+        
+            st.success(
+                "Your lifestyle is already highly sustainable. Keep up the great work!"
+            )
+
+        else:
+        
+            for index, item in enumerate(advice, start=1):
+            
+                st.info(f"{index}. {item}")
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # Goal Completion
+        # ------------------------------------------------------------
+
+        st.subheader("🎯 Budget Goal Completion")
+
+        goal = budget
+
+        completion = min(
+            monthly_emission / goal,
+            1.0
+        )
+
+        st.progress(completion)
+
+        if completion < 0.5:
+        
+            st.success("Excellent progress toward your monthly budget goal.")
+
+        elif completion < 0.75:
+        
+            st.info("You are comfortably within your budget.")
+
+        elif completion < 1:
+        
+            st.warning("Approaching your monthly budget limit.")
+
+        else:
+        
+            st.error("Monthly budget exceeded.")
+
+        st.markdown("---")
+
+        # ------------------------------------------------------------
+        # Sustainability Scorecard
+        # ------------------------------------------------------------
+
+        st.subheader("🏅 Sustainability Scorecard")
+
+        scorecard = {
+            "Eco Score": eco_score,
+            "Budget Health": round(health),
+            "Budget Usage": round(100-used_percent),
+            "Carbon Efficiency": round(max(0,100-(monthly_emission/budget*100)))
+        }
+
+        score_df = pd.DataFrame(
+            scorecard.items(),
+            columns=["Metric","Score"]
+        )
+
+        st.dataframe(
+            score_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.caption(
+            "The Carbon Budget Manager combines budget tracking, analytics, projections, exports, and personalized guidance to help users monitor and improve their sustainability performance over time."
+        )        
+        render_sustainability_hub()
+        render_eco_tip()
+        # -------------------------
+        # HISTORY & TRACKING
+        # -------------------------
+        st.markdown("---")
+        with st.expander("🕒 Assessment Timeline", expanded=False):
+            st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
 
         history = get_assessments(user_id)
 
@@ -3216,7 +4629,7 @@ with tab2:
         profile = ea.generate_hourly_energy_profile(appliances)
         fig_hr = go.Figure(data=[go.Bar(x=list(range(24)), y=profile, marker_color='#fbbf24')])
         fig_hr.update_layout(title="Hourly Energy Demand (kWh)", xaxis_title="Hour of Day", yaxis_title="kWh", template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_hr, width="stretch")
+        st.plotly_chart(fig_hr, use_container_width=True)
 
     else:
         st.markdown("""
@@ -3414,7 +4827,7 @@ with tab4:
                 fig = px.bar(df_comp, x='mode', y='emissions_kg', 
                             title='CO2e by Transit Mode (Lower is Better)',
                             color='emissions_kg', color_continuous_scale='Greens_r')
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, use_container_width=True)
                 
                 st.dataframe(df_comp.style.format({'emissions_kg': '{:.2f}'}))
                 

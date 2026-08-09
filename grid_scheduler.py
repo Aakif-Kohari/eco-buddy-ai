@@ -31,6 +31,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ DEFAULT_DAYS_PER_YEAR = 313  # Roughly six runs a week rather than every day.
 SHIFT_WORTH_IT_SCORE = 25.0
 
 
-def list_grid_profiles():
+def list_grid_profiles() -> list[dict[str, Any]]:
     """Return the built-in grid profiles, cleanest average first."""
     profiles = []
     for name, curve in GRID_PROFILES.items():
@@ -165,7 +166,7 @@ def list_grid_profiles():
     return sorted(profiles, key=lambda item: item["average_intensity"])
 
 
-def list_shiftable_loads(shiftable_only=False):
+def list_shiftable_loads(shiftable_only: bool = False) -> list[dict[str, Any]]:
     """Return the load catalogue, heaviest energy draw first."""
     loads = [
         {"name": name, **details}
@@ -175,17 +176,17 @@ def list_shiftable_loads(shiftable_only=False):
     return sorted(loads, key=lambda item: item["kwh"], reverse=True)
 
 
-def get_intensity_curve(grid_profile):
+def get_intensity_curve(grid_profile: str) -> list[float]:
     """Return the 24-hour gCO2/kWh curve for a grid mix."""
     return list(GRID_PROFILES.get(grid_profile, GRID_PROFILES[DEFAULT_GRID_PROFILE]))
 
 
-def get_tariff(tariff_name):
+def get_tariff(tariff_name: str) -> list[float]:
     """Return the 24-hour price-per-kWh series for a tariff."""
     return list(TARIFFS.get(tariff_name, TARIFFS[DEFAULT_TARIFF]))
 
 
-def _clean_series(series, fallback, maximum):
+def _clean_series(series: list[float] | None, fallback: list[float], maximum: float) -> list[float]:
     """Normalise a user-supplied 24-value series into a usable curve.
 
     Short series are padded from the fallback, long ones truncated, and every
@@ -211,17 +212,17 @@ def _clean_series(series, fallback, maximum):
     return cleaned
 
 
-def clean_intensity_curve(curve):
+def clean_intensity_curve(curve: list[float] | None) -> list[float]:
     """Coerce a user-entered intensity curve into 24 sane hourly values."""
     return _clean_series(curve, GRID_PROFILES[DEFAULT_GRID_PROFILE], 2000.0)
 
 
-def clean_tariff(prices):
+def clean_tariff(prices: list[float] | None) -> list[float]:
     """Coerce a user-entered tariff into 24 sane hourly prices."""
     return _clean_series(prices, TARIFFS[DEFAULT_TARIFF], 100.0)
 
 
-def blend_curve(curve, solar_share):
+def blend_curve(curve: list[float], solar_share: float) -> list[float]:
     """Reshape a grid curve for a household with its own rooftop solar.
 
     ``solar_share`` is the fraction of a midday load the panels can cover. The
@@ -244,7 +245,7 @@ def blend_curve(curve, solar_share):
     ]
 
 
-def _normalise_hour(hour):
+def _normalise_hour(hour: int) -> int:
     """Wrap any integer into a valid hour of the day."""
     try:
         return int(hour) % HOURS_IN_DAY
@@ -252,7 +253,7 @@ def _normalise_hour(hour):
         return 0
 
 
-def _clean_duration(duration_hours):
+def _clean_duration(duration_hours: float | int) -> int:
     """Clamp a run length to between one hour and a full day."""
     try:
         duration = int(round(float(duration_hours)))
@@ -261,21 +262,21 @@ def _clean_duration(duration_hours):
     return max(1, min(HOURS_IN_DAY, duration))
 
 
-def window_hours(start_hour, duration_hours):
+def window_hours(start_hour: int, duration_hours: float | int) -> list[int]:
     """Return the hours a run occupies, wrapping across midnight."""
     start = _normalise_hour(start_hour)
     duration = _clean_duration(duration_hours)
     return [(start + offset) % HOURS_IN_DAY for offset in range(duration)]
 
 
-def window_average(curve, start_hour, duration_hours):
+def window_average(curve: list[float], start_hour: int, duration_hours: float | int) -> float:
     """Mean intensity (or price) across a run window."""
     values = clean_intensity_curve(curve)
     hours = window_hours(start_hour, duration_hours)
     return sum(values[hour] for hour in hours) / len(hours)
 
 
-def allowed_start_hours(earliest_hour, latest_hour, duration_hours):
+def allowed_start_hours(earliest_hour: int, latest_hour: int, duration_hours: float | int) -> list[int]:
     """Return the start hours where a run fits inside the user's window.
 
     ``earliest_hour`` and ``latest_hour`` bound when the appliance may run;
@@ -301,17 +302,17 @@ def allowed_start_hours(earliest_hour, latest_hour, duration_hours):
     return [(earliest + offset) % HOURS_IN_DAY for offset in range(span - duration + 1)]
 
 
-def find_best_window(curve, duration_hours, candidate_hours=None):
+def find_best_window(curve: list[float], duration_hours: float | int, candidate_hours: list[int] | None = None) -> dict[str, Any]:
     """Lowest-average-intensity contiguous window of a given length."""
     return _search_window(curve, duration_hours, candidate_hours, best=True)
 
 
-def find_worst_window(curve, duration_hours, candidate_hours=None):
+def find_worst_window(curve: list[float], duration_hours: float | int, candidate_hours: list[int] | None = None) -> dict[str, Any]:
     """Highest-average-intensity window - used to size avoidable emissions."""
     return _search_window(curve, duration_hours, candidate_hours, best=False)
 
 
-def _search_window(curve, duration_hours, candidate_hours, best):
+def _search_window(curve: list[float], duration_hours: float | int, candidate_hours: list[int] | None, best: bool) -> dict[str, Any]:
     """Shared window search. Ties resolve to the earliest start hour."""
     values = clean_intensity_curve(curve)
     duration = _clean_duration(duration_hours)
@@ -340,7 +341,7 @@ def _search_window(curve, duration_hours, candidate_hours, best):
     }
 
 
-def peak_and_trough(curve):
+def peak_and_trough(curve: list[float]) -> dict[str, Any]:
     """The greenest and dirtiest single hours, for a plain-language summary."""
     values = clean_intensity_curve(curve)
     lowest = min(values)
@@ -356,7 +357,7 @@ def peak_and_trough(curve):
     }
 
 
-def shift_potential(curve):
+def shift_potential(curve: list[float]) -> float:
     """Score 0-100 for how much a grid rewards moving load around.
 
     A flat grid - nuclear or hydro baseload - scores near zero, and the honest
@@ -376,14 +377,14 @@ def shift_potential(curve):
 
 
 def schedule_load(
-    load_name,
-    curve,
-    tariff=None,
-    earliest_hour=0,
-    latest_hour=0,
-    kwh=None,
-    duration_hours=None,
-):
+    load_name: str,
+    curve: list[float],
+    tariff: list[float] | None = None,
+    earliest_hour: int = 0,
+    latest_hour: int = 0,
+    kwh: float | None = None,
+    duration_hours: float | int | None = None,
+) -> dict[str, Any]:
     """Place one appliance at its best hour inside the user's allowed window.
 
     Returns the recommended start, what the run emits and costs there, and the
@@ -409,10 +410,10 @@ def schedule_load(
     worst = find_worst_window(intensity, duration, candidates)
     average_intensity = sum(intensity) / len(intensity)
 
-    def _emissions(mean_intensity):
+    def _emissions(mean_intensity: float) -> float:
         return round(energy * mean_intensity / 1000.0, 4)
 
-    def _cost(start):
+    def _cost(start: int) -> float:
         per_hour = energy / duration
         return round(
             sum(prices[hour] * per_hour for hour in window_hours(start, duration)), 4
@@ -448,7 +449,7 @@ def schedule_load(
     }
 
 
-def build_schedule(load_names, curve, tariff=None, constraints=None, days_per_year=None):
+def build_schedule(load_names: list[str] | None, curve: list[float], tariff: list[float] | None = None, constraints: dict[str, Any] | None = None, days_per_year: int | None = None) -> dict[str, Any]:
     """Plan every selected appliance across one day and total up the savings."""
     intensity = clean_intensity_curve(curve)
     prices = clean_tariff(tariff if tariff is not None else TARIFFS[DEFAULT_TARIFF])
@@ -491,7 +492,7 @@ def build_schedule(load_names, curve, tariff=None, constraints=None, days_per_ye
     }
 
 
-def annual_savings(schedule, days_per_year=None):
+def annual_savings(schedule: dict[str, Any], days_per_year: int | None = None) -> dict[str, Any]:
     """Scale a daily plan up to a year of CO2 and money saved by timing alone."""
     # Checked against None rather than truthiness so an explicit zero days -
     # "I never run these" - is honoured instead of silently falling back.
@@ -522,7 +523,7 @@ def annual_savings(schedule, days_per_year=None):
     }
 
 
-def get_scheduling_tips(schedule, curve=None, limit=6):
+def get_scheduling_tips(schedule: dict[str, Any], curve: list[float] | None = None, limit: int = 6) -> list[str]:
     """Advice ranked by the user's own plan rather than a generic checklist."""
     tips = []
     intensity = clean_intensity_curve(curve if curve is not None else GRID_PROFILES[DEFAULT_GRID_PROFILE])
@@ -582,11 +583,11 @@ def get_scheduling_tips(schedule, curve=None, limit=6):
     return tips[: max(0, int(limit))]
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_grid_scheduler_db():
+def init_grid_scheduler_db() -> bool:
     """Create the schedule table if it does not exist yet."""
     conn = None
     try:
@@ -619,7 +620,7 @@ def init_grid_scheduler_db():
             conn.close()
 
 
-def save_schedule(user_id, schedule_name, schedule, grid_profile=None, tariff_name=None):
+def save_schedule(user_id: int, schedule_name: str, schedule: dict[str, Any], grid_profile: str | None = None, tariff_name: str | None = None) -> int | None:
     """Persist a daily schedule. Returns the new row id or None."""
     init_grid_scheduler_db()
     conn = None
@@ -663,7 +664,7 @@ def save_schedule(user_id, schedule_name, schedule, grid_profile=None, tariff_na
             conn.close()
 
 
-def get_schedules(user_id, limit=25):
+def get_schedules(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return a user's saved schedules, newest first."""
     init_grid_scheduler_db()
     conn = None
@@ -700,7 +701,7 @@ def get_schedules(user_id, limit=25):
             conn.close()
 
 
-def delete_schedule(schedule_id):
+def delete_schedule(schedule_id: int) -> bool:
     """Delete a saved schedule."""
     init_grid_scheduler_db()
     conn = None

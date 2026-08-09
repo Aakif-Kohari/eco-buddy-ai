@@ -1,7 +1,9 @@
 """Migration v9: persist background task retries and dead letters."""
 
+import sqlite3
 
-def migrate(conn):
+
+def migrate(conn: sqlite3.Connection) -> None:
     cursor = conn.cursor()
 
     cursor.execute(

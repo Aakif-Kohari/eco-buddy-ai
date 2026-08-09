@@ -20,6 +20,7 @@ WIDGETS = OrderedDict(
         ("trend", "📈 Footprint trend"),
         ("activity", "🧭 Latest activity"),
         ("quick_tips", "💡 Quick eco tips"),
+        ("insights", "🔎 Personal insights"),
     ]
 )
 DEFAULT_WIDGETS = tuple(WIDGETS.keys())
@@ -82,7 +83,7 @@ def render_widget_customizer(user_id: int) -> list[str]:
 
 
 @st.cache_data(show_spinner=False)
-def _assessment_rows_to_frame(rows: tuple):
+def _assessment_rows_to_frame(rows: tuple) -> pd.DataFrame:
     import pandas as pd
     columns = [
         "id",
@@ -108,6 +109,18 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     selected = normalize_widget_preferences(selected_widgets)
     if not selected:
         return
+
+    # Breadcrumb navigation for the dashboard section
+    st.markdown(
+        """
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <span class="breadcrumb-item">🏠 Home</span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-item active">📊 Dashboard</span>
+        </nav>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("<div class='section-header'>📊 My Dashboard</div>", unsafe_allow_html=True)
     st.caption("Personalized widgets based on your saved dashboard preferences.")
@@ -198,3 +211,61 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
                 tips.insert(0, "Combine car trips or car-share to reduce transport emissions.")
             for tip in tips[:3]:
                 st.markdown(f"- {tip}")
+    if "insights" in selected:
+        with st.container(border=True):
+            st.subheader("🔎 Personal insights")
+
+            if latest:
+                footprint = float(latest["footprint"])
+                score = int(latest["eco_score"])
+                transport = str(latest["transport"])
+                electricity = float(latest["electricity"])
+                flights = int(latest["flights"])
+
+                insights = []
+
+                if score >= 85:
+                    insights.append(
+                        "🌱 Your eco score is excellent. Keep maintaining your current habits."
+                    )
+                elif score >= 70:
+                    insights.append(
+                        "🌿 Your sustainability habits are strong, with room for further improvement."
+                    )
+                elif score >= 50:
+                    insights.append(
+                        "💡 Your score shows progress. Focus on one high-impact lifestyle change at a time."
+                    )
+                else:
+                    insights.append(
+                        "⚡ Your footprint has significant improvement potential. Start with your largest emission source."
+                    )
+
+                if transport.lower() in {"car", "taxi"}:
+                    insights.append(
+                        "🚗 Transport is an important area to improve. Consider public transport, walking, cycling, or car-sharing."
+                    )
+
+                if electricity >= 300:
+                    insights.append(
+                        "🔌 Your electricity usage is relatively high. Reducing unnecessary appliance use could help."
+                    )
+                elif electricity >= 150:
+                    insights.append(
+                        "💡 Look for small electricity savings by switching off unused lights and appliances."
+                    )
+
+                if flights > 0:
+                    insights.append(
+                        "✈️ Air travel contributes to your footprint. Consider alternatives when practical."
+                    )
+
+                st.metric("Current footprint", f"{footprint:,.0f} kg CO₂/year")
+
+                for insight in insights[:4]:
+                    st.markdown(f"- {insight}")
+
+            else:
+                st.info(
+                    "Complete a carbon assessment to receive personalized sustainability insights."
+                )

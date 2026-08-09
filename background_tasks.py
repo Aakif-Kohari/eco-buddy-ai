@@ -130,7 +130,7 @@ def _utc_now_iso(clock: Callable[[], float] = time.time) -> str:
 class BackgroundTaskStore:
     """SQLite persistence for background-task lifecycle metadata."""
 
-    def __init__(self, database_path: Optional[str] = None):
+    def __init__(self, database_path: Optional[str] = None) -> None:
         if database_path is None:
             import database
 
@@ -324,7 +324,7 @@ class BackgroundTask:
         retry_policy: Optional[RetryPolicy] = None,
         idempotency_key: Optional[str] = None,
         clock: Callable[[], float] = time.time,
-    ):
+    ) -> None:
         self.task_id = task_id
         self.task_key = task_key or task_id
         self.name = name

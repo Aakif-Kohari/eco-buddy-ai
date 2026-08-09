@@ -15,7 +15,7 @@ from database_connection import database_connection
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
 
 
-def init_api_keys_db():
+def init_api_keys_db() -> None:
     """Initialize the api_keys database table if it doesn't exist."""
     with database_connection(DB_NAME) as conn:
         cursor = conn.cursor()

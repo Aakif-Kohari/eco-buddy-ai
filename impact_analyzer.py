@@ -1,14 +1,18 @@
 from emissions import calculate_footprint
+from typing import Any
 
 # Simple qualitative effort score — lower number = easier change
 EFFORT_SCORE = {"Low": 1, "Medium": 2, "High": 3}
 
 
-def analyze_minimal_change(transport, distance, electricity, diet, flights, region, total):
+def analyze_minimal_change(transport: str, distance: float, electricity: float, diet: str,
+                           flights: int, region: str, total: float,
+                           dynamic_factors: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """
     Simulates small, realistic lifestyle tweaks and ranks them by
     CO2 savings relative to how much effort they take, so the
     smallest change with the biggest impact is surfaced first.
+    Reuses emission factors and calculation logic efficiently without redundant transformations.
     """
     candidates = []
 

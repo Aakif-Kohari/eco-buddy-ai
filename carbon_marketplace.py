@@ -1,6 +1,7 @@
 import random
 import math
 from datetime import datetime
+from typing import Any
 
 
 PROJECTS = [
@@ -16,7 +17,7 @@ PROJECTS = [
 CREDIT_PRICE_HISTORY = []
 
 
-def simulate_market_tick(current_price, volatility=0.05):
+def simulate_market_tick(current_price: float, volatility: float = 0.05) -> dict[str, Any]:
     shock = random.gauss(0, volatility)
     new_price = current_price * (1 + shock)
     new_price = max(5.0, min(200.0, new_price))
@@ -40,15 +41,19 @@ def simulate_market_tick(current_price, volatility=0.05):
     }
 
 
-def get_price_history():
+def get_price_history() -> list[dict[str, Any]]:
     return CREDIT_PRICE_HISTORY
 
 
-def calculate_credit_value(price_per_tonne, quantity):
+def calculate_credit_value(price_per_tonne: float, quantity: float) -> float:
     return round(price_per_tonne * quantity, 2)
 
 
-def get_learning_insights(portfolio_summary, market_state, trades_count):
+def get_learning_insights(
+    portfolio_summary: dict[str, Any],
+    market_state: dict[str, Any],
+    trades_count: int,
+) -> list[str]:
     insights = []
     total_credits = portfolio_summary.get("total_tonnes", 0)
     retired = portfolio_summary.get("retired", 0)
@@ -79,7 +84,7 @@ def get_learning_insights(portfolio_summary, market_state, trades_count):
     return insights
 
 
-def estimate_credit_price_trend(price_history):
+def estimate_credit_price_trend(price_history: list[dict[str, Any]]) -> str:
     if len(price_history) < 5:
         return "stable"
     recent = price_history[-5:]
