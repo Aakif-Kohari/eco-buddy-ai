@@ -2,9 +2,11 @@ import streamlit as st
 from config import HOURS_PER_DAY, WATTS_TO_KW, DAYS_PER_YEAR, MONTHS_PER_YEAR
 from cache import cached
 from cache_config import TTL_COMPUTED_ANALYTICS, CACHE_CATEGORY_COMPUTED
+from typing import Any
 
 
-def calculate_appliance_energy(power_rating_watts, hours_used_per_day, standby_draw_watts, quantity):
+def calculate_appliance_energy(power_rating_watts: float, hours_used_per_day: float,
+                               standby_draw_watts: float, quantity: int) -> tuple[float, float, float]:
     standby_hours = max(0, HOURS_PER_DAY - hours_used_per_day)
     active_energy_kwh = (power_rating_watts * hours_used_per_day * quantity) / WATTS_TO_KW
     standby_energy_kwh = (standby_draw_watts * standby_hours * quantity) / WATTS_TO_KW
@@ -12,19 +14,19 @@ def calculate_appliance_energy(power_rating_watts, hours_used_per_day, standby_d
     return total_daily_kwh, active_energy_kwh, standby_energy_kwh
 
 
-def calculate_appliance_cost(daily_kwh, rate_per_kwh):
+def calculate_appliance_cost(daily_kwh: float, rate_per_kwh: float) -> tuple[float, float, float]:
     daily_cost = daily_kwh * rate_per_kwh
     return daily_cost, daily_cost * MONTHS_PER_YEAR, daily_cost * DAYS_PER_YEAR
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def calculate_home_energy_summary(appliances):
+def calculate_home_energy_summary(appliances: list[dict[str, Any]]) -> tuple[float, float, float]:
     total_daily_kwh = sum(calculate_appliance_energy(a['power_rating_watts'], a['hours_used_per_day'], a['standby_draw_watts'], a['quantity'])[0] for a in appliances)
     return total_daily_kwh, total_daily_kwh * MONTHS_PER_YEAR, total_daily_kwh * DAYS_PER_YEAR
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def generate_hourly_energy_profile(appliances):
+def generate_hourly_energy_profile(appliances: list[dict[str, Any]]) -> list[float]:
     profile = [0.0] * HOURS_PER_DAY
     for app in appliances:
         pwr = app['power_rating_watts'] * app['quantity']
@@ -49,25 +51,28 @@ def generate_hourly_energy_profile(appliances):
     return profile
 
 
-def calculate_solar_system_size(roof_space_m2, panel_efficiency_pct):
+def calculate_solar_system_size(roof_space_m2: float, panel_efficiency_pct: float) -> float:
     return roof_space_m2 * (panel_efficiency_pct / 100.0)
 
 
-def calculate_annual_solar_generation(system_size_kw, peak_sun_hours, performance_ratio=0.75):
+def calculate_annual_solar_generation(system_size_kw: float, peak_sun_hours: float,
+                                      performance_ratio: float = 0.75) -> float:
     return system_size_kw * peak_sun_hours * DAYS_PER_YEAR * performance_ratio
 
 
-def calculate_solar_installation_cost(system_size_kw, cost_per_kw):
+def calculate_solar_installation_cost(system_size_kw: float, cost_per_kw: float) -> float:
     return system_size_kw * cost_per_kw
 
 
-def calculate_solar_payback_period(installation_cost, annual_savings):
+def calculate_solar_payback_period(installation_cost: float, annual_savings: float) -> float:
     if annual_savings <= 0: return float('inf')
     return installation_cost / annual_savings
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years, rate_increase_pct, maintenance_cost):
+def calculate_long_term_solar_savings(annual_generation_kwh: float, utility_rate: float,
+                                      years: int, rate_increase_pct: float,
+                                      maintenance_cost: float) -> float:
     total_savings = 0
     current_rate = utility_rate
     for _ in range(years):
@@ -77,7 +82,8 @@ def calculate_long_term_solar_savings(annual_generation_kwh, utility_rate, years
     return total_savings
 
 
-def calculate_solar_carbon_offset(annual_generation_kwh, grid_carbon_intensity_kg_kwh=0.4):
+def calculate_solar_carbon_offset(annual_generation_kwh: float,
+                                  grid_carbon_intensity_kg_kwh: float = 0.4) -> float:
     return annual_generation_kwh * grid_carbon_intensity_kg_kwh
 
 
@@ -128,7 +134,7 @@ ROOM_TYPES = {
 
 
 @cached(category=CACHE_CATEGORY_COMPUTED, ttl=TTL_COMPUTED_ANALYTICS)
-def estimate_room_energy(room_type, area_sqft, num_devices=1):
+def estimate_room_energy(room_type: str, area_sqft: float, num_devices: int = 1) -> dict[str, Any]:
     room = ROOM_TYPES.get(room_type, ROOM_TYPES['Living Room'])
     base_wattage = room['base_wattage'] * num_devices
     area_factor = area_sqft / 200.0
@@ -144,7 +150,7 @@ def estimate_room_energy(room_type, area_sqft, num_devices=1):
     }
 
 
-def generate_room_recommendations(room_type, daily_kwh):
+def generate_room_recommendations(room_type: str, daily_kwh: float) -> tuple[list[tuple[str, str, str, int, int]], float, int]:
     recommendations = []
     room = ROOM_TYPES.get(room_type, ROOM_TYPES['Living Room'])
 
@@ -192,7 +198,7 @@ def generate_room_recommendations(room_type, daily_kwh):
     return recommendations, round(potential_savings_kwh, 2), savings_pct
 
 
-def estimate_home_blueprint(rooms):
+def estimate_home_blueprint(rooms: list[dict[str, Any]]) -> dict[str, Any]:
     total_daily_kwh = 0
     room_details = []
 

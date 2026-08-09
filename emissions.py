@@ -1,9 +1,10 @@
 import os
 import logging
-import requests
 import json
-import datetime
 import math
+from datetime import datetime, timezone
+import calendar
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ from config import (
 )
 from cache import cached
 from cache_config import TTL_EXTERNAL_API, CACHE_CATEGORY_API
+from emission_factors import provenance_block, resolve_factor_set
 
 
 @cached(ttl=TTL_EXTERNAL_API, category=CACHE_CATEGORY_API)
@@ -36,6 +38,8 @@ def fetch_emission_factors(region: str) -> dict:
         return factors
         
     try:
+        import requests
+        from request_logging import log_api_request
         url = "https://api.climatiq.io/data/v1/estimate"
         headers = {"Authorization": f"Bearer {api_key}"}
         
@@ -48,6 +52,7 @@ def fetch_emission_factors(region: str) -> dict:
         }
         
         response = requests.post(url, json=payload, headers=headers, timeout=5)
+        log_api_request("POST", url, headers=headers, status_code=response.status_code)
         if response.status_code == 200:
             data = response.json()
             factors["electricity"] = data.get("co2e", factors["electricity"])
@@ -61,6 +66,7 @@ def fetch_emission_factors(region: str) -> dict:
             "parameters": {"passengers": 1}
         }
         f_response = requests.post(url, json=flight_payload, headers=headers, timeout=5)
+        log_api_request("POST", url, headers=headers, status_code=f_response.status_code)
         if f_response.status_code == 200:
             f_data = f_response.json()
             factors["flight"] = f_data.get("co2e", factors["flight"])
@@ -71,19 +77,16 @@ def fetch_emission_factors(region: str) -> dict:
     return factors
 
 
-def calculate_footprint(
-    transport,
-    distance,
-    electricity,
-    diet,
-    flights,
-    region="Global",
-    return_audit=False
-):
-    # Normalize diet input early
+def validate_footprint_inputs(transport: str, distance: float, electricity: float, diet: str,
+                              flights: int, region: str) -> tuple[str, float, float, int, str]:
+    """
+    Validates and normalizes footprint calculation parameters.
+
+    Returns:
+        tuple: (normalized_diet, distance_float, electricity_float, flights_int, validated_region)
+    """
     diet = normalize_diet(diet)
 
-    # Validate categorical inputs to avoid KeyError and provide clear errors
     if transport not in TRANSPORT_EMISSION_FACTORS:
         raise ValueError(
             f"Invalid transport '{transport}'. Must be one of: {', '.join(sorted(TRANSPORT_EMISSION_FACTORS.keys()))}"
@@ -93,11 +96,9 @@ def calculate_footprint(
             f"Invalid diet '{diet}'. Must be one of: {', '.join(sorted(DIET_EMISSION_FACTORS.keys()))}"
         )
 
-    # Validate region; fall back to Global when unknown
     if region not in VALID_REGIONS:
         region = "Global"
 
-    # Coerce and clamp numeric inputs to reasonable ranges
     try:
         distance = float(distance)
     except (TypeError, ValueError):
@@ -116,38 +117,88 @@ def calculate_footprint(
         raise ValueError("flights must be an integer")
     flights = max(0, min(flights, MAX_FLIGHTS))
 
-    contributors = {}
+    return diet, distance, electricity, flights, region
 
-    # Transport emissions (kg CO₂ per km)
+
+def calculate_category_emissions(transport: str, distance: float, electricity: float, diet: str,
+                                 flights: int,
+                                 dynamic_factors: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """
+    Calculates carbon emissions per activity category (Transport, Electricity, Diet, Flights).
+
+    Returns:
+        tuple: (contributors_dict, raw_emissions_dict, emission_factors_dict)
+    """
     transport_factor = TRANSPORT_EMISSION_FACTORS[transport]
     transport_emission = transport_factor * distance * 365
-    contributors["Transport"] = round(transport_emission, 2)
 
-    # Fetch dynamic factors (with fallback and caching)
-    dynamic_factors = fetch_emission_factors(region)
     elec_factor = dynamic_factors["electricity"]
-    flight_factor = dynamic_factors["flight"]
-
-    # Electricity
     electricity_emission = electricity * elec_factor * 12
-    contributors["Electricity"] = round(electricity_emission, 2)
 
-    # Diet (annual estimate)
     diet_factor = DIET_EMISSION_FACTORS[diet]
     diet_emission = diet_factor
-    contributors["Diet"] = diet_emission
 
-    # Flights
+    flight_factor = dynamic_factors["flight"]
     flight_emission = flights * flight_factor
-    contributors["Flights"] = flight_emission
+
+    contributors = {
+        "Transport": round(transport_emission, 2),
+        "Electricity": round(electricity_emission, 2),
+        "Diet": diet_emission,
+        "Flights": flight_emission,
+    }
+
+    raw_emissions = {
+        "transport": transport_emission,
+        "electricity": electricity_emission,
+        "diet": diet_emission,
+        "flights": flight_emission,
+    }
+
+    factors = {
+        "transport": transport_factor,
+        "electricity": elec_factor,
+        "diet": diet_factor,
+        "flights": flight_factor,
+    }
+
+    return contributors, raw_emissions, factors
+
+
+def calculate_footprint(
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    region: str = "Global",
+    return_audit: bool = False
+) -> tuple[float, dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any]]:
+    """
+    Calculates annual carbon footprint (in kg CO2) across user activities.
+    
+    Optionally returns audit log for full calculation reproducibility.
+    """
+    diet, distance, electricity, flights, region = validate_footprint_inputs(
+        transport, distance, electricity, diet, flights, region
+    )
+
+    dynamic_factors = fetch_emission_factors(region)
+    factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
+
+    contributors, raw_emissions, factors = calculate_category_emissions(
+        transport, distance, electricity, diet, flights, dynamic_factors
+    )
 
     total = sum(contributors.values())
     total_rounded = round(total, 2)
 
     audit_log = {
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "region": region,
         "is_dynamic_api_used": dynamic_factors.get("is_dynamic", False),
+        "factor_version": factor_version,
+        "provenance": provenance_block(factor_version),
         "inputs": {
             "transport": transport,
             "daily_distance_km": distance,
@@ -156,34 +207,34 @@ def calculate_footprint(
             "annual_flights": flights,
         },
         "emission_factors": {
-            "transport_kg_co2_per_km": transport_factor,
-            "electricity_kg_co2_per_kwh": elec_factor,
-            "diet_kg_co2_per_year": diet_factor,
-            "flight_kg_co2_per_flight": flight_factor,
+            "transport_kg_co2_per_km": factors["transport"],
+            "electricity_kg_co2_per_kwh": factors["electricity"],
+            "diet_kg_co2_per_year": factors["diet"],
+            "flight_kg_co2_per_flight": factors["flights"],
         },
         "intermediate_calculations": {
             "Transport": {
                 "formula": "daily_distance_km * transport_factor * 365 days",
-                "expression": f"{distance} km * {transport_factor} kg/km * 365",
-                "raw_result": transport_emission,
+                "expression": f"{distance} km * {factors['transport']} kg/km * 365",
+                "raw_result": raw_emissions["transport"],
                 "rounded_result_kg": contributors["Transport"]
             },
             "Electricity": {
                 "formula": "monthly_kwh * electricity_factor * 12 months",
-                "expression": f"{electricity} kWh * {elec_factor} kg/kWh * 12",
-                "raw_result": electricity_emission,
+                "expression": f"{electricity} kWh * {factors['electricity']} kg/kWh * 12",
+                "raw_result": raw_emissions["electricity"],
                 "rounded_result_kg": contributors["Electricity"]
             },
             "Diet": {
                 "formula": "annual_diet_emission_factor",
-                "expression": f"{diet_factor} kg/year ({diet})",
-                "raw_result": diet_emission,
+                "expression": f"{factors['diet']} kg/year ({diet})",
+                "raw_result": raw_emissions["diet"],
                 "rounded_result_kg": contributors["Diet"]
             },
             "Flights": {
                 "formula": "annual_flights * flight_factor",
-                "expression": f"{flights} flights * {flight_factor} kg/flight",
-                "raw_result": flight_emission,
+                "expression": f"{flights} flights * {factors['flights']} kg/flight",
+                "raw_result": raw_emissions["flights"],
                 "rounded_result_kg": contributors["Flights"]
             }
         },
@@ -195,7 +246,8 @@ def calculate_footprint(
     return total_rounded, contributors
 
 
-def calculate_eco_score(total_footprint, contributors=None, return_audit=False):
+def calculate_eco_score(total_footprint: float, contributors: dict[str, Any] | None = None,
+                        return_audit: bool = False) -> int | tuple[int, dict[str, Any]]:
     """
     Higher score = better sustainability
     Calculates a continuous score based on a sigmoid function.
@@ -240,7 +292,8 @@ def calculate_eco_score(total_footprint, contributors=None, return_audit=False):
     return final_score
 
 
-def generate_full_audit_log(transport, distance, electricity, diet, flights, region="Global") -> dict:
+def generate_full_audit_log(transport: str, distance: float, electricity: float, diet: str,
+                            flights: int, region: str = "Global") -> dict:
     """
     Generates a comprehensive audit log dictionary including both carbon footprint
     and eco score intermediate calculation steps.
@@ -256,11 +309,67 @@ def generate_full_audit_log(transport, distance, electricity, diet, flights, reg
         "summary": {
             "total_footprint_kg_co2": total,
             "eco_score": eco_score,
-            "contributors": contributors
+            "contributors": contributors,
+            "factor_version": footprint_audit["factor_version"],
+            "factor_citation": footprint_audit["provenance"]["citation"],
         }
     }
+
+
+def get_factor_version(region: str = "Global") -> str:
+    """
+    The factor set version a calculation for this region would currently use.
+
+    Exposed so the page layer can stamp `save_assessment(..., factor_version=...)`
+    without having to request a full audit log.
+    """
+    return resolve_factor_set(region=region, api_factors=fetch_emission_factors(region))
 
 
 def export_audit_log_json(audit_log: dict, indent: int = 2) -> str:
     """Exports an audit log dictionary into a formatted JSON string."""
     return json.dumps(audit_log, indent=indent)
+def calculate_remaining_budget(budget_limit: float, current_emission: float) -> float:
+    """
+    Returns remaining carbon budget.
+    """
+
+    return max(0, budget_limit - current_emission)
+def calculate_budget_progress(budget_limit: float, current_emission: float) -> float:
+    """
+    Returns percentage of budget used.
+    """
+
+    if budget_limit == 0:
+        return 0
+
+    return min(current_emission / budget_limit, 1.0)
+def forecast_monthly_emission(current_emission: float) -> float:
+    """
+    Estimate end-of-month emissions.
+    """
+
+    today = datetime.datetime.today()
+
+    days_elapsed = today.day
+
+    total_days = calendar.monthrange(
+        today.year,
+        today.month
+    )[1]
+
+    average = current_emission / days_elapsed
+
+    return round(
+        average * total_days,
+        2
+    )
+def budget_status(progress: float) -> str:
+
+    if progress >= 0.90:
+        return "Critical"
+
+    elif progress >= 0.70:
+        return "Warning"
+
+    return "Safe"

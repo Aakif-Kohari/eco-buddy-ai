@@ -29,26 +29,31 @@ DEFAULT_MAX_ENTRIES = None
 CACHE_CATEGORIES = {
     CACHE_CATEGORY_DB_READS: {
         "ttl": TTL_DB_READ,
+        "stale_ttl": 30,
         "max_entries": DEFAULT_MAX_ENTRIES,
         "description": "Database read queries - short TTL with event-driven invalidation",
     },
     CACHE_CATEGORY_API: {
         "ttl": TTL_EXTERNAL_API,
+        "stale_ttl": 3600,
         "max_entries": 100,
         "description": "External API results - long TTL, expensive to fetch",
     },
     CACHE_CATEGORY_COMPUTED: {
         "ttl": TTL_COMPUTED_ANALYTICS,
+        "stale_ttl": 300,
         "max_entries": 50,
         "description": "Computed analytics - medium TTL, CPU-bound",
     },
     CACHE_CATEGORY_STATIC: {
         "ttl": TTL_STATIC_DATA,
+        "stale_ttl": 0,
         "max_entries": 20,
         "description": "Static/constant data - no expiry needed",
     },
     CACHE_CATEGORY_SESSION: {
         "ttl": TTL_SESSION,
+        "stale_ttl": 0,
         "max_entries": DEFAULT_MAX_ENTRIES,
         "description": "Session-scoped data - per-user, per-session",
     },

@@ -1,6 +1,8 @@
 """Migration v5: add environmental impact milestones."""
 
-def migrate(conn):
+import sqlite3
+
+def migrate(conn: sqlite3.Connection) -> None:
     """Create the extensible per-user environmental milestone table."""
     cursor = conn.cursor()
     cursor.execute(

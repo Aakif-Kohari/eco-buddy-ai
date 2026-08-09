@@ -12,7 +12,7 @@ which was inconsistent. This migration handles it cleanly.
 import sqlite3
 
 
-def migrate(conn):
+def migrate(conn: sqlite3.Connection) -> None:
     """
     Apply migration v2: Add trip_id column to assessments.
     """

@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 from database import get_leaderboard
 
-# Login check
-if "user_id" not in st.session_state:
-    st.session_state["user_id"] = 1
+# Local user ID fallback
+user_id = st.session_state.get("user_id", 1)
 
 st.title("🏆 Community Leaderboard")
 
@@ -19,12 +18,13 @@ ranking_type = st.radio(
     horizontal=True
 )
 
-if ranking_type == "Weekly":
-    leaderboard = get_leaderboard("weekly")
-elif ranking_type == "Monthly":
-    leaderboard = get_leaderboard("monthly")
-else:
-    leaderboard = get_leaderboard("all")
+with st.spinner("Computing community rankings..."):
+    if ranking_type == "Weekly":
+        leaderboard = get_leaderboard("weekly")
+    elif ranking_type == "Monthly":
+        leaderboard = get_leaderboard("monthly")
+    else:
+        leaderboard = get_leaderboard("all")
 
 if leaderboard:
 

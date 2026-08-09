@@ -24,7 +24,7 @@ DIET_NORMALIZE_MAP = {
 }
 
 
-def normalize_diet(diet):
+def normalize_diet(diet: str) -> str:
     if not diet:
         return "Vegetarian"
     lower = diet.strip().lower()

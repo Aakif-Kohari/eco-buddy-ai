@@ -3,6 +3,7 @@ import json
 import csv
 import io
 import zipfile
+from typing import Any
 import streamlit as st
 from database import DB_NAME
 import database
@@ -11,14 +12,14 @@ from cache_config import CACHE_CATEGORY_SESSION
 from invalidation import invalidate_all_db_caches, invalidate_export_caches
 
 
-def _dict_factory(cursor, row):
+def _dict_factory(cursor: sqlite3.Cursor, row: sqlite3.Row | tuple[Any, ...]) -> dict[str, Any]:
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
 
 
-def _get_all_table_data(table_name):
+def _get_all_table_data(table_name: str) -> list[dict[str, Any]]:
     conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -39,7 +40,7 @@ def _get_all_table_data(table_name):
 
 
 @cached(category=CACHE_CATEGORY_SESSION)
-def export_data_json():
+def export_data_json() -> str:
     """Exports all user data as a JSON string."""
     tables = [
         "assessments",
@@ -58,7 +59,7 @@ def export_data_json():
 
 
 @cached(category=CACHE_CATEGORY_SESSION)
-def export_data_csv_zip():
+def export_data_csv_zip() -> bytes:
     """Exports assessments, appliances, and offset_transactions as CSVs in a ZIP archive."""
     tables_to_export = ["assessments", "appliances", "offset_transactions"]
     
@@ -79,7 +80,7 @@ def export_data_csv_zip():
     return zip_buffer.getvalue()
 
 
-def import_data_json(json_str, strategy='merge'):
+def import_data_json(json_str: str, strategy: str = 'merge') -> tuple[bool, str]:
     """Imports JSON data back into the database. Strategy can be 'merge' or 'replace'."""
     try:
         data = json.loads(json_str)
@@ -161,7 +162,11 @@ def import_data_json(json_str, strategy='merge'):
             conn.close()
 
 
-def import_assessments_bulk(file_content, file_type, user_id):
+def import_assessments_bulk(
+    file_content: str,
+    file_type: str,
+    user_id: int,
+) -> dict[str, Any]:
     """
     Bulk-imports historical assessments from CSV or JSON content.
     Validates each record, skips duplicates and invalid rows, and
