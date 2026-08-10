@@ -29,6 +29,7 @@ from components.header import render_header
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from fashion_guide import render_fashion_hub
 from eco_news import render_news_hub
 from pet_care import render_pet_hub
 from community_dashboard import render_community_analytics
@@ -1230,7 +1231,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1252,8 +1253,12 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
     "🐾 Pet Care",
     "📊 Community Analytics",
     "📰 Eco-News",
-    "🤝 Volunteer"  # NEW
+    "🤝 Volunteer",
+    "👗 Fashion"  # NEW
 ])
+
+with tab23:
+    render_fashion_hub()
 
 with tab22:
     render_volunteer_hub()
