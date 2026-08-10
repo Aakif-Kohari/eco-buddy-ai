@@ -4,7 +4,7 @@ class AlternativeQuestionEngine:
     """Generate semantically similar and diverse interview questions."""
 
     def __init__(self):
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+     self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
     def recommend(
         self,

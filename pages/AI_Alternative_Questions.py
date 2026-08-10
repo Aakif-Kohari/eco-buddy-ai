@@ -277,4 +277,4 @@ if st.button(
         f"{similarity:.1f}%"
     )
 
-            st.divider()
+    st.divider()
