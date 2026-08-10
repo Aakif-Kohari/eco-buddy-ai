@@ -1,37 +1,18 @@
 from typing import List, Dict, Tuple
 
 class AlternativeQuestionEngine:
-    """Generate semantically similar interview questions."""
-
-    _model = None
-    _util = None
-    _embedding_cache = {}  # Cache embeddings to avoid recalculation
-
-    @classmethod
-    def get_model(cls):
-        """Lazy load model (singleton pattern) - load only when needed.
-
-        Import sentence_transformers inside this method so importing this module
-        does not trigger heavy model/library initialization.
-        """
-        if cls._model is None:
-            # Lazy import prevents heavy imports at module import time
-            from sentence_transformers import SentenceTransformer, util as _util  # local import
-            cls._util = _util
-            cls._model = SentenceTransformer("all-MiniLM-L6-v2")
-        return cls._model
+    """Generate semantically similar and diverse interview questions."""
 
     def __init__(self):
-        # don't import/model-init at module import time
-        self.model = None
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
     def recommend(
         self,
-        question: str,
-        question_bank: List[Dict],
-        top_k: int = 5,
-        min_similarity: float = 0.45,
-    ) -> List[Dict]:
+        question,
+        question_bank,
+        top_k=5,
+        min_similarity=0.45,
+    ):
         """Return the most semantically similar questions."""
 
         if not question or not question.strip():
@@ -42,13 +23,19 @@ class AlternativeQuestionEngine:
 
         query = question.strip()
 
+        if seen_question_ids is None:
+            seen_question_ids = set()
+
         candidates = []
+
         for item in question_bank:
             candidate = item.get("question", "").strip()
             if not candidate:
                 continue
+
             if candidate.lower() == query.lower():
                 continue
+
             candidates.append(item)
 
         if not candidates:
@@ -92,6 +79,7 @@ class AlternativeQuestionEngine:
         recommendations = []
         for item, score in zip(candidates, similarity_scores):
             similarity = float(score)
+
             if similarity >= min_similarity:
                 recommendations.append(
                     {
@@ -101,5 +89,9 @@ class AlternativeQuestionEngine:
                     }
                 )
 
-        recommendations.sort(key=lambda item: item["similarity"], reverse=True)
+        recommendations.sort(
+            key=lambda item: item["similarity"],
+            reverse=True,
+        )
+
         return recommendations[:top_k]
