@@ -43,6 +43,7 @@ from eco_social import render_eco_social, render_eco_tip
 from volunteer_platform import render_volunteer_hub
 load_dotenv()
 from shopping_assistant import render_shopping_hub
+from impact_dashboard import render_impact_dashboard
 from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
@@ -1232,7 +1233,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25,tab26 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1257,9 +1258,11 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
     "🤝 Volunteer",
     "👗 Fashion",
     "🏅 Certification",
-    "🛒 Shopping"  # NEW
+    "🛒 Shopping" ,
+    "Eco-Impact"
 ])
-
+with tab26:
+    render_impact_dashboard()
 with tab25:
     render_shopping_hub()
 
