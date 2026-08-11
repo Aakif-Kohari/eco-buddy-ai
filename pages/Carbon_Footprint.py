@@ -434,12 +434,46 @@ with tab_assess:
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>⚡</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span></div>", unsafe_allow_html=True)
         uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_bill is not None:
-            if st.button("Extract Energy Usage"):
+            # Reject oversize bills up front so the user gets feedback before
+            # the background task even starts. `ocr_utils.extract_text_from_bytes`
+            # enforces the same cap and is the authoritative gate, but doing it
+            # here too means the OCR button never even becomes clickable for a
+            # multi-hundred-MB phone dump that would have OOM-ed the worker.
+            try:
+                _bill_size = getattr(uploaded_bill, "size", None) or len(uploaded_bill.getvalue())
+            except Exception:
+                _bill_size = 0
+            if _bill_size and _bill_size > 10 * 1024 * 1024:
+                st.warning(
+                    f"That bill is {_bill_size / (1024*1024):.1f} MB. "
+                    "Please upload a PDF or image under 10 MB."
+                )
+            elif st.button("Extract Energy Usage"):
                 file_bytes = uploaded_bill.getvalue()
                 file_type = uploaded_bill.type
+
+                # Adapter that translates the per-page progress callback the
+                # OCR utility reports into the (progress, message) signature the
+                # background-task framework expects. Keeping the adapter here
+                # (rather than in `ocr_utils`) means the utility module stays
+                # unaware of Streamlit and the background-task machinery.
+                def _ocr_with_progress(file_bytes, file_type, progress_callback=None):
+                    if progress_callback is None:
+                        return extract_text_from_bytes(file_bytes, file_type)
+
+                    def _on_page(done, total):
+                        fraction = (done / total) if total else 1.0
+                        progress_callback(fraction, f"Reading page {done}/{total}")
+
+                    return extract_text_from_bytes(
+                        file_bytes,
+                        file_type,
+                        on_progress=_on_page,
+                    )
+
                 submit_background_task(
                     "ocr_bill_extract",
-                    extract_text_from_bytes,
+                    _ocr_with_progress,
                     file_bytes,
                     file_type,
                     task_name="Extracting Energy Usage"

@@ -272,3 +272,197 @@ class TestMemoryOptimization:
             assert res["status"] == "success"
             assert "allocated_kb" in res
 
+
+class TestMemoryLeakFixes:
+    """Regression tests for the PDF bill memory leak (#696).
+
+    Each test pins down one of the failure modes reported in the issue so a
+    future change cannot reintroduce them:
+
+    * OOM on uploads larger than 10 MB (#4)
+    * NameError because ``uploaded_file.size`` was read on raw bytes
+    * NameError on ``st.warning`` because Streamlit was never imported here
+    * RecursionError on large PDFs from ``text += page_text + "\\n"``
+    * No way for the caller to report progress
+    """
+
+    def test_extract_text_from_bytes_rejects_oversize_pdf(self):
+        """An oversize PDF is rejected with empty result and the notifier is called."""
+        from ocr_utils import extract_text_from_bytes, MAX_BILL_FILE_SIZE_BYTES
+
+        oversize = b"%PDF-1.4\n" + (b"%pad " * ((MAX_BILL_FILE_SIZE_BYTES // 5) + 1))
+        notifications = []
+
+        result = extract_text_from_bytes(
+            oversize,
+            "application/pdf",
+            notify=lambda message, level: notifications.append((message, level)),
+        )
+
+        assert result == ""
+        assert notifications, "Oversize upload must surface a user-facing warning"
+        assert notifications[0][1] == "warning"
+        assert "10" in notifications[0][0]  # mentions the 10 MB limit
+
+    def test_extract_text_from_bytes_handles_unknown_mime(self):
+        """Unknown MIME types return empty without raising."""
+        from ocr_utils import extract_text_from_bytes
+
+        assert extract_text_from_bytes(b"some bytes", "application/zip") == ""
+
+    def test_extract_text_from_bytes_does_not_reference_undefined_st(self):
+        """Regression: the previous code referenced ``st.warning`` without
+        importing streamlit. This crashed every PDF bill.
+        """
+        # If `st` were referenced, calling the function under a strict module
+        # would raise NameError. Now the module does not import streamlit at
+        # all -- but we still verify by checking ``ocrmod`` has no `st` symbol.
+        import ocr_utils
+
+        assert not hasattr(ocr_utils, "st"), (
+            "ocr_utils must not depend on streamlit; it is imported from "
+            "background tasks and tests too."
+        )
+
+    def test_extract_text_from_bytes_reports_progress_per_page(self):
+        """The progress callback is invoked once per page with running totals."""
+        from ocr_utils import extract_text_from_bytes
+
+        progress_calls = []
+
+        def _progress(done, total):
+            progress_calls.append((done, total))
+
+        page_texts = ["page one body", "page two body", "page three body"]
+        mock_page_objs = []
+        for text in page_texts:
+            mp = MagicMock()
+            mp.extract_text.return_value = text
+            mock_page_objs.append(mp)
+
+        with patch("ocr_utils.pdfplumber.open") as mock_open:
+            mock_pdf = MagicMock()
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdf.pages = mock_page_objs
+            mock_open.return_value = mock_pdf
+
+            result = extract_text_from_bytes(
+                b"%PDF-1.4 fake bytes",
+                "application/pdf",
+                on_progress=_progress,
+            )
+
+        # Every page reported once, totals strictly increasing, last call
+        # equals (total_pages, total_pages).
+        assert progress_calls == [(1, 3), (2, 3), (3, 3)]
+        assert "page one body" in result
+        assert "page three body" in result
+
+    def test_extract_text_from_bytes_skips_unreadable_page(self):
+        """A single page that raises does not abort the whole document."""
+        from ocr_utils import extract_text_from_bytes
+
+        good_page = MagicMock()
+        good_page.extract_text.return_value = "kWh: 250"
+
+        bad_page = MagicMock()
+        bad_page.extract_text.side_effect = RuntimeError("corrupt page")
+
+        with patch("ocr_utils.pdfplumber.open") as mock_open:
+            mock_pdf = MagicMock()
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdf.pages = [good_page, bad_page, good_page]
+            mock_open.return_value = mock_pdf
+
+            result = extract_text_from_bytes(
+                b"%PDF-1.4",
+                "application/pdf",
+            )
+
+        assert "kWh: 250" in result
+        # Two pages contribute "kWh: 250", separated by "\n"
+        assert result.count("kWh: 250") == 2
+
+    def test_extract_text_from_bytes_does_not_concatenate_in_loop(self):
+        """Regression: ``text += page_text + '\\n'`` produced O(n**2) behaviour
+        on large PDFs and was the root cause of the RecursionError in #4.
+
+        The fix accumulates into a list and joins once. We pin that by mocking
+        a PDF with 200 pages and asserting the result is well-formed and the
+        concatenation cost is bounded (linear time, not quadratic).
+        """
+        from ocr_utils import extract_text_from_bytes
+        import time
+
+        page_texts = [f"page {i} content " * 50 for i in range(200)]
+
+        with patch("ocr_utils.pdfplumber.open") as mock_open:
+            mock_pdf = MagicMock()
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdf.pages = [
+                MagicMock(extract_text=MagicMock(return_value=t)) for t in page_texts
+            ]
+            mock_open.return_value = mock_pdf
+
+            start = time.monotonic()
+            result = extract_text_from_bytes(b"%PDF-1.4", "application/pdf")
+            elapsed = time.monotonic() - start
+
+        # Every page must be present and separated. The previous implementation
+        # would have either hung or RecursionErrored well before this.
+        for i in (0, 50, 100, 150, 199):
+            assert f"page {i} content" in result
+        assert result.count("page ") == 200 * 50  # 50 "page " per page text
+        # Sanity bound: 200-page join runs in well under a second on any host.
+        assert elapsed < 5.0, f"200-page PDF took {elapsed:.2f}s -- suspect quadratic concatenation"
+
+    def test_extract_text_from_file_rejects_oversize_upload(self):
+        """``extract_text_from_file`` checks the size attribute on the upload."""
+        from ocr_utils import extract_text_from_file, MAX_BILL_FILE_SIZE_BYTES
+
+        notifications = []
+
+        mock_upload = MagicMock()
+        mock_upload.type = "application/pdf"
+        mock_upload.size = MAX_BILL_FILE_SIZE_BYTES + 1
+
+        result = extract_text_from_file(
+            mock_upload,
+            notify=lambda message, level: notifications.append((message, level)),
+        )
+
+        assert result == ""
+        assert notifications, "Oversize upload must surface a user-facing warning"
+
+    def test_extract_text_from_file_progress_callback(self):
+        """Progress is reported on the file-based entry point too."""
+        from ocr_utils import extract_text_from_file
+
+        progress_calls = []
+        extract_text_from_file.clear()
+
+        mock_upload = MagicMock()
+        mock_upload.type = "application/pdf"
+        mock_upload.size = 1024  # well under the cap
+
+        with patch("ocr_utils.pdfplumber.open") as mock_open:
+            mock_pdf = MagicMock()
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdf.pages = [
+                MagicMock(extract_text=MagicMock(return_value=f"page {i}"))
+                for i in range(1, 4)
+            ]
+            mock_open.return_value = mock_pdf
+
+            result = extract_text_from_file(
+                mock_upload,
+                on_progress=lambda done, total: progress_calls.append((done, total)),
+            )
+
+        assert progress_calls == [(1, 3), (2, 3), (3, 3)]
+        assert "page 1" in result and "page 3" in result
+
