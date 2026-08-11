@@ -31,6 +31,7 @@ from components.header import render_header
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from mindset_coach import render_coach_hub
 from fashion_guide import render_fashion_hub
 from certification_system import render_certification_hub
 from eco_news import render_news_hub
@@ -1235,7 +1236,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25,tab26,tab27,tab28 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25,tab26,tab27,tab28,tab29 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1263,8 +1264,11 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
     "🛒 Shopping" ,
     "Eco-Impact",
     "Habit-Tracker",
-    "Event-Planner"
+    "Event-Planner",
+    "Minset_planner"
 ])
+with tab29:
+    render_coach_hub()
 with tab28:
     render_event_hub()
 with tab27:
