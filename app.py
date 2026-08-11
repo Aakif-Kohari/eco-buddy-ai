@@ -28,6 +28,7 @@ from event_calendar import render_event_hub
 from voice_assistant import render_voice_assessment
 from components.header import render_header
 #from components.profile import render_profile
+from community_marketplace import render_marketplace_hub
 from sustainability_hub import (
     render_sustainability_hub  
 )
@@ -1237,7 +1238,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25,tab26,tab27,tab28,tab29,tab30 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24, tab25,tab26,tab27,tab28,tab29,tab30,tab31 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1267,8 +1268,11 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
     "Habit-Tracker",
     "Event-Planner",
     "Minset_planner",
-    "Smart-home"
+    "Smart-home",
+    "Market Place"
 ])
+with tab31:
+    render_marketplace_hub()
 with tab30:
     render_smart_home_hub()
 with tab29:
