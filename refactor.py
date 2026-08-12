@@ -86,9 +86,32 @@ def main():
         st.markdown("<div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'><span style='font-size: 24px;'>⚡</span><span style='font-size: 18px; font-weight: 700; color: #000;'>Energy & Diet</span></div>", unsafe_allow_html=True)
         uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_bill is not None:
-            if st.button("Extract Energy Usage"):
+            # Same 10 MB cap as the Carbon Footprint page. Surfaces the
+            # rejection in the UI immediately rather than letting the OCR
+            # worker crash inside pdfplumber on a multi-hundred-MB dump.
+            try:
+                _bill_size = getattr(uploaded_bill, "size", None) or len(uploaded_bill.getvalue())
+            except Exception:
+                _bill_size = 0
+            if _bill_size and _bill_size > 10 * 1024 * 1024:
+                st.warning(
+                    f"That bill is {_bill_size / (1024*1024):.1f} MB. "
+                    "Please upload a PDF or image under 10 MB."
+                )
+            elif st.button("Extract Energy Usage"):
+                progress_bar = st.progress(0.0, text="Starting…")
                 with st.spinner("Extracting data from bill..."):
-                    extracted_text = extract_text_from_file(uploaded_bill)
+                    extracted_text = extract_text_from_file(
+                        uploaded_bill,
+                        on_progress=lambda done, total: progress_bar.progress(
+                            (done / total) if total else 1.0,
+                            text=f"Reading page {done}/{total}",
+                        ),
+                        notify=lambda message, level: (
+                            st.warning(message) if level == "warning" else st.info(message)
+                        ),
+                    )
+                    progress_bar.empty()
                     parsed_val = parse_energy_consumption(extracted_text)
                     if parsed_val is not None:
                         st.session_state.extracted_kwh = float(parsed_val)
