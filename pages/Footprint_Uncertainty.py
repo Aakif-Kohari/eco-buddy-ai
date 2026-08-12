@@ -175,8 +175,9 @@ with seed_col:
         help="Fixed so the same inputs always give the same interval.",
     )
 
-summary = propagate(components, iterations=iterations, seed=int(seed))
-rankings = sensitivity_ranking(components, iterations=iterations, seed=int(seed))
+with st.spinner("Running your uncertainty simulation..."):
+    summary = propagate(components, iterations=iterations, seed=int(seed))
+    rankings = sensitivity_ranking(components, iterations=iterations, seed=int(seed))
 
 st.markdown("---")
 st.markdown("### 📏 What Your Footprint Actually Is")
@@ -287,7 +288,8 @@ st.plotly_chart(contribution_figure, use_container_width=True)
 st.markdown("---")
 st.markdown("### 🔧 What To Go And Measure")
 
-plan = improvement_plan(components, iterations=iterations, seed=int(seed))
+with st.spinner("Analyzing which input to measure..."):
+    plan = improvement_plan(components, iterations=iterations, seed=int(seed))
 best = plan["best_action"]
 if best:
     st.success(
@@ -327,7 +329,8 @@ st.caption(
     "difference is bigger than the noise in both estimates."
 )
 
-threshold = detectable_change(components, iterations=iterations, seed=int(seed))
+with st.spinner("Estimating the smallest detectable change..."):
+    threshold = detectable_change(components, iterations=iterations, seed=int(seed))
 st.info(
     f"With data this good, the smallest change you could actually detect is "
     f"about **{threshold['min_detectable_percent']:.0f}%** "
@@ -357,9 +360,10 @@ for component in components:
         )
     )
 
-verdict = compare_footprints(
-    previous, components, iterations=iterations, seed=int(seed)
-)
+with st.spinner("Comparing this year against last year..."):
+    verdict = compare_footprints(
+        previous, components, iterations=iterations, seed=int(seed)
+    )
 
 before_col, after_col, probability_col = st.columns(3)
 before_col.metric("Last year", f"{verdict['before_point']:,.0f} kg")

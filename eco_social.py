@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import random
 import hashlib
+from typing import Any
 
 # ============================================================
 # CHALLENGE SYSTEM
@@ -87,31 +88,31 @@ class EcoChallenges:
         }
     ]
     
-    def __init__(self, user_id):
+    def __init__(self, user_id: int) -> None:
         self.user_id = user_id
         self.completed = self._load_completed()
     
-    def _load_completed(self):
+    def _load_completed(self) -> list[str]:
         """Load completed challenges from session"""
         if "completed_challenges" not in st.session_state:
             st.session_state.completed_challenges = {}
         return st.session_state.completed_challenges.get(self.user_id, [])
     
-    def save(self):
+    def save(self) -> None:
         """Save completed challenges"""
         st.session_state.completed_challenges[self.user_id] = self.completed
     
-    def get_daily(self):
+    def get_daily(self) -> list[dict[str, Any]]:
         """Get today's daily challenges"""
         today = datetime.now().date()
         return [c for c in self.DAILY_CHALLENGES if f"{c['id']}_{today}" not in self.completed]
     
-    def get_weekly(self):
+    def get_weekly(self) -> list[dict[str, Any]]:
         """Get this week's weekly challenges"""
         week = datetime.now().isocalendar()[1]
         return [c for c in self.WEEKLY_CHALLENGES if f"{c['id']}_{week}" not in self.completed]
     
-    def complete_challenge(self, challenge_id, is_daily=True):
+    def complete_challenge(self, challenge_id: str, is_daily: bool = True) -> bool:
         """Mark a challenge as completed"""
         if is_daily:
             key = f"{challenge_id}_{datetime.now().date()}"
@@ -124,7 +125,7 @@ class EcoChallenges:
             return True
         return False
     
-    def get_stats(self):
+    def get_stats(self) -> dict[str, Any]:
         """Get challenge statistics"""
         total_daily = len(self.DAILY_CHALLENGES)
         total_weekly = len(self.WEEKLY_CHALLENGES)
@@ -153,21 +154,21 @@ class EcoFriends:
         "GreenThumb", "ZeroWasteHero", "ClimateAction"
     ]
     
-    def __init__(self, user_id):
+    def __init__(self, user_id: int) -> None:
         self.user_id = user_id
         self.friends = self._load_friends()
     
-    def _load_friends(self):
+    def _load_friends(self) -> list[str]:
         """Load friends from session"""
         if "eco_friends" not in st.session_state:
             st.session_state.eco_friends = {}
         return st.session_state.eco_friends.get(self.user_id, [])
     
-    def save(self):
+    def save(self) -> None:
         """Save friends"""
         st.session_state.eco_friends[self.user_id] = self.friends
     
-    def add_friend(self, friend_name):
+    def add_friend(self, friend_name: str) -> bool:
         """Add a friend"""
         if friend_name not in self.friends:
             self.friends.append(friend_name)
@@ -175,7 +176,7 @@ class EcoFriends:
             return True
         return False
     
-    def remove_friend(self, friend_name):
+    def remove_friend(self, friend_name: str) -> bool:
         """Remove a friend"""
         if friend_name in self.friends:
             self.friends.remove(friend_name)
@@ -183,13 +184,13 @@ class EcoFriends:
             return True
         return False
     
-    def get_suggestions(self):
+    def get_suggestions(self) -> list[str]:
         """Get friend suggestions"""
         # Generate random suggestions
         suggestions = random.sample(self.FRIEND_NAMES, min(3, len(self.FRIEND_NAMES)))
         return [s for s in suggestions if s not in self.friends]
     
-    def get_leaderboard(self):
+    def get_leaderboard(self) -> list[dict[str, Any]]:
         """Get friends leaderboard"""
         # Mock leaderboard data
         leaderboard = []
@@ -243,23 +244,23 @@ class EcoFacts:
     ]
     
     @staticmethod
-    def get_random_fact():
+    def get_random_fact() -> str:
         """Get a random eco-fact"""
         return random.choice(EcoFacts.FACTS)
     
     @staticmethod
-    def get_random_tip():
+    def get_random_tip() -> str:
         """Get a random eco-tip"""
         return random.choice(EcoFacts.TIPS)
     
     @staticmethod
-    def get_daily_fact():
+    def get_daily_fact() -> str:
         """Get a fact of the day (based on date)"""
         day = datetime.now().day
         return EcoFacts.FACTS[day % len(EcoFacts.FACTS)]
     
     @staticmethod
-    def get_daily_tip():
+    def get_daily_tip() -> str:
         """Get a tip of the day (based on date)"""
         day = datetime.now().day
         return EcoFacts.TIPS[day % len(EcoFacts.TIPS)]
@@ -271,10 +272,10 @@ class EcoFacts:
 class CommunityPosts:
     """Community post system"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.posts = self._load_posts()
     
-    def _load_posts(self):
+    def _load_posts(self) -> list[dict[str, Any]]:
         """Load posts from session"""
         if "community_posts" not in st.session_state:
             # Initialize with sample posts
@@ -303,11 +304,11 @@ class CommunityPosts:
             ]
         return st.session_state.community_posts
     
-    def save(self):
+    def save(self) -> None:
         """Save posts"""
         st.session_state.community_posts = self.posts
     
-    def add_post(self, user, content):
+    def add_post(self, user: str, content: str) -> dict[str, Any]:
         """Add a new post"""
         post = {
             "id": len(self.posts) + 1,
@@ -321,7 +322,7 @@ class CommunityPosts:
         self.save()
         return post
     
-    def like_post(self, post_id):
+    def like_post(self, post_id: int) -> bool:
         """Like a post"""
         for post in self.posts:
             if post["id"] == post_id:
@@ -330,7 +331,7 @@ class CommunityPosts:
                 return True
         return False
     
-    def add_comment(self, post_id, user, text):
+    def add_comment(self, post_id: int, user: str, text: str) -> bool:
         """Add a comment to a post"""
         for post in self.posts:
             if post["id"] == post_id:
@@ -344,7 +345,7 @@ class CommunityPosts:
                 return True
         return False
     
-    def get_trending(self):
+    def get_trending(self) -> list[dict[str, Any]]:
         """Get trending posts"""
         return sorted(self.posts, key=lambda x: x["likes"], reverse=True)[:3]
 
@@ -352,7 +353,7 @@ class CommunityPosts:
 # RENDER FUNCTIONS
 # ============================================================
 
-def render_eco_social():
+def render_eco_social() -> None:
     """Render the eco-social community section"""
     st.markdown("<div class='section-header'>🌍 Eco-Social Community</div>", unsafe_allow_html=True)
     
@@ -382,7 +383,7 @@ def render_eco_social():
     with tab3:
         render_community()
 
-def render_challenges():
+def render_challenges() -> None:
     """Render the challenges section"""
     st.markdown("### 🎯 Daily & Weekly Challenges")
     
@@ -442,7 +443,7 @@ def render_challenges():
     else:
         st.success("🎉 You've completed all weekly challenges for this week!")
 
-def render_friends():
+def render_friends() -> None:
     """Render the friends section"""
     st.markdown("### 👥 Friends & Leaderboard")
     
@@ -494,7 +495,7 @@ def render_friends():
     else:
         st.info("You don't have any friends yet. Add some friends above!")
 
-def render_community():
+def render_community() -> None:
     """Render the community section"""
     st.markdown("### 📝 Community Posts")
     
@@ -545,7 +546,7 @@ def render_community():
             
             st.markdown("---")
 
-def render_eco_tip():
+def render_eco_tip() -> None:
     """Render a daily eco-tip in sidebar"""
     tip = EcoFacts.get_daily_tip()
     st.sidebar.markdown("---")

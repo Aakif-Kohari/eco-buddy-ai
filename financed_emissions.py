@@ -59,6 +59,7 @@ import math
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ class PortfolioError(ValueError):
 # --- Catalogue --------------------------------------------------------------
 
 
-def list_fund_archetypes(asset_class=None):
+def list_fund_archetypes(asset_class: str | None = None) -> list[dict[str, Any]]:
     """Return the fund catalogue, cleanest first."""
     funds = [
         {"name": name, **details}
@@ -228,12 +229,12 @@ def list_fund_archetypes(asset_class=None):
     return sorted(funds, key=lambda item: item["intensity"])
 
 
-def list_asset_classes():
+def list_asset_classes() -> list[str]:
     """Return the distinct asset classes in the catalogue."""
     return sorted({details["asset_class"] for details in FUND_ARCHETYPES.values()})
 
 
-def list_sectors():
+def list_sectors() -> list[dict[str, Any]]:
     """Return sector intensities, dirtiest first - the useful reading order."""
     return sorted(
         [{"name": name, "intensity": value} for name, value in SECTOR_INTENSITIES.items()],
@@ -242,7 +243,7 @@ def list_sectors():
     )
 
 
-def get_fund(name):
+def get_fund(name: str) -> dict[str, Any]:
     """Return one archetype, falling back to the default rather than raising."""
     details = FUND_ARCHETYPES.get(name)
     if not details:
@@ -251,7 +252,7 @@ def get_fund(name):
     return {"name": name, **details}
 
 
-def fund_intensity(name):
+def fund_intensity(name: str) -> float:
     """Carbon intensity of a fund archetype, tonnes per million invested."""
     return get_fund(name)["intensity"]
 
@@ -259,7 +260,7 @@ def fund_intensity(name):
 # --- Custom portfolios ------------------------------------------------------
 
 
-def _clean_amount(value, field="amount"):
+def _clean_amount(value: float, field: str = "amount") -> float:
     """Coerce a monetary or numeric input into a usable non-negative float."""
     try:
         number = float(value)
@@ -272,7 +273,7 @@ def _clean_amount(value, field="amount"):
     return number
 
 
-def custom_portfolio(sector_weights):
+def custom_portfolio(sector_weights: dict[str, float]) -> dict[str, Any]:
     """Build a portfolio intensity from sector weights.
 
     Weights are normalised rather than required to sum to one, because a user
@@ -328,7 +329,7 @@ def custom_portfolio(sector_weights):
     }
 
 
-def nearest_archetype(intensity):
+def nearest_archetype(intensity: float) -> str:
     """The catalogue entry closest to a computed intensity, for orientation."""
     try:
         target = float(intensity)
@@ -340,7 +341,7 @@ def nearest_archetype(intensity):
     )[0]
 
 
-def concentration(breakdown, top_n=3):
+def concentration(breakdown: list[dict[str, Any]], top_n: int = 3) -> dict[str, Any]:
     """Share of a portfolio's carbon coming from its worst few sectors.
 
     Usually startling, and it is the number that makes a screened fund make
@@ -361,14 +362,14 @@ def concentration(breakdown, top_n=3):
 # --- Financed emissions -----------------------------------------------------
 
 
-def financed_emissions(value, intensity):
+def financed_emissions(value: float, intensity: float) -> float:
     """Tonnes CO2e attributable to a holding of a given value and intensity."""
     holding = _clean_amount(value, "Holding value")
     carbon_intensity = _clean_amount(intensity, "Intensity")
     return holding * carbon_intensity / INTENSITY_BASIS
 
 
-def portfolio_emissions(holdings):
+def portfolio_emissions(holdings: list[dict[str, Any]]) -> dict[str, Any]:
     """Financed emissions of several holdings, with per-holding detail.
 
     ``holdings`` is a list of dicts with ``name``, ``value`` and either
@@ -421,7 +422,7 @@ def portfolio_emissions(holdings):
 
 # --- Switching --------------------------------------------------------------
 
-def compare_funds(value, current_intensity, proposed_intensity):
+def compare_funds(value: float, current_intensity: float, proposed_intensity: float) -> dict[str, Any]:
     """Annual effect of moving a holding from one intensity to another."""
     holding = _clean_amount(value, "Holding value")
     current = _clean_amount(current_intensity, "Current intensity")
@@ -445,14 +446,14 @@ def compare_funds(value, current_intensity, proposed_intensity):
 
 
 def project_switch(
-    value,
-    annual_contribution,
-    current_intensity,
-    proposed_intensity,
-    years=DEFAULT_YEARS,
-    growth_rate=DEFAULT_GROWTH_RATE,
-    decarbonisation_rate=DEFAULT_DECARBONISATION_RATE,
-):
+    value: float,
+    annual_contribution: float,
+    current_intensity: float,
+    proposed_intensity: float,
+    years: int = DEFAULT_YEARS,
+    growth_rate: float = DEFAULT_GROWTH_RATE,
+    decarbonisation_rate: float = DEFAULT_DECARBONISATION_RATE,
+) -> dict[str, Any]:
     """Cumulative effect of a switch over the years left until retirement.
 
     Contributions compound, and so does the avoided carbon, which is why a
@@ -523,7 +524,7 @@ def project_switch(
     }
 
 
-def compare_to_operational(financed_tonnes, operational_tonnes):
+def compare_to_operational(financed_tonnes: float, operational_tonnes: float) -> dict[str, Any]:
     """Size a financed total against the footprint the app already measures.
 
     Explicitly a comparison and not a sum. The two sit on different
@@ -560,7 +561,7 @@ def compare_to_operational(financed_tonnes, operational_tonnes):
     }
 
 
-def _comparison_explanation(verdict, ratio):
+def _comparison_explanation(verdict: str, ratio: float) -> str:
     """A plain sentence sizing financed emissions against operational ones."""
     if verdict == "dominates":
         return (
@@ -585,7 +586,7 @@ def _comparison_explanation(verdict, ratio):
     return "There is not enough invested here for financed emissions to matter yet."
 
 
-def equivalent_actions(tonnes):
+def equivalent_actions(tonnes: float) -> list[dict[str, Any]]:
     """Express a carbon figure as the operational actions it is worth.
 
     A pension switch measured in tonnes means nothing to most people. The same
@@ -610,7 +611,10 @@ def equivalent_actions(tonnes):
     )
 
 
-def get_switch_advice(comparison, projection=None):
+def get_switch_advice(
+    comparison: dict[str, Any],
+    projection: dict[str, Any] | None = None,
+) -> list[str]:
     """Advice that follows from the numbers, with the limitations attached."""
     advice = []
 
@@ -642,7 +646,7 @@ def get_switch_advice(comparison, projection=None):
     return advice
 
 
-def get_caveats():
+def get_caveats() -> list[str]:
     """Limitations of the method, kept in the module so they cannot be dropped.
 
     A page that showed the tonnage without these would be overclaiming, and
@@ -681,7 +685,7 @@ def get_caveats():
 # --- Persistence ------------------------------------------------------------
 
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     """Open a connection with the portfolio table guaranteed to exist."""
     conn = sqlite3.connect(DB_NAME)
     conn.execute(
@@ -702,7 +706,7 @@ def _connect():
     return conn
 
 
-def save_portfolio(user_id, name, result):
+def save_portfolio(user_id: int, name: str, result: dict[str, Any]) -> int | None:
     """Persist a portfolio and the emissions it financed."""
     if not user_id:
         return None
@@ -735,7 +739,7 @@ def save_portfolio(user_id, name, result):
         conn.close()
 
 
-def get_portfolios(user_id, limit=25):
+def get_portfolios(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return saved portfolios for a user, newest first."""
     if not user_id:
         return []
@@ -779,7 +783,7 @@ def get_portfolios(user_id, limit=25):
     return portfolios
 
 
-def delete_portfolio(user_id, portfolio_id):
+def delete_portfolio(user_id: int, portfolio_id: int) -> bool:
     """Delete one saved portfolio. Scoped by user so ids cannot be guessed."""
     if not user_id or not portfolio_id:
         return False

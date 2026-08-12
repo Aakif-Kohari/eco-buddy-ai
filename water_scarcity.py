@@ -58,6 +58,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +279,7 @@ class WaterScarcityError(ValueError):
     """Raised when a request cannot be answered honestly."""
 
 
-def _as_float(value, default=0.0):
+def _as_float(value: Any, default: float = 0.0) -> float:
     try:
         result = float(value)
     except (TypeError, ValueError):
@@ -288,7 +289,7 @@ def _as_float(value, default=0.0):
     return result
 
 
-def _non_negative(value, default=0.0):
+def _non_negative(value: Any, default: float = 0.0) -> float:
     return max(0.0, _as_float(value, default))
 
 
@@ -296,12 +297,12 @@ def _non_negative(value, default=0.0):
 # Regions and seasonality
 # ---------------------------------------------------------------------------
 
-def list_regions():
+def list_regions() -> list[str]:
     """Regions with a characterisation factor, driest first."""
     return sorted(REGIONS, key=lambda name: -REGIONS[name]["factor"])
 
 
-def get_region(region):
+def get_region(region: str) -> dict[str, Any]:
     """The scarcity factor and its rationale."""
     if region not in REGIONS:
         raise WaterScarcityError(
@@ -319,7 +320,7 @@ def get_region(region):
     }
 
 
-def seasonal_factor(region, month=None):
+def seasonal_factor(region: str, month: str | int | None = None) -> float:
     """The scarcity factor for a given month.
 
     Scarcity is not an annual property. Irrigation demand peaks when
@@ -344,12 +345,12 @@ def seasonal_factor(region, month=None):
 # Household use
 # ---------------------------------------------------------------------------
 
-def list_household_activities():
+def list_household_activities() -> list[str]:
     """Household activities with a water model."""
     return sorted(HOUSEHOLD_ACTIVITIES)
 
 
-def household_activity(activity):
+def household_activity(activity: str) -> dict[str, Any]:
     """The parameters for one household activity."""
     if activity not in HOUSEHOLD_ACTIVITIES:
         raise WaterScarcityError(
@@ -361,7 +362,7 @@ def household_activity(activity):
     return dict(HOUSEHOLD_ACTIVITIES[activity])
 
 
-def household_use(activity, quantity, days=1):
+def household_use(activity: str, quantity: float, days: int = 1) -> dict[str, Any]:
     """Withdrawal, consumption and grey water for a household activity.
 
     The distinction between withdrawal and consumption is the whole point.
@@ -390,7 +391,7 @@ def household_use(activity, quantity, days=1):
     }
 
 
-def household_profile(usage, days=DAYS_PER_YEAR):
+def household_profile(usage: dict[str, Any], days: int = DAYS_PER_YEAR) -> dict[str, Any]:
     """Aggregate a {activity: quantity_per_day} mapping over a period."""
     if not isinstance(usage, dict):
         raise WaterScarcityError("usage must be a mapping.")
@@ -413,12 +414,12 @@ def household_profile(usage, days=DAYS_PER_YEAR):
 # Food and products
 # ---------------------------------------------------------------------------
 
-def list_foods():
+def list_foods() -> list[str]:
     """Foods with a blue/green/grey split."""
     return sorted(FOOD_WATER)
 
 
-def food_water(food, kg):
+def food_water(food: str, kg: float) -> dict[str, Any]:
     """Blue, green and grey water for a mass of food.
 
     Only the blue component is scarcity-weighted later. Green water is
@@ -452,7 +453,7 @@ def food_water(food, kg):
     }
 
 
-def diet_water(diet, days=DAYS_PER_YEAR):
+def diet_water(diet: dict[str, Any], days: int = DAYS_PER_YEAR) -> dict[str, Any]:
     """Aggregate a {food: kg_per_period} mapping."""
     if not isinstance(diet, dict):
         raise WaterScarcityError("diet must be a mapping.")
@@ -477,7 +478,7 @@ def diet_water(diet, days=DAYS_PER_YEAR):
 # Scarcity weighting
 # ---------------------------------------------------------------------------
 
-def scarcity_footprint(blue_litres, region, month=None):
+def scarcity_footprint(blue_litres: float, region: str, month: str | int | None = None) -> dict[str, Any]:
     """Weight blue water consumption by local scarcity.
 
     Returns cubic metres world-equivalent, which is the unit that can
@@ -497,7 +498,12 @@ def scarcity_footprint(blue_litres, region, month=None):
     }
 
 
-def assess(household, diet, region, month=None):
+def assess(
+    household: dict[str, Any],
+    diet: dict[str, Any],
+    region: str,
+    month: str | int | None = None,
+) -> dict[str, Any]:
     """A complete scarcity assessment from household use and diet.
 
     Household **consumption** is weighted, not household withdrawal. Using
@@ -557,7 +563,11 @@ def assess(household, diet, region, month=None):
 # Interventions
 # ---------------------------------------------------------------------------
 
-def rank_interventions(actions, region, month=None):
+def rank_interventions(
+    actions: list[dict[str, Any]] | None,
+    region: str,
+    month: str | int | None = None,
+) -> dict[str, Any]:
     """Rank saving options by scarcity, and report where litres disagree.
 
     ``actions`` is a list of dicts with ``label``, ``litres_saved`` and
@@ -611,7 +621,7 @@ def rank_interventions(actions, region, month=None):
     }
 
 
-def get_water_insights(assessment, diet_detail=None):
+def get_water_insights(assessment: dict[str, Any], diet_detail: dict[str, Any] | None = None) -> list[str]:
     """Plain-language guidance from a completed assessment."""
     insights = []
 
@@ -694,11 +704,11 @@ def get_water_insights(assessment, diet_detail=None):
 # Storage
 # ---------------------------------------------------------------------------
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_water_scarcity_db():
+def init_water_scarcity_db() -> bool:
     """Create the table if it does not exist yet."""
     conn = None
     try:
@@ -729,7 +739,7 @@ def init_water_scarcity_db():
             conn.close()
 
 
-def save_assessment(user_id, name, assessment):
+def save_assessment(user_id: int, name: str, assessment: dict[str, Any]) -> int | None:
     """Persist an assessment. Returns the row id or None."""
     init_water_scarcity_db()
     conn = None
@@ -763,7 +773,7 @@ def save_assessment(user_id, name, assessment):
             conn.close()
 
 
-def get_saved_assessments(user_id, limit=25):
+def get_saved_assessments(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """A user's saved assessments, newest first."""
     init_water_scarcity_db()
     conn = None
@@ -799,7 +809,7 @@ def get_saved_assessments(user_id, limit=25):
             conn.close()
 
 
-def delete_saved_assessment(assessment_id):
+def delete_saved_assessment(assessment_id: int) -> bool:
     """Delete a saved assessment."""
     init_water_scarcity_db()
     conn = None

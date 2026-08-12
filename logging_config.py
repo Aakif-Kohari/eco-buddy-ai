@@ -71,7 +71,7 @@ class SecureLogFilter(logging.Filter):
 class SecureTextFormatter(logging.Formatter):
     """Text formatter that sanitizes the full rendered traceback."""
 
-    def formatException(self, exc_info) -> str:
+    def formatException(self, exc_info: tuple | None) -> str:
         return sanitize_string(
             super().formatException(exc_info),
             mask_emails=LOG_MASK_EMAILS,
@@ -87,7 +87,7 @@ class SecureTextFormatter(logging.Formatter):
 class JsonLogFormatter(logging.Formatter):
     """Format structured logs as one JSON object per line."""
 
-    def formatException(self, exc_info) -> str:
+    def formatException(self, exc_info: tuple | None) -> str:
         return sanitize_string(
             super().formatException(exc_info),
             mask_emails=LOG_MASK_EMAILS,

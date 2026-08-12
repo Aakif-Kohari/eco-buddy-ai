@@ -7,6 +7,7 @@ from database import (
     save_dashboard_widget_preferences,
 )
 
+
 WIDGETS = OrderedDict([
     ("summary", "Latest impact summary"),
     ("eco_score", "Eco score"),
@@ -15,6 +16,17 @@ WIDGETS = OrderedDict([
     ("quick_tips", "Quick eco tips"),
 ])
 
+WIDGETS = OrderedDict(
+    [
+        ("summary", "🌍 Latest impact summary"),
+        ("eco_score", "🏆 Eco score"),
+        ("trend", "📈 Footprint trend"),
+        ("activity", "🧭 Latest activity"),
+        ("quick_tips", "💡 Quick eco tips"),
+        ("insights", "🔎 Personal insights"),
+    ]
+)
+
 DEFAULT_WIDGETS = tuple(WIDGETS.keys())
 SESSION_KEY = "dashboard_widget_preferences"
 
@@ -22,6 +34,7 @@ def normalize_widget_preferences(widget_ids: Iterable[str] | None) -> List[str]:
     """Normalize widget preferences to a valid list of widget IDs"""
     if widget_ids is None:
         return list(DEFAULT_WIDGETS)
+
     
     valid_widgets = list(WIDGETS.keys())
     normalized = []
@@ -70,6 +83,103 @@ def render_widget(widget_id: str, user_id: str = None):
         assessments = get_assessments(user_id)
         if assessments:
             latest = assessments[-1] if assessments else None
+
+    return normalize_widget_preferences(saved)
+
+
+def render_widget_customizer(user_id: int) -> list[str]:
+    """Render the sidebar widget picker and persist explicit saves."""
+    if SESSION_KEY not in st.session_state:
+        st.session_state[SESSION_KEY] = load_widget_preferences(user_id)
+
+    with st.sidebar.expander("🧩 Dashboard widgets", expanded=False):
+        st.caption("Choose which cards appear on your personal dashboard.")
+        with st.form("dashboard_widget_preferences_form"):
+            selected_labels = st.multiselect(
+                "Visible widgets",
+                options=list(WIDGETS.values()),
+                default=[
+                    WIDGETS[widget_id]
+                    for widget_id in st.session_state[SESSION_KEY]
+                    if widget_id in WIDGETS
+                ],
+                help="Your selection is restored the next time you sign in.",
+            )
+            save_clicked = st.form_submit_button(
+                "Save dashboard",
+                use_container_width=True,
+            )
+
+        if save_clicked:
+            label_to_id = {label: widget_id for widget_id, label in WIDGETS.items()}
+            selected_ids = normalize_widget_preferences(
+                label_to_id[label] for label in selected_labels
+            )
+            if save_dashboard_widget_preferences(user_id, selected_ids):
+                st.session_state[SESSION_KEY] = selected_ids
+                st.success("Dashboard preferences saved.")
+                st.rerun()
+            else:
+                st.error("Could not save dashboard preferences. Please try again.")
+
+        if not st.session_state[SESSION_KEY]:
+            st.info("No widgets selected. Use the picker above to add dashboard cards.")
+
+    return list(st.session_state[SESSION_KEY])
+
+
+@st.cache_data(show_spinner=False)
+def _assessment_rows_to_frame(rows: tuple) -> pd.DataFrame:
+    import pandas as pd
+    columns = [
+        "id",
+        "date",
+        "transport",
+        "distance",
+        "electricity",
+        "diet",
+        "flights",
+        "footprint",
+        "eco_score",
+    ]
+    frame = pd.DataFrame(rows, columns=columns)
+    if not frame.empty:
+        frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+        frame["footprint"] = pd.to_numeric(frame["footprint"], errors="coerce")
+        frame["eco_score"] = pd.to_numeric(frame["eco_score"], errors="coerce")
+    return frame
+
+
+def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str]) -> None:
+    """Render the saved dashboard layout using the user's assessment history."""
+    selected = normalize_widget_preferences(selected_widgets)
+    if not selected:
+        return
+
+    # Breadcrumb navigation for the dashboard section
+    st.markdown(
+        """
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <span class="breadcrumb-item">🏠 Home</span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-item active">📊 Dashboard</span>
+        </nav>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<div class='section-header'>📊 My Dashboard</div>", unsafe_allow_html=True)
+    st.caption("Personalized widgets based on your saved dashboard preferences.")
+
+    frame = _assessment_rows_to_frame(tuple(get_assessments(user_id)))
+    latest: Mapping[str, object] | None = None
+    if not frame.empty:
+        latest = frame.iloc[0].to_dict()
+
+    if "summary" in selected:
+        with st.container(border=True):
+            st.subheader("🌍 Latest impact summary")
+
             if latest:
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -233,5 +343,78 @@ def main():
     # Render dashboard
     render_dashboard(user_id)
 
+
 if __name__ == "__main__":
     main()
+
+    if "quick_tips" in selected:
+        with st.container(border=True):
+            st.subheader("💡 Quick eco tips")
+            tips = [
+                "Walk, cycle, or use public transport for short journeys.",
+                "Turn off standby appliances and unnecessary lights.",
+                "Plan meals to reduce food waste.",
+            ]
+            if latest and str(latest.get("transport")) == "Car":
+                tips.insert(0, "Combine car trips or car-share to reduce transport emissions.")
+            for tip in tips[:3]:
+                st.markdown(f"- {tip}")
+    if "insights" in selected:
+        with st.container(border=True):
+            st.subheader("🔎 Personal insights")
+
+            if latest:
+                footprint = float(latest["footprint"])
+                score = int(latest["eco_score"])
+                transport = str(latest["transport"])
+                electricity = float(latest["electricity"])
+                flights = int(latest["flights"])
+
+                insights = []
+
+                if score >= 85:
+                    insights.append(
+                        "🌱 Your eco score is excellent. Keep maintaining your current habits."
+                    )
+                elif score >= 70:
+                    insights.append(
+                        "🌿 Your sustainability habits are strong, with room for further improvement."
+                    )
+                elif score >= 50:
+                    insights.append(
+                        "💡 Your score shows progress. Focus on one high-impact lifestyle change at a time."
+                    )
+                else:
+                    insights.append(
+                        "⚡ Your footprint has significant improvement potential. Start with your largest emission source."
+                    )
+
+                if transport.lower() in {"car", "taxi"}:
+                    insights.append(
+                        "🚗 Transport is an important area to improve. Consider public transport, walking, cycling, or car-sharing."
+                    )
+
+                if electricity >= 300:
+                    insights.append(
+                        "🔌 Your electricity usage is relatively high. Reducing unnecessary appliance use could help."
+                    )
+                elif electricity >= 150:
+                    insights.append(
+                        "💡 Look for small electricity savings by switching off unused lights and appliances."
+                    )
+
+                if flights > 0:
+                    insights.append(
+                        "✈️ Air travel contributes to your footprint. Consider alternatives when practical."
+                    )
+
+                st.metric("Current footprint", f"{footprint:,.0f} kg CO₂/year")
+
+                for insight in insights[:4]:
+                    st.markdown(f"- {insight}")
+
+            else:
+                st.info(
+                    "Complete a carbon assessment to receive personalized sustainability insights."
+                )
+

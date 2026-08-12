@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from typing import Any
 import requests
 import streamlit as st
 from cache import cached
@@ -10,7 +11,7 @@ from config import CATEGORY_WEIGHTS
 LLM_COOLDOWN_SECONDS = 2.0
 
 
-def _check_rate_limit(provider):
+def _check_rate_limit(provider: str) -> bool:
     key = f"_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -20,7 +21,7 @@ def _check_rate_limit(provider):
     return True
 
 
-def compute_assessment_diff(current, previous):
+def compute_assessment_diff(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any] | None:
     if previous is None:
         return None
 
@@ -89,7 +90,7 @@ def compute_assessment_diff(current, previous):
     }
 
 
-def _build_ai_prompt(diff):
+def _build_ai_prompt(diff: dict[str, Any]) -> str:
     lines = []
     lines.append("Compare the user's two most recent carbon footprint assessments and explain what changed, why it matters, and how to improve.")
     lines.append("")
@@ -121,7 +122,7 @@ def _build_ai_prompt(diff):
     return "\n".join(lines)
 
 
-def _call_llm(prompt):
+def _call_llm(prompt: str) -> dict[str, Any] | None:
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and _check_rate_limit("gemini"):
         try:
@@ -169,7 +170,7 @@ def _call_llm(prompt):
     return None
 
 
-def generate_what_changed_analysis(current, previous):
+def generate_what_changed_analysis(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any] | None:
     diff = compute_assessment_diff(current, previous)
     if diff is None:
         return None
@@ -195,7 +196,7 @@ def generate_what_changed_analysis(current, previous):
     return _fallback_analysis(diff)
 
 
-def _fallback_analysis(diff):
+def _fallback_analysis(diff: dict[str, Any]) -> dict[str, Any]:
     parts = []
     if diff["footprint"]["delta"] > 0:
         parts.append(f"Your carbon footprint increased by {diff['footprint']['pct']}% ({diff['footprint']['delta']:+.0f} kg CO₂) compared to your last assessment.")
@@ -223,7 +224,7 @@ def _fallback_analysis(diff):
     }
 
 
-def _generate_fallback_suggestion(diff):
+def _generate_fallback_suggestion(diff: dict[str, Any]) -> str:
     suggestions = []
     for field in diff.get("changes", {}):
         ch = diff["changes"][field]
@@ -247,7 +248,7 @@ def _generate_fallback_suggestion(diff):
     return " ".join(suggestions)
 
 
-def render_what_changed_ui(diff_result):
+def render_what_changed_ui(diff_result: dict[str, Any] | None) -> None:
     if diff_result is None:
         return
 

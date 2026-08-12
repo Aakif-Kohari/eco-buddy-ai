@@ -8,7 +8,7 @@ It's idempotent (uses IF NOT EXISTS) so it can be re-run safely.
 import sqlite3
 
 
-def migrate(conn):
+def migrate(conn: sqlite3.Connection) -> None:
     """
     Apply migration v3: Create water_consumption table.
     """

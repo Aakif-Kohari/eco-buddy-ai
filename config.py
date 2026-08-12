@@ -24,7 +24,7 @@ DIET_NORMALIZE_MAP = {
 }
 
 
-def normalize_diet(diet):
+def normalize_diet(diet: str) -> str:
     if not diet:
         return "Vegetarian"
     lower = diet.strip().lower()
@@ -61,15 +61,15 @@ MAX_ELECTRICITY = 10000
 MAX_FLIGHTS = 365
 
 TRANSPORT_EMISSION_FACTORS = {
-    "Car": 0.21,
+    "Car": 0.19,
     "Bike": 0.0,
-    "Public Transport": 0.08,
+    "Public Transport": 0.07,
     "Walking": 0.0,
 }
 
 DIET_EMISSION_FACTORS = {
-    "Vegetarian": 1000,
-    "Non-Vegetarian": 1800,
+    "Vegetarian": 950,
+    "Non-Vegetarian": 1750,
 }
 
 # Energy audit constants

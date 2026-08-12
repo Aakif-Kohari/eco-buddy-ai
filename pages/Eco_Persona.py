@@ -21,7 +21,8 @@ st.markdown(
 if st.button("🔄 Re-analyze My Eco Persona", use_container_width=True):
     st.rerun()
 
-profile = generate_persona_profile(user_id)
+with st.spinner("Analyzing your sustainability data..."):
+    profile = generate_persona_profile(user_id)
 persona = profile["persona"]
 metrics = profile["metrics"]
 

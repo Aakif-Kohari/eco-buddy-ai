@@ -1,7 +1,9 @@
 """Migration v7: record which emission factor set produced each assessment."""
 
+import sqlite3
 
-def migrate(conn):
+
+def migrate(conn: sqlite3.Connection) -> None:
     """
     Add assessments.factor_version so a stored footprint can be reproduced.
 

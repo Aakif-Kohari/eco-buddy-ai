@@ -239,15 +239,15 @@ def _stable_cache_key(
 
 
 def cached(
-    ttl=None,
-    category=None,
-    max_entries=None,
-    show_spinner=False,
-    func_name=None,
-    stale_ttl=None,
-    namespace=None,
-    clock=time.monotonic,
-):
+    ttl: int | float | None = None,
+    category: str | None = None,
+    max_entries: int | None = None,
+    show_spinner: bool = False,
+    func_name: str | None = None,
+    stale_ttl: int | None = None,
+    namespace: str | None = None,
+    clock: Callable[[], float] = time.monotonic,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Cache function results with per-key stampede protection.
 
     Args:
@@ -266,7 +266,7 @@ def cached(
     """
     del show_spinner  # Accepted for API compatibility.
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         category_config = CACHE_CATEGORIES.get(category, {})
 
         resolved_ttl = (
@@ -296,7 +296,7 @@ def cached(
         )
 
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             key = _stable_cache_key(
                 cache_namespace,
                 args,
@@ -307,7 +307,7 @@ def cached(
                 lambda: func(*args, **kwargs),
             )
 
-        def tracked_clear(*_args, **_kwargs):
+        def tracked_clear(*_args: Any, **_kwargs: Any) -> None:
             record_invalidation(cache_name)
             protected_cache.clear()
 
@@ -323,7 +323,7 @@ def cached(
     return decorator
 
 
-def invalidate_category(category):
+def invalidate_category(category: str) -> None:
     """Invalidate every registered function in one cache category."""
     from invalidation import get_cached_functions_for_category
 
@@ -332,7 +332,7 @@ def invalidate_category(category):
             func.clear()
 
 
-def bulk_invalidate(*categories):
+def bulk_invalidate(*categories: str) -> None:
     """Invalidate all cached functions across multiple categories."""
     for category in categories:
         invalidate_category(category)

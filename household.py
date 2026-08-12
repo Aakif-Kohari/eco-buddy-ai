@@ -24,6 +24,7 @@ import os
 import sqlite3
 import hashlib
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ REGIONAL_PER_CAPITA_KG = {
 }
 
 
-def generate_join_code(seed):
+def generate_join_code(seed: Any) -> str:
     """Derive a short, stable, human-friendly join code from a seed value."""
     digest = hashlib.sha256(str(seed).encode("utf-8")).hexdigest()
     number = int(digest[:16], 16)
@@ -87,7 +88,7 @@ def generate_join_code(seed):
     return "".join(code)
 
 
-def normalize_join_code(code):
+def normalize_join_code(code: str) -> str:
     """Normalise user-typed join codes (case, spaces, punctuation)."""
     if not code:
         return ""
@@ -97,7 +98,7 @@ def normalize_join_code(code):
     return cleaned[:JOIN_CODE_LENGTH]
 
 
-def _clean_weight(weight):
+def _clean_weight(weight: float) -> float:
     """Clamp an occupancy weight into the allowed range."""
     try:
         value = float(weight)
@@ -108,7 +109,7 @@ def _clean_weight(weight):
     return max(MIN_WEIGHT, min(value, MAX_WEIGHT))
 
 
-def validate_member_weights(members):
+def validate_member_weights(members: list[dict[str, Any]]) -> tuple[bool, str]:
     """Validate a member list before it is used for allocation.
 
     Returns ``(is_valid, message)``.
@@ -138,7 +139,7 @@ def validate_member_weights(members):
     return True, "Household members look good."
 
 
-def _distribute(total, raw_shares):
+def _distribute(total: float, raw_shares: list[float]) -> list[float]:
     """Scale ``raw_shares`` so they sum exactly to ``total``.
 
     The rounding remainder is given to the largest share, which keeps the
@@ -162,7 +163,7 @@ def _distribute(total, raw_shares):
     return shares
 
 
-def allocate_shared_emissions(total_kg, members, method=DEFAULT_METHOD, usage=None):
+def allocate_shared_emissions(total_kg: float, members: list[dict[str, Any]], method: str = DEFAULT_METHOD, usage: dict[str, Any] | None = None) -> dict[str, float]:
     """Split a shared emission total between household members.
 
     ``usage`` maps member names to a measured usage value and is only read by
@@ -197,8 +198,12 @@ def allocate_shared_emissions(total_kg, members, method=DEFAULT_METHOD, usage=No
 
 
 def compute_household_footprint(
-    members, shared_inputs, personal_by_member=None, method=DEFAULT_METHOD, usage=None
-):
+    members: list[dict[str, Any]],
+    shared_inputs: dict[str, Any],
+    personal_by_member: dict[str, Any] | None = None,
+    method: str = DEFAULT_METHOD,
+    usage: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Build the full household breakdown.
 
     ``shared_inputs`` maps shared category keys to annual kg CO2 for the whole
@@ -287,7 +292,7 @@ def compute_household_footprint(
     }
 
 
-def rank_members(breakdown):
+def rank_members(breakdown: dict[str, Any]) -> list[dict[str, Any]]:
     """Rank members against the household average."""
     members = breakdown.get("members", [])
     if not members:
@@ -312,7 +317,7 @@ def rank_members(breakdown):
     return ranked
 
 
-def household_insights(breakdown, limit=4):
+def household_insights(breakdown: dict[str, Any], limit: int = 4) -> list[str]:
     """Generate plain-language observations about a household breakdown."""
     if not breakdown.get("members"):
         return ["Add household members to see how your emissions split."]
@@ -358,7 +363,7 @@ def household_insights(breakdown, limit=4):
     return insights[: max(0, int(limit))]
 
 
-def per_capita_vs_national(per_capita_kg, region="Global"):
+def per_capita_vs_national(per_capita_kg: float, region: str = "Global") -> dict[str, Any]:
     """Compare a household's per-capita footprint to a regional average."""
     baseline = REGIONAL_PER_CAPITA_KG.get(region, REGIONAL_PER_CAPITA_KG["Global"])
     per_capita_kg = max(0.0, float(per_capita_kg or 0.0))
@@ -374,11 +379,11 @@ def per_capita_vs_national(per_capita_kg, region="Global"):
     }
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_household_db():
+def init_household_db() -> bool:
     """Create the household tables if they do not exist yet."""
     conn = None
     try:
@@ -420,7 +425,7 @@ def init_household_db():
             conn.close()
 
 
-def create_household(name, owner_user_id, method=DEFAULT_METHOD, region="Global"):
+def create_household(name: str, owner_user_id: int, method: str = DEFAULT_METHOD, region: str = "Global") -> int | None:
     """Create a household owned by ``owner_user_id``. Returns the new row id."""
     init_household_db()
     conn = None
@@ -457,7 +462,7 @@ def create_household(name, owner_user_id, method=DEFAULT_METHOD, region="Global"
             conn.close()
 
 
-def get_household(household_id):
+def get_household(household_id: int) -> dict[str, Any] | None:
     """Return a household row plus its members, or None."""
     init_household_db()
     conn = None
@@ -485,7 +490,7 @@ def get_household(household_id):
             conn.close()
 
 
-def get_household_by_code(code):
+def get_household_by_code(code: str) -> dict[str, Any] | None:
     """Find a household by its join code, however the user typed it."""
     init_household_db()
     normalized = normalize_join_code(code)
@@ -507,7 +512,7 @@ def get_household_by_code(code):
             conn.close()
 
 
-def get_households_for_user(user_id):
+def get_households_for_user(user_id: int) -> list[dict[str, Any]]:
     """Return every household a user owns or belongs to."""
     init_household_db()
     conn = None
@@ -532,7 +537,7 @@ def get_households_for_user(user_id):
             conn.close()
 
 
-def update_household(household_id, name=None, method=None, region=None):
+def update_household(household_id: int, name: str | None = None, method: str | None = None, region: str | None = None) -> bool:
     """Update a household's name, allocation method or region."""
     init_household_db()
     updates = []
@@ -568,7 +573,7 @@ def update_household(household_id, name=None, method=None, region=None):
             conn.close()
 
 
-def add_member(household_id, name, weight=DEFAULT_WEIGHT, role="Adult", user_id=None):
+def add_member(household_id: int, name: str, weight: float = DEFAULT_WEIGHT, role: str = "Adult", user_id: int | None = None) -> int | None:
     """Add a member to a household. Names are unique per household."""
     init_household_db()
     name = str(name or "").strip()
@@ -607,7 +612,7 @@ def add_member(household_id, name, weight=DEFAULT_WEIGHT, role="Adult", user_id=
             conn.close()
 
 
-def get_members(household_id):
+def get_members(household_id: int) -> list[dict[str, Any]]:
     """Return a household's members, ordered by name."""
     init_household_db()
     conn = None
@@ -632,7 +637,7 @@ def get_members(household_id):
             conn.close()
 
 
-def update_member(member_id, weight=None, role=None):
+def update_member(member_id: int, weight: float | None = None, role: str | None = None) -> bool:
     """Update a member's occupancy weight or role."""
     init_household_db()
     updates = []
@@ -665,7 +670,7 @@ def update_member(member_id, weight=None, role=None):
             conn.close()
 
 
-def remove_member(member_id):
+def remove_member(member_id: int) -> bool:
     """Remove a single member from a household."""
     init_household_db()
     conn = None
@@ -684,7 +689,7 @@ def remove_member(member_id):
             conn.close()
 
 
-def join_household(code, user_id, display_name):
+def join_household(code: str, user_id: int, display_name: str) -> tuple[bool, str]:
     """Join an existing household by code. Returns ``(success, message)``."""
     household = get_household_by_code(code)
     if not household:
@@ -706,7 +711,7 @@ def join_household(code, user_id, display_name):
     return True, f"You joined {household['name']}."
 
 
-def delete_household(household_id):
+def delete_household(household_id: int) -> bool:
     """Delete a household and all of its members."""
     init_household_db()
     conn = None

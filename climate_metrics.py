@@ -59,6 +59,7 @@ import os
 import json
 import sqlite3
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +272,7 @@ class ClimateMetricsError(ValueError):
     """Raised when a request cannot be answered honestly."""
 
 
-def _as_float(value, default=0.0):
+def _as_float(value: Any, default: float = 0.0) -> float:
     try:
         result = float(value)
     except (TypeError, ValueError):
@@ -281,7 +282,7 @@ def _as_float(value, default=0.0):
     return result
 
 
-def _non_negative(value, default=0.0):
+def _non_negative(value: Any, default: float = 0.0) -> float:
     return max(0.0, _as_float(value, default))
 
 
@@ -289,12 +290,12 @@ def _non_negative(value, default=0.0):
 # Decomposition
 # ---------------------------------------------------------------------------
 
-def list_activities():
+def list_activities() -> list[str]:
     """Activities with a known gas split."""
     return sorted(ACTIVITY_GAS_SPLITS.keys())
 
 
-def gas_split(activity):
+def gas_split(activity: str) -> dict[str, float]:
     """The gas fractions for an activity, without the prose note."""
     if activity not in ACTIVITY_GAS_SPLITS:
         raise ClimateMetricsError(
@@ -310,14 +311,14 @@ def gas_split(activity):
     }
 
 
-def split_note(activity):
+def split_note(activity: str) -> str:
     """Why an activity's split looks the way it does."""
     if activity not in ACTIVITY_GAS_SPLITS:
         raise ClimateMetricsError(f"No gas split for '{activity}'.")
     return ACTIVITY_GAS_SPLITS[activity].get("note", "")
 
 
-def decompose(activity, co2e_kg):
+def decompose(activity: str, co2e_kg: float) -> dict[str, Any]:
     """Split an activity's GWP100 CO2e into per-gas CO2e contributions.
 
     The app stores CO2e and not gas masses, so this divides the CO2e figure
@@ -347,7 +348,7 @@ def decompose(activity, co2e_kg):
     }
 
 
-def decompose_footprint(activities):
+def decompose_footprint(activities: dict[str, float]) -> dict[str, Any]:
     """Decompose a whole footprint given {activity: co2e_kg}.
 
     Unknown activities raise rather than being silently filed as CO2.
@@ -378,7 +379,7 @@ def decompose_footprint(activities):
     }
 
 
-def methane_share(by_gas_co2e):
+def methane_share(by_gas_co2e: dict[str, float] | None) -> float:
     """Fraction of a GWP100 total that is methane."""
     total = sum(_as_float(value) for value in (by_gas_co2e or {}).values())
     if total <= 0:
@@ -393,7 +394,7 @@ def methane_share(by_gas_co2e):
 # Metric conversion
 # ---------------------------------------------------------------------------
 
-def convert(by_gas_mass, metric="gwp100"):
+def convert(by_gas_mass: dict[str, float] | None, metric: str = "gwp100") -> dict[str, float]:
     """Convert per-gas masses (kg) into CO2e (kg) under a chosen metric.
 
     Only pulse metrics are available here. GWP* needs an emissions history
@@ -413,7 +414,7 @@ def convert(by_gas_mass, metric="gwp100"):
     }
 
 
-def compare_metrics(by_gas_mass):
+def compare_metrics(by_gas_mass: dict[str, float] | None) -> dict[str, Any]:
     """The same emissions under GWP100 and GWP20, with the gap explained."""
     masses = by_gas_mass or {}
     hundred = convert(masses, "gwp100")
@@ -454,7 +455,7 @@ def compare_metrics(by_gas_mass):
 # GWP*
 # ---------------------------------------------------------------------------
 
-def gwp_star(methane_history_kg, window_years=GWP_STAR_WINDOW_YEARS):
+def gwp_star(methane_history_kg: list[float] | None, window_years: int = GWP_STAR_WINDOW_YEARS) -> dict[str, Any]:
     """CO2-warming-equivalent of a methane emissions history.
 
     ``methane_history_kg`` is annual methane emissions in kg, oldest first.
@@ -539,7 +540,7 @@ def gwp_star(methane_history_kg, window_years=GWP_STAR_WINDOW_YEARS):
     }
 
 
-def gwp_star_vs_gwp100(methane_history_kg, window_years=GWP_STAR_WINDOW_YEARS):
+def gwp_star_vs_gwp100(methane_history_kg: list[float] | None, window_years: int = GWP_STAR_WINDOW_YEARS) -> dict[str, Any]:
     """Both accountings of a methane history, with the disagreement stated."""
     star = gwp_star(methane_history_kg, window_years)
     pulse = star.get("pulse_gwp100_kg", star["co2we_kg"])
@@ -560,7 +561,7 @@ def gwp_star_vs_gwp100(methane_history_kg, window_years=GWP_STAR_WINDOW_YEARS):
 # Biogenic carbon
 # ---------------------------------------------------------------------------
 
-def biogenic_payback(activity, biogenic_co2_kg, years=None):
+def biogenic_payback(activity: str, biogenic_co2_kg: float, years: int | None = None) -> dict[str, Any]:
     """Report biogenic carbon with the regrowth period attached.
 
     Neither "carbon neutral" nor "same as fossil" is true. Both are answers
@@ -599,7 +600,7 @@ def biogenic_payback(activity, biogenic_co2_kg, years=None):
     }
 
 
-def separate_carbon(by_gas_co2e):
+def separate_carbon(by_gas_co2e: dict[str, float] | None) -> dict[str, Any]:
     """Split a decomposed footprint into fossil and biogenic carbon."""
     gases = by_gas_co2e or {}
     fossil = (
@@ -627,7 +628,7 @@ def separate_carbon(by_gas_co2e):
 # Temperature framing
 # ---------------------------------------------------------------------------
 
-def warming_contribution(co2we_kg, population=1):
+def warming_contribution(co2we_kg: float, population: int = 1) -> dict[str, Any]:
     """Approximate warming from a flow of emissions, in microkelvin.
 
     A per-person warming figure is not a precise quantity and should not be
@@ -656,7 +657,7 @@ def warming_contribution(co2we_kg, population=1):
 # Metric disagreement
 # ---------------------------------------------------------------------------
 
-def rank_under_metric(activities, metric="gwp100"):
+def rank_under_metric(activities: dict[str, float], metric: str = "gwp100") -> list[dict[str, Any]]:
     """Rank {activity: co2e_kg} by size under a chosen metric."""
     decomposed = decompose_footprint(activities)
     ranked = []
@@ -670,7 +671,7 @@ def rank_under_metric(activities, metric="gwp100"):
     return ranked
 
 
-def metric_disagreement(activities):
+def metric_disagreement(activities: dict[str, float]) -> list[dict[str, Any]]:
     """Activities whose ranking changes between GWP100 and GWP20.
 
     The most useful single output here. Two totals differing is expected;
@@ -700,7 +701,7 @@ def metric_disagreement(activities):
     return changes
 
 
-def get_metric_insights(decomposed, comparison=None):
+def get_metric_insights(decomposed: dict[str, Any] | None, comparison: dict[str, Any] | None = None) -> list[str]:
     """Plain-language guidance from a decomposed footprint."""
     insights = []
     gases = (decomposed or {}).get("by_gas_co2e", {})
@@ -762,11 +763,11 @@ def get_metric_insights(decomposed, comparison=None):
 # Storage
 # ---------------------------------------------------------------------------
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_climate_metrics_db():
+def init_climate_metrics_db() -> bool:
     """Create the tables if they do not exist yet."""
     conn = None
     try:
@@ -807,7 +808,7 @@ def init_climate_metrics_db():
             conn.close()
 
 
-def save_assessment(user_id, name, decomposed, comparison):
+def save_assessment(user_id: int, name: str | None, decomposed: dict[str, Any], comparison: dict[str, Any]) -> int | None:
     """Persist a decomposed footprint. Returns the row id or None."""
     init_climate_metrics_db()
     conn = None
@@ -844,7 +845,7 @@ def save_assessment(user_id, name, decomposed, comparison):
             conn.close()
 
 
-def get_assessments(user_id, limit=25):
+def get_assessments(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """A user's saved assessments, newest first."""
     init_climate_metrics_db()
     conn = None
@@ -880,7 +881,7 @@ def get_assessments(user_id, limit=25):
             conn.close()
 
 
-def delete_assessment(assessment_id):
+def delete_assessment(assessment_id: int) -> bool:
     """Delete a saved assessment."""
     init_climate_metrics_db()
     conn = None
@@ -900,7 +901,7 @@ def delete_assessment(assessment_id):
             conn.close()
 
 
-def record_methane_year(user_id, year, methane_kg):
+def record_methane_year(user_id: int, year: int, methane_kg: float) -> bool:
     """Record one year of methane emissions, replacing any existing entry."""
     init_climate_metrics_db()
     conn = None
@@ -925,7 +926,7 @@ def record_methane_year(user_id, year, methane_kg):
             conn.close()
 
 
-def get_methane_history(user_id):
+def get_methane_history(user_id: int) -> list[tuple[int, float]]:
     """A user's methane history as [(year, kg)], oldest first."""
     init_climate_metrics_db()
     conn = None

@@ -66,6 +66,7 @@ import math
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -354,7 +355,7 @@ class InventoryError(ValueError):
 # --- Classification ---------------------------------------------------------
 
 
-def list_activities(scope=None):
+def list_activities(scope: int | None = None) -> list[dict[str, Any]]:
     """Return the classification table, optionally filtered to one scope."""
     activities = [
         {"key": key, **details}
@@ -364,12 +365,12 @@ def list_activities(scope=None):
     return sorted(activities, key=lambda item: (item["scope"], item["label"]))
 
 
-def list_scope_3_categories():
+def list_scope_3_categories() -> list[dict[str, Any]]:
     """Return the Scope 3 categories used at household boundary."""
     return [{"key": key, "label": label} for key, label in SCOPE_3_CATEGORIES.items()]
 
 
-def classify(activity_key):
+def classify(activity_key: str) -> dict[str, Any]:
     """Return the scope classification for an activity, or raise.
 
     Unknown activities raise rather than defaulting to Scope 3. Quietly
@@ -382,12 +383,12 @@ def classify(activity_key):
     return {"key": activity_key, **details}
 
 
-def scope_of(activity_key):
+def scope_of(activity_key: str) -> int:
     """The scope number for an activity."""
     return classify(activity_key)["scope"]
 
 
-def explain(activity_key):
+def explain(activity_key: str) -> str:
     """Why an activity sits in the scope it does."""
     details = classify(activity_key)
     return f"{details['label']} is scope {details['scope']}: {details['rationale']}"
@@ -396,7 +397,7 @@ def explain(activity_key):
 # --- Scope 2 dual reporting -------------------------------------------------
 
 
-def _clean_number(value, field, allow_zero=True):
+def _clean_number(value: Any, field: str, allow_zero: bool = True) -> float:
     """Coerce a numeric input, rejecting the values that would corrupt a total."""
     try:
         number = float(value)
@@ -411,18 +412,18 @@ def _clean_number(value, field, allow_zero=True):
     return number
 
 
-def list_tariffs():
+def list_tariffs() -> list[dict[str, Any]]:
     """Return the supplier contract types."""
     return [{"name": name, **details} for name, details in TARIFF_TYPES.items()]
 
 
 def scope_2_dual(
-    kwh,
-    grid_intensity=DEFAULT_GRID_INTENSITY,
-    tariff=DEFAULT_TARIFF,
-    residual_uplift=DEFAULT_RESIDUAL_UPLIFT,
-    market_intensity=None,
-):
+    kwh: float,
+    grid_intensity: float = DEFAULT_GRID_INTENSITY,
+    tariff: str = DEFAULT_TARIFF,
+    residual_uplift: float = DEFAULT_RESIDUAL_UPLIFT,
+    market_intensity: float | None = None,
+) -> dict[str, Any]:
     """Location-based and market-based Scope 2, reported side by side.
 
     The GHG Protocol requires both, and the reason is visible in the output:
@@ -463,7 +464,7 @@ def scope_2_dual(
     }
 
 
-def _scope_2_explanation(tariff, location_based, market_based):
+def _scope_2_explanation(tariff: str, location_based: float, market_based: float) -> str:
     """Plain sentence explaining why the two Scope 2 numbers differ."""
     if market_based < location_based:
         return (
@@ -491,12 +492,12 @@ def _scope_2_explanation(tariff, location_based, market_based):
 
 
 def build_inventory(
-    line_items,
-    reporting_period="",
-    consolidation=DEFAULT_CONSOLIDATION,
-    scope_2_method="location_based",
-    exclusions=None,
-):
+    line_items: list[dict[str, Any]],
+    reporting_period: str = "",
+    consolidation: str = DEFAULT_CONSOLIDATION,
+    scope_2_method: str = "location_based",
+    exclusions: list[str] | None = None,
+) -> dict[str, Any]:
     """Assemble classified line items into a structured inventory.
 
     ``line_items`` is a list of dicts with ``activity`` and ``emissions`` in
@@ -585,7 +586,7 @@ def build_inventory(
     }
 
 
-def total_under_method(inventory, scope_2_method):
+def total_under_method(inventory: dict[str, Any], scope_2_method: str) -> float:
     """Restate a total under the other Scope 2 method.
 
     Cheap, and it stops anyone having to rebuild an inventory just to see the
@@ -599,7 +600,12 @@ def total_under_method(inventory, scope_2_method):
     return inventory["scope_1"] + scope_2 + inventory["scope_3"]
 
 
-def boundary_statement(reporting_period, consolidation, lines, exclusions=None):
+def boundary_statement(
+    reporting_period: str,
+    consolidation: str,
+    lines: list[dict[str, Any]],
+    exclusions: list[str] | None = None,
+) -> dict[str, Any]:
     """The boundary declaration. An inventory without one is not an inventory."""
     approach = (
         consolidation if consolidation in CONSOLIDATION_APPROACHES else DEFAULT_CONSOLIDATION
@@ -627,7 +633,7 @@ def boundary_statement(reporting_period, consolidation, lines, exclusions=None):
     }
 
 
-def assess_completeness(lines):
+def assess_completeness(lines: list[dict[str, Any]]) -> dict[str, Any]:
     """Score how much of a personal inventory has actually been reported.
 
     A user who has reported only their electricity has a low total and a
@@ -669,7 +675,9 @@ def assess_completeness(lines):
     }
 
 
-def _completeness_warning(rating, missing_high_impact, scopes_present):
+def _completeness_warning(
+    rating: str, missing_high_impact: list[str], scopes_present: set[int]
+) -> str:
     """Say plainly when a low total is under-reporting rather than achievement.
 
     Ordered by severity, most severe first. An entirely absent scope is a
@@ -700,7 +708,9 @@ def _completeness_warning(rating, missing_high_impact, scopes_present):
 # --- Base year and recalculation --------------------------------------------
 
 
-def recalculate_base_year(base_year_total, adjustment, reason=""):
+def recalculate_base_year(
+    base_year_total: float, adjustment: float, reason: str = ""
+) -> dict[str, Any]:
     """Apply the GHG Protocol recalculation rules to a base year.
 
     Without this, a change of methodology is indistinguishable from a change
@@ -743,7 +753,9 @@ def recalculate_base_year(base_year_total, adjustment, reason=""):
     }
 
 
-def compare_to_base_year(inventory, base_year_total, base_year_label=""):
+def compare_to_base_year(
+    inventory: dict[str, Any], base_year_total: float, base_year_label: str = ""
+) -> dict[str, Any]:
     """Track an inventory against its base year, per scope where possible."""
     base = _clean_number(base_year_total, "Base year total")
     current = inventory["total"]
@@ -768,7 +780,7 @@ def compare_to_base_year(inventory, base_year_total, base_year_label=""):
 # --- Export -----------------------------------------------------------------
 
 
-def export_inventory(inventory):
+def export_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
     """Emit an inventory as structured data suitable for reporting.
 
     Method notes and the boundary statement travel with the numbers, because
@@ -814,7 +826,7 @@ def export_inventory(inventory):
     }
 
 
-def get_scope_insights(inventory):
+def get_scope_insights(inventory: dict[str, Any]) -> list[str]:
     """Observations that follow from the scope split, not generic advice."""
     insights = []
     shares = inventory["shares"]
@@ -866,7 +878,7 @@ def get_scope_insights(inventory):
 # --- Persistence ------------------------------------------------------------
 
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     """Open a connection with the inventory tables guaranteed to exist."""
     conn = sqlite3.connect(DB_NAME)
     conn.execute(
@@ -904,7 +916,7 @@ def _connect():
     return conn
 
 
-def save_inventory(user_id, name, inventory):
+def save_inventory(user_id: int, name: str, inventory: dict[str, Any]) -> int | None:
     """Persist an inventory and its line items."""
     if not user_id:
         return None
@@ -961,7 +973,7 @@ def save_inventory(user_id, name, inventory):
         conn.close()
 
 
-def get_inventories(user_id, limit=25):
+def get_inventories(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return saved inventories for a user, newest first, with their lines."""
     if not user_id:
         return []
@@ -1026,7 +1038,7 @@ def get_inventories(user_id, limit=25):
         conn.close()
 
 
-def delete_inventory(user_id, inventory_id):
+def delete_inventory(user_id: int, inventory_id: int) -> bool:
     """Delete an inventory and its lines. Scoped by user."""
     if not user_id or not inventory_id:
         return False

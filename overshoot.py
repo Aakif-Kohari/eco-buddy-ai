@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 
 GLOBAL_BIOCAPACITY_PER_PERSON = 1.6
 GLOBAL_CO2_PER_PERSON_YEAR = 4.8
@@ -26,7 +27,7 @@ OVERSHOOT_HISTORY = {
 DAYS_IN_YEAR = 365.0
 
 
-def get_current_overshoot_day():
+def get_current_overshoot_day() -> date:
     today = date.today()
     year = today.year
     if year in OVERSHOOT_HISTORY:
@@ -34,7 +35,7 @@ def get_current_overshoot_day():
     return date(year, 7, 28)
 
 
-def get_next_overshoot_day():
+def get_next_overshoot_day() -> date:
     today = date.today()
     overshoot_date = get_current_overshoot_day()
     if today > overshoot_date:
@@ -45,7 +46,7 @@ def get_next_overshoot_day():
     return overshoot_date
 
 
-def calculate_personal_overshoot_day(total_annual_footprint_kg):
+def calculate_personal_overshoot_day(total_annual_footprint_kg: float) -> dict[str, Any] | None:
     if total_annual_footprint_kg <= 0:
         return None
     footprint_tonnes = total_annual_footprint_kg / 1000.0
@@ -68,7 +69,7 @@ def calculate_personal_overshoot_day(total_annual_footprint_kg):
     }
 
 
-def calculate_countdown(target_date):
+def calculate_countdown(target_date: date) -> dict[str, Any]:
     today = date.today()
     if target_date <= today:
         return {"days_until": 0, "passed": True}

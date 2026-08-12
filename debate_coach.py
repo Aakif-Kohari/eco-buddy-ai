@@ -14,6 +14,7 @@ import json
 import time
 import sqlite3
 import logging
+from typing import Any
 import requests
 import streamlit as st
 
@@ -125,7 +126,7 @@ DEBATE_TOPICS = {
 }
 
 
-def _check_rate_limit(provider):
+def _check_rate_limit(provider: str) -> bool:
     key = f"_debate_llm_last_call_{provider}"
     now = time.time()
     last_call = st.session_state.get(key, 0.0)
@@ -135,7 +136,7 @@ def _check_rate_limit(provider):
     return True
 
 
-def _call_llm(system_prompt, user_prompt, json_mode=True):
+def _call_llm(system_prompt: str, user_prompt: str, json_mode: bool = True) -> dict[str, Any] | str | None:
     """Call Gemini 2.5 Flash, falling back to Groq. Returns parsed content or None."""
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and _check_rate_limit("gemini"):
@@ -189,7 +190,7 @@ def _call_llm(system_prompt, user_prompt, json_mode=True):
     return None
 
 
-def generate_counterargument(topic_key, user_position, user_argument):
+def generate_counterargument(topic_key: str, user_position: str, user_argument: str) -> dict[str, Any] | None:
     """Generate a fact-based counterargument to the user's stance."""
     topic = DEBATE_TOPICS[topic_key]
     system_prompt = (
@@ -218,7 +219,7 @@ def generate_counterargument(topic_key, user_position, user_argument):
     return None
 
 
-def score_argument(user_argument, topic_key):
+def score_argument(user_argument: str, topic_key: str) -> dict[str, Any] | None:
     """Score the user's argument on clarity, evidence, and logic (0-100)."""
     topic = DEBATE_TOPICS[topic_key]
     system_prompt = (
@@ -250,11 +251,11 @@ def score_argument(user_argument, topic_key):
     }
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_debate_db():
+def init_debate_db() -> bool:
     conn = None
     try:
         conn = _get_conn()
@@ -282,7 +283,7 @@ def init_debate_db():
             conn.close()
 
 
-def save_debate(user_id, topic_key, user_position, user_argument, counterargument, score):
+def save_debate(user_id: int, topic_key: str, user_position: str, user_argument: str, counterargument: str | None, score: int | None) -> int:
     init_debate_db()
     conn = None
     try:
@@ -307,7 +308,7 @@ def save_debate(user_id, topic_key, user_position, user_argument, counterargumen
             conn.close()
 
 
-def get_debate_history(user_id, limit=20):
+def get_debate_history(user_id: int, limit: int = 20) -> list[dict[str, Any]]:
     init_debate_db()
     conn = None
     try:

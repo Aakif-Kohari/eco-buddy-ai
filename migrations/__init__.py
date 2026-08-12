@@ -12,20 +12,20 @@ import sqlite3
 from database_connection import database_connection
 
 
-def get_db_name():
+def get_db_name() -> str:
     """Get the current database name (read at runtime to support test DB switching)."""
     import database
     return database.DB_NAME
 
 
-def get_current_version(conn):
+def get_current_version(conn: sqlite3.Connection) -> int:
     """Get the current database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute("PRAGMA user_version")
     return cursor.fetchone()[0]
 
 
-def set_version(conn, version):
+def set_version(conn: sqlite3.Connection, version: int) -> None:
     """Set the database schema version using PRAGMA user_version."""
     cursor = conn.cursor()
     cursor.execute(f"PRAGMA user_version = {version}")
@@ -35,7 +35,7 @@ def set_version(conn, version):
 CURRENT_VERSION = 9
 
 
-def migrate():
+def migrate() -> tuple[bool, str]:
     """Apply all pending database migrations."""
     try:
         db_name = get_db_name()

@@ -63,6 +63,7 @@ import sqlite3
 import logging
 import statistics
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class UncertaintyError(ValueError):
 # --- Quality vocabulary -----------------------------------------------------
 
 
-def list_activity_qualities():
+def list_activity_qualities() -> list[dict[str, Any]]:
     """Return the activity data quality levels, tightest first."""
     levels = [
         {"key": key, **details} for key, details in ACTIVITY_QUALITY.items()
@@ -194,25 +195,25 @@ def list_activity_qualities():
     return sorted(levels, key=lambda item: item["gsd"])
 
 
-def list_factor_tiers():
+def list_factor_tiers() -> list[dict[str, Any]]:
     """Return the emission factor quality tiers, tightest first."""
     tiers = [{"key": key, **details} for key, details in FACTOR_TIER.items()]
     return sorted(tiers, key=lambda item: item["gsd"])
 
 
-def activity_gsd(quality):
+def activity_gsd(quality: str) -> float:
     """Geometric standard deviation implied by how activity data was obtained."""
     entry = ACTIVITY_QUALITY.get(quality) or ACTIVITY_QUALITY[DEFAULT_ACTIVITY_QUALITY]
     return entry["gsd"]
 
 
-def factor_gsd(tier):
+def factor_gsd(tier: str) -> float:
     """Geometric standard deviation implied by an emission factor's pedigree."""
     entry = FACTOR_TIER.get(tier) or FACTOR_TIER[DEFAULT_FACTOR_TIER]
     return entry["gsd"]
 
 
-def factor_tier_for_kind(kind):
+def factor_tier_for_kind(kind: str) -> str:
     """Map an `emission_factors.py` factor-set kind onto a quality tier."""
     return FACTOR_KIND_TIERS.get(kind, DEFAULT_FACTOR_TIER)
 
@@ -220,7 +221,7 @@ def factor_tier_for_kind(kind):
 # --- Lognormal arithmetic ---------------------------------------------------
 
 
-def combine_gsd(*gsds):
+def combine_gsd(*gsds: float) -> float:
     """Combine independent geometric standard deviations.
 
     Multiplicative errors add in quadrature on the log scale, so combining
@@ -240,7 +241,7 @@ def combine_gsd(*gsds):
     return math.exp(math.sqrt(total))
 
 
-def gsd_to_relative_spread(gsd):
+def gsd_to_relative_spread(gsd: float) -> float:
     """Approximate one-sigma relative spread of a lognormal, as a fraction.
 
     Reported as the symmetric-ish figure a user expects to see next to a
@@ -258,7 +259,7 @@ def gsd_to_relative_spread(gsd):
     return math.sqrt(math.exp(sigma ** 2) - 1.0)
 
 
-def lognormal_sigma(gsd):
+def lognormal_sigma(gsd: float) -> float:
     """Log-scale sigma for a given geometric standard deviation."""
     try:
         value = float(gsd)
@@ -267,7 +268,7 @@ def lognormal_sigma(gsd):
     return math.log(value) if value > 1.0 else 0.0
 
 
-def percentile(sorted_values, pct):
+def percentile(sorted_values: list[float], pct: float) -> float:
     """Linear-interpolated percentile of an already-sorted list."""
     if not sorted_values:
         return 0.0
@@ -290,14 +291,14 @@ def percentile(sorted_values, pct):
 
 
 def build_component(
-    name,
-    amount,
-    factor,
-    activity_quality=DEFAULT_ACTIVITY_QUALITY,
-    factor_tier=DEFAULT_FACTOR_TIER,
-    unit="",
-    category="",
-):
+    name: str,
+    amount: float,
+    factor: float,
+    activity_quality: str = DEFAULT_ACTIVITY_QUALITY,
+    factor_tier: str = DEFAULT_FACTOR_TIER,
+    unit: str = "",
+    category: str = "",
+) -> dict[str, Any]:
     """Describe one contribution to a footprint and its uncertainty.
 
     ``amount`` is activity data in whatever unit the factor expects, and
@@ -339,12 +340,12 @@ def build_component(
     }
 
 
-def point_estimate(components):
+def point_estimate(components: list[dict[str, Any]]) -> float:
     """Sum of the component point estimates - what the app reports today."""
     return sum(float(component.get("emissions", 0.0)) for component in components or [])
 
 
-def _validate_components(components):
+def _validate_components(components: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return a usable component list or raise."""
     if not components:
         raise UncertaintyError("At least one component is required")
@@ -357,7 +358,7 @@ def _validate_components(components):
 # --- Monte Carlo propagation ------------------------------------------------
 
 
-def _clean_iterations(iterations):
+def _clean_iterations(iterations: int) -> int:
     """Clamp an iteration count into a range that is fast and meaningful."""
     try:
         count = int(iterations)
@@ -366,7 +367,11 @@ def _clean_iterations(iterations):
     return max(MIN_ITERATIONS, min(MAX_ITERATIONS, count))
 
 
-def _sample_matrix(components, iterations, seed):
+def _sample_matrix(
+    components: list[dict[str, Any]],
+    iterations: int,
+    seed: int | None,
+) -> list[list[float]]:
     """Draw ``iterations`` lognormal samples for every component.
 
     Returned as one list of draws per component so the sensitivity analysis
@@ -397,14 +402,14 @@ def _sample_matrix(components, iterations, seed):
     return matrix
 
 
-def _column_sums(matrix, count):
+def _column_sums(matrix: list[list[float]], count: int) -> list[float]:
     """Total each Monte Carlo draw across every component."""
     if not matrix:
         return []
     return [sum(component[draw] for component in matrix) for draw in range(count)]
 
 
-def _summarise(totals, point):
+def _summarise(totals: list[float], point: float) -> dict[str, Any]:
     """Turn a list of sampled totals into the reported summary."""
     ordered = sorted(totals)
     mean = statistics.fmean(ordered)
@@ -429,7 +434,11 @@ def _summarise(totals, point):
     }
 
 
-def propagate(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_SEED):
+def propagate(
+    components: list[dict[str, Any]],
+    iterations: int = DEFAULT_ITERATIONS,
+    seed: int | None = DEFAULT_SEED,
+) -> dict[str, Any]:
     """Propagate component uncertainty into an interval around the total.
 
     Returns the point estimate the app shows today alongside the median, the
@@ -451,7 +460,7 @@ def propagate(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_SEED):
     return summary
 
 
-def analytical_interval(components):
+def analytical_interval(components: list[dict[str, Any]]) -> dict[str, Any]:
     """Cheap closed-form cross-check on the Monte Carlo result.
 
     Combines component variances assuming independence. It is not what the
@@ -483,7 +492,11 @@ def analytical_interval(components):
 # --- Sensitivity ------------------------------------------------------------
 
 
-def sensitivity_ranking(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_SEED):
+def sensitivity_ranking(
+    components: list[dict[str, Any]],
+    iterations: int = DEFAULT_ITERATIONS,
+    seed: int | None = DEFAULT_SEED,
+) -> list[dict[str, Any]]:
     """Rank components by how much of the total variance each one causes.
 
     For each component the total is recomputed with that component pinned to
@@ -530,7 +543,7 @@ def sensitivity_ranking(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_
     return sorted(rankings, key=lambda item: item["variance_share"], reverse=True)
 
 
-def _relative_half_width(totals):
+def _relative_half_width(totals: list[float]) -> float:
     """Relative P5-P95 half-width of a list of sampled totals."""
     ordered = sorted(totals)
     median = statistics.median(ordered)
@@ -542,11 +555,11 @@ def _relative_half_width(totals):
 
 
 def improvement_plan(
-    components,
-    target_quality="metered",
-    iterations=DEFAULT_ITERATIONS,
-    seed=DEFAULT_SEED,
-):
+    components: list[dict[str, Any]],
+    target_quality: str = "metered",
+    iterations: int = DEFAULT_ITERATIONS,
+    seed: int | None = DEFAULT_SEED,
+) -> dict[str, Any]:
     """What the interval would look like if each input were measured properly.
 
     Answers the question a user actually has once they have been shown an
@@ -619,11 +632,11 @@ def improvement_plan(
 
 
 def compare_footprints(
-    before_components,
-    after_components,
-    iterations=DEFAULT_ITERATIONS,
-    seed=DEFAULT_SEED,
-):
+    before_components: list[dict[str, Any]],
+    after_components: list[dict[str, Any]],
+    iterations: int = DEFAULT_ITERATIONS,
+    seed: int | None = DEFAULT_SEED,
+) -> dict[str, Any]:
     """Is the change between two footprints real, or is it noise?
 
     The naive approach - check whether the two intervals overlap - is well
@@ -670,7 +683,7 @@ def compare_footprints(
     }
 
 
-def _verdict(probability):
+def _verdict(probability: float) -> str:
     """Classify the strength of evidence for a real reduction."""
     if probability >= STRONG_EVIDENCE:
         return "reduced"
@@ -683,7 +696,7 @@ def _verdict(probability):
     return "inconclusive"
 
 
-def _explanation(probability, percent_change):
+def _explanation(probability: float, percent_change: float) -> str:
     """A plain sentence for the verdict, because the number alone gets misread."""
     magnitude = abs(percent_change)
     verdict = _verdict(probability)
@@ -714,7 +727,11 @@ def _explanation(probability, percent_change):
     )
 
 
-def detectable_change(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_SEED):
+def detectable_change(
+    components: list[dict[str, Any]],
+    iterations: int = DEFAULT_ITERATIONS,
+    seed: int | None = DEFAULT_SEED,
+) -> dict[str, Any]:
     """Smallest reduction that would be distinguishable from noise.
 
     Useful before the fact rather than after it: a user setting a 3% annual
@@ -738,7 +755,7 @@ def detectable_change(components, iterations=DEFAULT_ITERATIONS, seed=DEFAULT_SE
 # --- Narrative --------------------------------------------------------------
 
 
-def format_interval(summary, unit="kg CO2e", decimals=0):
+def format_interval(summary: dict[str, Any], unit: str = "kg CO2e", decimals: int = 0) -> str:
     """Render a summary as the string a user should see in place of a total."""
     median = summary.get("median", 0.0)
     lower = summary.get("lower", 0.0)
@@ -750,7 +767,7 @@ def format_interval(summary, unit="kg CO2e", decimals=0):
     )
 
 
-def get_uncertainty_notes(summary, rankings=None):
+def get_uncertainty_notes(summary: dict[str, Any], rankings: list[dict[str, Any]] | None = None) -> list[str]:
     """Short interpretation notes for a propagated result."""
     notes = []
     relative = summary.get("relative_half_width", 0.0)
@@ -802,7 +819,7 @@ def get_uncertainty_notes(summary, rankings=None):
 # --- Persistence ------------------------------------------------------------
 
 
-def _connect():
+def _connect() -> sqlite3.Connection:
     """Open a connection with the uncertainty table guaranteed to exist."""
     conn = sqlite3.connect(DB_NAME)
     conn.execute(
@@ -827,7 +844,7 @@ def _connect():
     return conn
 
 
-def save_profile(user_id, name, components, summary):
+def save_profile(user_id: int, name: str, components: list[dict[str, Any]], summary: dict[str, Any]) -> int | None:
     """Persist a set of components and the interval they produced."""
     if not user_id:
         return None
@@ -864,7 +881,7 @@ def save_profile(user_id, name, components, summary):
         conn.close()
 
 
-def get_profiles(user_id, limit=25):
+def get_profiles(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
     """Return saved profiles for a user, newest first."""
     if not user_id:
         return []
@@ -912,7 +929,7 @@ def get_profiles(user_id, limit=25):
     return profiles
 
 
-def delete_profile(user_id, profile_id):
+def delete_profile(user_id: int, profile_id: int) -> bool:
     """Delete one saved profile. Scoped by user so ids cannot be guessed."""
     if not user_id or not profile_id:
         return False

@@ -8,19 +8,13 @@ import os
 import tempfile
 import uuid
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
 from report_validation import validate_report_data
 
 
 logger = logging.getLogger(__name__)
 
 
-def generate_pdf(total, eco_score, insight):
+def generate_pdf(total: float, eco_score: int | float, insight: str) -> str | None:
     """Generate a PDF only when assessment data passes validation."""
     validation = validate_report_data(total, eco_score, insight)
     if not validation.is_valid:
@@ -31,6 +25,12 @@ def generate_pdf(total, eco_score, insight):
         return None
 
     cleaned = validation.cleaned_data
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     try:
         file_name = os.path.join(

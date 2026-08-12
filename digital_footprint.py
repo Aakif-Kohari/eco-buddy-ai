@@ -29,6 +29,7 @@ import json
 import sqlite3
 import logging
 import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,7 @@ KG_CO2_ABSORBED_PER_TREE_YEAR = 21.0
 KG_CO2_PER_SMARTPHONE_CHARGE = 0.008
 
 
-def get_streaming_quality_factor(quality):
+def get_streaming_quality_factor(quality: str) -> float:
     """Return the bitrate multiplier for a streaming quality label."""
     if not quality:
         return STREAMING_QUALITY_FACTORS[DEFAULT_STREAMING_QUALITY]
@@ -281,24 +282,24 @@ def get_streaming_quality_factor(quality):
     )
 
 
-def list_activities():
+def list_activities() -> list[dict[str, Any]]:
     """Return the activity catalogue as a list of dicts including the key."""
     return [dict(info, key=key) for key, info in DIGITAL_ACTIVITIES.items()]
 
 
-def default_usage():
+def default_usage() -> dict[str, float]:
     """Return a usage dict pre-filled with typical values."""
     return {key: info["default"] for key, info in DIGITAL_ACTIVITIES.items()}
 
 
-def get_grid_intensity(region=None):
+def get_grid_intensity(region: str | None = None) -> float:
     """Return the grid carbon intensity for a region, falling back to global."""
     if not region:
         return DEFAULT_GRID_INTENSITY
     return GRID_INTENSITY_BY_REGION.get(region, DEFAULT_GRID_INTENSITY)
 
 
-def _sanitize_amount(activity_key, amount):
+def _sanitize_amount(activity_key: str, amount: Any) -> float:
     """Clamp a raw usage amount into the activity's valid range."""
     info = DIGITAL_ACTIVITIES[activity_key]
     try:
@@ -310,7 +311,7 @@ def _sanitize_amount(activity_key, amount):
     return max(0.0, min(value, info["max"]))
 
 
-def _annual_units(activity_key, amount):
+def _annual_units(activity_key: str, amount: float) -> float:
     """Convert a usage amount into the yearly quantity used for the maths."""
     info = DIGITAL_ACTIVITIES[activity_key]
     if info["periodicity"] == "daily":
@@ -318,7 +319,7 @@ def _annual_units(activity_key, amount):
     return amount
 
 
-def activity_emissions(activity_key, amount, grid_intensity=None, quality=None):
+def activity_emissions(activity_key: str, amount: float, grid_intensity: float | None = None, quality: str | None = None) -> dict[str, Any]:
     """Return the annual kg CO2 for a single activity, split by stage.
 
     ``amount`` is expressed in the activity's own unit (hours/day, GB, ...).
@@ -360,7 +361,7 @@ def activity_emissions(activity_key, amount, grid_intensity=None, quality=None):
     }
 
 
-def calculate_digital_footprint(usage, grid_intensity=None, streaming_quality=None):
+def calculate_digital_footprint(usage: dict[str, Any], grid_intensity: float | None = None, streaming_quality: str | None = None) -> dict[str, Any]:
     """Calculate the full annual digital footprint for a usage dict.
 
     ``usage`` maps activity keys to amounts in each activity's own unit.
@@ -407,7 +408,7 @@ def calculate_digital_footprint(usage, grid_intensity=None, streaming_quality=No
     }
 
 
-def estimate_savings(usage, actions, grid_intensity=None, streaming_quality=None):
+def estimate_savings(usage: dict[str, Any], actions: list[str], grid_intensity: float | None = None, streaming_quality: str | None = None) -> dict[str, Any]:
     """Estimate the CO2 saved by applying a set of reduction actions."""
     baseline = calculate_digital_footprint(usage, grid_intensity, streaming_quality)
     action_keys = [key for key in (actions or []) if key in REDUCTION_ACTIONS]
@@ -449,7 +450,7 @@ def estimate_savings(usage, actions, grid_intensity=None, streaming_quality=None
     }
 
 
-def recommend_actions(result, limit=3):
+def recommend_actions(result: dict[str, Any], limit: int = 3) -> list[dict[str, Any]]:
     """Suggest the reduction actions that matter most for this user."""
     breakdown = result.get("breakdown", {})
     candidates = []
@@ -471,7 +472,7 @@ def recommend_actions(result, limit=3):
     return candidates[: max(0, int(limit))]
 
 
-def get_digital_tips(result, limit=6):
+def get_digital_tips(result: dict[str, Any], limit: int = 6) -> list[dict[str, Any]]:
     """Return tips ordered by the user's own highest-impact activities."""
     tips = []
     for activity in result.get("ranked", []):
@@ -491,7 +492,7 @@ def get_digital_tips(result, limit=6):
     return tips[: max(0, int(limit))]
 
 
-def compare_to_physical(annual_kg):
+def compare_to_physical(annual_kg: float) -> dict[str, float | int]:
     """Translate a digital footprint into relatable physical equivalents."""
     annual_kg = max(0.0, float(annual_kg or 0.0))
     return {
@@ -501,11 +502,11 @@ def compare_to_physical(annual_kg):
     }
 
 
-def _get_conn():
+def _get_conn() -> sqlite3.Connection:
     return sqlite3.connect(DB_NAME)
 
 
-def init_digital_footprint_db():
+def init_digital_footprint_db() -> bool:
     """Create the digital footprint table if it does not exist yet."""
     conn = None
     try:
@@ -535,7 +536,7 @@ def init_digital_footprint_db():
             conn.close()
 
 
-def save_digital_assessment(user_id, usage, result):
+def save_digital_assessment(user_id: int, usage: dict[str, Any], result: dict[str, Any]) -> int | None:
     """Persist one digital footprint assessment. Returns the new row id."""
     init_digital_footprint_db()
     conn = None
@@ -576,7 +577,7 @@ def save_digital_assessment(user_id, usage, result):
             conn.close()
 
 
-def get_digital_assessments(user_id, limit=50):
+def get_digital_assessments(user_id: int, limit: int = 50) -> list[dict[str, Any]]:
     """Return a user's saved digital assessments, newest first."""
     init_digital_footprint_db()
     conn = None
@@ -610,14 +611,14 @@ def get_digital_assessments(user_id, limit=50):
             conn.close()
 
 
-def _safe_json(raw):
+def _safe_json(raw: Any) -> Any:
     try:
         return json.loads(raw) if raw else {}
     except (TypeError, ValueError):
         return {}
 
 
-def get_digital_trend(user_id, limit=12):
+def get_digital_trend(user_id: int, limit: int = 12) -> dict[str, Any]:
     """Return a chronological trend series plus the change since the first entry."""
     assessments = get_digital_assessments(user_id, limit=limit)
     series = [
@@ -646,7 +647,7 @@ def get_digital_trend(user_id, limit=12):
     }
 
 
-def delete_digital_assessment(assessment_id):
+def delete_digital_assessment(assessment_id: int) -> bool:
     """Delete a single saved assessment."""
     init_digital_footprint_db()
     conn = None
@@ -666,7 +667,7 @@ def delete_digital_assessment(assessment_id):
             conn.close()
 
 
-def build_summary_text(result):
+def build_summary_text(result: dict[str, Any]) -> str:
     """Build a short human readable summary of a digital footprint result."""
     annual = result.get("annual_kg", 0.0)
     equivalents = compare_to_physical(annual)
@@ -684,7 +685,7 @@ def build_summary_text(result):
     )
 
 
-def usage_from_assessment(assessment):
+def usage_from_assessment(assessment: dict[str, Any]) -> dict[str, float]:
     """Rebuild a usage dict from a saved assessment row."""
     stored = (assessment or {}).get("usage", {})
     usage = default_usage()
@@ -694,6 +695,6 @@ def usage_from_assessment(assessment):
     return usage
 
 
-def today_iso():
+def today_iso() -> str:
     """Return today's date as an ISO string (kept here for easy patching)."""
     return datetime.date.today().isoformat()

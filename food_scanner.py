@@ -1,3 +1,5 @@
+from typing import Any
+
 FOOD_EMISSION_FACTORS = {
     "Beef (per 100g)": {"co2_kg": 27.0, "category": "Meat", "serving_g": 150},
     "Lamb (per 100g)": {"co2_kg": 22.0, "category": "Meat", "serving_g": 150},
@@ -32,7 +34,7 @@ FOOD_EMISSION_FACTORS = {
 CATEGORIES = ["Meat", "Dairy & Eggs", "Grains & Starches", "Protein Alternatives", "Vegetables", "Fruits", "Snacks & Drinks"]
 
 
-def calculate_food_footprint(selected_items):
+def calculate_food_footprint(selected_items: dict[str, int]) -> dict[str, Any]:
     total_co2 = 0.0
     breakdown = []
     for item_name, servings in selected_items.items():
@@ -50,7 +52,7 @@ def calculate_food_footprint(selected_items):
     return {"total_co2": round(total_co2, 2), "breakdown": breakdown}
 
 
-def get_comparison_context(total_co2):
+def get_comparison_context(total_co2: float) -> list[dict[str, Any]]:
     benchmarks = [
         ("Driving 1 km (avg car)", 0.19),
         ("Charging a smartphone", 0.01),
