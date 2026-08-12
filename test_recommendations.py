@@ -298,3 +298,87 @@ def test_water_recommendations_empty_contributors():
             total_daily=100,
             diet="Vegetarian"
         )
+
+
+# Add these new test functions to your existing test_recommendations.py
+
+def test_recommendation_engine_cache():
+    """Test that recommendation engine caches results properly."""
+    from recommendation_engine import generate_recommendations, get_recommendation_stats
+    
+    footprint_data = {
+        "total_footprint": 1000,
+        "categories": {
+            "energy": 300,
+            "transport": 300,
+            "food": 200,
+            "waste": 200
+        }
+    }
+    
+    # First call (cache miss)
+    import time
+    start = time.time()
+    recs1 = generate_recommendations(footprint_data, limit=5)
+    time1 = time.time() - start
+    
+    # Second call (cache hit)
+    start = time.time()
+    recs2 = generate_recommendations(footprint_data, limit=5)
+    time2 = time.time() - start
+    
+    assert len(recs1) == len(recs2)
+    assert time2 <= time1  # Cache hit should be faster
+
+
+def test_recommendation_engine_stats():
+    """Test recommendation engine statistics."""
+    from recommendation_engine import get_recommendation_stats
+    
+    stats = get_recommendation_stats()
+    assert "total_recommendations" in stats
+    assert stats["total_recommendations"] > 0
+    assert "categories" in stats
+    assert "cache_stats" in stats
+
+
+def test_recommendation_by_category():
+    """Test getting recommendations by category."""
+    from recommendation_engine import get_recommendations_by_category
+    
+    energy_recs = get_recommendations_by_category("energy")
+    assert len(energy_recs) > 0
+    for rec in energy_recs:
+        assert rec["category"] == "energy"
+
+
+def test_recommendation_by_id():
+    """Test getting a specific recommendation by ID."""
+    from recommendation_engine import get_recommendation
+    
+    rec = get_recommendation("rec_001")
+    assert rec is not None
+    assert rec["id"] == "rec_001"
+    assert "title" in rec
+    assert "description" in rec
+
+
+def test_recommendation_generation_with_different_data():
+    """Test recommendation generation with different footprint data."""
+    from recommendation_engine import generate_recommendations
+    
+    data1 = {
+        "total_footprint": 2000,
+        "categories": {"energy": 800, "transport": 700, "food": 500}
+    }
+    data2 = {
+        "total_footprint": 500,
+        "categories": {"energy": 100, "transport": 200, "food": 200}
+    }
+    
+    recs1 = generate_recommendations(data1, limit=5)
+    recs2 = generate_recommendations(data2, limit=5)
+    
+    assert len(recs1) == len(recs2)
+    # Different data should produce different recommendations
+    # (or at least different ordering)
