@@ -1282,6 +1282,12 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "green_business.py"
 ])
 # Import
+from ethical_shopping import render_consumer_hub
+
+# Add as a new tab
+with tab40:
+    render_consumer_hub()
+# Import
 from eco_art import render_art_hub
 
 # Add as a new tab
