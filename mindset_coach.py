@@ -1,9 +1,3 @@
-
----
-
-## NEW CODE: mindset_coach.py
-
-```python
 # ============================================================
 # FILE: mindset_coach.py
 # EcoBuddy AI+ Eco-Mindset & Behavioral Change Coach

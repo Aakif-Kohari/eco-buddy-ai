@@ -490,10 +490,22 @@ def apply_theme():
 
     theme_name = st.session_state.get("theme", DEFAULT_THEME)
     if theme_name not in THEMES:
+        # Invalid or missing config: fall back to the default theme.
         theme_name = DEFAULT_THEME
+        st.session_state.theme = DEFAULT_THEME
 
     css = THEMES[theme_name]["css"]
 
+    try:
+        _inject_theme_css(css)
+    except Exception:
+        # Graceful fallback: if the configured theme is invalid or cannot be
+        # rendered, fall back to Streamlit's default theme instead of crashing
+        # the app on startup.
+        st.session_state.theme = DEFAULT_THEME
+
+
+def _inject_theme_css(css):
     st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -783,15 +795,15 @@ def apply_theme():
             transform: none;
         }}
 
-        .stExpander {
+        .stExpander {{
     border-radius: 14px;
     border: 1px solid rgba(74,222,128,.25);
     transition: all .3s ease;
-}
+}}
 
-.stExpander:hover {
+.stExpander:hover {{
     transform: translateY(-2px);
-}
+}}
 
         .input-section,
         .card,
