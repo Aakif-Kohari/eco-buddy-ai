@@ -20,6 +20,7 @@ import os
 from global_search import render_global_search
 from dotenv import load_dotenv
 from green_business import render_business_hub
+from eco_gamification import render_gamification_hub
 from styles.theme import apply_theme
 from achievement_showcase import render_achievement_showcase
 from garden_Assistant import render_garden_hub
@@ -1241,7 +1242,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1279,6 +1280,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11,tab36, tab12,
     "Eco-Resillence",
     "green_business.py"
 ])
+with tab37:
+    render_gamification_hub()
 with tab36:
     render_business_hub()
 with tab35:
