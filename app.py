@@ -226,11 +226,12 @@ with form:
 
                     username = st.text_input(
                         "Username",
-                        key="username",
+                        key="login_username",
                         max_chars=MAX_USERNAME,
                         help="Enter your registered username."
                     )
 
+                    username = username or ""
                     st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
 
                     password = st.text_input("Password", type="password",
@@ -1032,80 +1033,8 @@ with st.expander("🌍 Environmental Impact Timeline", expanded=False):
     # -------------------------
     # HEADER
     # -------------------------
-    render_header()
+render_header()
 
-
-    # -------------------------
-    # INPUTS SECTION
-    # -------------------------
-
-
-    st.markdown("<div class='section-header'>📝 Your Lifestyle Profile</div>", unsafe_allow_html=True)
-
-
- 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown("""
-        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-            <span style='font-size: 24px;'>🚗</span>
-            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Transportation</span>
-        </div>
-        """, unsafe_allow_html=True)
-        transport = st.selectbox(
-        "Primary Transport",
-        ["Car", "Public Transport", "Bike", "Walking"],
-        key="transport",
-        help="Select the mode of transportation you use most frequently for your daily commute."
-        )
-        diet = st.selectbox(
-        "Diet Type",
-        ["Vegetarian", "Non-Vegetarian"],
-        key="diet",
-        help="Choose the option that best represents your regular dietary habits."
-    )
-
-    with col2:
-        st.markdown("""
-        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-            <span style='font-size: 24px;'>⚡</span>
-            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Energy & Diet</span>
-        </div>
-        """, unsafe_allow_html=True)
-        electricity = st.number_input(
-            "Monthly Electricity (kWh)",
-            min_value=0.0,
-            value=200.0,
-            step=10.0,
-            key="electricity",
-            help="Enter your average monthly electricity consumption in kWh."
-        )
-
-        diet = st.selectbox(
-        "Diet Type",
-        ["Vegetarian", "Non-Vegetarian"],
-        key="diet",
-        help="Choose the option that best represents your regular dietary habits."
-    )
-    with col3:
-        st.markdown("""
-        <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 16px;'>
-            <span style='font-size: 24px;'>✈️</span>
-            <span style='font-size: 18px; font-weight: 700; color: #e5e7eb;'>Travel</span>
-        </div>
-        """, unsafe_allow_html=True)
-        flights = st.number_input(
-            "Annual Flights",
-            min_value=0,
-            value=0,
-            step=1,
-            key="flights",
-            help="Enter the number of long-distance flights you take each year."
-        )
-        st.info("💡 How many long-distance flights per year?")
-
- 
 
     # -------------------------
     # PDF REPORT GENERATION
@@ -1520,20 +1449,21 @@ with tab1:
             # We use a button to trigger extraction so it doesn't re-run infinitely on every interaction
             if st.button("Extract Energy Usage"):
                 with st.spinner("Extracting data from bill..."):
-                    from ocr_utils import extract_text_from_file, parse_energy_consumption
-                    extracted_text = extract_text_from_file(uploaded_bill)
-                    parsed_val = parse_energy_consumption(extracted_text)
-                    if parsed_val is not None:
-                        st.session_state.extracted_kwh = float(parsed_val)
-                        st.session_state.electricity = float(parsed_val)
-                        st.success(f"Extracted {parsed_val} kWh from bill!")
-                    else:
-                        st.warning("Could not extract energy consumption. Please enter manually.")
-                except Exception:
-                    st.error(
-                    "⚠️ Unable to process the uploaded bill. "
-                    "Please check the file and try again."
-            )
+                    try:
+                        from ocr_utils import extract_text_from_file, parse_energy_consumption
+                        extracted_text = extract_text_from_file(uploaded_bill)
+                        parsed_val = parse_energy_consumption(extracted_text)
+                        if parsed_val is not None:
+                            st.session_state.extracted_kwh = float(parsed_val)
+                            st.session_state.electricity = float(parsed_val)
+                            st.success(f"Extracted {parsed_val} kWh from bill!")
+                        else:
+                            st.warning("Could not extract energy consumption. Please enter manually.")
+                    except Exception:
+                        st.error(
+                            "⚠️ Unable to process the uploaded bill. "
+                            "Please check the file and try again."
+                        )
 
         electricity = st.number_input("Monthly Electricity (kWh)", min_value=0.0, key="electricity", step=10.0)
         diet = st.selectbox(
@@ -2226,134 +2156,134 @@ with tab1:
         # DETAILED BREAKDOWN
         # -------------------------
        # -------------------------
-# DETAILED BREAKDOWN
-# -------------------------
-
-st.markdown(
-    "<div class='section-header'>📋 Detailed Breakdown</div>",
-    unsafe_allow_html=True,
-)
-
-total_filtered = sum(filtered_contributors.values()) or 1
-
-category_icons = {
-    "Transport": "🚗",
-    "Electricity": "⚡",
-    "Food": "🍽️",
-    "Waste": "🗑️",
-}
-
-for category, emission in filtered_contributors.items():
-    percentage = (emission / total_filtered) * 100
-
-    with st.expander(
-        f"{category_icons.get(category, '🌿')} {category} • {emission:.1f} kg CO₂",
-        expanded=False,
-    ):
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.metric(
-                "Emission",
-                f"{emission:.1f} kg CO₂",
-            )
-
-        with col2:
-            st.metric(
-                "Contribution",
-                f"{percentage:.1f}%",
-            )
-
-        st.progress(min(percentage / 100, 1.0))
-
-        if percentage >= 40:
-            st.warning(
-                "This category contributes significantly to your carbon footprint."
-            )
-
-        elif percentage >= 20:
-            st.info(
-                "There is room for improvement in this category."
-            )
-
-        else:
-            st.success(
-                "Great! This category has a relatively low carbon impact."
-            )
-
-        st.markdown("#### Tips")
-
-        if category == "Transport":
-            st.markdown(
-                """
-- 🚶 Walk or cycle for short trips
-- 🚌 Use public transport
-- 🚗 Carpool whenever possible
-"""
-            )
-
-        elif category == "Electricity":
-            st.markdown(
-                """
-- 💡 Switch to LED bulbs
-- 🔌 Turn off unused appliances
-- 🌞 Consider renewable energy
-"""
-            )
-
-        elif category == "Food":
-            st.markdown(
-                """
-- 🥗 Eat more plant-based meals
-- 🛒 Buy local produce
-- 🍽 Reduce food waste
-"""
-            )
-
-        elif category == "Waste":
-            st.markdown(
-                """
-- ♻ Recycle regularly
-- 🚮 Compost organic waste
-- 🛍 Use reusable bags
-"""
-            )
-
-        else:
-            st.markdown(
-                """
-- 🌱 Continue improving your sustainability habits.
-"""
-            )
+        # DETAILED BREAKDOWN
         # -------------------------
-        # CHART EXPORT BUTTONS (#277)
-        # -------------------------
-        try:
-            col_exp1, col_exp2 = st.columns(2)
-
-            # Export PNG (High Quality Scale = 3)
-            png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
-            col_exp1.download_button(
-                label="📥 Export Chart as PNG",
-                data=png_bytes,
-                file_name="breakdown_chart.png",
-                mime="image/png",
-                use_container_width=True
-            )
-
-            # Export SVG (Vector Quality)
-            svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
-            col_exp2.download_button(
-                label="📥 Export Chart as SVG",
-                data=svg_bytes,
-                file_name="breakdown_chart.svg",
-                mime="image/svg+xml",
-                use_container_width=True
-            )
-        except Exception:
-            # Fallback if kaleido or required engine is not available
-            pass
+        
+        st.markdown(
+            "<div class='section-header'>📋 Detailed Breakdown</div>",
+            unsafe_allow_html=True,
+        )
+        
+        total_filtered = sum(filtered_contributors.values()) or 1
+        
+        category_icons = {
+            "Transport": "🚗",
+            "Electricity": "⚡",
+            "Food": "🍽️",
+            "Waste": "🗑️",
+        }
+        
+        for category, emission in filtered_contributors.items():
+            percentage = (emission / total_filtered) * 100
+        
+            with st.expander(
+                f"{category_icons.get(category, '🌿')} {category} • {emission:.1f} kg CO₂",
+                expanded=False,
+            ):
+        
+                col1, col2 = st.columns(2)
+        
+                with col1:
+                    st.metric(
+                        "Emission",
+                        f"{emission:.1f} kg CO₂",
+                    )
+        
+                with col2:
+                    st.metric(
+                        "Contribution",
+                        f"{percentage:.1f}%",
+                    )
+        
+                st.progress(min(percentage / 100, 1.0))
+        
+                if percentage >= 40:
+                    st.warning(
+                        "This category contributes significantly to your carbon footprint."
+                    )
+        
+                elif percentage >= 20:
+                    st.info(
+                        "There is room for improvement in this category."
+                    )
+        
+                else:
+                    st.success(
+                        "Great! This category has a relatively low carbon impact."
+                    )
+        
+                st.markdown("#### Tips")
+        
+                if category == "Transport":
+                    st.markdown(
+                        """
+        - 🚶 Walk or cycle for short trips
+        - 🚌 Use public transport
+        - 🚗 Carpool whenever possible
+        """
+                    )
+        
+                elif category == "Electricity":
+                    st.markdown(
+                        """
+        - 💡 Switch to LED bulbs
+        - 🔌 Turn off unused appliances
+        - 🌞 Consider renewable energy
+        """
+                    )
+        
+                elif category == "Food":
+                    st.markdown(
+                        """
+        - 🥗 Eat more plant-based meals
+        - 🛒 Buy local produce
+        - 🍽 Reduce food waste
+        """
+                    )
+        
+                elif category == "Waste":
+                    st.markdown(
+                        """
+        - ♻ Recycle regularly
+        - 🚮 Compost organic waste
+        - 🛍 Use reusable bags
+        """
+                    )
+        
+                else:
+                    st.markdown(
+                        """
+        - 🌱 Continue improving your sustainability habits.
+        """
+                    )
+                # -------------------------
+                # CHART EXPORT BUTTONS (#277)
+                # -------------------------
+                try:
+                    col_exp1, col_exp2 = st.columns(2)
+        
+                    # Export PNG (High Quality Scale = 3)
+                    png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+                    col_exp1.download_button(
+                        label="📥 Export Chart as PNG",
+                        data=png_bytes,
+                        file_name="breakdown_chart.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
+        
+                    # Export SVG (Vector Quality)
+                    svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+                    col_exp2.download_button(
+                        label="📥 Export Chart as SVG",
+                        data=svg_bytes,
+                        file_name="breakdown_chart.svg",
+                        mime="image/svg+xml",
+                        use_container_width=True
+                    )
+                except Exception:
+                    # Fallback if kaleido or required engine is not available
+                    pass
 
         st.markdown("---")
 
