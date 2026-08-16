@@ -70,7 +70,17 @@ def create_connection(
                 )
 
         return connection
-    except Exception:
+    except Exception as exc:
+        from logging_config import log_runtime_error
+        log_runtime_error(
+            exc,
+            logger=logger,
+            event="db_connection_failed",
+            context={
+                "database_path": database_path,
+                "busy_timeout_ms": busy_timeout_ms,
+            },
+        )
         connection.close()
         raise
 
@@ -99,7 +109,16 @@ def database_connection(
     try:
         yield connection
         connection.commit()
-    except Exception:
+    except Exception as exc:
+        from logging_config import log_runtime_error
+        log_runtime_error(
+            exc,
+            logger=logger,
+            event="db_transaction_rollback",
+            context={
+                "database_path": database_path,
+            },
+        )
         connection.rollback()
         raise
     finally:
@@ -129,6 +148,17 @@ def execute_with_retry(
             return operation()
         except sqlite3.OperationalError as exc:
             if not is_transient_lock_error(exc) or attempt == max_attempts:
+                from logging_config import log_runtime_error
+                log_runtime_error(
+                    exc,
+                    logger=logger,
+                    event="db_lock_retry_exhausted" if attempt == max_attempts else "db_lock_fatal",
+                    context={
+                        "attempt": attempt,
+                        "max_attempts": max_attempts,
+                        "is_transient": is_transient_lock_error(exc),
+                    },
+                )
                 raise
 
             delay = base_delay * (2 ** (attempt - 1))
@@ -142,3 +172,4 @@ def execute_with_retry(
             sleep_fn(delay)
 
     raise RuntimeError("retry loop exited unexpectedly")
+
