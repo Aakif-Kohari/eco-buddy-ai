@@ -1304,7 +1304,8 @@ with tab14:
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
-
+with tab32:
+    render_chat_ui()
 # Existing analysis code here
 
 placeholder.empty()
