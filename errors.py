@@ -75,6 +75,46 @@ class AppError(Exception):
         # background_tasks.py stores str(exc).
         return self.message
 
+    def to_log_context(self) -> dict[str, Any]:
+        """Return structured diagnostic payload suitable for logging."""
+        ctx: dict[str, Any] = {
+            "error_code": self.code,
+            "error_type": self.__class__.__name__,
+            "error_message": self.message,
+        }
+        if self.details:
+            ctx["error_details"] = self.details
+        return ctx
+
+    def log(
+        self,
+        *,
+        logger: Any | None = None,
+        event: str | None = None,
+        level: int | str = 40,
+        context: dict[str, Any] | None = None,
+        user_id: Any | None = None,
+        **extra: Any,
+    ) -> dict[str, Any]:
+        """Log this error with structured runtime diagnostics."""
+        from logging_config import log_runtime_error
+
+        merged_context = self.to_log_context()
+        if context:
+            merged_context.update(context)
+        if extra:
+            merged_context.update(extra)
+
+        return log_runtime_error(
+            self,
+            logger=logger,
+            event=event or f"{self.code.lower()}_error",
+            level=level,
+            context=merged_context,
+            user_id=user_id,
+        )
+
+
 
 class ConfigurationError(AppError):
     """A required setting (e.g. an API key) is missing or invalid."""

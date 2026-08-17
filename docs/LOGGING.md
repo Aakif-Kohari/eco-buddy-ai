@@ -105,6 +105,46 @@ logger.error(
 Nested dictionaries and lists are sanitized without mutating the original
 objects.
 
+## Runtime Errors and Failure Logging
+
+Use `log_runtime_error` to emit structured telemetry for errors and unexpected failures:
+
+```python
+from logging_config import log_runtime_error
+
+try:
+    process_calculation()
+except Exception as exc:
+    log_runtime_error(
+        exc,
+        event="calculation_failed",
+        context={"step": "emission_aggregate", "user_id": 42},
+    )
+```
+
+### Function Decorator `@log_on_error`
+
+Automatically log runtime exceptions in functions and optionally supply fallback return values:
+
+```python
+from logging_config import log_on_error
+
+@log_on_error(event="assessment_calc_failed", reraise=True)
+def run_heavy_calculation(user_id: int):
+    ...
+```
+
+### Error Boundary Context Manager
+
+Catch, log, and isolate failure domains using `runtime_error_boundary`:
+
+```python
+from logging_config import runtime_error_boundary
+
+with runtime_error_boundary("database_migration", reraise=False):
+    run_migrations()
+```
+
 ## Exceptions
 
 Normal tracebacks remain available, while sensitive values in the complete
@@ -129,12 +169,13 @@ tokens, or OTPs in exception messages.
 - Never log passwords, hashes, tokens, OTPs, or authorization headers.
 - Avoid complete uploaded files and extracted document content.
 - Wrap multi-step work in `operation_context()`.
-- Use stable event names through `extra={"event": "..."}`.
+- Use stable event names through `extra={"event": "..."}` or `log_runtime_error`.
 - Keep email masking enabled in shared environments.
 - Add tests for every new sensitive field or pattern.
 
 ## Tests
 
 ```powershell
-python -m pytest test_logging_security.py -v
+python -m pytest test_logging_security.py test_runtime_error_logging.py -v
 ```
+

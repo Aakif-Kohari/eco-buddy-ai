@@ -201,3 +201,139 @@ def render_metrics_sidebar() -> None:
                         f"{data['stale_hits']} stale / "
                         f"{data['misses']} miss"
                     )
+
+    # ============ EMISSION FACTOR CACHE METRICS EXTENSIONS ============
+
+_emission_metrics = {
+    "factor_cache": {
+        "hits": 0,
+        "misses": 0,
+        "sets": 0,
+        "evictions": 0,
+        "total_time": 0.0,
+        "operation_count": 0
+    },
+    "category_cache": {
+        "hits": 0,
+        "misses": 0,
+        "sets": 0,
+        "evictions": 0,
+        "total_time": 0.0,
+        "operation_count": 0
+    },
+    "calculation_cache": {
+        "hits": 0,
+        "misses": 0,
+        "sets": 0,
+        "evictions": 0,
+        "total_time": 0.0,
+        "operation_count": 0
+    }
+}
+_emission_lock = threading.Lock()
+
+
+def record_emission_cache_hit(cache_type: str = "factor") -> None:
+    """Record an emission factor cache hit."""
+    with _emission_lock:
+        if cache_type in _emission_metrics:
+            _emission_metrics[cache_type]["hits"] += 1
+            _metrics.record_fresh_hit(f"emission_{cache_type}")
+
+
+def record_emission_cache_miss(cache_type: str = "factor") -> None:
+    """Record an emission factor cache miss."""
+    with _emission_lock:
+        if cache_type in _emission_metrics:
+            _emission_metrics[cache_type]["misses"] += 1
+            _metrics.record_miss(f"emission_{cache_type}")
+
+
+def record_emission_cache_set(cache_type: str = "factor", time_ms: float = 0.0) -> None:
+    """Record an emission factor cache set operation."""
+    with _emission_lock:
+        if cache_type in _emission_metrics:
+            _emission_metrics[cache_type]["sets"] += 1
+            _emission_metrics[cache_type]["total_time"] += time_ms
+            _emission_metrics[cache_type]["operation_count"] += 1
+
+
+def record_emission_cache_eviction(cache_type: str = "factor") -> None:
+    """Record an emission factor cache eviction."""
+    with _emission_lock:
+        if cache_type in _emission_metrics:
+            _emission_metrics[cache_type]["evictions"] += 1
+
+
+def get_emission_cache_stats() -> dict[str, Any]:
+    """Get emission factor cache statistics."""
+    with _emission_lock:
+        stats = {}
+        for cache_type, data in _emission_metrics.items():
+            hits = data["hits"]
+            misses = data["misses"]
+            total = hits + misses
+            hit_rate = (hits / total * 100) if total > 0 else 0.0
+            avg_time = (data["total_time"] / data["operation_count"]) if data["operation_count"] > 0 else 0.0
+            
+            stats[cache_type] = {
+                **data,
+                "hit_rate": round(hit_rate, 1),
+                "avg_time_ms": round(avg_time, 2),
+                "total_requests": total
+            }
+        return stats
+
+
+def reset_emission_metrics() -> None:
+    """Reset emission factor cache metrics."""
+    with _emission_lock:
+        for cache_type in _emission_metrics:
+            _emission_metrics[cache_type] = {
+                "hits": 0,
+                "misses": 0,
+                "sets": 0,
+                "evictions": 0,
+                "total_time": 0.0,
+                "operation_count": 0
+            }
+
+
+def render_emission_cache_metrics() -> None:
+    """Render emission factor cache metrics in Streamlit."""
+    import streamlit as st
+    
+    stats = get_emission_cache_stats()
+    
+    st.markdown("### 🌱 Emission Factor Cache")
+    
+    cols = st.columns(3)
+    
+    total_hits = sum(data["hits"] for data in stats.values())
+    total_misses = sum(data["misses"] for data in stats.values())
+    total_requests = total_hits + total_misses
+    overall_hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0.0
+    
+    cols[0].metric("Total Requests", total_requests)
+    cols[1].metric("Total Hits", total_hits)
+    cols[2].metric("Overall Hit Rate", f"{overall_hit_rate:.1f}%")
+    
+    for cache_type, data in stats.items():
+        with st.expander(f"📊 {cache_type.replace('_', ' ').title()} Cache"):
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Hits", data["hits"])
+            col2.metric("Misses", data["misses"])
+            col3.metric("Hit Rate", f"{data['hit_rate']}%")
+            col4.metric("Avg Time", f"{data['avg_time_ms']}ms")
+            
+            st.caption(f"Sets: {data['sets']} · Evictions: {data['evictions']}")
+
+
+def get_comprehensive_cache_stats() -> dict[str, Any]:
+    """Get all cache statistics combined."""
+    return {
+        "general": get_all_cache_stats(),
+        "emission_factors": get_emission_cache_stats()
+    }
+
+

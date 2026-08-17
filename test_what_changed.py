@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from what_changed import (
     compute_assessment_diff,
     generate_what_changed_analysis,
