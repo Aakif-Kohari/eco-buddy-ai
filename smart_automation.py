@@ -69,7 +69,7 @@ class SmartEnergyForecaster:
     def generate_forecast(self, data: pd.DataFrame, periods: int = 24) -> ForecastResult:
         """Generate energy consumption forecast using Prophet"""
         try:
-            from prophet import Prophet
+            # from prophet import Prophet
             
             # Prepare data
             df = data.copy()
