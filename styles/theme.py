@@ -1009,3 +1009,10 @@ def get_active_unit_preference(user_id=None):
             pass
 
     return DEFAULT_PREFERENCE
+
+
+/* ==========================================================================
+   CHAT UI FIXES - Import
+   ========================================================================== */
+
+@import url("styles/chat.css");

@@ -19,7 +19,7 @@ import uuid
 import os
 from global_search import render_global_search
 from dotenv import load_dotenv
-
+from components.chat import render_chat_ui
 from styles.theme import apply_theme
 from achievement_showcase import render_achievement_showcase
 from garden_Assistant import render_garden_hub
@@ -1269,7 +1269,8 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
     "Event-Planner",
     "Minset_planner",
     "Smart-home",
-    "Market Place"
+    "Market Place",
+    "💬 Eco Chat"
 ])
 with tab31:
     render_marketplace_hub()
@@ -1328,7 +1329,8 @@ with tab14:
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
-
+with tab32:
+    render_chat_ui()
 # Existing analysis code here
 
 placeholder.empty()
