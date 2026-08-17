@@ -10,7 +10,7 @@ TTL_EXTERNAL_API = 86400       # 24 hours - external API results (Climatiq, etc.
 TTL_LLM_RESPONSE = 3600        # 1 hour - LLM API responses (Gemini/Groq)
 TTL_COMPUTED_ANALYTICS = 300   # 5 minutes - computed analytics (ARIMA, summaries)
 TTL_DB_READ = 60               # 1 minute - database read queries
-TTL_STATIC_DATA = None         # No expiry - static/constant data
+TTL_STATIC_DATA = None         #z No expiry - static/constant data
 TTL_SESSION = None             # Session-scoped - per-session data (OCR, exports)
 TTL_OCR = None                 # Session-scoped - OCR results (file-hash keyed)
 

@@ -138,8 +138,10 @@ class JsonLogFormatter(logging.Formatter):
         )
 
 
-def _resolve_level(value: str) -> int:
-    level = getattr(logging, value, logging.INFO)
+def _resolve_level(value: str | int) -> int:
+    if isinstance(value, int):
+        return value
+    level = getattr(logging, str(value).upper(), logging.INFO)
     return level if isinstance(level, int) else logging.INFO
 
 
@@ -189,3 +191,189 @@ def setup_logging(
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     return root_logger
+
+
+def log_runtime_error(
+    error: BaseException | str,
+    *,
+    logger: logging.Logger | None = None,
+    event: str = "runtime_error",
+    level: int | str = logging.ERROR,
+    context: dict[str, Any] | None = None,
+    user_id: Any | None = None,
+    operation_id: str | None = None,
+    exc_info: bool | tuple | None = True,
+    message: str | None = None,
+    stack_info: bool = False,
+    **extra_kwargs: Any,
+) -> dict[str, Any]:
+    """Log a structured runtime error with sanitized diagnostics and correlation metadata.
+
+    Args:
+        error: The exception instance or error string to log.
+        logger: Target logger instance (defaults to 'eco_buddy.runtime').
+        event: Stable machine-readable event identifier (e.g. 'db_query_failed').
+        level: Logging level (e.g. logging.ERROR).
+        context: Optional dictionary of structured context attributes.
+        user_id: Optional user identifier for correlation.
+        operation_id: Optional explicit operation ID.
+        exc_info: Whether to attach exception traceback info.
+        message: Optional custom log message (defaults to error string).
+        stack_info: Whether to attach caller stack info.
+        **extra_kwargs: Additional structured metadata fields.
+
+    Returns:
+        The sanitized structured payload attached to the log record.
+    """
+    target_logger = logger or logging.getLogger("eco_buddy.runtime")
+    resolved_level = _resolve_level(level)
+
+    if isinstance(error, BaseException):
+        error_type = error.__class__.__name__
+        error_code = getattr(error, "code", error_type)
+        error_message = getattr(error, "message", str(error))
+        error_details = getattr(error, "details", None)
+        exc = error if exc_info is True else exc_info
+    else:
+        error_type = "RuntimeError"
+        error_code = "RUNTIME_ERROR"
+        error_message = str(error)
+        error_details = None
+        exc = None if exc_info is True else exc_info
+
+    log_msg = message or f"Runtime error [{error_code}]: {error_message}"
+
+    payload: dict[str, Any] = {
+        "event": event,
+        "error_code": str(error_code),
+        "error_type": error_type,
+        "error_message": sanitize_string(str(error_message), mask_emails=LOG_MASK_EMAILS),
+    }
+
+    if error_details:
+        payload["error_details"] = sanitize_data(error_details, mask_emails=LOG_MASK_EMAILS)
+
+    if user_id is not None:
+        payload["user_id"] = sanitize_data(user_id, mask_emails=LOG_MASK_EMAILS)
+
+    op_id = operation_id or get_operation_id()
+    if op_id:
+        payload["operation_id"] = op_id
+
+    merged_context: dict[str, Any] = {}
+    if context:
+        merged_context.update(context)
+    if extra_kwargs:
+        merged_context.update(extra_kwargs)
+
+    if merged_context:
+        payload["context"] = sanitize_data(merged_context, mask_emails=LOG_MASK_EMAILS)
+
+    target_logger.log(
+        resolved_level,
+        log_msg,
+        extra=payload,
+        exc_info=exc,
+        stack_info=stack_info,
+    )
+
+    return payload
+
+
+def log_on_error(
+    *,
+    logger: logging.Logger | None = None,
+    event: str | None = None,
+    level: int | str = logging.ERROR,
+    default_return: Any = None,
+    reraise: bool = True,
+    context_fn: Any | None = None,
+    exclude_exceptions: tuple[type[BaseException], ...] = (),
+):
+    """Decorator to catch and log runtime errors in functions with structured telemetry.
+
+    Args:
+        logger: Logger to receive structured error record.
+        event: Custom event name. Defaults to '{func_name}_failed'.
+        level: Logging level (default logging.ERROR).
+        default_return: Value returned when reraise=False and an exception occurs.
+        reraise: If True, re-raises the caught exception after logging.
+        context_fn: Optional callable (args, kwargs) -> dict for custom context.
+        exclude_exceptions: Tuple of exception types to bypass without logging.
+    """
+    import functools
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except BaseException as exc:
+                if exclude_exceptions and isinstance(exc, exclude_exceptions):
+                    raise
+
+                evt = event or f"{func.__name__}_failed"
+                ctx = {
+                    "function": func.__qualname__,
+                    "module": func.__module__,
+                }
+                if context_fn is not None:
+                    try:
+                        custom_ctx = context_fn(*args, **kwargs)
+                        if isinstance(custom_ctx, dict):
+                            ctx.update(custom_ctx)
+                    except Exception:
+                        pass
+
+                log_runtime_error(
+                    exc,
+                    logger=logger or logging.getLogger(func.__module__),
+                    event=evt,
+                    level=level,
+                    context=ctx,
+                    exc_info=True,
+                )
+                if reraise:
+                    raise
+                return default_return
+
+        return wrapper
+
+    return decorator
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def runtime_error_boundary(
+    name: str = "runtime_operation",
+    *,
+    logger: logging.Logger | None = None,
+    event: str | None = None,
+    level: int | str = logging.ERROR,
+    reraise: bool = True,
+    context: dict[str, Any] | None = None,
+    user_id: Any | None = None,
+):
+    """Context manager that catches, logs structured telemetry for, and optionally suppresses runtime errors."""
+    try:
+        yield
+    except BaseException as exc:
+        evt = event or f"{name}_failed"
+        merged_ctx = {"operation_name": name}
+        if context:
+            merged_ctx.update(context)
+
+        log_runtime_error(
+            exc,
+            logger=logger or logging.getLogger("eco_buddy.boundary"),
+            event=evt,
+            level=level,
+            context=merged_ctx,
+            user_id=user_id,
+            exc_info=True,
+        )
+        if reraise:
+            raise
+

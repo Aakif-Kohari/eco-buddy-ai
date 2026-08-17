@@ -1,17 +1,12 @@
-"""Customizable dashboard widgets for EcoBuddy AI."""
-
-from __future__ import annotations
-
 from collections import OrderedDict
-from typing import Iterable, Mapping
-
+from typing import Iterable, Mapping, List, Optional
 import streamlit as st
-
 from database import (
     get_assessments,
     get_dashboard_widget_preferences,
     save_dashboard_widget_preferences,
 )
+
 
 WIDGETS = OrderedDict(
     [
@@ -23,22 +18,48 @@ WIDGETS = OrderedDict(
         ("insights", "🔎 Personal insights"),
     ]
 )
+
 DEFAULT_WIDGETS = tuple(WIDGETS.keys())
 SESSION_KEY = "dashboard_widget_preferences"
 
 
-def normalize_widget_preferences(widget_ids: Iterable[str] | None) -> list[str]:
+def normalize_widget_preferences(widget_ids: Iterable[str] | None) -> List[str]:
     """Return unique, known widget IDs in the canonical display order."""
     requested = set(widget_ids or [])
     return [widget_id for widget_id in WIDGETS if widget_id in requested]
 
 
-def load_widget_preferences(user_id: int) -> list[str]:
+def load_widget_preferences(user_id: int) -> List[str]:
     """Load a user's saved widgets, falling back to all dashboard widgets."""
     saved = get_dashboard_widget_preferences(user_id)
     if saved is None:
         return list(DEFAULT_WIDGETS)
     return normalize_widget_preferences(saved)
+
+
+def get_user_widgets(user_id: str) -> List[str]:
+    """Get user's widget preferences from database or session."""
+    if SESSION_KEY in st.session_state:
+        return st.session_state[SESSION_KEY]
+
+    preferences = get_dashboard_widget_preferences(user_id)
+    if preferences:
+        normalized = normalize_widget_preferences(preferences)
+        st.session_state[SESSION_KEY] = normalized
+        return normalized
+
+    default = list(DEFAULT_WIDGETS)
+    st.session_state[SESSION_KEY] = default
+    return default
+
+
+def save_user_widgets(user_id: str, widget_ids: List[str]) -> bool:
+    """Save user's widget preferences."""
+    normalized = normalize_widget_preferences(widget_ids)
+    result = save_dashboard_widget_preferences(user_id, normalized)
+    if result:
+        st.session_state[SESSION_KEY] = normalized
+    return result
 
 
 def render_widget_customizer(user_id: int) -> list[str]:
@@ -83,8 +104,9 @@ def render_widget_customizer(user_id: int) -> list[str]:
 
 
 @st.cache_data(show_spinner=False)
-def _assessment_rows_to_frame(rows: tuple) -> pd.DataFrame:
+def _assessment_rows_to_frame(rows: tuple):
     import pandas as pd
+
     columns = [
         "id",
         "date",
@@ -102,6 +124,23 @@ def _assessment_rows_to_frame(rows: tuple) -> pd.DataFrame:
         frame["footprint"] = pd.to_numeric(frame["footprint"], errors="coerce")
         frame["eco_score"] = pd.to_numeric(frame["eco_score"], errors="coerce")
     return frame
+
+
+def _has_value(value) -> bool:
+    """Return False for None and NaN so missing values fall back to empty states."""
+    if value is None:
+        return False
+    try:
+        import pandas as pd
+
+        return not bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return True
+
+
+def _latest_has_assessment(latest: Mapping[str, object] | None) -> bool:
+    """Check that the latest assessment row carries usable footprint data."""
+    return latest is not None and _has_value(latest.get("footprint"))
 
 
 def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str]) -> None:
@@ -125,6 +164,8 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     st.markdown("<div class='section-header'>📊 My Dashboard</div>", unsafe_allow_html=True)
     st.caption("Personalized widgets based on your saved dashboard preferences.")
 
+    # Data existence check: every widget below degrades to a friendly empty
+    # state when no assessment data exists yet.
     frame = _assessment_rows_to_frame(tuple(get_assessments(user_id)))
     latest: Mapping[str, object] | None = None
     if not frame.empty:
@@ -133,19 +174,31 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     if "summary" in selected:
         with st.container(border=True):
             st.subheader("🌍 Latest impact summary")
-            if latest:
+            if _latest_has_assessment(latest):
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Annual footprint", f"{float(latest['footprint']):,.0f} kg CO₂")
-                col2.metric("Eco score", f"{int(latest['eco_score'])}/100")
-                col3.metric("Primary transport", str(latest["transport"]))
+                with col1:
+                    st.metric(
+                        "Annual footprint",
+                        f"{float(latest['footprint']):,.0f} kg CO₂",
+                    )
+                with col2:
+                    score = latest.get("eco_score")
+                    st.metric(
+                        "Eco score",
+                        f"{int(score)}/100" if _has_value(score) else "N/A",
+                    )
+                with col3:
+                    transport = latest.get("transport")
+                    st.metric("Primary transport", str(transport) if _has_value(transport) else "N/A")
             else:
-                st.info("Complete your first carbon assessment to populate this widget.")
+                st.info("No assessments found yet. Start tracking your impact!")
 
     if "eco_score" in selected:
         with st.container(border=True):
             st.subheader("🏆 Eco score")
-            if latest:
-                score = max(0, min(100, int(latest["eco_score"])))
+            score_value = latest.get("eco_score") if latest else None
+            if _has_value(score_value):
+                score = max(0, min(100, int(score_value)))
                 st.progress(score / 100, text=f"Current score: {score}/100")
                 if score >= 85:
                     st.success("Eco Champion — excellent sustainable habits.")
@@ -163,15 +216,27 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
             st.subheader("📈 Footprint trend")
             trend = frame.dropna(subset=["date", "footprint"]).sort_values("date")
             if len(trend) >= 2:
+                # Data existence check before generating the Plotly figure.
                 import plotly.express as px
+
                 figure = px.line(
                     trend,
                     x="date",
                     y="footprint",
                     markers=True,
                     labels={"date": "Assessment date", "footprint": "kg CO₂/year"},
+                    title="Carbon footprint over time",
                 )
-                figure.update_layout(margin=dict(l=10, r=10, t=20, b=10))
+                figure.update_traces(
+                    hovertemplate="<b>%{x|%b %d, %Y}</b><br>%{y:,.0f} kg CO₂/year<extra></extra>",
+                    line=dict(color="#4ade80", width=3),
+                    marker=dict(size=8, color="#4ade80"),
+                )
+                figure.update_layout(
+                    margin=dict(l=10, r=10, t=30, b=10),
+                    xaxis_title="Assessment date",
+                    yaxis_title="kg CO₂ / year",
+                )
                 st.plotly_chart(figure, use_container_width=True)
             elif len(trend) == 1:
                 st.info("Complete one more assessment to unlock your trend chart.")
@@ -181,17 +246,24 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
     if "activity" in selected:
         with st.container(border=True):
             st.subheader("🧭 Latest activity")
-            if latest:
+            if _latest_has_assessment(latest):
                 import pandas as pd
+
+                def _fmt(key: str, unit: str) -> str:
+                    value = latest.get(key)
+                    if not _has_value(value):
+                        return "N/A"
+                    return f"{float(value):g} {unit}"
+
                 activity = pd.DataFrame(
                     {
                         "Category": ["Transport", "Distance", "Electricity", "Diet", "Flights"],
                         "Value": [
-                            str(latest["transport"]),
-                            f"{float(latest['distance']):g} km/day",
-                            f"{float(latest['electricity']):g} kWh/month",
-                            str(latest["diet"]),
-                            str(int(latest["flights"])),
+                            str(latest.get("transport")) if _has_value(latest.get("transport")) else "N/A",
+                            _fmt("distance", "km/day"),
+                            _fmt("electricity", "kWh/month"),
+                            str(latest.get("diet")) if _has_value(latest.get("diet")) else "N/A",
+                            _fmt("flights", ""),
                         ],
                     }
                 )
@@ -207,23 +279,22 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
                 "Turn off standby appliances and unnecessary lights.",
                 "Plan meals to reduce food waste.",
             ]
-            if latest and str(latest.get("transport")) == "Car":
+            if latest and str(latest.get("transport", "")) == "Car":
                 tips.insert(0, "Combine car trips or car-share to reduce transport emissions.")
             for tip in tips[:3]:
                 st.markdown(f"- {tip}")
+
     if "insights" in selected:
         with st.container(border=True):
             st.subheader("🔎 Personal insights")
-
-            if latest:
+            if _latest_has_assessment(latest):
                 footprint = float(latest["footprint"])
-                score = int(latest["eco_score"])
-                transport = str(latest["transport"])
-                electricity = float(latest["electricity"])
-                flights = int(latest["flights"])
+                score = int(latest["eco_score"]) if _has_value(latest.get("eco_score")) else 0
+                transport = str(latest.get("transport")) if _has_value(latest.get("transport")) else ""
+                electricity = float(latest["electricity"]) if _has_value(latest.get("electricity")) else 0.0
+                flights = int(latest["flights"]) if _has_value(latest.get("flights")) else 0
 
                 insights = []
-
                 if score >= 85:
                     insights.append(
                         "🌱 Your eco score is excellent. Keep maintaining your current habits."
@@ -261,10 +332,8 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
                     )
 
                 st.metric("Current footprint", f"{footprint:,.0f} kg CO₂/year")
-
                 for insight in insights[:4]:
                     st.markdown(f"- {insight}")
-
             else:
                 st.info(
                     "Complete a carbon assessment to receive personalized sustainability insights."

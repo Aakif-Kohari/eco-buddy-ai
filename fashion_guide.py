@@ -234,7 +234,8 @@ class WardrobeTracker:
                 "sustainable": 0,
                 "categories": {},
                 "total_spent": 0,
-                "avg_price": 0
+                "avg_price": 0,
+                "sustainable_percentage": 0
             }
         
         df = pd.DataFrame(self.items)

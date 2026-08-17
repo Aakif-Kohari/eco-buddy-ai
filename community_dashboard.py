@@ -37,11 +37,14 @@ class CommunityMetrics:
                 "challenges_completed": 0,
                 "leaderboard_updates": []
             }
-        return st.session_state.community_metrics
+        stored = st.session_state.community_metrics
+        if isinstance(stored, CommunityMetrics):
+            return stored.metrics
+        return stored
     
     def save(self):
         """Save metrics"""
-        st.session_state.community_metrics = self.metrics
+        st.session_state.community_metrics = self
     
     def update_metrics(self, user_data):
         """Update community metrics with new user data"""
@@ -172,11 +175,14 @@ class CommunityChallenges:
         """Load challenges from session"""
         if "community_challenges" not in st.session_state:
             st.session_state.community_challenges = self.CHALLENGES.copy()
-        return st.session_state.community_challenges
+        stored = st.session_state.community_challenges
+        if isinstance(stored, CommunityChallenges):
+            return stored.challenges
+        return stored
     
     def save(self):
         """Save challenges"""
-        st.session_state.community_challenges = self.challenges
+        st.session_state.community_challenges = self
     
     def get_challenges(self):
         """Get all challenges"""
@@ -235,11 +241,14 @@ class CommunityRankings:
         """Load rankings from session"""
         if "community_rankings" not in st.session_state:
             st.session_state.community_rankings = {}
-        return st.session_state.community_rankings
+        stored = st.session_state.community_rankings
+        if isinstance(stored, CommunityRankings):
+            return stored.rankings
+        return stored
     
     def save(self):
         """Save rankings"""
-        st.session_state.community_rankings = self.rankings
+        st.session_state.community_rankings = self
     
     def add_user_ranking(self, user_id, username, eco_score, assessments_count):
         """Add or update user ranking"""
