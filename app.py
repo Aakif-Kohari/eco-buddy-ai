@@ -28,6 +28,7 @@ from achievement_showcase import render_achievement_showcase
 from garden_Assistant import render_garden_hub
 from habit_tracker import render_habit_hub
 from event_calendar import render_event_hub
+from eco_creative import render_creative_hub
 from voice_assistant import render_voice_assessment
 from components.header import render_header
 #from components.profile import render_profile
