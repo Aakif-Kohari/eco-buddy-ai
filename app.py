@@ -22,10 +22,13 @@ from dotenv import load_dotenv
 from green_business import render_business_hub
 from eco_gamification import render_gamification_hub
 from styles.theme import apply_theme
+from smart_automation import render_automation_hub
+from eco_mindfulness import render_mindfulness_hub
 from achievement_showcase import render_achievement_showcase
 from garden_Assistant import render_garden_hub
 from habit_tracker import render_habit_hub
 from event_calendar import render_event_hub
+from eco_creative import render_creative_hub
 from voice_assistant import render_voice_assessment
 from components.header import render_header
 #from components.profile import render_profile
