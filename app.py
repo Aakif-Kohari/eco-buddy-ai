@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 from green_business import render_business_hub
 from eco_gamification import render_gamification_hub
 from styles.theme import apply_theme
+from smart_automation import render_automation_hub
 from achievement_showcase import render_achievement_showcase
 from garden_Assistant import render_garden_hub
 from habit_tracker import render_habit_hub
