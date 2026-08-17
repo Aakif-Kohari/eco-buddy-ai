@@ -17,6 +17,7 @@ st.set_page_config(    page_title="EcoBuddy",
 import tempfile
 import uuid
 import os
+from src.routes import quizes_bp
 from global_search import render_global_search
 from dotenv import load_dotenv
 
@@ -296,6 +297,7 @@ with form:
 
             st.sidebar.markdown("---")
             st.sidebar.subheader("🧭 Navigation")
+            st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
 
             st.markdown("""
             <style>
