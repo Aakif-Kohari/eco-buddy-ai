@@ -65,7 +65,25 @@ from recommendations import generate_recommendations
 from what_changed import generate_what_changed_analysis, render_what_changed_ui
 
 from datetime import datetime
+from src.lib.db_optimizer import get_query_optimizer, close_db_connections
+import time
 
+# Start timing
+app_start_time = time.time()
+
+
+# Add a loading indicator with timing
+def measure_dashboard_load():
+    """Measure and log dashboard load time."""
+    global app_start_time
+    load_time = time.time() - app_start_time
+    
+    if load_time > 3.0:
+        logger.warning(f"Dashboard loading slow: {load_time:.2f}s")
+    else:
+        logger.info(f"Dashboard loaded in {load_time:.2f}s")
+    
+    return load_time
 # ----------------------------
 # Welcome Section
 # ----------------------------

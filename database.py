@@ -6946,3 +6946,27 @@ def get_completed_challenges(user_id: int) -> list[tuple[Any, ...]]:
 
     return data
 
+
+# ============================================================================
+# OPTIMIZED DATABASE QUERIES - Issue #778
+# Add this entire block at the END of database.py
+# ============================================================================
+
+from src.lib.db_optimizer import get_query_optimizer, cached_query, batch_queries
+from src.lib.db_optimizer import QueryOptimizer
+import time
+
+# Initialize optimizer
+_db_optimizer = None
+
+
+def get_db_optimizer() -> QueryOptimizer:
+    """Get the database optimizer instance."""
+    global _db_optimizer
+    if _db_optimizer is None:
+        _db_optimizer = get_query_optimizer()
+    return _db_optimizer
+
+
+@cached_query(ttl=300)
+def get_assessments_cached(user_id: int,
