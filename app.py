@@ -17,6 +17,7 @@ st.set_page_config(    page_title="EcoBuddy",
 import tempfile
 import uuid
 import os
+from components.chat import render_chat_ui
 from global_search import render_global_search
 from dotenv import load_dotenv
 
