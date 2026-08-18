@@ -239,6 +239,19 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS food_scans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        meal_name TEXT NOT NULL,
+                        items TEXT,
+                        total_co2_kg REAL NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
+                )
+
         execute_with_retry(initialize_schema)
         migrate()
         return True
@@ -6966,3 +6979,33 @@ def get_db_optimizer() -> QueryOptimizer:
     if _db_optimizer is None:
         _db_optimizer = get_query_optimizer()
     return _db_optimizer
+def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: float) -> bool:
+    import json
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO food_scans (user_id, meal_name, items, total_co2_kg) VALUES (?, ?, ?, ?)",
+            (user_id, meal_name, json.dumps(food_items), total_co2)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        logger.error(f"Error saving food scan: {e}")
+        return False
+
+def get_food_scans(user_id: int) -> list[dict]:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT created_at, meal_name, total_co2_kg FROM food_scans WHERE user_id = ? ORDER BY created_at DESC",
+            (user_id,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [{"created_at": row[0], "meal_name": row[1], "total_co2_kg": row[2]} for row in rows]
+    except sqlite3.Error as e:
+        logger.error(f"Error getting food scans: {e}")
+        return []
