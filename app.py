@@ -17,7 +17,7 @@ from eco_school import render_eco_school_hub
 import tempfile
 import uuid
 import os
-from src.routes import quizes_bp
+from src.lib.routes import quizes_bp
 from global_search import render_global_search
 from dotenv import load_dotenv
 from green_business import render_business_hub
@@ -37,8 +37,12 @@ from community_marketplace import render_marketplace_hub
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from eco_dream_incubation import render_dream_hub
+from eco_synesthesia import render_synesthesia_hub
 from community_resilience import render_resilience_hub
+from eco_synchronization import render_synchronization_hub
 from eco_heritage import render_heritage_hub
+from eco_temporal import render_temporal_hub
 from eco_parenting import render_parenting_hub
 from mindset_coach import render_coach_hub
 from smart_home import render_smart_home_hub

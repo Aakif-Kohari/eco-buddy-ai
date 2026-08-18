@@ -1020,6 +1020,7 @@ def get_active_unit_preference(user_id=None):
         except Exception:
             pass
 
+
     return DEFAULT_PREFERENCE
 
 
@@ -1065,3 +1066,6 @@ def is_dark_mode():
 def is_light_mode():
     """Check if light mode is enabled."""
     return get_theme() == "light"
+
+    return DEFAULT_PREFERENCE
+
