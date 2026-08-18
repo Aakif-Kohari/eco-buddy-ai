@@ -37,6 +37,7 @@ from community_marketplace import render_marketplace_hub
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from eco_dream_incubation import render_dream_hub
 from community_resilience import render_resilience_hub
 from eco_synchronization import render_synchronization_hub
 from eco_heritage import render_heritage_hub
