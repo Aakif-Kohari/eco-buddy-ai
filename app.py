@@ -325,6 +325,13 @@ with form:
             st.sidebar.subheader("🧭 Navigation")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
 
+            # ── Theme Toggle ──────────────────────────────────────────────────────────────
+            from styles.theme_manager import render_theme_toggle
+
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("🎨 Appearance")
+            render_theme_toggle()
+
             st.markdown("""
             <style>
 
@@ -1058,6 +1065,12 @@ with st.expander("🌍 Environmental Impact Timeline", expanded=False):
     # -------------------------
 render_header()
 
+# ── Theme Toggle in Header ──────────────────────────────────────────────────
+from styles.theme_manager import render_theme_toggle
+
+col1, col2 = st.columns([0.95, 0.05])
+with col2:
+    render_theme_toggle()
 
     # -------------------------
     # PDF REPORT GENERATION
