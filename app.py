@@ -42,6 +42,7 @@ from eco_synesthesia import render_synesthesia_hub
 from community_resilience import render_resilience_hub
 from eco_synchronization import render_synchronization_hub
 from eco_heritage import render_heritage_hub
+from eco_temporal import render_temporal_hub
 from eco_parenting import render_parenting_hub
 from mindset_coach import render_coach_hub
 from smart_home import render_smart_home_hub
