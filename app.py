@@ -38,6 +38,7 @@ from sustainability_hub import (
     render_sustainability_hub  
 )
 from community_resilience import render_resilience_hub
+from eco_synchronization import render_synchronization_hub
 from eco_heritage import render_heritage_hub
 from eco_parenting import render_parenting_hub
 from mindset_coach import render_coach_hub
