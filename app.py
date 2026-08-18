@@ -17,7 +17,7 @@ from eco_school import render_eco_school_hub
 import tempfile
 import uuid
 import os
-from src.routes import quizes_bp
+from src.lib.routes import quizes_bp
 from global_search import render_global_search
 from dotenv import load_dotenv
 from green_business import render_business_hub

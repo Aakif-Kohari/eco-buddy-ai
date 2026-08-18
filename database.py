@@ -6966,7 +6966,3 @@ def get_db_optimizer() -> QueryOptimizer:
     if _db_optimizer is None:
         _db_optimizer = get_query_optimizer()
     return _db_optimizer
-
-
-@cached_query(ttl=300)
-def get_assessments_cached(user_id: int,
