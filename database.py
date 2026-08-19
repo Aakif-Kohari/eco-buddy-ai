@@ -252,6 +252,20 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ev_charging_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        battery_capacity REAL,
+                        current_soc REAL,
+                        target_soc REAL,
+                        charging_rate REAL,
+                        optimal_carbon REAL,
+                        carbon_savings REAL,
+                        cost_savings REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
         execute_with_retry(initialize_schema)
         migrate()
         return True
@@ -501,6 +515,31 @@ def save_assessment(
     except sqlite3.Error as e:
         print(f"Database save error: {e}")
         return False
+
+
+def save_ev_charging_session(
+    battery_capacity: float, current_soc: float, target_soc: float, 
+    charging_rate: float, optimal_carbon: float, carbon_savings: float, cost_savings: float
+) -> None:
+    """Saves an EV charging optimization session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO ev_charging_sessions 
+        (battery_capacity, current_soc, target_soc, charging_rate, optimal_carbon, carbon_savings, cost_savings, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (battery_capacity, current_soc, target_soc, charging_rate, optimal_carbon, carbon_savings, cost_savings))
+    conn.commit()
+    conn.close()
+
+def get_ev_charging_history() -> list:
+    """Retrieves all EV charging optimization sessions."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM ev_charging_sessions ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 # -------------------------------------------------------------------------
 # Assessment Timestamp Migration
