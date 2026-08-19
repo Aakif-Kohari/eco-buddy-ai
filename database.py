@@ -192,6 +192,18 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS scanned_receipts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        vendor TEXT,
+                        date TEXT,
+                        total_cost REAL,
+                        energy_kwh REAL,
+                        category TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS assessment_drafts (
@@ -616,6 +628,29 @@ def update_carbon_budget(user_id: int, budget_type: str, budget_limit: float) ->
     except sqlite3.Error:
 
         return False
+
+
+def save_scanned_receipt(vendor: str, date: str, total_cost: float, energy_kwh: Optional[float], category: str) -> None:
+    """Saves a processed and confirmed scanned receipt/bill to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO scanned_receipts (vendor, date, total_cost, energy_kwh, category, timestamp)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (vendor, date, total_cost, energy_kwh, category))
+    conn.commit()
+    conn.close()
+
+def get_scanned_receipts_history() -> list:
+    """Retrieves historical scanned receipts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM scanned_receipts ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
 @cached(category=CACHE_CATEGORY_DB_READS, ttl=TTL_DB_READ)
 def get_assessments_with_factors(user_id: int = 1) -> list[tuple[Any, ...]]:
     """
