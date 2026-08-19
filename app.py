@@ -72,6 +72,13 @@ from datetime import datetime
 from src.lib.db_optimizer import get_query_optimizer, close_db_connections
 import time
 
+
+# Start the digest scheduler on app load
+try:
+    start_digest_scheduler()
+except Exception as e:
+    logger.error(f"Failed to start digest scheduler: {e}")
+
 # Start timing
 app_start_time = time.time()
 
@@ -1275,6 +1282,8 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "Eco-Parenting",
     "Eco-Resillence",
     "green_business.py"
+    "📧 Email Digest"
+    "💬 Eco Chat",
 ])
 # Import
 from urban_farming import render_urban_hub
@@ -1367,6 +1376,8 @@ with placeholder.container():
     show_chart_skeleton()
 with tab32:
     render_chat_ui()
+with tab_email:
+    render_email_digest_ui(user_id)
 # Existing analysis code here
 
 placeholder.empty()
