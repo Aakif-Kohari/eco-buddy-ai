@@ -458,6 +458,7 @@ with st.expander("🌍 Environmental Impact Timeline", expanded=False):
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
+        init_travel_db()
 
     run_db_initializations()
     user_id = render_sidebar_auth()
@@ -4924,6 +4925,8 @@ with tab4:
 
     </div>
     """, unsafe_allow_html=True)
+    
+    travel_tracker.render_travel_tracker(user_id)
 
 with tab6:
     import plotly.graph_objects as go

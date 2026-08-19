@@ -7009,3 +7009,64 @@ def get_food_scans(user_id: int) -> list[dict]:
     except sqlite3.Error as e:
         logger.error(f"Error getting food scans: {e}")
         return []
+
+def init_travel_db() -> bool:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS travel_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                record_date TEXT,
+                mode TEXT,
+                distance_km REAL,
+                passengers INTEGER,
+                emissions_kg REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("Database travel tracker init error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: float, passengers: int, emissions_kg: float) -> bool:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO travel_history (user_id, record_date, mode, distance_km, passengers, emissions_kg)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, record_date, mode, distance_km, passengers, emissions_kg))
+        conn.commit()
+        return True
+    except sqlite3.Error as exc:
+        logger.error("Database travel tracker insert error: %s", exc)
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+def get_travel_records(user_id: int) -> list[dict]:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, record_date, mode, distance_km, passengers, emissions_kg, created_at
+            FROM travel_history
+            WHERE user_id = ?
+            ORDER BY record_date ASC
+        ''', (user_id,))
+        rows = cursor.fetchall()
+        return [{"id": row[0], "record_date": row[1], "mode": row[2], "distance_km": row[3], "passengers": row[4], "emissions_kg": row[5], "created_at": row[6]} for row in rows]
+    except sqlite3.Error as exc:
+        logger.error("Database travel tracker select error: %s", exc)
+        return []
+    finally:
+        if conn:
+            conn.close()
