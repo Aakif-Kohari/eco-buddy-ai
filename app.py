@@ -17,9 +17,7 @@ from eco_school import render_eco_school_hub
 import tempfile
 import uuid
 import os
-from app.components.email_digest_ui import render_email_digest_ui
-from src.lib.digest_scheduler import start_digest_scheduler
-from src.routes import quizes_bp
+from src.lib.routes import quizes_bp
 from global_search import render_global_search
 from dotenv import load_dotenv
 from green_business import render_business_hub
@@ -39,8 +37,12 @@ from community_marketplace import render_marketplace_hub
 from sustainability_hub import (
     render_sustainability_hub  
 )
+from eco_dream_incubation import render_dream_hub
+from eco_synesthesia import render_synesthesia_hub
 from community_resilience import render_resilience_hub
+from eco_synchronization import render_synchronization_hub
 from eco_heritage import render_heritage_hub
+from eco_temporal import render_temporal_hub
 from eco_parenting import render_parenting_hub
 from mindset_coach import render_coach_hub
 from smart_home import render_smart_home_hub
@@ -333,6 +335,45 @@ with form:
             st.sidebar.markdown("---")
             st.sidebar.subheader("🧭 Navigation")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
+
+            # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
+            from src.lib.carbon_tracker import (
+                get_carbon_tracker,
+                update_carbon_tracker,
+                render_carbon_widget
+            )
+
+            # Add to sidebar
+            with st.sidebar:
+                # ... existing code ...
+                
+                st.divider()
+                st.subheader("📊 Live Carbon Tracker")
+                
+                # Update tracker when inputs change
+                if 'transport' in st.session_state and 'distance' in st.session_state:
+                    tracker_data = {
+                        "transport": st.session_state.get('transport', 'Car'),
+                        "distance": st.session_state.get('distance', 10.0),
+                        "electricity": st.session_state.get('electricity', 200.0),
+                        "diet": st.session_state.get('diet', 'Vegetarian'),
+                        "flights": st.session_state.get('flights', 0),
+                        "region": st.session_state.get('region', 'Global')
+                    }
+                    
+                    # Only update if data changed
+                    if st.session_state.get('_last_tracker_update', 0) < time.time() - 0.5:
+                        try:
+                            update_carbon_tracker(tracker_data)
+                            st.session_state['_last_tracker_update'] = time.time()
+                        except Exception as e:
+                            pass
+                
+                # Display widget
+                render_carbon_widget()
+                
+                # Show live status
+                st.caption("🟢 Live updates enabled")
 
             st.markdown("""
             <style>
@@ -4263,347 +4304,73 @@ with tab1:
         )        
         render_sustainability_hub()
         render_eco_tip()
-        # -------------------------
-        # HISTORY & TRACKING
-        # -------------------------
+        
+        # ── Assessment History with Pagination ──────────────────────────────────────
+        from src.lib.history_manager import (
+            HistoryManager,
+            render_history_filters,
+            render_history_pagination,
+            render_history_stats
+        )
+
+        # Initialize history manager
+        if 'history_manager' not in st.session_state or st.session_state.history_manager.user_id != user_id:
+            st.session_state.history_manager = HistoryManager(user_id)
+            st.session_state.history_manager.load_assessments()
+
+        manager = st.session_state.history_manager
+
+        # Render history section
         st.markdown("---")
-        with st.expander("🕒 Assessment Timeline", expanded=False):
-            st.markdown("<div class='section-header'>📈 Your Eco Journey</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>📊 Assessment History</div>", unsafe_allow_html=True)
 
-        history = get_assessments(user_id)
+        # Statistics
+        render_history_stats(manager)
 
-        # ----------------------------------
-        # Eco Action Streak Risk Detector
-        # ----------------------------------
+        # Filters
+        render_history_filters(manager)
 
-        if history and len(history) >= 3:
-            recent_scores = [row[-1] for row in history[:3]]
+        # Data table
+        st.divider()
 
-            score_drop = recent_scores[2] - recent_scores[0]
+        # Display current page
+        current_page = manager.get_current_page()
 
-            if score_drop >= 20:
-                risk = "🔴 High Risk"
-                color = "#ff4d4d"
-            elif score_drop >= 10:
-                risk = "🟠 Medium Risk"
-                color = "#ff9800"
-            else:
-                risk = "🟢 Low Risk"
-                color = "#4caf50"
-
-            st.markdown(
-                f"""
-                <div style="
-                    padding:14px;
-                    border-radius:12px;
-                    background:#111827;
-                    border-left:6px solid {color};
-                    margin-bottom:12px;">
-                    <h4>{risk}</h4>
-                    <p>Your recent assessments were analyzed automatically.</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            if recent_scores[0] < recent_scores[1] < recent_scores[2]:
-                st.warning("⚠️ Eco Action Streak at Risk!")
-
-                st.write(
-                    "Your Eco Score has declined over your last three assessments. "
-                    "Take action now to protect your sustainability streak."
-                )
-
-                st.info(
-                    """
-            ### 🌱 Suggested Recovery Actions
-
-            - 🚶 Walk, cycle, or use public transport.
-            - 💡 Reduce unnecessary electricity consumption.
-            - 🥗 Choose more sustainable food options.
-            - ✈️ Avoid non-essential flights whenever possible.
-                        """
-                )
-            else:
-                st.success("✅ Great! Your sustainability streak is stable.")
-
+        if current_page:
             import pandas as pd
-            import plotly.express as px
-
-            trend_df = pd.DataFrame({
-                "Assessment": ["Oldest", "Previous", "Latest"],
-                "Eco Score": [
-                    recent_scores[2],
-                    recent_scores[1],
-                    recent_scores[0]
-                ]
-            })
-
-            fig = px.line(
-                trend_df,
-                x="Assessment",
-                y="Eco Score",
-                markers=True,
-                title="Eco Score Trend"
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-            recovery = max(0, 100 - score_drop * 5)
-
-            st.markdown("### 🔋 Recovery Readiness")
-
-            st.progress(recovery / 100)
-
-            st.caption(f"Recovery Score: {recovery}%")
-
-            st.markdown("### 🌱 Personalized Recovery Plan")
-
-            tips = []
-
-            if score_drop >= 20:
-                tips.extend([
-                    "🚶 Walk or cycle instead of using a car.",
-                    "💡 Reduce unnecessary electricity usage.",
-                    "🥗 Eat more plant-based meals.",
-                    "✈️ Avoid non-essential flights."
-                ])
-            elif score_drop >= 10:
-                tips.extend([
-                    "🚌 Use public transport whenever possible.",
-                    "🔌 Switch off appliances when not in use.",
-                    "♻️ Recycle household waste regularly."
-                ])
-            else:
-                tips.append("🌿 Great work! Continue your sustainable habits.")
-
-            for tip in tips:
-                st.write(f"✅ {tip}")
-
-            days = max(3, score_drop // 2)
-
-            st.info(
-                f"📅 Estimated time to recover your sustainability streak: **{days} days**"
-            )
-
-            st.markdown("### 📊 Streak Health Summary")
-
-            status = "Healthy"
-            message = "Keep maintaining your current sustainable habits."
-
-            if score_drop >= 20:
-                status = "Critical"
-                message = "Immediate improvements are recommended to avoid losing your streak."
-            elif score_drop >= 10:
-                status = "Needs Attention"
-                message = "Small lifestyle changes can quickly improve your progress."
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric("Streak Status", status)
-
-            with col2:
-                st.metric("Recent Score Drop", f"{score_drop} pts")
-
-            st.caption(message)
-
-                    
-
-        if history:
-            import pandas as pd
-            import plotly.graph_objects as go
-            df = pd.DataFrame(
-                history,
-                columns=[
-                    "id",
-                    "date",
-                    "Created At",
-                    "transport",
-                    "distance",
-                    "electricity",
-                    "diet",
-                    "flights",
-                    "footprint",
-                    "eco_score",
-                ],
-            )
-
-            # -----------------------------
-            # Eco Impact Streak Calendar
-            # -----------------------------
-            st.markdown("---")
-            st.subheader("📅 Eco Impact Streak Calendar")
-
-            calendar_df = df.copy()
-            calendar_df["date"] = pd.to_datetime(calendar_df["date"]).dt.date
-
-            today = pd.Timestamp.today().date()
-            last_30_days = pd.date_range(end=today, periods=30)
-
-            activity = []
-
-            for day in last_30_days:
-                if day.date() in calendar_df["date"].values:
-                    activity.append("🟩")
-                else:
-                    activity.append("⬜")
-
-            calendar_html = ""
-
-            for i, box in enumerate(activity):
-                calendar_html += f"<span style='font-size:20px'>{box}</span>"
-                if (i + 1) % 10 == 0:
-                    calendar_html += "<br>"
-
-            st.markdown(calendar_html, unsafe_allow_html=True)
-
-            active_days = len(calendar_df)
-
-            st.metric(
-                "🌱 Active Eco Days",
-                active_days
-            )
-
-            st.caption("🟩 Assessment completed   ⬜ No assessment")
-
-
-
-            # ---------------------------------------------------------------
-            # Format the automatically generated creation timestamps before
-            # displaying them in the Assessment History table.
-            #
-            # The database stores timestamps in the default SQLite format
-            # (YYYY-MM-DD HH:MM:SS), which is suitable for storage and sorting
-            # but not very user-friendly.
-            #
-            # This formatting step converts the raw timestamp into a more
-            # readable format (e.g., "01 Aug 2026 03:45 PM"), improving the
-            # overall user experience while preserving the original data in
-            # the database.
-            #
-            # If a timestamp is missing or unavailable, a placeholder ("-")
-            # is displayed instead of causing formatting errors.
-            # ---------------------------------------------------------------
-            df["Created At"] = df["Created At"].apply(format_timestamp)
-            latest = history[0]
-            stat1, stat2, stat3, stat4 = st.columns(4)
-
-            with stat1:
-                st.metric("Latest Footprint", f"{latest[7]:.0f} kg CO₂")
-
-            with stat2:
-                st.metric("Latest Score", f"{latest[8]}/100")
-
-            if len(history) >= 2:
-                previous_footprint = history[1][7]
-                change = (
-                    ((previous_footprint - latest[7]) / previous_footprint) * 100
-                    if previous_footprint
-                    else 0
-                )
-                with stat3:
-                    st.metric(
-                        "Change",
-                        f"{abs(change):.1f}%",
-                        delta=f"{change:.1f}% reduction",
-                    )
-            else:
-                with stat3:
-                    st.metric("Change", "N/A")
-
-            with stat4:
-                st.metric("Total Records", len(history))
-
-            st.markdown("### 📉 Carbon Footprint Trend")
-            trend_df = df[["date", "footprint"]].iloc[::-1].reset_index(drop=True)
-            trend_df["date"] = pd.to_datetime(trend_df["date"])
-
-            trend_fig = go.Figure()
-            trend_fig.add_trace(
-                go.Scatter(
-                    x=trend_df["date"],
-                    y=trend_df["footprint"],
-                    mode="lines+markers",
-                    name="Carbon Footprint",
-                    line=dict(color="#4ade80", width=3),
-                    marker=dict(size=8, color="#4ade80"),
-                    fill="tozeroy",
-                    fillcolor="rgba(74, 222, 128, 0.2)",
-                    hovertemplate="<b>%{x|%b %d}</b><br>%{y:.0f} kg CO₂<extra></extra>",
-                )
-            )
-            trend_fig.update_layout(
-                height=320,
-                margin=dict(l=40, r=20, t=20, b=40),
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(55, 65, 81, 0.2)",
-                showlegend=False,
-                hovermode="x unified",
-            )
-            st.plotly_chart(trend_fig, use_container_width=True)
-
-            st.markdown("### 📋 Assessment History")
-            display_df = df[
-                ["date", "transport", "electricity", "footprint", "eco_score"]
-            ].copy()
-            display_df.columns = [
-                "📅 Date",
-                "🚗 Transport",
-                "⚡ Electricity (kWh)",
-                "🌍 Footprint (kg CO₂)",
-                "⭐ Eco Score",
-            ]
-            display_df = display_df.iloc[::-1].reset_index(drop=True)
-
-            MAX_SEARCH = 100
-
-            search_text = st.text_input(
-                "🔍 Search by Date",
-                placeholder="Enter date...",
-                key="assessment_history_search",
-                max_chars=MAX_SEARCH,
-            )
-
-            st.caption(f"🔎 {len(search_text)}/{MAX_SEARCH} characters")
-            min_score, max_score = st.slider(
-    "🌱 Eco Score Range",
-    0,
-    100,
-    (0, 100),
-    key="assessment_history_score_range",
-    help="Adjust the minimum and maximum Eco Score to filter assessment history and display records within the selected range."
-)
-
-            if search_text:
-                display_df = display_df[
-                    display_df["📅 Date"]
-                    .astype(str)
-                    .str.contains(search_text, case=False, na=False)
-                ]
-
-            display_df = display_df[
-                (display_df["⭐ Eco Score"] >= min_score)
-                & (display_df["⭐ Eco Score"] <= max_score)
-            ]
-
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-            avg_footprint = df["footprint"].mean()
-            avg_score = df["eco_score"].mean()
-            min_footprint = df["footprint"].min()
-            max_footprint = df["footprint"].max()
-
-            stats_col1, stats_col2, stats_col3 = st.columns(3)
-            stats_col1.metric("Average Footprint", f"{avg_footprint:.0f} kg CO₂")
-            stats_col2.metric("Average Score", f"{avg_score:.0f}/100")
-            stats_col3.metric(
-                "Footprint Range",
-                f"{min_footprint:.0f}–{max_footprint:.0f} kg CO₂",
+            df = pd.DataFrame(current_page)
+            display_df = df[["date", "transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score"]]
+            display_df.columns = ["📅 Date", "🚗 Transport", "⚡ Electricity", "🥗 Diet", "✈️ Flights", "🌍 Footprint", "⭐ Eco Score"]
+            
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "📅 Date": st.column_config.TextColumn("📅 Date"),
+                    "🚗 Transport": st.column_config.TextColumn("🚗 Transport"),
+                    "⚡ Electricity": st.column_config.NumberColumn("⚡ Electricity", format="%.0f kWh"),
+                    "🥗 Diet": st.column_config.TextColumn("🥗 Diet"),
+                    "✈️ Flights": st.column_config.NumberColumn("✈️ Flights", format="%d"),
+                    "🌍 Footprint": st.column_config.NumberColumn("🌍 Footprint", format="%.1f kg"),
+                    "⭐ Eco Score": st.column_config.NumberColumn("⭐ Eco Score", format="%d/100"),
+                }
             )
         else:
-            st.info(
-                "No assessment history yet. Complete an assessment to start tracking your progress."
+            st.info("No assessments match the current filters.")
+
+        # Pagination
+        render_history_pagination(manager)
+
+        # Export button
+        if manager._filtered_assessments:
+            csv_data = manager.export_csv()
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv_data,
+                file_name=f"assessment_history_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
             )
 
 with tab2:
@@ -5592,3 +5359,27 @@ and <b>Pandas</b>.
 
 </div>
 """, unsafe_allow_html=True)
+
+# ============================================================
+# AUTO-UPDATE CARBON TRACKER
+# ============================================================
+
+def auto_update_carbon_tracker():
+    """Auto-update carbon tracker when inputs change."""
+    from src.lib.carbon_tracker import update_carbon_tracker
+    
+    if all(key in st.session_state for key in ['transport', 'distance', 'electricity', 'diet', 'flights']):
+        tracker_data = {
+            "transport": st.session_state.get("transport", "Car"),
+            "distance": float(st.session_state.get("distance", 10.0)),
+            "electricity": float(st.session_state.get("electricity", 200.0)),
+            "diet": st.session_state.get("diet", "Vegetarian"),
+            "flights": int(st.session_state.get("flights", 0)),
+            "region": st.session_state.get("region", "Global")
+        }
+        try:
+            update_carbon_tracker(tracker_data)
+        except Exception:
+            pass
+
+auto_update_carbon_tracker()

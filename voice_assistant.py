@@ -442,3 +442,80 @@ def get_voice_log_history(user_id: int, limit: int = 20) -> list[dict[str, Any]]
     finally:
         if conn:
             conn.close()
+
+def render_voice_assessment():
+    """Render the voice assistant UI inside the Streamlit app."""
+    import streamlit as st
+
+    st.markdown("### 🎤 Voice Assessment")
+    st.write("Log your eco-friendly activities using natural language.")
+
+    st.info(
+        "Try something like: "
+        "'I drove 10 km to work today' or "
+        "'I recycled a plastic bottle'."
+    )
+
+    text_input = st.text_area(
+        "Describe your activity",
+        placeholder="Example: I drove 10 km to work today",
+        key="voice_text_input",
+    )
+
+    if st.button("🔍 Analyze Activity", key="voice_analyze_button"):
+        if not text_input.strip():
+            st.warning("Please describe an activity first.")
+            return
+
+        parsed = parse_voice_command(text_input.strip())
+
+        if parsed.get("action_type") == "unknown":
+            st.error("I couldn't understand that activity.")
+            return
+
+        st.session_state["voice_pending_text"] = text_input.strip()
+        st.session_state["voice_pending_parsed"] = parsed
+
+    parsed = st.session_state.get("voice_pending_parsed")
+
+    if parsed:
+        st.markdown("#### ✅ Please confirm")
+        st.markdown(build_confirmation_summary(parsed))
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("✅ Confirm & Save", key="voice_confirm_button"):
+                user_id = st.session_state.get("user_id", 1)
+
+                ok, message = save_voice_log(user_id, parsed)
+
+                record_voice_log_history(
+                    user_id,
+                    st.session_state.get("voice_pending_text", ""),
+                    parsed,
+                    confirmed=ok,
+                )
+
+                if ok:
+                    st.success(message)
+                    st.session_state.pop("voice_pending_text", None)
+                    st.session_state.pop("voice_pending_parsed", None)
+                else:
+                    st.error(message)
+
+        with col2:
+            if st.button("❌ Cancel", key="voice_cancel_button"):
+                user_id = st.session_state.get("user_id", 1)
+
+                record_voice_log_history(
+                    user_id,
+                    st.session_state.get("voice_pending_text", ""),
+                    parsed,
+                    confirmed=False,
+                )
+
+                st.session_state.pop("voice_pending_text", None)
+                st.session_state.pop("voice_pending_parsed", None)
+
+                st.info("Voice activity cancelled.")
