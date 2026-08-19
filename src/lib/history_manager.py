@@ -1,372 +1,379 @@
 """
-History Manager for EcoBuddy AI
-Manages assessment history, filtering, and export operations.
+Assessment History Manager
+Handles pagination, filtering, and sorting of assessment history.
 """
 
-import logging
+import streamlit as st
+import pandas as pd
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
-import pandas as pd
 from dataclasses import dataclass, field
+import logging
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class HistoryFilter:
-    """Filter configuration for assessment history."""
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
-    min_score: int = 0
-    max_score: int = 100
+    """Filters for assessment history."""
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    min_eco_score: Optional[int] = None
+    max_eco_score: Optional[int] = None
     transport_modes: List[str] = field(default_factory=list)
     diet_types: List[str] = field(default_factory=list)
+    min_footprint: Optional[float] = None
+    max_footprint: Optional[float] = None
     search_text: str = ""
-    limit: int = 100
+
+
+@dataclass
+class HistoryPagination:
+    """Pagination settings for assessment history."""
+    page: int = 1
+    page_size: int = 10
+    total_items: int = 0
+    total_pages: int = 0
+    
+    def update(self, total_items: int) -> None:
+        self.total_items = total_items
+        self.total_pages = (total_items + self.page_size - 1) // self.page_size
+        if self.page > self.total_pages:
+            self.page = max(1, self.total_pages)
 
 
 class HistoryManager:
     """
-    Manages assessment history with filtering, sorting, and export capabilities.
+    Manages assessment history with pagination and filtering.
     """
     
     def __init__(self, user_id: int):
-        """
-        Initialize HistoryManager for a specific user.
-        
-        Args:
-            user_id: User ID for the current session
-        """
         self.user_id = user_id
-        self._assessments: List[Dict[str, Any]] = []
+        self.filter = HistoryFilter()
+        self.pagination = HistoryPagination(page_size=10)
+        self._all_assessments: List[Dict[str, Any]] = []
         self._filtered_assessments: List[Dict[str, Any]] = []
-        self._filters = HistoryFilter()
-        self._sort_by = "date"
-        self._sort_descending = True
-        self._cache: Dict[str, Any] = {}
-        self._last_refresh = None
-        
-        # Load initial data
-        self.refresh_data()
-        
-        logger.info(f"HistoryManager initialized for user {user_id}")
     
-    def refresh_data(self) -> None:
-        """Refresh assessment data from database."""
-        try:
-            from database import get_assessments
-            self._assessments = get_assessments(self.user_id)
-            self._apply_filters()
-            self._last_refresh = datetime.now()
-            logger.debug(f"Refreshed {len(self._assessments)} assessments")
-        except Exception as e:
-            logger.error(f"Failed to refresh data: {e}")
-            self._assessments = []
-            self._filtered_assessments = []
+    def load_assessments(self) -> None:
+        """Load assessments from database."""
+        from database import get_assessments
+        
+        raw_data = get_assessments(self.user_id)
+        
+        self._all_assessments = []
+        for row in raw_data:
+            if len(row) >= 10:
+                assessment = {
+                    "id": row[0],
+                    "date": row[1],
+                    "created_at": row[2],
+                    "transport": row[3],
+                    "distance": row[4],
+                    "electricity": row[5],
+                    "diet": row[6],
+                    "flights": row[7],
+                    "footprint": row[8],
+                    "eco_score": row[9],
+                }
+                self._all_assessments.append(assessment)
+        
+        self._filter_assessments()
     
-    def _apply_filters(self) -> None:
-        """Apply current filters to assessments."""
-        filtered = self._assessments.copy()
+    def _filter_assessments(self) -> None:
+        """Apply filters to assessments."""
+        filtered = self._all_assessments.copy()
         
         # Date range filter
-        if self._filters.date_from:
-            filtered = [a for a in filtered if self._get_date(a) >= self._filters.date_from]
-        if self._filters.date_to:
-            filtered = [a for a in filtered if self._get_date(a) <= self._filters.date_to]
-        
-        # Score range filter
-        if self._filters.min_score > 0 or self._filters.max_score < 100:
-            filtered = [a for a in filtered if self._filters.min_score <= a.get('eco_score', 0) <= self._filters.max_score]
-        
-        # Transport mode filter
-        if self._filters.transport_modes:
-            filtered = [a for a in filtered if a.get('transport', '').lower() in [m.lower() for m in self._filters.transport_modes]]
-        
-        # Diet type filter
-        if self._filters.diet_types:
-            filtered = [a for a in filtered if a.get('diet', '').lower() in [d.lower() for d in self._filters.diet_types]]
-        
-        # Search text filter
-        if self._filters.search_text:
-            search = self._filters.search_text.lower()
-            filtered = [
-                a for a in filtered 
-                if search in str(a.get('date', '')).lower() 
-                or search in str(a.get('transport', '')).lower()
-                or search in str(a.get('diet', '')).lower()
-            ]
-        
-        # Apply sorting
-        filtered.sort(
-            key=lambda x: x.get(self._sort_by, 0),
-            reverse=self._sort_descending
-        )
-        
-        # Apply limit
-        if self._filters.limit > 0:
-            filtered = filtered[:self._filters.limit]
-        
-        self._filtered_assessments = filtered
-        self._cache.clear()
-    
-    def _get_date(self, assessment: Dict[str, Any]) -> datetime:
-        """Extract date from assessment dict."""
-        date_val = assessment.get('date')
-        if isinstance(date_val, datetime):
-            return date_val
-        if isinstance(date_val, str):
+        if self.filter.date_from:
             try:
-                return datetime.fromisoformat(date_val)
+                date_from = datetime.strptime(self.filter.date_from, "%Y-%m-%d")
+                filtered = [a for a in filtered if datetime.strptime(a["date"], "%Y-%m-%d") >= date_from]
             except:
                 pass
-        return datetime.now()
-    
-    def set_filters(self, **kwargs) -> None:
-        """
-        Set filters and refresh data.
         
-        Args:
-            date_from: Start date
-            date_to: End date
-            min_score: Minimum eco score
-            max_score: Maximum eco score
-            transport_modes: List of transport modes
-            diet_types: List of diet types
-            search_text: Search text
-            limit: Max records to return
-        """
-        for key, value in kwargs.items():
-            if hasattr(self._filters, key):
-                setattr(self._filters, key, value)
+        if self.filter.date_to:
+            try:
+                date_to = datetime.strptime(self.filter.date_to, "%Y-%m-%d")
+                filtered = [a for a in filtered if datetime.strptime(a["date"], "%Y-%m-%d") <= date_to]
+            except:
+                pass
         
-        self._apply_filters()
-    
-    def set_sort(self, sort_by: str = "date", descending: bool = True) -> None:
-        """Set sorting options."""
-        self._sort_by = sort_by
-        self._sort_descending = descending
-        self._apply_filters()
-    
-    def get_assessments(self) -> List[Dict[str, Any]]:
-        """Get filtered assessments."""
-        return self._filtered_assessments.copy()
-    
-    def get_all_assessments(self) -> List[Dict[str, Any]]:
-        """Get all assessments without filters."""
-        return self._assessments.copy()
-    
-    def get_summary(self) -> Dict[str, Any]:
-        """Get summary statistics for filtered data."""
-        data = self._filtered_assessments
+        # Eco score filter
+        if self.filter.min_eco_score is not None:
+            filtered = [a for a in filtered if a["eco_score"] >= self.filter.min_eco_score]
+        if self.filter.max_eco_score is not None:
+            filtered = [a for a in filtered if a["eco_score"] <= self.filter.max_eco_score]
         
-        if not data:
+        # Transport modes filter
+        if self.filter.transport_modes:
+            filtered = [a for a in filtered if a["transport"] in self.filter.transport_modes]
+        
+        # Diet types filter
+        if self.filter.diet_types:
+            filtered = [a for a in filtered if a["diet"] in self.filter.diet_types]
+        
+        # Footprint filter
+        if self.filter.min_footprint is not None:
+            filtered = [a for a in filtered if a["footprint"] >= self.filter.min_footprint]
+        if self.filter.max_footprint is not None:
+            filtered = [a for a in filtered if a["footprint"] <= self.filter.max_footprint]
+        
+        # Search text
+        if self.filter.search_text:
+            search_lower = self.filter.search_text.lower()
+            filtered = [
+                a for a in filtered
+                if search_lower in str(a["date"]).lower()
+                or search_lower in a["transport"].lower()
+                or search_lower in a["diet"].lower()
+                or search_lower in str(a["eco_score"])
+                or search_lower in str(a["footprint"])
+            ]
+        
+        self._filtered_assessments = filtered
+        self.pagination.update(len(filtered))
+    
+    def get_current_page(self) -> List[Dict[str, Any]]:
+        """Get current page of assessments."""
+        start = (self.pagination.page - 1) * self.pagination.page_size
+        end = start + self.pagination.page_size
+        return self._filtered_assessments[start:end]
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get statistics about assessments."""
+        if not self._all_assessments:
             return {
                 "total": 0,
                 "avg_footprint": 0,
-                "avg_score": 0,
-                "min_score": 0,
-                "max_score": 0,
+                "avg_eco_score": 0,
+                "best_eco_score": 0,
+                "worst_eco_score": 0,
                 "total_footprint": 0,
-                "date_range": {"from": None, "to": None},
-                "transport_modes": {},
-                "diet_types": {},
-                "trend": "stable"
             }
         
-        footprints = [a.get('footprint', 0) for a in data if a.get('footprint') is not None]
-        scores = [a.get('eco_score', 0) for a in data if a.get('eco_score') is not None]
-        dates = [self._get_date(a) for a in data]
-        
-        # Transport mode distribution
-        transport_modes = {}
-        for a in data:
-            mode = a.get('transport', 'Unknown')
-            transport_modes[mode] = transport_modes.get(mode, 0) + 1
-        
-        # Diet type distribution
-        diet_types = {}
-        for a in data:
-            diet = a.get('diet', 'Unknown')
-            diet_types[diet] = diet_types.get(diet, 0) + 1
-        
-        # Determine trend
-        trend = "stable"
-        if len(scores) >= 3:
-            first_avg = sum(scores[:3]) / 3
-            last_avg = sum(scores[-3:]) / 3
-            if last_avg > first_avg * 1.05:
-                trend = "improving"
-            elif last_avg < first_avg * 0.95:
-                trend = "declining"
+        footprints = [a["footprint"] for a in self._all_assessments]
+        eco_scores = [a["eco_score"] for a in self._all_assessments]
         
         return {
-            "total": len(data),
-            "avg_footprint": round(sum(footprints) / len(footprints), 2) if footprints else 0,
-            "avg_score": round(sum(scores) / len(scores), 1) if scores else 0,
-            "min_score": min(scores) if scores else 0,
-            "max_score": max(scores) if scores else 0,
-            "total_footprint": sum(footprints) if footprints else 0,
-            "date_range": {
-                "from": min(dates) if dates else None,
-                "to": max(dates) if dates else None
-            },
-            "transport_modes": transport_modes,
-            "diet_types": diet_types,
-            "trend": trend
+            "total": len(self._all_assessments),
+            "avg_footprint": sum(footprints) / len(footprints),
+            "avg_eco_score": sum(eco_scores) / len(eco_scores),
+            "best_eco_score": max(eco_scores) if eco_scores else 0,
+            "worst_eco_score": min(eco_scores) if eco_scores else 0,
+            "total_footprint": sum(footprints),
         }
     
-    def export_data(self, format: str = "csv") -> Dict[str, Any]:
-        """
-        Export filtered data to specified format.
-        
-        Args:
-            format: Export format ('csv', 'excel', 'json')
-        
-        Returns:
-            ExportResult dictionary
-        """
-        from .export_manager import export_assessments
-        return export_assessments(self._filtered_assessments, format)
-    
-    def get_export_summary(self) -> Dict[str, Any]:
-        """
-        Get summary statistics for export.
-        
-        Returns:
-            Summary statistics dictionary
-        """
-        from .export_manager import get_export_manager
-        manager = get_export_manager()
-        return manager.export_summary(self._filtered_assessments)
-    
-    def get_export_options(self) -> Dict[str, Any]:
-        """
-        Get available export options.
-        
-        Returns:
-            Dictionary of export options
-        """
+    def get_unique_values(self) -> Dict[str, List[str]]:
+        """Get unique values for filters."""
+        transports = sorted(set(a["transport"] for a in self._all_assessments))
+        diets = sorted(set(a["diet"] for a in self._all_assessments))
         return {
-            "formats": ["csv", "excel", "json", "html", "markdown", "tsv", "multi"],
-            "date_ranges": ["All", "Last 7 Days", "Last 30 Days", "Last 90 Days", "This Year"],
-            "include_stats": True,
-            "max_rows": 100000
+            "transports": transports,
+            "diets": diets,
         }
     
-    def filter_by_date_range(self, date_range: str) -> List[Dict[str, Any]]:
-        """
-        Filter assessments by date range.
-        
-        Args:
-            date_range: Date range string
-        
-        Returns:
-            Filtered assessments list
-        """
-        if date_range == "All" or not self._filtered_assessments:
-            return self._filtered_assessments
-        
-        now = datetime.now()
-        if date_range == "Last 7 Days":
-            cutoff = now - timedelta(days=7)
-        elif date_range == "Last 30 Days":
-            cutoff = now - timedelta(days=30)
-        elif date_range == "Last 90 Days":
-            cutoff = now - timedelta(days=90)
-        elif date_range == "This Year":
-            cutoff = datetime(now.year, 1, 1)
-        else:
-            return self._filtered_assessments
-        
-        filtered = []
-        for assessment in self._filtered_assessments:
-            date = assessment.get("date")
-            if date:
-                try:
-                    if isinstance(date, str):
-                        date = datetime.fromisoformat(date)
-                    if date >= cutoff:
-                        filtered.append(assessment)
-                except:
-                    pass
-        
-        return filtered
+    def set_filter(self, **kwargs) -> None:
+        """Set filter values."""
+        for key, value in kwargs.items():
+            if hasattr(self.filter, key):
+                setattr(self.filter, key, value)
+        self._filter_assessments()
     
-    def get_export_preview(self, limit: int = 10) -> pd.DataFrame:
-        """
-        Get a preview of data for export.
-        
-        Args:
-            limit: Number of rows to preview
-        
-        Returns:
-            DataFrame with preview data
-        """
+    def reset_filters(self) -> None:
+        """Reset all filters."""
+        self.filter = HistoryFilter()
+        self.pagination.page = 1
+        self._filter_assessments()
+    
+    def set_page(self, page: int) -> None:
+        """Set current page."""
+        self.pagination.page = max(1, min(page, self.pagination.total_pages))
+    
+    def next_page(self) -> None:
+        """Go to next page."""
+        if self.pagination.page < self.pagination.total_pages:
+            self.pagination.page += 1
+    
+    def prev_page(self) -> None:
+        """Go to previous page."""
+        if self.pagination.page > 1:
+            self.pagination.page -= 1
+    
+    def export_csv(self) -> str:
+        """Export filtered data to CSV string."""
         if not self._filtered_assessments:
-            return pd.DataFrame()
+            return ""
         
-        preview_data = self._filtered_assessments[:limit]
-        df = pd.DataFrame(preview_data)
-        
-        # Format for display
-        display_columns = ['date', 'transport', 'distance', 'electricity', 'diet', 'flights', 'footprint', 'eco_score']
-        existing_cols = [col for col in display_columns if col in df.columns]
-        
-        if existing_cols:
-            df = df[existing_cols]
-        
-        return df
-    
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Get manager statistics.
-        
-        Returns:
-            Statistics dictionary
-        """
-        return {
-            "total_assessments": len(self._assessments),
-            "filtered_assessments": len(self._filtered_assessments),
-            "last_refresh": self._last_refresh,
-            "filters": {
-                "date_from": self._filters.date_from,
-                "date_to": self._filters.date_to,
-                "min_score": self._filters.min_score,
-                "max_score": self._filters.max_score,
-                "search_text": self._filters.search_text,
-                "limit": self._filters.limit
-            },
-            "sort_by": self._sort_by,
-            "sort_descending": self._sort_descending,
-            "cache_size": len(self._cache)
-        }
+        df = pd.DataFrame(self._filtered_assessments)
+        return df.to_csv(index=False)
 
 
-# Global HistoryManager instance cache
-_history_managers: Dict[int, HistoryManager] = {}
-
-
-def get_history_manager(user_id: int) -> HistoryManager:
+def render_history_filters(manager: HistoryManager) -> None:
     """
-    Get or create HistoryManager for a user.
-    
-    Args:
-        user_id: User ID
-    
-    Returns:
-        HistoryManager instance
+    Render filter UI for assessment history.
     """
-    if user_id not in _history_managers:
-        _history_managers[user_id] = HistoryManager(user_id)
-    return _history_managers[user_id]
+    with st.expander("🔍 Filters", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Date range
+            st.markdown("**📅 Date Range**")
+            date_from = st.date_input(
+                "From",
+                value=None,
+                key="history_date_from",
+                help="Start date for filtering"
+            )
+            date_to = st.date_input(
+                "To",
+                value=None,
+                key="history_date_to",
+                help="End date for filtering"
+            )
+            
+            if date_from:
+                manager.filter.date_from = date_from.strftime("%Y-%m-%d")
+            else:
+                manager.filter.date_from = None
+            
+            if date_to:
+                manager.filter.date_to = date_to.strftime("%Y-%m-%d")
+            else:
+                manager.filter.date_to = None
+        
+        with col2:
+            # Eco score range
+            st.markdown("**⭐ Eco Score Range**")
+            min_score = st.slider(
+                "Min Score",
+                min_value=0,
+                max_value=100,
+                value=0,
+                key="history_min_score",
+                help="Minimum Eco Score"
+            )
+            max_score = st.slider(
+                "Max Score",
+                min_value=0,
+                max_value=100,
+                value=100,
+                key="history_max_score",
+                help="Maximum Eco Score"
+            )
+            manager.filter.min_eco_score = min_score if min_score > 0 else None
+            manager.filter.max_eco_score = max_score if max_score < 100 else None
+        
+        with col3:
+            # Transport and diet filters
+            st.markdown("**🚗 Transport & Diet**")
+            unique = manager.get_unique_values()
+            
+            transports = st.multiselect(
+                "Transport Modes",
+                options=unique["transports"],
+                default=[],
+                key="history_transports",
+                help="Filter by transport mode"
+            )
+            manager.filter.transport_modes = transports
+            
+            diets = st.multiselect(
+                "Diet Types",
+                options=unique["diets"],
+                default=[],
+                key="history_diets",
+                help="Filter by diet type"
+            )
+            manager.filter.diet_types = diets
+        
+        # Search and actions
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            search_text = st.text_input(
+                "🔍 Search",
+                placeholder="Search by date, transport, diet...",
+                key="history_search",
+                help="Search across all fields"
+            )
+            manager.filter.search_text = search_text
+        
+        with col2:
+            if st.button("🔄 Apply Filters", key="history_apply_filters", use_container_width=True):
+                manager._filter_assessments()
+                st.rerun()
+        
+        with col3:
+            if st.button("🗑️ Reset Filters", key="history_reset_filters", use_container_width=True):
+                manager.reset_filters()
+                st.rerun()
 
 
-def clear_history_manager(user_id: int) -> None:
+def render_history_pagination(manager: HistoryManager) -> None:
     """
-    Clear HistoryManager cache for a user.
+    Render pagination controls for assessment history.
+    """
+    pagination = manager.pagination
     
-    Args:
-        user_id: User ID
+    if pagination.total_pages <= 1:
+        return
+    
+    col1, col2, col3, col4, col5 = st.columns([1, 2, 2, 2, 1])
+    
+    with col1:
+        if st.button("⬅️ Previous", key="history_prev", disabled=(pagination.page <= 1)):
+            manager.prev_page()
+            st.rerun()
+    
+    with col2:
+        st.caption(f"Page {pagination.page} of {pagination.total_pages}")
+    
+    with col3:
+        # Page selector
+        page_options = list(range(1, pagination.total_pages + 1))
+        selected_page = st.selectbox(
+            "Go to page",
+            options=page_options,
+            index=pagination.page - 1,
+            key="history_page_select",
+            label_visibility="collapsed"
+        )
+        if selected_page != pagination.page:
+            manager.set_page(selected_page)
+            st.rerun()
+    
+    with col4:
+        st.caption(f"Showing {min(pagination.page * pagination.page_size, pagination.total_items)} of {pagination.total_items}")
+    
+    with col5:
+        if st.button("Next ➡️", key="history_next", disabled=(pagination.page >= pagination.total_pages)):
+            manager.next_page()
+            st.rerun()
+
+
+def render_history_stats(manager: HistoryManager) -> None:
     """
-    if user_id in _history_managers:
-        del _history_managers[user_id]
+    Render statistics for assessment history.
+    """
+    stats = manager.get_stats()
+    
+    if stats["total"] == 0:
+        st.info("No assessments found. Complete your first assessment to start tracking!")
+        return
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("📊 Total Assessments", stats["total"])
+    
+    with col2:
+        st.metric("⭐ Avg Eco Score", f"{stats['avg_eco_score']:.0f}")
+    
+    with col3:
+        st.metric("🌍 Avg Footprint", f"{stats['avg_footprint']:.0f} kg")
+    
+    with col4:
+        st.metric("🏆 Best Score", stats["best_eco_score"])
+    
+    with col5:
+        st.metric("📉 Worst Score", stats["worst_eco_score"])

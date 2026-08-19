@@ -1020,11 +1020,52 @@ def get_active_unit_preference(user_id=None):
         except Exception:
             pass
 
+
     return DEFAULT_PREFERENCE
 
 
-/* ==========================================================================
-   CHAT UI FIXES - Import
-   ========================================================================== */
+
 
 @import url("styles/chat.css");
+
+"""
+Theme management for EcoBuddy AI.
+"""
+
+import streamlit as st
+from styles.theme_manager import get_theme_manager, render_theme_toggle, render_theme_selector, apply_theme
+
+
+def apply_theme():
+    """Apply theme to the app."""
+    manager = get_theme_manager()
+    manager._apply_theme(manager.get_current_theme())
+
+
+def render_theme_selector_widget():
+    """Render theme selector widget."""
+    render_theme_selector()
+
+
+def render_theme_toggle_widget():
+    """Render theme toggle widget."""
+    render_theme_toggle()
+
+
+def get_theme():
+    """Get current theme name."""
+    manager = get_theme_manager()
+    return manager.get_current_theme()
+
+
+def is_dark_mode():
+    """Check if dark mode is enabled."""
+    return get_theme() == "dark"
+
+
+def is_light_mode():
+    """Check if light mode is enabled."""
+    return get_theme() == "light"
+
+    return DEFAULT_PREFERENCE
+
