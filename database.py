@@ -239,6 +239,15 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS business_footprints (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        total_emissions REAL,
+                        eco_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS food_scans (
@@ -502,6 +511,27 @@ def save_assessment(
         print(f"Database save error: {e}")
         return False
 
+# -------------------------------------------------------------------------
+
+def save_business_footprint(total_emissions: float, eco_score: float) -> None:
+    """Saves a business Scope 3 footprint assessment."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO business_footprints (total_emissions, eco_score, timestamp)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    """, (total_emissions, eco_score))
+    conn.commit()
+    conn.close()
+
+def get_business_footprint_history() -> list:
+    """Retrieves historical business footprint assessments."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM business_footprints ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 # -------------------------------------------------------------------------
 # Assessment Timestamp Migration
 #
