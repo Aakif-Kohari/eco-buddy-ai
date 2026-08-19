@@ -4362,6 +4362,93 @@ with tab1:
                     "⭐ Eco Score": st.column_config.NumberColumn("⭐ Eco Score", format="%d/100"),
                 }
             )
+
+            # ── Export Options ────────────────────────────────────────────────────────────
+            st.markdown("---")
+            st.markdown("### 📤 Export Data")
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                export_format = st.selectbox(
+                    "Format",
+                    options=["csv", "excel", "json", "html", "markdown", "tsv", "multi"],
+                    index=0,
+                    key="export_format",
+                    help="Select export format"
+                )
+
+            with col2:
+                date_range = st.selectbox(
+                    "Date Range",
+                    options=["All", "Last 7 Days", "Last 30 Days", "Last 90 Days", "This Year"],
+                    index=0,
+                    key="export_date_range"
+                )
+
+            with col3:
+                include_stats = st.checkbox(
+                    "Include summary stats",
+                    value=True,
+                    key="export_include_stats",
+                    help="Include summary statistics in export"
+                )
+
+            with col4:
+                if st.button("📥 Export Data", type="primary", use_container_width=True):
+                    with st.spinner("Preparing export..."):
+                        from src.lib.export_manager import export_assessments, export_summary
+                        
+                        # Get filtered data
+                        assessments = display_df.to_dict('records') if not display_df.empty else []
+                        
+                        if not assessments:
+                            st.warning("No data to export. Please adjust filters.")
+                        else:
+                            # Show summary first if requested
+                            if include_stats:
+                                summary = export_summary(assessments)
+                                with st.expander("📊 Export Summary"):
+                                    col_a, col_b, col_c = st.columns(3)
+                                    with col_a:
+                                        st.metric("Total Assessments", summary["total_assessments"])
+                                        st.metric("Average Footprint", f"{summary['average_footprint']:.2f} kg CO₂")
+                                        st.metric("Carbon Ranking", summary["carbon_ranking"])
+                                    with col_b:
+                                        st.metric("Average Eco Score", f"{summary['average_eco_score']:.1f}")
+                                        st.metric("Unique Users", summary["unique_users"])
+                                        st.metric("Eco Ranking", summary["eco_ranking"])
+                                    with col_c:
+                                        st.metric("Total Footprint", f"{summary['total_footprint']:.2f} kg CO₂")
+                                        st.metric("Date Range", f"{summary['date_range_days']} days")
+                                        st.metric("Transport Modes", len(summary["transport_modes"]))
+                            
+                            # Export
+                            result = export_assessments(assessments, format=export_format)
+                            
+                            if result.success:
+                                st.success(f"✅ {result.message} ({result.row_count} rows, {result.file_size_kb:.1f} KB)")
+                                
+                                # Download button
+                                mime_types = {
+                                    "csv": "text/csv",
+                                    "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    "json": "application/json",
+                                    "html": "text/html",
+                                    "markdown": "text/markdown",
+                                    "tsv": "text/tab-separated-values",
+                                    "multi": "application/zip"
+                                }
+                                
+                                st.download_button(
+                                    label=f"⬇️ Download {result.filename}",
+                                    data=result.data,
+                                    file_name=result.filename,
+                                    mime=mime_types.get(export_format, "text/plain"),
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error(f"❌ {result.message}")
         else:
             st.info("No assessments match the current filters.")
 
