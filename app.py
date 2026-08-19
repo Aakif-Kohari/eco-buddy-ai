@@ -99,7 +99,15 @@ def measure_dashboard_load():
 # Header & Authentication Layout
 # ----------------------------
 def render_top_auth():
-    """Renders the logo on the top-left and auth controls on the top-right."""
+    """Renders the logo in the sidebar and auth controls on the top-right."""
+    
+    # Render EcoBuddy logo/branding in the sidebar unconditionally
+    st.sidebar.markdown("""
+        <div style='text-align: center; padding: 10px; margin-bottom: 20px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.15)); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);'>
+            <h2 style='margin: 0; padding: 0; font-weight: 800; color: #1f2937;'>🌱 EcoBuddy <span style='color: #22c55e;'>AI</span></h2>
+        </div>
+    """, unsafe_allow_html=True)
+
     if 'user_id' not in st.session_state:
         st.session_state['user_id'] = None
         st.session_state['username'] = None
@@ -112,16 +120,11 @@ def render_top_auth():
         else:
             update_last_activity()
 
-    # Create the Top-Left / Top-Right header layout
-    header_left, header_right = st.columns([1, 1])
-    
-    with header_left:
-        # Compact Logo / Branding in the upper-left
-        st.markdown("<h2 style='margin-top: 0; padding-top: 0; color: #22c55e;'>🌱 EcoBuddy AI</h2>", unsafe_allow_html=True)
-
     if st.session_state['user_id'] is None:
         # Render Login, Register, and Guest options compactly in the top-right
-        with header_right:
+        _, auth_col = st.columns([2, 1])
+        
+        with auth_col:
             with st.expander("👤 Sign In / Register", expanded=False):
                 tab1, tab2, tab3 = st.tabs(["Login", "Register", "Guest"])
                 
@@ -160,7 +163,6 @@ def render_top_auth():
         return None
     else:
         # Maintain existing sidebar navigation for authenticated users
-        st.sidebar.title("🌱 EcoBuddy AI")
         st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
         
         anon_pref = st.sidebar.checkbox(
