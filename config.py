@@ -72,6 +72,14 @@ DIET_EMISSION_FACTORS = {
     "Non-Vegetarian": 1750,
 }
 
+# Waste Analytics Defaults
+DEFAULT_WASTE_STREAM_COLORS = {
+    "recycling": "#2ca02c",
+    "compost": "#8c564b",
+    "landfill": "#7f7f7f",
+    "hazardous": "#d62728"
+}
+
 # Energy audit constants
 HOURS_PER_DAY = 24
 DAYS_PER_YEAR = 365
