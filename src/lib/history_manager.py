@@ -377,3 +377,47 @@ def render_history_stats(manager: HistoryManager) -> None:
     
     with col5:
         st.metric("📉 Worst Score", stats["worst_eco_score"])
+
+
+# ============================================================================
+# INSTANCE MANAGEMENT & HELPERS
+# ============================================================================
+
+_history_managers: Dict[int, HistoryManager] = {}
+
+
+def get_history_manager(user_id: int = 1, reload: bool = False) -> HistoryManager:
+    """
+    Get or create a cached HistoryManager instance for a user.
+    
+    Args:
+        user_id: User identifier.
+        reload: If True, reload assessments from the database.
+        
+    Returns:
+        HistoryManager instance.
+    """
+    global _history_managers
+    if user_id not in _history_managers or reload:
+        manager = HistoryManager(user_id)
+        try:
+            manager.load_assessments()
+        except Exception as exc:
+            logger.warning("Could not auto-load assessments for user %s: %s", user_id, exc)
+        _history_managers[user_id] = manager
+    return _history_managers[user_id]
+
+
+def clear_history_manager(user_id: Optional[int] = None) -> None:
+    """
+    Clear cached HistoryManager instance(s).
+    
+    Args:
+        user_id: Specific user ID to clear, or None to clear all.
+    """
+    global _history_managers
+    if user_id is None:
+        _history_managers.clear()
+    elif user_id in _history_managers:
+        del _history_managers[user_id]
+
