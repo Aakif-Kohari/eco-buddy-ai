@@ -458,6 +458,7 @@ with st.expander("🌍 Environmental Impact Timeline", expanded=False):
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
+        init_energy_tracker_db()
 
     run_db_initializations()
     user_id = render_sidebar_auth()
@@ -4616,6 +4617,9 @@ with tab2:
         <span style='color:#e5e7eb; font-size:15px;'>Over 20 years, you could save <b style="color:#4ade80;">${savings_20y:,.0f}</b> and offset <b style="color:#4ade80;">{carbon_offset:,.0f} kg CO₂</b> annually.</span>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    energy_tracker.render_energy_tracker(user_id)
 
 with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
