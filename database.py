@@ -6962,23 +6962,21 @@ def get_completed_challenges(user_id: int) -> list[tuple[Any, ...]]:
 
 # ============================================================================
 # OPTIMIZED DATABASE QUERIES - Issue #778
-# Add this entire block at the END of database.py
-# ============================================================================
-
-from src.lib.db_optimizer import get_query_optimizer, cached_query, batch_queries
-from src.lib.db_optimizer import QueryOptimizer
-import time
-
-# Initialize optimizer
 _db_optimizer = None
 
 
-def get_db_optimizer() -> QueryOptimizer:
+def get_db_optimizer() -> Any:
     """Get the database optimizer instance."""
     global _db_optimizer
     if _db_optimizer is None:
-        _db_optimizer = get_query_optimizer()
+        try:
+            from src.lib.db_optimizer import get_query_optimizer
+            _db_optimizer = get_query_optimizer()
+        except Exception:
+            _db_optimizer = None
     return _db_optimizer
+
+
 def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: float) -> bool:
     import json
     try:
