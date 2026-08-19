@@ -329,6 +329,45 @@ with form:
             st.sidebar.subheader("🧭 Navigation")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
 
+            # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
+            from src.lib.carbon_tracker import (
+                get_carbon_tracker,
+                update_carbon_tracker,
+                render_carbon_widget
+            )
+
+            # Add to sidebar
+            with st.sidebar:
+                # ... existing code ...
+                
+                st.divider()
+                st.subheader("📊 Live Carbon Tracker")
+                
+                # Update tracker when inputs change
+                if 'transport' in st.session_state and 'distance' in st.session_state:
+                    tracker_data = {
+                        "transport": st.session_state.get('transport', 'Car'),
+                        "distance": st.session_state.get('distance', 10.0),
+                        "electricity": st.session_state.get('electricity', 200.0),
+                        "diet": st.session_state.get('diet', 'Vegetarian'),
+                        "flights": st.session_state.get('flights', 0),
+                        "region": st.session_state.get('region', 'Global')
+                    }
+                    
+                    # Only update if data changed
+                    if st.session_state.get('_last_tracker_update', 0) < time.time() - 0.5:
+                        try:
+                            update_carbon_tracker(tracker_data)
+                            st.session_state['_last_tracker_update'] = time.time()
+                        except Exception as e:
+                            pass
+                
+                # Display widget
+                render_carbon_widget()
+                
+                # Show live status
+                st.caption("🟢 Live updates enabled")
+
             st.markdown("""
             <style>
 
@@ -5583,3 +5622,27 @@ and <b>Pandas</b>.
 
 </div>
 """, unsafe_allow_html=True)
+
+# ============================================================
+# AUTO-UPDATE CARBON TRACKER
+# ============================================================
+
+def auto_update_carbon_tracker():
+    """Auto-update carbon tracker when inputs change."""
+    from src.lib.carbon_tracker import update_carbon_tracker
+    
+    if all(key in st.session_state for key in ['transport', 'distance', 'electricity', 'diet', 'flights']):
+        tracker_data = {
+            "transport": st.session_state.get("transport", "Car"),
+            "distance": float(st.session_state.get("distance", 10.0)),
+            "electricity": float(st.session_state.get("electricity", 200.0)),
+            "diet": st.session_state.get("diet", "Vegetarian"),
+            "flights": int(st.session_state.get("flights", 0)),
+            "region": st.session_state.get("region", "Global")
+        }
+        try:
+            update_carbon_tracker(tracker_data)
+        except Exception:
+            pass
+
+auto_update_carbon_tracker()
