@@ -207,6 +207,25 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS iot_devices (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        device_id TEXT,
+                        device_name TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS iot_readings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        device_id INTEGER,
+                        hour_index INTEGER,
+                        power_watts REAL,
+                        energy_kwh REAL,
+                        FOREIGN KEY (device_id) REFERENCES iot_devices (id)
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS deleted_assessments (
@@ -692,6 +711,43 @@ def get_carbon_budget(user_id: int) -> tuple[str, float] | None:
 
     except sqlite3.Error:
         return None
+
+
+def save_iot_device(device_id: str, device_name: str) -> int:
+    """Saves a connected IoT device and returns its DB ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO iot_devices (device_id, device_name, timestamp)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    """, (device_id, device_name))
+    conn.commit()
+    device_db_id = cursor.lastrowid
+    conn.close()
+    return device_db_id
+
+def save_iot_reading_batch(device_db_id: int, readings: list) -> None:
+    """Saves a batch of hourly IoT readings."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    for r in readings:
+        cursor.execute("""
+            INSERT INTO iot_readings (device_id, hour_index, power_watts, energy_kwh)
+            VALUES (?, ?, ?, ?)
+        """, (device_db_id, r["hour_index"], r["power_watts"], r["energy_kwh"]))
+    conn.commit()
+    conn.close()
+
+def get_iot_devices() -> list:
+    """Retrieves all connected IoT devices."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM iot_devices ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
 def update_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
 
     try:
