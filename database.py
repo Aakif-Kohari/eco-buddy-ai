@@ -226,6 +226,15 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS waste_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        total_weight_kg REAL,
+                        efficiency_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS assessment_activity_log (
@@ -616,6 +625,27 @@ def get_assessments(user_id: int = 1) -> list[tuple[Any, ...]]:
     except sqlite3.Error as e:
         print(f"Database read error: {e}")
         return []
+
+
+def save_waste_log(total_weight: float, efficiency_score: float) -> None:
+    """Saves a waste analytics log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO waste_logs (total_weight_kg, efficiency_score, timestamp)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+    """, (total_weight, efficiency_score))
+    conn.commit()
+    conn.close()
+
+def get_waste_analytics_history() -> list:
+    """Retrieves historical waste analytics logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM waste_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_carbon_budget(user_id: int, budget_type: str, budget_limit: float) -> bool:
     try:
