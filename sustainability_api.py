@@ -180,8 +180,43 @@ OPENAPI_SPEC = {
                 },
             }
         },
+        _route("/calculator/rainwater-tank"): {
+            "post": {
+                "summary": "Simulate Rainwater Harvesting and Tank Sizing",
+                "description": "Calculates monthly rainfall capture, water demand, tank simulation, and optimal tank recommendation.",
+                "security": [{"ApiKeyAuth": []}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "roof_area_m2": {"type": "number", "example": 120.0},
+                                    "roof_material": {"type": "string", "example": "Metal / corrugated sheet"},
+                                    "climate_zone": {"type": "string", "example": "Temperate maritime"},
+                                    "tank_litres": {"type": "number", "example": 5000.0},
+                                    "monthly_demand_l": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "example": [4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000]
+                                    }
+                                },
+                                "required": ["roof_area_m2"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {"description": "Rainwater harvesting simulation and sizing recommendation"},
+                    "400": {"description": "Invalid input parameters"},
+                    "401": {"description": "Unauthorized"}
+                }
+            }
+        }
     },
 }
+
 
 # ---------------------------------------------------------------------------
 # Swagger UI HTML — references the versioned OpenAPI spec endpoint
@@ -405,6 +440,72 @@ def process_api_request(
             "application/json",
         )
 
+    # POST /api/v1/calculator/rainwater-tank
+    if method == "POST" and path == _route("/calculator/rainwater-tank"):
+        if not body:
+            return (
+                400,
+                {"error": "Bad Request", "message": "JSON body is required."},
+                "application/json",
+            )
+        try:
+            from rainwater import (
+                monthly_harvest,
+                simulate_storage,
+                recommend_tank_size,
+                savings_estimate,
+                co2_savings,
+                annual_harvest_potential,
+                get_climate_profile,
+                CLIMATE_ZONES
+            )
+
+            roof_area = float(body.get("roof_area_m2", 100.0))
+            roof_material = str(body.get("roof_material", "Metal / corrugated sheet"))
+            climate_zone = str(body.get("climate_zone", "Temperate maritime"))
+            tank_litres = float(body.get("tank_litres", 3000.0))
+
+            monthly_rainfall = body.get("monthly_rainfall_mm")
+            if not monthly_rainfall:
+                monthly_rainfall = get_climate_profile(climate_zone)
+
+            monthly_demand = body.get("monthly_demand_l")
+            if not monthly_demand:
+                monthly_demand = [3500.0] * 12
+
+            harvest_series = monthly_harvest(roof_area, monthly_rainfall, roof_material)
+            annual_harvest = annual_harvest_potential(roof_area, sum(monthly_rainfall), roof_material)
+            simulation = simulate_storage(tank_litres, harvest_series, monthly_demand)
+            recommended = recommend_tank_size(harvest_series, monthly_demand)
+            payback = savings_estimate(simulation["total_supplied_l"], tank_litres=tank_litres)
+            carbon_avoided = co2_savings(simulation["total_supplied_l"])
+
+            return (
+                200,
+                {
+                    "success": True,
+                    "data": {
+                        "roof_area_m2": roof_area,
+                        "roof_material": roof_material,
+                        "climate_zone": climate_zone,
+                        "monthly_harvest_l": harvest_series,
+                        "annual_harvest_litres": annual_harvest,
+                        "simulation": simulation,
+                        "optimal_tank_recommendation": recommended,
+                        "financial_payback": payback,
+                        "carbon_avoided": carbon_avoided
+                    }
+                },
+                "application/json",
+            )
+        except Exception as exc:
+            return (
+                400,
+                {"error": "Calculation Error", "message": str(exc)},
+                "application/json",
+            )
+
+
     return (
         404,
         {
@@ -413,6 +514,7 @@ def process_api_request(
         },
         "application/json",
     )
+
 
 
 # ---------------------------------------------------------------------------
