@@ -331,9 +331,10 @@ with form:
                 for key, val in DEFAULT_VALUES.items():
                     st.session_state[key] = val
                 st.rerun()
-
-            st.sidebar.markdown("---")
             st.sidebar.subheader("🧭 Navigation")
+            st.sidebar.page_link("pages/Eco_Challenges.py", label="🎯 Eco Challenges")
+            st.sidebar.page_link("pages/Personal_Sustainability_Planner.py", label="🗺️ Action Planner")
+            st.sidebar.page_link("pages/Water_Footprint.py", label="💧 Water Footprint")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
 
             # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
