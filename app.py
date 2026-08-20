@@ -4857,6 +4857,8 @@ with tab4:
 
     </div>
     """, unsafe_allow_html=True)
+    
+    travel_tracker.render_travel_tracker(user_id)
 
 with tab6:
     import plotly.graph_objects as go
