@@ -16,8 +16,7 @@ from .export_manager import (
 from .history_manager import (
     HistoryManager,
     HistoryFilter,
-    get_history_manager,
-    clear_history_manager
+    get_history_manager
 )
 
 __all__ = [
@@ -30,6 +29,5 @@ __all__ = [
     'get_supported_formats',
     'HistoryManager',
     'HistoryFilter',
-    'get_history_manager',
-    'clear_history_manager'
+    'get_history_manager'
 ]

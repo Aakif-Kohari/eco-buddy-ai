@@ -96,6 +96,134 @@ def measure_dashboard_load():
     
     return load_time
 # ----------------------------
+# Header & Authentication Layout
+# ----------------------------
+def render_top_auth():
+    """Renders the logo in the sidebar and auth controls on the top-right."""
+    
+    # Render EcoBuddy logo/branding in the sidebar unconditionally
+    st.sidebar.markdown("""
+        <div style='text-align: center; padding: 10px; margin-bottom: 20px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.15)); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);'>
+            <h2 style='margin: 0; padding: 0; font-weight: 800; color: #1f2937;'>🌱 EcoBuddy <span style='color: #22c55e;'>AI</span></h2>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if 'user_id' not in st.session_state:
+        st.session_state['user_id'] = None
+        st.session_state['username'] = None
+
+    if st.session_state.get('user_id'):
+        if check_session_timeout():
+            clear_auth_session()
+            st.warning("Your session has expired. Please sign in again.")
+            st.rerun()
+        else:
+            update_last_activity()
+
+    if st.session_state['user_id'] is None:
+        # Render Login, Register, and Guest options compactly in the top-right
+        _, auth_col = st.columns([2, 1])
+        
+        with auth_col:
+            with st.expander("👤 Sign In / Register", expanded=False):
+                tab1, tab2, tab3 = st.tabs(["Login", "Register", "Guest"])
+                
+                with tab1:
+                    username = st.text_input("Username", key="login_username", max_chars=30)
+                    password = st.text_input("Password", type="password")
+                    if st.button("Login", use_container_width=True):
+                        user = verify_user(username, password)
+                        if user:
+                            st.session_state['user_id'] = user['id']
+                            st.session_state['username'] = user['username']
+                            st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
+                            st.success("Logged in successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Invalid username or password")
+                            
+                with tab2:
+                    username = st.text_input("Username", max_chars=30, key="reg_user")
+                    email = st.text_input("Email", max_chars=100)
+                    password = st.text_input("Password", type="password", key="reg_pass")
+                    anonymous = st.checkbox("Appear anonymously on leaderboard")
+                    if st.button("Register", use_container_width=True):
+                        if create_user(username, email, password, anonymous_leaderboard=anonymous):
+                            st.success("Registration successful! Please login.")
+                        else:
+                            st.error("Username or email already exists")
+                            
+                with tab3:
+                    st.write("Explore EcoBuddy AI without creating an account.")
+                    if st.button("Continue as Guest", use_container_width=True):
+                        st.session_state['user_id'] = 1
+                        st.session_state['username'] = "Guest"
+                        st.rerun()
+                    
+        return None
+    else:
+        # Maintain existing sidebar navigation for authenticated users
+        st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
+        
+        anon_pref = st.sidebar.checkbox(
+            "Appear anonymously on leaderboard",
+            value=st.session_state.get("anonymous_leaderboard", False)
+        )
+        if anon_pref != st.session_state.get("anonymous_leaderboard", False):
+            update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
+            set_session_state_if_changed('anonymous_leaderboard', anon_pref)
+            st.sidebar.success("Leaderboard preference saved.")
+            st.rerun()
+
+        if st.sidebar.button("Logout"):
+            clear_auth_session()
+            for key, val in DEFAULT_VALUES.items():
+                st.session_state[key] = val
+            st.rerun()
+
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🧭 Navigation")
+        st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
+
+        from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
+        with st.sidebar:
+            st.divider()
+            st.subheader("📊 Live Carbon Tracker")
+            if 'transport' in st.session_state and 'distance' in st.session_state:
+                tracker_data = {
+                    "transport": st.session_state.get('transport', 'Car'),
+                    "distance": st.session_state.get('distance', 10.0),
+                    "electricity": st.session_state.get('electricity', 200.0),
+                    "diet": st.session_state.get('diet', 'Vegetarian'),
+                    "flights": st.session_state.get('flights', 0),
+                    "region": st.session_state.get('region', 'Global')
+                }
+                if st.session_state.get('_last_tracker_update', 0) < time.time() - 0.5:
+                    try:
+                        update_carbon_tracker(tracker_data)
+                        st.session_state['_last_tracker_update'] = time.time()
+                    except Exception as e:
+                        pass
+            render_carbon_widget()
+            st.caption("🟢 Live updates enabled")
+
+        with st.sidebar.expander("🌱 Sustainability", expanded=True):
+            st.write("🌍 Carbon Footprint")
+            st.write("⚡ Home Energy Audit")
+            st.write("🎮 Gamification")
+        with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
+            st.write("🗺️ Route Planning & Offsets")
+            st.write("🏆 Community Leaderboard")
+        with st.sidebar.expander("🔮 Insights", expanded=False):
+            st.write("🔮 Future Self")
+            st.write("📊 Environmental Timeline")
+
+        return st.session_state['user_id']
+
+# Execute the top authentication logic
+user_id = render_top_auth()
+
+# ----------------------------
 # Welcome Section
 # ----------------------------
 st.title("🌱 Welcome to EcoBuddy AI")
@@ -237,208 +365,7 @@ with form:
             ).strftime("%d %b %Y %I:%M %p")
         return "-"
 
-    def render_sidebar_auth():
-        st.sidebar.title("Authentication")
-        if 'user_id' not in st.session_state:
-            st.session_state['user_id'] = None
-            st.session_state['username'] = None
 
-        if st.session_state.get('user_id'):
-            if check_session_timeout():
-                clear_auth_session()
-                st.sidebar.warning("Your session has expired. Please sign in again.")
-                st.rerun()
-            else:
-                update_last_activity()
-
-        if st.session_state['user_id'] is None:
-            auth_mode = st.sidebar.radio("Choose Mode", ["Login", "Register", "Guest"])
-            if auth_mode == "Login":
-                with st.sidebar.form("login_form"):
-                    MAX_USERNAME = 30
-
-                    username = st.text_input(
-                        "Username",
-                        key="login_username",
-                        max_chars=MAX_USERNAME,
-                        help="Enter your registered username."
-                    )
-
-                    username = username or ""
-                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-
-                    password = st.text_input("Password", type="password",
-                    help="Enter your account password. Characters will be hidden for security.")
-                    if st.form_submit_button("Login"):
-                        user = verify_user(username, password)
-                        if user:
-                            st.session_state['user_id'] = user['id']
-                            st.session_state['username'] = user['username']
-                            st.session_state['anonymous_leaderboard'] = user.get('anonymous_leaderboard', False)
-                            st.sidebar.success("Logged in successfully!")
-                            st.rerun()
-                        else:
-                            st.sidebar.error("Invalid username or password")
-            elif auth_mode == "Register":
-                with st.sidebar.form("register_form"):
-                    MAX_USERNAME = 30
-
-                    username = st.text_input(
-                        "Username",
-                        max_chars=MAX_USERNAME,
-                        help="Choose a unique username."
-                    )
-
-                    st.caption(f"👤 {len(username)}/{MAX_USERNAME} characters")
-                    MAX_EMAIL = 100
-
-                    email = st.text_input(
-                        "Email",
-                        max_chars=MAX_EMAIL,
-                        help="Enter a valid email address."
-                    )
-
-                    st.caption(f"📧 {len(email)}/{MAX_EMAIL} characters")
-                    password = st.text_input("Password", type="password",help="Use a strong password with letters, numbers, and special characters.")
-                    anonymous = st.checkbox("Appear anonymously on leaderboard")
-                    if st.form_submit_button("Register"):
-                        if create_user(username, email, password, anonymous_leaderboard=anonymous):
-                            st.sidebar.success("Registration successful! Please login.")
-                        else:
-                            st.sidebar.error("Username or email already exists")
-            elif auth_mode == "Guest":
-                if st.sidebar.button("Continue as Guest"):
-                    st.session_state['user_id'] = 1
-                    st.session_state['username'] = "Guest"
-                    st.rerun()
-        
-            st.sidebar.warning("Please log in or continue as Guest to use the app.")
-            st.stop()
-        else:
-            st.sidebar.write(f"Logged in as **{st.session_state['username']}**")
-            anon_pref = st.sidebar.checkbox(
-                "Appear anonymously on leaderboard",
-                value=st.session_state.get("anonymous_leaderboard", False)
-            )
-            if anon_pref != st.session_state.get("anonymous_leaderboard", False):
-                update_user_leaderboard_preference(st.session_state['user_id'], anon_pref)
-                set_session_state_if_changed('anonymous_leaderboard', anon_pref)
-                st.sidebar.success("Leaderboard preference saved.")
-                st.experimental_rerun()
-
-            if st.sidebar.button("Logout"):
-                clear_auth_session()
-                for key, val in DEFAULT_VALUES.items():
-                    st.session_state[key] = val
-                st.rerun()
-
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("🧭 Navigation")
-            st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
-
-            # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
-            from src.lib.carbon_tracker import (
-                get_carbon_tracker,
-                update_carbon_tracker,
-                render_carbon_widget
-            )
-
-            # Add to sidebar
-            with st.sidebar:
-                # ... existing code ...
-                
-                st.divider()
-                st.subheader("📊 Live Carbon Tracker")
-                
-                # Update tracker when inputs change
-                if 'transport' in st.session_state and 'distance' in st.session_state:
-                    tracker_data = {
-                        "transport": st.session_state.get('transport', 'Car'),
-                        "distance": st.session_state.get('distance', 10.0),
-                        "electricity": st.session_state.get('electricity', 200.0),
-                        "diet": st.session_state.get('diet', 'Vegetarian'),
-                        "flights": st.session_state.get('flights', 0),
-                        "region": st.session_state.get('region', 'Global')
-                    }
-                    
-                    # Only update if data changed
-                    if st.session_state.get('_last_tracker_update', 0) < time.time() - 0.5:
-                        try:
-                            update_carbon_tracker(tracker_data)
-                            st.session_state['_last_tracker_update'] = time.time()
-                        except Exception as e:
-                            pass
-                
-                # Display widget
-                render_carbon_widget()
-                
-                # Show live status
-                st.caption("🟢 Live updates enabled")
-
-            st.markdown("""
-            <style>
-
-            /* Sidebar navigation expanders */
-            [data-testid="stSidebar"] [data-testid="stExpander"] {
-                border: 1px solid rgba(34, 197, 94, 0.18);
-                border-radius: 12px;
-                margin-bottom: 10px;
-                background: rgba(255, 255, 255, 0.03);
-                transition: all 0.25s ease;
-            }
-
-
-run_db_initializations()
-user_id = render_sidebar_auth()
-render_theme_selector()
-selected_dashboard_widgets = render_widget_customizer(user_id)
-render_customizable_dashboard(user_id, selected_dashboard_widgets)
-run_db_initializations()
-user_id = render_sidebar_auth()
-render_theme_selector()
-
-render_global_search(user_id)
-
-selected_dashboard_widgets = render_widget_customizer(user_id)
-render_customizable_dashboard(user_id, selected_dashboard_widgets)
-with st.expander("🌍 Environmental Impact Timeline", expanded=False):
-    render_environmental_timeline(user_id)
-
-            /* Expander header */
-            [data-testid="stSidebar"] [data-testid="stExpander"] summary {
-                font-weight: 700;
-                transition: all 0.25s ease;
-            }
-
-            /* Hover effect */
-            [data-testid="stSidebar"] [data-testid="stExpander"]:hover {
-                border-color: rgba(34, 197, 94, 0.45);
-                transform: translateX(2px);
-            }
-
-
-            /* Navigation content */
-            [data-testid="stSidebar"] [data-testid="stExpander"] div[role="group"] {
-                padding: 4px 8px 8px 8px;
-            }
-
-            </style>
-            """, unsafe_allow_html=True)
-
-            with st.sidebar.expander("🌱 Sustainability", expanded=True):
-                st.write("🌍 Carbon Footprint")
-                st.write("⚡ Home Energy Audit")
-                st.write("🎮 Gamification")
-
-            with st.sidebar.expander("🗺️ Travel & Community", expanded=False):
-                st.write("🗺️ Route Planning & Offsets")
-                st.write("🏆 Community Leaderboard")
-
-            with st.sidebar.expander("🔮 Insights", expanded=False):
-                st.write("🔮 Future Self")
-                st.write("📊 Environmental Timeline")
-
-        return st.session_state['user_id']
 
     # -------------------------
     # INIT
@@ -458,9 +385,12 @@ with st.expander("🌍 Environmental Impact Timeline", expanded=False):
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
+        init_energy_tracker_db()
 
     run_db_initializations()
-    user_id = render_sidebar_auth()
+    if user_id is None:
+        st.warning("Please log in or continue as Guest to use the full application.")
+        st.stop()
     render_theme_selector()
     selected_dashboard_widgets = render_widget_customizer(user_id)
     render_customizable_dashboard(user_id, selected_dashboard_widgets)
@@ -4617,6 +4547,9 @@ with tab2:
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("---")
+    energy_tracker.render_energy_tracker(user_id)
+
 with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
     
@@ -4924,6 +4857,8 @@ with tab4:
 
     </div>
     """, unsafe_allow_html=True)
+    
+    travel_tracker.render_travel_tracker(user_id)
 
 with tab6:
     import plotly.graph_objects as go
