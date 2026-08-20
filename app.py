@@ -334,6 +334,7 @@ with form:
 
             st.sidebar.markdown("---")
             st.sidebar.subheader("🧭 Navigation")
+            st.sidebar.page_link("pages/Eco_Challenges.py", label="🎯 Eco Challenges")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
 
             # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
