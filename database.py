@@ -138,6 +138,16 @@ def init_db() -> bool:
                 except sqlite3.OperationalError as exc:
                     if "duplicate column name" not in str(exc).lower():
                         raise
+                
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pcf_labels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_name TEXT,
+                        label_data TEXT,
+                        transparency_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
                 cursor.execute(
                     """
@@ -7392,6 +7402,19 @@ def get_food_scans(user_id: int) -> list[dict]:
     except sqlite3.Error as e:
         logger.error(f"Error getting food scans: {e}")
         return []
+
+import json
+
+def save_pcf_label(product_name: str, label_data: dict, transparency_data: dict) -> None:
+    """Saves a generated PCF label and transparency score to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pcf_labels (product_name, label_data, transparency_data)
+        VALUES (?, ?, ?)
+    """, (product_name, json.dumps(label_data), json.dumps(transparency_data)))
+    conn.commit()
+    conn.close()
 
 def init_energy_tracker_db() -> bool:
     try:
