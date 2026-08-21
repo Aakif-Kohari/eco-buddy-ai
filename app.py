@@ -335,6 +335,8 @@ with form:
             st.sidebar.markdown("---")
             st.sidebar.subheader("🧭 Navigation")
             st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
+            st.sidebar.page_link("pages/What_If_Simulator.py", label="🕹️ What-If Simulator")
+
 
             # ── Real-Time Carbon Tracker ────────────────────────────────────────────────
             from src.lib.carbon_tracker import (
