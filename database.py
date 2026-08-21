@@ -158,6 +158,18 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_health_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time_allocation TEXT,
+                        weekly_park_visits INTEGER,
+                        tree_canopy_pct REAL,
+                        exposure_data TEXT,
+                        mitigation_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS carbon_budgets (
@@ -7377,6 +7389,27 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
     except sqlite3.Error as e:
         logger.error(f"Error saving food scan: {e}")
         return False
+
+import json
+
+def save_urban_health_profile(time_allocation: dict, weekly_park_visits: int, tree_canopy_pct: float, 
+                              exposure_data: dict, mitigation_data: dict) -> None:
+    """Saves an urban health impact analysis session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_health_profiles 
+        (time_allocation, weekly_park_visits, tree_canopy_pct, exposure_data, mitigation_data)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        json.dumps(time_allocation),
+        weekly_park_visits,
+        tree_canopy_pct,
+        json.dumps(exposure_data),
+        json.dumps(mitigation_data)
+    ))
+    conn.commit()
+    conn.close()
 
 def get_food_scans(user_id: int) -> list[dict]:
     try:
