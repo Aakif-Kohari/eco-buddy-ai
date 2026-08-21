@@ -113,6 +113,17 @@ def init_db() -> bool:
                     )
                     """
                 )
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pantry_inventory (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        item_name TEXT,
+                        purchase_date TEXT,
+                        storage_condition TEXT,
+                        added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS weekly_challenges (
@@ -7432,6 +7443,34 @@ def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, reco
     finally:
         if conn:
             conn.close()
+
+def add_pantry_item(item_name: str, purchase_date: str, storage_condition: str) -> None:
+    """Adds a new item to the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pantry_inventory (item_name, purchase_date, storage_condition)
+        VALUES (?, ?, ?)
+    """, (item_name, purchase_date, storage_condition))
+    conn.commit()
+    conn.close()
+
+def get_pantry_inventory() -> list:
+    """Retrieves all items in the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT item_name, purchase_date, storage_condition FROM pantry_inventory ORDER BY purchase_date ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"name": row[0], "purchase_date": row[1], "storage": row[2]} for row in rows]
+
+def remove_pantry_item(item_name: str) -> None:
+    """Removes an item from the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pantry_inventory WHERE item_name = ?", (item_name,))
+    conn.commit()
+    conn.close()
 
 def get_energy_records(user_id: int) -> list[dict]:
     try:
