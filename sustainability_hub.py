@@ -763,5 +763,5 @@ with st.expander("🌿 Sustainability Hub", expanded=False):
 # To use the new features, simply import and call the functions
 # from your main app file.
 
-print("✅ EcoBuddy Sustainability Hub loaded successfully!")
-print("🌱 New features available: Eco Goals, Impact Visualizer, Green Investments, Quiz")
+print("[SUCCESS] EcoBuddy Sustainability Hub loaded successfully!")
+print("[INFO] New features available: Eco Goals, Impact Visualizer, Green Investments, Quiz")

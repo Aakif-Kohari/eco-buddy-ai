@@ -10,8 +10,8 @@ from plugins import (
 from plugins.base import CalculatorPlugin, InputField, CalcResult, VALID_FIELD_TYPES
 
 
-EXPECTED_PLUGINS = ("carbon_footprint", "energy_audit", "water_footprint", "route_emissions")
-ALL_CATEGORIES = ("Emissions", "Energy", "Water", "Transport")
+EXPECTED_PLUGINS = ("carbon_footprint", "energy_audit", "water_footprint", "route_emissions", "carbon_payback", "food_footprint")
+ALL_CATEGORIES = ("Emissions", "Energy", "Water", "Transport", "Food & Agriculture")
 
 
 class TestInputFieldValidation:
@@ -117,8 +117,9 @@ class TestPluginLookup:
 
     def test_get_plugins_by_category_emissions(self):
         plugins = get_plugins_by_category("Emissions")
-        assert len(plugins) == 1
-        assert plugins[0].name == "carbon_footprint"
+        names = [p.name for p in plugins]
+        assert "carbon_footprint" in names
+        assert "carbon_payback" in names
 
     def test_get_plugins_by_category_transport(self):
         plugins = get_plugins_by_category("Transport")
