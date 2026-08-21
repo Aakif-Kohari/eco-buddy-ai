@@ -101,6 +101,26 @@ def init_db() -> bool:
             with database_connection(DB_NAME) as conn:
                 cursor = conn.cursor()
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_balances (
+                        user_id TEXT PRIMARY KEY,
+                        balance_kg REAL DEFAULT 500.0,
+                        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_trades (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        buyer_id TEXT,
+                        seller_id TEXT,
+                        amount_kg REAL,
+                        price_per_tonne REAL,
+                        trade_type TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS users (
@@ -7451,3 +7471,36 @@ def get_energy_records(user_id: int) -> list[dict]:
     finally:
         if conn:
             conn.close()
+
+def get_pca_balance(user_id: str) -> float:
+    """Retrieves the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT balance_kg FROM pca_balances WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 500.0
+
+def update_pca_balance(user_id: str, amount: float) -> None:
+    """Updates the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_balances (user_id, balance_kg, last_updated)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET balance_kg = excluded.balance_kg, last_updated = CURRENT_TIMESTAMP
+    """, (user_id, amount))
+    conn.commit()
+    conn.close()
+
+def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
+    """Records a PCA trade in the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_trades (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type)
+        VALUES (?, ?, ?, ?, ?)
+    """, (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type))
+    conn.commit()
+    conn.close()
+
