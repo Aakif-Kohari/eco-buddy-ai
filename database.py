@@ -28,7 +28,7 @@ from invalidation import (
 import streamlit as st
 import bcrypt
 import logging
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
@@ -7184,15 +7184,19 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
         return False
 
 def get_food_scans(user_id: int) -> list[dict]:
+    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
-columns = [column[0] for column in cursor.description]
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM food_scans WHERE user_id = ?", (user_id,))
+        columns = [column[0] for column in cursor.description]
         data = cursor.fetchall()
         return [dict(zip(columns, row)) for row in data]
     except sqlite3.Error:
         return []
     finally:
         if conn:
+            conn.close()
             conn.close()
 
 
