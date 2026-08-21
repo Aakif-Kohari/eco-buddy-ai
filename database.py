@@ -128,6 +128,15 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS textile_comparisons (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        garment_data TEXT,
+                        results_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 try:
                     cursor.execute(
                         """
@@ -7415,6 +7424,19 @@ def init_energy_tracker_db() -> bool:
     finally:
         if conn:
             conn.close()
+
+import json
+
+def save_textile_comparison(garments: list, results: list) -> None:
+    """Saves a textile comparison session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO textile_comparisons (garment_data, results_data)
+        VALUES (?, ?)
+    """, (json.dumps(garments), json.dumps(results)))
+    conn.commit()
+    conn.close()
 
 def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, record_date: str) -> bool:
     try:
