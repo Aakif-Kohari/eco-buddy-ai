@@ -43,13 +43,24 @@ tab_measure, tab_analysis, tab_advice, tab_history = st.tabs([
 ])
 
 with tab_measure:
-    unit_pref = st.radio(
-        "Display Units",
-        ["Liters (L)", "US Gallons (gal)"],
-        horizontal=True,
-        index=0,
-        key="water_unit_pref",
-    )
+    col_u1, col_u2 = st.columns(2)
+    with col_u1:
+        unit_pref = st.radio(
+            "Display Units",
+            ["Liters (L)", "US Gallons (gal)"],
+            horizontal=True,
+            index=0,
+            key="water_unit_pref",
+        )
+    with col_u2:
+        household_size = st.number_input(
+            "Household Size",
+            min_value=1,
+            max_value=20,
+            value=1,
+            step=1,
+            help="Used to calculate your per-person daily average footprint."
+        )
     is_gallons = "Gallon" in unit_pref
 
     st.markdown("### 🚿 1. Personal Hygiene Activities")
@@ -213,6 +224,7 @@ with tab_measure:
                 "garden_mins": garden_mins,
                 "diet": diet,
                 "car_washes": car_washes,
+                "household_size": household_size,
             }
 
             savings_opps = calculate_potential_water_savings(inputs_record)
@@ -249,6 +261,8 @@ with tab_analysis:
         unit_lbl = "Gallons/day" if is_gallons else "Liters/day"
 
         score = data["score_data"]
+        h_size = data["inputs"].get("household_size", 1)
+        per_person = total_disp / h_size if h_size > 0 else total_disp
 
         st.markdown(
             f"""
@@ -260,13 +274,15 @@ with tab_analysis:
             unsafe_allow_html=True,
         )
 
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric("💧 Daily Total", f"{total_disp:.0f} {unit_lbl}")
         with c2:
+            st.metric("👤 Per Person (Daily)", f"{per_person:.0f} {unit_lbl}")
+        with c3:
             weekly_disp = total_disp * 7
             st.metric("📅 Weekly Total", f"{weekly_disp:,.0f} {unit_lbl.replace('/day', '/wk')}")
-        with c3:
+        with c4:
             annual_disp = total_disp * 365
             st.metric("🌍 Annual Total", f"{annual_disp:,.0f} {unit_lbl.replace('/day', '/yr')}")
 
@@ -443,3 +459,91 @@ with tab_history:
             file_name="water_footprint_history.csv",
             mime="text/csv",
         )
+
+# ==========================================
+# CONSERVATION GOALS SECTION
+# ==========================================
+st.markdown("---")
+st.markdown("### 🎯 Water Conservation Goals")
+
+import sqlite3
+from database import DB_NAME
+
+def init_water_goals_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS water_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            target_liters REAL NOT NULL,
+            deadline DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_active_water_goal(user_id):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT target_liters, deadline FROM water_goals WHERE user_id=? ORDER BY created_at DESC LIMIT 1", (user_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def set_active_water_goal(user_id, target_l, deadline):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("INSERT INTO water_goals (user_id, target_liters, deadline) VALUES (?, ?, ?)", (user_id, target_l, deadline))
+    conn.commit()
+    conn.close()
+
+init_water_goals_db()
+
+goal = get_active_water_goal(user_id)
+
+col_g1, col_g2 = st.columns([1, 1])
+
+with col_g1:
+    st.markdown("#### Set a New Goal")
+    with st.form("water_goal_form"):
+        new_target = st.number_input("Target Daily Usage (Liters)", min_value=10.0, max_value=5000.0, value=200.0, step=10.0)
+        import datetime
+        new_deadline = st.date_input("Target Deadline", datetime.date.today() + datetime.timedelta(days=30))
+        submitted = st.form_submit_button("Set Goal")
+        if submitted:
+            set_active_water_goal(user_id, new_target, new_deadline.isoformat())
+            st.success("New conservation goal set successfully!")
+            st.rerun()
+
+with col_g2:
+    st.markdown("#### Current Goal Progress")
+    if goal:
+        target_liters = goal[0]
+        deadline = goal[1]
+        
+        water_history = get_water_assessments(user_id)
+        current_liters = water_history[0]['total_liters'] if water_history else None
+        
+        if current_liters:
+            st.metric("Target Usage", f"{target_liters:.0f} L/day", f"Deadline: {deadline}")
+            st.metric("Current Usage", f"{current_liters:.0f} L/day")
+            
+            if current_liters <= target_liters:
+                st.success("🎉 You are currently meeting your water conservation target!")
+                st.progress(1.0)
+            else:
+                st.warning(f"You are {current_liters - target_liters:.0f} L above your target.")
+                # Calculate progress from global avg to target
+                from water import GLOBAL_WATER_AVERAGE_LITERS
+                if current_liters < GLOBAL_WATER_AVERAGE_LITERS:
+                    progress = (GLOBAL_WATER_AVERAGE_LITERS - current_liters) / (GLOBAL_WATER_AVERAGE_LITERS - target_liters)
+                    st.progress(min(max(progress, 0.0), 1.0))
+                else:
+                    st.progress(0.0)
+        else:
+            st.info("Log an assessment to see your progress against the goal.")
+    else:
+        st.info("You haven't set a water conservation goal yet.")
+

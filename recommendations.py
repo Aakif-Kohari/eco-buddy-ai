@@ -157,3 +157,11 @@ def generate_water_recommendations(contributors: dict[str, float], total_daily: 
         recommendations.insert(0, "💧 Great job! Your water footprint is below or near the global average.")
         
     return insight, recommendations
+
+
+def get_b2b_sustainability_recommendations(footprint_data: dict) -> list:
+    """
+    Wrapper to fetch B2B recommendations, keeping logic centralized.
+    """
+    from business_footprint import generate_b2b_recommendations
+    return generate_b2b_recommendations(footprint_data)
