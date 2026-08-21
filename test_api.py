@@ -185,6 +185,34 @@ def test_api_calculate_insights_success():
     assert "recommendations" in data["data"]
 
 
+def test_api_calculate_rainwater_tank_unauthorized():
+    code, data, _ = process_api_request(
+        "POST", f"{API_VERSION_PREFIX}/calculator/rainwater-tank", {}, body={}
+    )
+    assert code == 401
+    assert data["error"] == "Unauthorized"
+
+
+def test_api_calculate_rainwater_tank_success():
+    key_info = generate_api_key("Rainwater Test App")
+    headers = {"X-API-Key": key_info["api_key"]}
+    body = {
+        "roof_area_m2": 150.0,
+        "roof_material": "Metal / corrugated sheet",
+        "climate_zone": "Temperate maritime",
+        "tank_litres": 5000.0
+    }
+    code, data, _ = process_api_request(
+        "POST", f"{API_VERSION_PREFIX}/calculator/rainwater-tank", headers, body=body
+    )
+    assert code == 200
+    assert data["success"] is True
+    assert data["data"]["annual_harvest_litres"] > 0
+    assert "simulation" in data["data"]
+    assert "optimal_tank_recommendation" in data["data"]
+    assert "financial_payback" in data["data"]
+
+
 def test_api_unknown_endpoint_returns_404():
     """Requests to non-existent versioned routes must return 404."""
     key_info = generate_api_key("404 Test App")
@@ -192,3 +220,4 @@ def test_api_unknown_endpoint_returns_404():
     code, data, _ = process_api_request("GET", f"{API_VERSION_PREFIX}/nonexistent", headers)
     assert code == 404
     assert data["error"] == "Not Found"
+

@@ -377,3 +377,10 @@ def render_history_stats(manager: HistoryManager) -> None:
     
     with col5:
         st.metric("📉 Worst Score", stats["worst_eco_score"])
+
+_history_managers = {}
+
+def get_history_manager(user_id: int) -> HistoryManager:
+    if user_id not in _history_managers:
+        _history_managers[user_id] = HistoryManager(user_id)
+    return _history_managers[user_id]

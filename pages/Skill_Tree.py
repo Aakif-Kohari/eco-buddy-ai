@@ -8,19 +8,18 @@ from styles.theme import apply_theme
 
 apply_theme()
 
+# ----------------------------
+# EcoBuddy Branding / Logo (Sidebar)
+# ----------------------------
+st.sidebar.markdown("""
+    <div style='text-align: center; padding: 10px; margin-bottom: 20px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.15)); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);'>
+        <h2 style='margin: 0; padding: 0; font-weight: 800; color: #1f2937;'>🌱 EcoBuddy <span style='color: #22c55e;'>AI</span></h2>
+    </div>
+""", unsafe_allow_html=True)
 
 st.markdown("<div class='section-header'>🌳 Eco-Action Roadmap</div>", unsafe_allow_html=True)
 st.write(
     "Progress through the skill tree to unlock advanced sustainability practices and earn big rewards!"
-)
-
-st.markdown(
-    "<div class='section-header'>🌳 Eco-Action Roadmap</div>",
-    unsafe_allow_html=True,
-)
-st.write(
-    "Progress through the skill tree to unlock advanced sustainability "
-    "practices and earn big rewards!"
 )
 
 # Retrieve the currently authenticated user instead of using a hardcoded ID.
@@ -120,11 +119,18 @@ config = Config(
     highlightColor="#F7A7A6",
     collapsible=False,
 
-    direction="UD",
-
     direction="UD",  # Up to down
-
 )
+
+# ----------------------------
+# Progress Indicator
+# ----------------------------
+total_nodes = len(SKILL_TREE_NODES)
+completed_nodes = sum(1 for status in node_status_map.values() if status == "Completed")
+progress_val = completed_nodes / total_nodes if total_nodes > 0 else 0.0
+
+st.progress(progress_val, text=f"Skill Tree Progress: {completed_nodes} / {total_nodes} Skills Completed")
+st.markdown("---")
 
 col1, col2 = st.columns([2, 1])
 

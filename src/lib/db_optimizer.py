@@ -386,13 +386,15 @@ _optimizer: Optional[QueryOptimizer] = None
 _optimizer_lock = threading.Lock()
 
 
-def get_query_optimizer() -> QueryOptimizer:
+def get_query_optimizer(db_path: Optional[str] = None) -> QueryOptimizer:
     """Get global query optimizer instance."""
     global _optimizer
     with _optimizer_lock:
         if _optimizer is None:
-            from src.core.app_config import CORPUS_DB_PATH
-            _optimizer = QueryOptimizer(str(CORPUS_DB_PATH))
+            if db_path is None:
+                import os
+                db_path = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
+            _optimizer = QueryOptimizer(str(db_path))
         return _optimizer
 
 
@@ -401,4 +403,4 @@ def close_db_connections() -> None:
     global _optimizer
     if _optimizer is not None:
         _optimizer.close()
-        _optimizer = None
+        _optimizer = None
