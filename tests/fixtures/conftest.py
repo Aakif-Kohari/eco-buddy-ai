@@ -1,5 +1,10 @@
 import pytest
+import sys
+import os
 from typing import Generator
+
+# Add current directory to sys.path to allow absolute import of factories
+sys.path.insert(0, os.path.dirname(__file__))
 from factories import UserFactory, CarbonLogFactory
 
 @pytest.fixture(scope="session")
