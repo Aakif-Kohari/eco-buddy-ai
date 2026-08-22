@@ -1,0 +1,6 @@
+{
+  "title": "feat(microgrid-vpp): implement Enterprise Microgrid & Virtual Power Plant Dispatch Suite (#933)",
+  "head": "dipanshubatra:feature/enterprise-microgrid-virtual-power-plant-suite",
+  "base": "main",
+  "body": "## 📝 Description\nImplements Enterprise Microgrid & Virtual Power Plant (VPP) Dispatch Suite for eco-buddy-ai.\n\nKey highlights:\n- Added engine service (`microgrid_vpp_engine.py`) with DER asset telemetry & BESS dispatch.\n- Created Streamlit interface (`pages/Microgrid_VPP_Studio.py`).\n- Created React dashboard component (`src/components/vpp/MicrogridVppDashboardView.tsx`).\n- Added unit tests (`test_microgrid_vpp_engine.py`).\n\n## 🔗 Related Issue\nCloses #933\n\n## ✅ Type of Change\n- [x] ✨ New feature\n\n## 🧪 How Has This Been Tested?\n- Verified DER battery dispatch state.\n\n## 📋 Checklist\n- [x] My code follows conventions"
+}

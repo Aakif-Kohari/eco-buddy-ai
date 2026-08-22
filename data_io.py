@@ -231,3 +231,27 @@ def import_assessments_bulk(
     invalidate_export_caches()
     invalidate_all_db_caches()
     return summary
+
+
+def export_scanned_receipts_to_csv(file_path: str) -> bool:
+    """
+    Exports the user's scanned receipt history to a CSV file.
+    """
+    import csv
+    from database import get_scanned_receipts_history
+    
+    try:
+        history = get_scanned_receipts_history()
+        if not history:
+            return False
+            
+        keys = history[0].keys()
+        with open(file_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(history)
+        return True
+    except Exception:
+        return False
+
+

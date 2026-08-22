@@ -150,6 +150,26 @@ LIFESTYLE_ACTIONS_CATALOG = [
         "effort": "Low",
         "description": "Eliminate phantom power draw from TVs, chargers, and gaming consoles on standby.",
         "requires_context": {}
+    },
+    {
+        "id": "water_harvesting",
+        "category": "Water",
+        "title": "Install Rainwater Harvesting System",
+        "annual_savings_kg": 120.0,
+        "impact": "Medium",
+        "effort": "Medium",
+        "description": "Collect rainwater for gardening and non-potable uses to reduce municipal water processing footprint.",
+        "requires_context": {}
+    },
+    {
+        "id": "waste_compost",
+        "category": "Waste",
+        "title": "Start Home Composting",
+        "annual_savings_kg": 80.0,
+        "impact": "Low",
+        "effort": "Low",
+        "description": "Compost organic food waste to reduce methane emissions from landfills.",
+        "requires_context": {}
     }
 ]
 

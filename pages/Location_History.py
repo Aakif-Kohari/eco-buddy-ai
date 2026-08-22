@@ -41,16 +41,59 @@ if uploaded_file is not None:
         elif not waypoints:
             st.error("No valid waypoints found in the file. Ensure it's a valid GPX or Google Takeout JSON.")
         else:
-            st.success(f"Parsed {len(waypoints)} waypoints. Detected {len(segments)} distinct trips.")
+            min_time = min(wp["timestamp"] for wp in waypoints).date()
+            max_time = max(wp["timestamp"] for wp in waypoints).date()
+            
+            st.subheader("Filter Location History")
+            col1, col2 = st.columns(2)
+            start_date = col1.date_input("Start Date", min_time)
+            end_date = col2.date_input("End Date", max_time)
+            
+            filtered_waypoints = [
+                wp for wp in waypoints 
+                if start_date <= wp["timestamp"].date() <= end_date
+            ]
+            
+            filtered_segments = [
+                seg for seg in segments
+                if start_date <= seg["start_time"].date() <= end_date
+            ]
+            
+            st.success(f"Showing {len(filtered_waypoints)} waypoints and {len(filtered_segments)} distinct trips.")
 
-            if segments:
+            if filtered_waypoints:
+                total_locs = len(filtered_waypoints)
+                unique_locs = len(set((wp["lat"], wp["lon"]) for wp in filtered_waypoints))
+                latest_loc = max(wp["timestamp"] for wp in filtered_waypoints)
+
+                st.subheader("Location History Summary")
+                sum_col1, sum_col2, sum_col3 = st.columns(3)
+                sum_col1.metric("Total Recorded Locations", total_locs)
+                sum_col2.metric("Unique Locations", unique_locs)
+                sum_col3.metric("Latest Record", latest_loc.strftime("%Y-%m-%d %H:%M"))
+
                 st.subheader("Trip Map")
-                first_wp = segments[0]["waypoints"][0]
+                first_wp = filtered_waypoints[0]
                 m = folium.Map(
                     location=[first_wp["lat"], first_wp["lon"]],
                     zoom_start=12,
                     tiles="CartoDB positron"
                 )
+
+                try:
+                    from folium.plugins import MarkerCluster
+                    mc = MarkerCluster()
+                    # Limit markers to 1000 to prevent browser freeze
+                    step = max(1, len(filtered_waypoints) // 1000)
+                    for wp in filtered_waypoints[::step]:
+                        folium.Marker(
+                            location=[wp["lat"], wp["lon"]],
+                            popup=f"Time: {wp['timestamp'].strftime('%Y-%m-%d %H:%M')}<br>Lat: {wp['lat']:.4f}, Lon: {wp['lon']:.4f}",
+                            tooltip="Recorded Location"
+                        ).add_to(mc)
+                    mc.add_to(m)
+                except ImportError:
+                    pass
 
                 colors = {
                     "Walking": "green",
@@ -76,7 +119,7 @@ if uploaded_file is not None:
 
                 segment_data = []
 
-                for i, seg in enumerate(segments):
+                for i, seg in enumerate(filtered_segments):
                     path = [(wp["lat"], wp["lon"]) for wp in seg["waypoints"]]
                     color = colors.get(seg["mode"], "gray")
 
@@ -143,16 +186,32 @@ if uploaded_file is not None:
                     })
 
                 st_folium(m, width=1000, height=500)
+                
+                df_waypoints = pd.DataFrame(filtered_waypoints)
+                if not df_waypoints.empty:
+                    df_waypoints['timestamp'] = df_waypoints['timestamp'].astype(str)
+                    csv_data = df_waypoints.to_csv(index=False).encode('utf-8')
+                    col_dl, col_clr = st.columns(2)
+                    col_dl.download_button(
+                        label="Download Filtered Location History as CSV",
+                        data=csv_data,
+                        file_name='filtered_location_history.csv',
+                        mime='text/csv',
+                    )
+                    
+                    if col_clr.button("Clear Location History"):
+                        clear_background_task(task_key)
+                        st.rerun()
 
-                total_distance = sum(s["distance_km"] for s in segments)
+                total_distance = sum(s["distance_km"] for s in filtered_segments)
                 total_emissions = sum(d["Emissions (kg CO2)"] for d in segment_data)
-                mode_counts = pd.Series([s["mode"] for s in segments]).value_counts()
+                mode_counts = pd.Series([s["mode"] for s in filtered_segments]).value_counts()
 
                 st.subheader("Trip Summary")
                 sum_col1, sum_col2, sum_col3 = st.columns(3)
                 sum_col1.metric("Total Distance", f"{total_distance:.2f} km")
                 sum_col2.metric("Total Emissions", f"{total_emissions:.2f} kg CO2")
-                sum_col3.metric("Most Used Mode", mode_counts.idxmax())
+                sum_col3.metric("Most Used Mode", mode_counts.idxmax() if not mode_counts.empty else "N/A")
 
                 st.subheader("Trip Details")
                 df = pd.DataFrame(segment_data).drop(columns=["segment"])

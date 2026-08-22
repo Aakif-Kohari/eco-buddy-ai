@@ -1026,7 +1026,6 @@ def get_active_unit_preference(user_id=None):
 
 
 
-@import url("styles/chat.css");
 
 """
 Theme management for EcoBuddy AI.
