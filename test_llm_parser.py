@@ -386,3 +386,4 @@ class TestEdgeCases:
                 result = parse_quick_log(text)
             
             assert result is not None
+
