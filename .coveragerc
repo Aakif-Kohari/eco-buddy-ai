@@ -1,0 +1,29 @@
+[coverage:run]
+branch = True
+source =
+    .
+omit =
+    tests/*
+    test_*
+    venv/*
+    .venv/*
+    setup.py
+
+[coverage:report]
+show_missing = True
+skip_covered = False
+fail_under = 80
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+[coverage:html]
+directory = htmlcov
+
+[coverage:xml]
+output = coverage.xml
