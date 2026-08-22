@@ -41,7 +41,8 @@ class EcoAgentRouter:
                     "Thanks for the help!",
                     "Good morning EcoBuddy.",
                     "Who created you?",
-                    "Are you a robot?"
+                    "Are you a robot?",
+                    "Hey there buddy!"
                 ]
             ),
             IntentCluster(
