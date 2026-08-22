@@ -160,6 +160,17 @@ def init_db() -> bool:
                 )
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS green_finance_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        portfolio_value REAL,
+                        deposit_amount REAL,
+                        investment_results TEXT,
+                        banking_results TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS textile_comparisons (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         garment_data TEXT,
@@ -7565,6 +7576,29 @@ def get_pantry_inventory() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [{"name": row[0], "purchase_date": row[1], "storage": row[2]} for row in rows]
+
+
+def save_green_finance_profile(portfolio_value: float, deposit_amount: float, 
+                               investment_results: dict, banking_results: dict) -> None:
+    """Saves a green finance analysis profile to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO green_finance_profiles (portfolio_value, deposit_amount, investment_results, banking_results)
+        VALUES (?, ?, ?, ?)
+    """, (portfolio_value, deposit_amount, json.dumps(investment_results), json.dumps(banking_results)))
+    conn.commit()
+    conn.close()
+
+def get_green_finance_history() -> list:
+    """Retrieves historical green finance analysis profiles."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT portfolio_value, deposit_amount, investment_results, banking_results, timestamp FROM green_finance_profiles ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 def remove_pantry_item(item_name: str) -> None:
     """Removes an item from the pantry inventory."""
