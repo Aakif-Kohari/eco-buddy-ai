@@ -1,39 +1,39 @@
 import os
-import json
-import sqlite3
-import numpy as np
-from typing import List, Dict, Any, Tuple
 import logging
+import numpy as np
+from typing import List, Dict, Any, Optional
 
 try:
-    from sentence_transformers import SentenceTransformer, util
+    from sentence_transformers import SentenceTransformer
     HAS_SENTENCE_TRANSFORMERS = True
 except ImportError:
     HAS_SENTENCE_TRANSFORMERS = False
+
+from plugins.eco_rag_vector_store import SQLiteVectorStore
+from plugins.eco_rag_data_connectors import EcoDataIngestionPipeline
 
 logger = logging.getLogger(__name__)
 
 class EcoRAGEngine:
     """
-    Retrieval-Augmented Generation (RAG) engine for the Eco-Assistant Chatbot.
-    Uses sentence-transformers to embed the user's local SQLite footprint data,
-    allowing the chatbot to answer highly personalized questions.
+    Advanced Retrieval-Augmented Generation (RAG) engine.
+    Uses sentence-transformers for embedding generation and a custom SQLite 
+    database for persistent vector storage and rapid cosine similarity search.
     """
 
-    def __init__(self, db_path: str = "eco_buddy.db", model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, db_path: str = "eco_vector_store.db", model_name: str = "all-MiniLM-L6-v2"):
         self.db_path = db_path
         self.model_name = model_name
         self.model = None
-        self.knowledge_base: List[Dict[str, Any]] = []
-        self.kb_embeddings = None
+        self.vector_store = SQLiteVectorStore(db_path=self.db_path)
+        self.pipeline = EcoDataIngestionPipeline()
         
         self._initialize_model()
-        self._build_knowledge_base()
 
     def _initialize_model(self):
         """Loads the local sentence transformer model for semantic search."""
         if not HAS_SENTENCE_TRANSFORMERS:
-            logger.warning("sentence-transformers not installed. RAG will fallback to keyword search.")
+            logger.warning("sentence-transformers not installed. RAG degraded.")
             return
             
         try:
@@ -43,123 +43,88 @@ class EcoRAGEngine:
             logger.error(f"Failed to load sentence-transformer model: {e}")
             self.model = None
 
-    def _build_knowledge_base(self):
+    def embed_text(self, text: str) -> Optional[np.ndarray]:
+        """Generates an embedding vector for a given string."""
+        if not self.model:
+            return None
+        # Convert tensor to numpy array immediately for SQLite storage
+        return self.model.encode(text, convert_to_tensor=False)
+
+    def ingest_document(self, file_path_or_url: str):
         """
-        Extracts all relevant user footprint data, gamification badges, and goals 
-        from the local SQLite database and converts them into natural language 'documents' 
-        that the LLM can understand.
+        Ingests a PDF or URL, splits it into chunks, embeds them, 
+        and stores them persistently in the SQLite Vector Database.
         """
-        # In a real scenario, we would query the actual tables.
-        # For this implementation, we will simulate the extraction of rich context
-        # from the various modules we have (e.g. emissions, water, digital, gamification).
+        if not self.model:
+            logger.error("Cannot ingest without embedding model.")
+            return False
+            
+        # Parse and chunk
+        if file_path_or_url.startswith("http"):
+            docs = self.pipeline.ingest_url(file_path_or_url)
+        else:
+            docs = self.pipeline.ingest_pdf(file_path_or_url)
+            
+        if not docs:
+            return False
+            
+        # Embed all chunks
+        texts = [doc["text"] for doc in docs]
+        embeddings = self.model.encode(texts, convert_to_tensor=False)
         
-        # Mocking the database extraction process to ensure robust structural code
-        raw_data_extracts = [
-            {"topic": "Carbon Footprint", "content": "The user's total annual carbon footprint is 14,500 kg CO2e, which is 20% higher than the global average."},
-            {"topic": "Transportation", "content": "The user primarily drives a gasoline SUV, contributing to 45% of their total emissions."},
-            {"topic": "Diet", "content": "The user eats a high-meat diet, specifically beef 4 times a week, resulting in 3,200 kg CO2e annually."},
-            {"topic": "Digital Footprint", "content": "The user streams 4K video for 4 hours daily on a 5G network, causing high digital emissions."},
-            {"topic": "Water Usage", "content": "The user takes 20-minute hot showers daily, using 150 gallons of water per week."},
-            {"topic": "Gamification Badges", "content": "The user has unlocked the 'Recycling Hero' and 'Meatless Monday' badges."},
-            {"topic": "Current Goals", "content": "The user's active goal is to reduce their transportation footprint by carpooling twice a week."},
-            {"topic": "Home Energy", "content": "The user's home uses a natural gas furnace and lacks solar panels. Monthly electricity usage is 900 kWh."}
+        # Batch insert into Vector DB
+        self.vector_store.insert_batch(docs, embeddings)
+        logger.info(f"Successfully ingested {len(docs)} chunks into Vector Store.")
+        return True
+
+    def build_mock_user_profile(self):
+        """Injects the user's specific footprint profile into the persistent DB."""
+        if not self.model:
+            return
+            
+        # Clear old profile data
+        self.vector_store.clear()
+        
+        raw_data = [
+            {"id": "usr_1", "text": "The user's total annual carbon footprint is 14,500 kg CO2e.", "metadata": {"source": "profile"}},
+            {"id": "usr_2", "text": "The user drives a gasoline SUV.", "metadata": {"source": "profile"}},
+            {"id": "usr_3", "text": "The user eats a high-meat diet, specifically beef 4 times a week.", "metadata": {"source": "profile"}},
+            {"id": "usr_4", "text": "The user streams 4K video for 4 hours daily on a 5G network.", "metadata": {"source": "profile"}},
+            {"id": "usr_5", "text": "The user takes 20-minute hot showers daily.", "metadata": {"source": "profile"}},
+            {"id": "usr_6", "text": "The user has unlocked the 'Recycling Hero' badge.", "metadata": {"source": "profile"}}
         ]
         
-        # Append general sustainability facts to supplement personal data
-        general_facts = [
-            {"topic": "Beef Impact", "content": "Producing 1 kg of beef emits about 60 kg of greenhouse gases."},
-            {"topic": "EV Savings", "content": "Switching to an electric vehicle can reduce transportation emissions by up to 70% depending on the local grid."},
-            {"topic": "Cold Wash", "content": "Washing clothes in cold water saves up to 90% of the energy used by a washing machine."},
-            {"topic": "LED Bulbs", "content": "LED light bulbs use 75% less energy and last 25 times longer than incandescent lighting."}
-        ]
-        
-        self.knowledge_base = raw_data_extracts + general_facts
-        
-        if self.model:
-            # Pre-compute embeddings for the entire knowledge base
-            documents = [doc["content"] for doc in self.knowledge_base]
-            self.kb_embeddings = self.model.encode(documents, convert_to_tensor=True)
+        texts = [doc["text"] for doc in raw_data]
+        embeddings = self.model.encode(texts, convert_to_tensor=False)
+        self.vector_store.insert_batch(raw_data, embeddings)
 
     def retrieve_context(self, user_query: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """
-        Uses cosine similarity to find the most relevant facts from the knowledge base 
-        based on the user's natural language query.
+        Queries the persistent SQLite Vector Database using Cosine Similarity.
         """
-        if not self.model or self.kb_embeddings is None:
-            return self._fallback_keyword_search(user_query, top_k)
+        if not self.model:
+            return []
             
-        try:
-            # Embed the user's query
-            query_embedding = self.model.encode(user_query, convert_to_tensor=True)
+        query_embedding = self.embed_text(user_query)
+        if query_embedding is None:
+            return []
             
-            # Compute cosine similarities
-            cosine_scores = util.cos_sim(query_embedding, self.kb_embeddings)[0]
-            
-            # Find the top_k highest scores
-            top_results = np.argpartition(-cosine_scores.cpu().numpy(), range(top_k))[:top_k]
-            
-            retrieved_docs = []
-            for idx in top_results:
-                score = cosine_scores[idx].item()
-                if score > 0.1: # Minimum relevance threshold
-                    doc = self.knowledge_base[idx].copy()
-                    doc["relevance_score"] = round(score, 3)
-                    retrieved_docs.append(doc)
-                    
-            # Sort by relevance descending
-            retrieved_docs = sorted(retrieved_docs, key=lambda x: x["relevance_score"], reverse=True)
-            return retrieved_docs
-            
-        except Exception as e:
-            logger.error(f"Semantic search failed: {e}")
-            return self._fallback_keyword_search(user_query, top_k)
-
-    def _fallback_keyword_search(self, user_query: str, top_k: int) -> List[Dict[str, Any]]:
-        """A simple keyword matching algorithm if ML embeddings fail."""
-        query_words = set(user_query.lower().split())
+        results = self.vector_store.search(query_embedding, top_k=top_k)
         
-        scored_docs = []
-        for doc in self.knowledge_base:
-            content_words = set(doc["content"].lower().split())
-            intersection = query_words.intersection(content_words)
-            score = len(intersection) / max(1, len(query_words))
+        # Format for legacy compatibility with the UI
+        formatted = []
+        for r in results:
+            formatted.append({
+                "content": r["text"],
+                "relevance_score": round(r["score"], 3),
+                "metadata": r["metadata"]
+            })
             
-            if score > 0:
-                d = doc.copy()
-                d["relevance_score"] = round(score, 3)
-                scored_docs.append(d)
-                
-        scored_docs = sorted(scored_docs, key=lambda x: x["relevance_score"], reverse=True)
-        return scored_docs[:top_k]
-
-    def construct_llm_prompt(self, user_query: str, chat_history: List[Dict[str, str]] = None) -> str:
-        """
-        Constructs the final highly-engineered prompt to send to the LLM.
-        Injects the retrieved context dynamically.
-        """
-        contexts = self.retrieve_context(user_query)
-        
-        context_block = "\n".join([f"- {doc['content']}" for doc in contexts])
-        
-        prompt = f"""You are 'EcoBuddy', a highly intelligent, empathetic, and encouraging AI sustainability assistant.
-Your goal is to help the user understand their environmental impact and provide actionable advice.
-
-Here is the retrieved context about the user's specific lifestyle and relevant environmental facts:
-{context_block if context_block else "- No specific context found."}
-
-Please answer the user's question accurately using ONLY the context provided above. 
-If the context does not contain the answer, provide general sustainable advice but admit you don't have their exact data.
-Be concise, use formatting (bullet points, bold text), and include relevant emojis.
-
-User Question: "{user_query}"
-EcoBuddy Response:"""
-        
-        return prompt
+        return formatted
 
     def mock_llm_generation(self, user_query: str) -> str:
         """
-        Simulates an LLM response for local testing without an API key.
-        Uses the RAG retrieval to construct a smart template response.
+        Simulates an LLM response using the persistent vector store.
         """
         contexts = self.retrieve_context(user_query)
         
@@ -168,8 +133,7 @@ EcoBuddy Response:"""
             
         primary_context = contexts[0]['content']
         
-        # Simple heuristic generation
-        response = f"Based on your profile data, here is what I found:\n\n> *\"{primary_context}\"*\n\n"
+        response = f"Based on your profile and our knowledge base, here is what I found:\n\n> *\"{primary_context}\"*\n\n"
         
         if "diet" in user_query.lower() or "beef" in user_query.lower() or "food" in user_query.lower():
             response += "🥩 **Recommendation:** Try swapping beef for chicken or plant-based alternatives just twice a week to significantly lower this metric!"
