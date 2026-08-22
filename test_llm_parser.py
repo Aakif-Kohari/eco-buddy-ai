@@ -242,6 +242,31 @@ class TestParseQuickLog:
             assert result is not None
             assert result['diet'] == 'Non-Vegetarian'
 
+class TestInvalidInputs:
+    """Tests for empty, None, and invalid inputs."""
+
+    @pytest.mark.parametrize("invalid_input", [
+        "",
+        "   ",
+        None,
+        [],
+        {},
+    ])
+    def test_invalid_input_raises_parsing_error(self, invalid_input):
+        """Invalid input should raise a validation/parsing error."""
+        with patch('llm_parser.st.session_state', {}):
+            with pytest.raises(ParsingError):
+                parse_quick_log(invalid_input)
+
+    def test_invalid_input_does_not_call_api(self):
+        """Invalid input should be rejected before calling an external API."""
+        with patch('llm_parser.requests.post') as mock_post:
+            with patch('llm_parser.st.session_state', {}):
+                with pytest.raises(ParsingError):
+                    parse_quick_log("")
+
+            mock_post.assert_not_called()
+
 
 class TestParseQuickLogErrorMessages:
     """Tests that failures produce specific, descriptive errors instead of

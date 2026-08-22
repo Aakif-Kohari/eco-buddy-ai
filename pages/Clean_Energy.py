@@ -1,13 +1,5 @@
 import streamlit as st
 
-# -----------------------------------------------------------------------------
-# Clean Energy Explorer
-# -----------------------------------------------------------------------------
-# Educational feature for introducing users to renewable and cleaner energy
-# sources. Calculations/savings estimates are intentionally out of scope for
-# this first version.
-# -----------------------------------------------------------------------------
-
 st.set_page_config(
     page_title="Clean Energy Explorer | EcoBuddy",
     page_icon="🌱",
