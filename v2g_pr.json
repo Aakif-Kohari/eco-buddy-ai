@@ -1,0 +1,6 @@
+{
+  "title": "feat(v2g-grid): implement Enterprise Smart Grid EV V2G Optimization Suite (#935)",
+  "head": "dipanshubatra:feature/enterprise-smart-grid-ev-v2g-optimization-suite",
+  "base": "main",
+  "body": "## 📝 Description\nImplements Enterprise Smart Grid EV V2G Optimization Suite for eco-buddy-ai, providing bidirectional vehicle-to-grid (V2G) fleet balancing, ISO 15118 smart charging, and frequency response monetization.\n\nKey highlights:\n- Added `smart_grid_ev_v2g_engine.py` service.\n- Created Streamlit interface (`pages/Smart_Grid_EV_V2G_Studio.py`).\n- Created React dashboard component (`src/components/v2g/SmartGridEvV2gDashboardView.tsx`).\n- Added unit tests (`test_smart_grid_ev_v2g_engine.py`).\n\n## 🔗 Related Issue\nCloses #935\n\n## ✅ Type of Change\n- [x] ✨ New feature\n\n## 🧪 How Has This Been Tested?\n- Executed unit assertions.\n\n## 📋 Checklist\n- [x] My code follows conventions"
+}

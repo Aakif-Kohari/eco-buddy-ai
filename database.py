@@ -101,6 +101,26 @@ def init_db() -> bool:
             with database_connection(DB_NAME) as conn:
                 cursor = conn.cursor()
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_balances (
+                        user_id TEXT PRIMARY KEY,
+                        balance_kg REAL DEFAULT 500.0,
+                        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_trades (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        buyer_id TEXT,
+                        seller_id TEXT,
+                        amount_kg REAL,
+                        price_per_tonne REAL,
+                        trade_type TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS users (
@@ -113,6 +133,17 @@ def init_db() -> bool:
                     )
                     """
                 )
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pantry_inventory (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        item_name TEXT,
+                        purchase_date TEXT,
+                        storage_condition TEXT,
+                        added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS weekly_challenges (
@@ -128,6 +159,15 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS textile_comparisons (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        garment_data TEXT,
+                        results_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 try:
                     cursor.execute(
                         """
@@ -138,6 +178,16 @@ def init_db() -> bool:
                 except sqlite3.OperationalError as exc:
                     if "duplicate column name" not in str(exc).lower():
                         raise
+                
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pcf_labels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_name TEXT,
+                        label_data TEXT,
+                        transparency_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
                 cursor.execute(
                     """
@@ -157,6 +207,18 @@ def init_db() -> bool:
                     )
                     """
                 )
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_health_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time_allocation TEXT,
+                        weekly_park_visits INTEGER,
+                        tree_canopy_pct REAL,
+                        exposure_data TEXT,
+                        mitigation_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
                 cursor.execute(
                     """
@@ -7382,6 +7444,27 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
         logger.error(f"Error saving food scan: {e}")
         return False
 
+import json
+
+def save_urban_health_profile(time_allocation: dict, weekly_park_visits: int, tree_canopy_pct: float, 
+                              exposure_data: dict, mitigation_data: dict) -> None:
+    """Saves an urban health impact analysis session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_health_profiles 
+        (time_allocation, weekly_park_visits, tree_canopy_pct, exposure_data, mitigation_data)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        json.dumps(time_allocation),
+        weekly_park_visits,
+        tree_canopy_pct,
+        json.dumps(exposure_data),
+        json.dumps(mitigation_data)
+    ))
+    conn.commit()
+    conn.close()
+
 def get_food_scans(user_id: int) -> list[dict]:
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -7396,6 +7479,19 @@ def get_food_scans(user_id: int) -> list[dict]:
     except sqlite3.Error as e:
         logger.error(f"Error getting food scans: {e}")
         return []
+
+import json
+
+def save_pcf_label(product_name: str, label_data: dict, transparency_data: dict) -> None:
+    """Saves a generated PCF label and transparency score to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pcf_labels (product_name, label_data, transparency_data)
+        VALUES (?, ?, ?)
+    """, (product_name, json.dumps(label_data), json.dumps(transparency_data)))
+    conn.commit()
+    conn.close()
 
 def init_energy_tracker_db() -> bool:
     try:
@@ -7420,6 +7516,19 @@ def init_energy_tracker_db() -> bool:
         if conn:
             conn.close()
 
+import json
+
+def save_textile_comparison(garments: list, results: list) -> None:
+    """Saves a textile comparison session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO textile_comparisons (garment_data, results_data)
+        VALUES (?, ?)
+    """, (json.dumps(garments), json.dumps(results)))
+    conn.commit()
+    conn.close()
+
 def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, record_date: str) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -7436,6 +7545,34 @@ def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, reco
     finally:
         if conn:
             conn.close()
+
+def add_pantry_item(item_name: str, purchase_date: str, storage_condition: str) -> None:
+    """Adds a new item to the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pantry_inventory (item_name, purchase_date, storage_condition)
+        VALUES (?, ?, ?)
+    """, (item_name, purchase_date, storage_condition))
+    conn.commit()
+    conn.close()
+
+def get_pantry_inventory() -> list:
+    """Retrieves all items in the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT item_name, purchase_date, storage_condition FROM pantry_inventory ORDER BY purchase_date ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"name": row[0], "purchase_date": row[1], "storage": row[2]} for row in rows]
+
+def remove_pantry_item(item_name: str) -> None:
+    """Removes an item from the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pantry_inventory WHERE item_name = ?", (item_name,))
+    conn.commit()
+    conn.close()
 
 def get_energy_records(user_id: int) -> list[dict]:
     try:
@@ -7455,3 +7592,36 @@ def get_energy_records(user_id: int) -> list[dict]:
     finally:
         if conn:
             conn.close()
+
+def get_pca_balance(user_id: str) -> float:
+    """Retrieves the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT balance_kg FROM pca_balances WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 500.0
+
+def update_pca_balance(user_id: str, amount: float) -> None:
+    """Updates the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_balances (user_id, balance_kg, last_updated)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET balance_kg = excluded.balance_kg, last_updated = CURRENT_TIMESTAMP
+    """, (user_id, amount))
+    conn.commit()
+    conn.close()
+
+def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
+    """Records a PCA trade in the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_trades (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type)
+        VALUES (?, ?, ?, ?, ?)
+    """, (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type))
+    conn.commit()
+    conn.close()
+
