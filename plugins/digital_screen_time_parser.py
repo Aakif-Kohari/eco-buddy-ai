@@ -50,7 +50,8 @@ class ScreenTimeParser:
         else:
             raise ValueError(f"Unsupported format type: {self.format_type}")
             
-        return self._normalize_data()
+        self.parsed_df = self._normalize_data()
+        return self.parsed_df
 
     def _parse_apple_json(self) -> pd.DataFrame:
         """
