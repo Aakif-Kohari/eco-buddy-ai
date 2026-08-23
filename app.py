@@ -184,7 +184,8 @@ def render_top_auth():
         st.sidebar.markdown("---")
         st.sidebar.subheader("🧭 Navigation")
         st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
-        st.sidebar.page_link('pages/Sustainable_Food_Planner.py', label='🥗 Sustainable Food Planner')
+        st.sidebar.page_link("pages/Sustainability_Roadmap.py", label="🗺️ Roadmap")
+        st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
 
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
