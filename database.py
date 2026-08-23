@@ -185,6 +185,17 @@ def init_db() -> bool:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_mining_inventories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        device_list TEXT,
+                        total_devices INTEGER,
+                        carbon_avoided_kg REAL,
+                        mining_score INTEGER,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS weekly_challenges (
@@ -7727,6 +7738,34 @@ def get_travel_itinerary_history() -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT legs_data, optimization_report, timestamp FROM travel_itineraries ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+import json
+
+def save_urban_mining_inventory(device_list: list, result_data: dict) -> None:
+    """Saves an urban mining inventory calculation to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_mining_inventories (device_list, total_devices, carbon_avoided_kg, mining_score)
+        VALUES (?, ?, ?, ?)
+    """, (
+        json.dumps(device_list),
+        result_data.get("total_devices", 0),
+        result_data.get("total_carbon_avoided_kg", 0.0),
+        result_data.get("urban_mining_score", 0)
+    ))
+    conn.commit()
+    conn.close()
+
+def get_urban_mining_history() -> list:
+    """Retrieves historical urban mining inventory calculations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT device_list, total_devices, carbon_avoided_kg, mining_score, timestamp FROM urban_mining_inventories ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
