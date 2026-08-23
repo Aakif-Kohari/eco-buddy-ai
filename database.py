@@ -429,6 +429,15 @@ def init_db() -> bool:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS equivalence_preferences (
+                        user_id INTEGER PRIMARY KEY,
+                        top_metrics TEXT,
+                        region TEXT DEFAULT 'Global',
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
         execute_with_retry(initialize_schema)
         migrate()
         return True
@@ -7810,3 +7819,47 @@ def get_offset_portfolio_history(user_id: str) -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+
+def save_equivalence_preferences(user_id: int, top_metrics: str, region: str) -> bool:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+            INSERT INTO equivalence_preferences (user_id, top_metrics, region, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                top_metrics=excluded.top_metrics,
+                region=excluded.region,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (user_id, top_metrics, region)
+        )
+        
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        logger.error(f"Database error saving equivalence preferences: {e}")
+        return False
+
+
+def get_equivalence_preferences(user_id: int) -> dict | None:
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "SELECT top_metrics, region FROM equivalence_preferences WHERE user_id = ?",
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return {"top_metrics": row[0], "region": row[1]}
+        return None
+    except sqlite3.Error as e:
+        logger.error(f"Database error getting equivalence preferences: {e}")
+        return None
