@@ -1,1 +1,1 @@
-# Empty init
+# Init fixtures package
