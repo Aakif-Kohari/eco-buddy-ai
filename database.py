@@ -122,6 +122,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS neighborhood_scores (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        zip_code TEXT,
+                        eco_score REAL,
+                        carbon_saved_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pca_trades (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         buyer_id TEXT,
@@ -7625,6 +7635,37 @@ def update_pca_balance(user_id: str, amount: float) -> None:
     """, (user_id, amount))
     conn.commit()
     conn.close()
+
+
+def submit_neighborhood_score(zip_code: str, eco_score: float, carbon_saved_kg: float) -> None:
+    """Submits an anonymous score to the neighborhood aggregation table."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO neighborhood_scores (zip_code, eco_score, carbon_saved_kg)
+        VALUES (?, ?, ?)
+    """, (zip_code, eco_score, carbon_saved_kg))
+    conn.commit()
+    conn.close()
+
+def get_neighborhood_leaderboard() -> list:
+    """Retrieves aggregated leaderboard data from the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            zip_code,
+            COUNT(*) as total_participants,
+            ROUND(AVG(eco_score), 1) as average_eco_score,
+            ROUND(SUM(carbon_saved_kg), 2) as total_carbon_saved_kg
+        FROM neighborhood_scores
+        GROUP BY zip_code
+        ORDER BY average_eco_score DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
     """Records a PCA trade in the database."""
