@@ -438,6 +438,17 @@ def init_db() -> bool:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS monthly_reports (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        month_year TEXT,
+                        report_data TEXT,
+                        pdf_path TEXT,
+                        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
         execute_with_retry(initialize_schema)
         migrate()
         return True
