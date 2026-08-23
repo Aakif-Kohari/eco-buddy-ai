@@ -166,6 +166,16 @@ def init_db() -> bool:
                 )
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS water_energy_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        household_size INTEGER,
+                        grid_intensity REAL,
+                        comparison_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pantry_inventory (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         item_name TEXT,
@@ -7623,6 +7633,29 @@ def get_energy_records(user_id: int) -> list[dict]:
     finally:
         if conn:
             conn.close()
+
+import json
+
+def save_water_energy_profile(household_size: int, grid_intensity: float, comparison_data: dict) -> None:
+    """Saves a water-energy nexus comparison profile to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO water_energy_profiles (household_size, grid_intensity, comparison_data)
+        VALUES (?, ?, ?)
+    """, (household_size, grid_intensity, json.dumps(comparison_data)))
+    conn.commit()
+    conn.close()
+
+def get_water_energy_history() -> list:
+    """Retrieves historical water-energy nexus profiles."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT household_size, grid_intensity, comparison_data, timestamp FROM water_energy_profiles ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 def get_pca_balance(user_id: str) -> float:
     """Retrieves the PCA balance for a user."""
