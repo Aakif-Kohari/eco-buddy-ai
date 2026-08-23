@@ -102,6 +102,17 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS relocation_analyses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        current_city TEXT,
+                        target_city TEXT,
+                        annual_delta_kg_co2e REAL,
+                        result_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS offset_portfolios (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -7863,3 +7874,31 @@ def get_equivalence_preferences(user_id: int) -> dict | None:
     except sqlite3.Error as e:
         logger.error(f"Database error getting equivalence preferences: {e}")
         return None
+
+
+import json
+
+def save_relocation_analysis(current_city: str, target_city: str, result_data: dict) -> None:
+    """Saves a relocation impact analysis to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO relocation_analyses (current_city, target_city, annual_delta_kg_co2e, result_data)
+        VALUES (?, ?, ?, ?)
+    """, (current_city, target_city, result_data.get("annual_delta_kg_co2e", 0.0), json.dumps(result_data)))
+    conn.commit()
+    conn.close()
+
+def get_relocation_history() -> list:
+    """Retrieves historical relocation analyses."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT current_city, target_city, annual_delta_kg_co2e, timestamp 
+        FROM relocation_analyses 
+        ORDER BY timestamp DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
