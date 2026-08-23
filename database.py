@@ -7186,7 +7186,9 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
 def get_food_scans(user_id: int) -> list[dict]:
     try:
         conn = sqlite3.connect(DB_NAME)
-columns = [column[0] for column in cursor.description]
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM food_scans WHERE user_id = ?", (user_id,))
+        columns = [column[0] for column in cursor.description]
         data = cursor.fetchall()
         return [dict(zip(columns, row)) for row in data]
     except sqlite3.Error:
