@@ -1,25 +1,46 @@
 import sqlite3
-import logging
-
-logger = logging.getLogger(__name__)
 
 def migrate(conn: sqlite3.Connection) -> None:
-    """
-    Migration to add the monthly_reports table for the Monthly Report Engine.
-    """
+    """Apply schema changes for Eco Buddies feature (v11)."""
     cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS monthly_reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                month_year TEXT,
-                report_data TEXT,
-                pdf_path TEXT,
-                generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit()
-    except sqlite3.Error as exc:
-        logger.error(f"Migration v11 failed: {exc}")
-        raise
+    
+    # Buddy Requests table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS buddy_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    """)
+    
+    # Buddy Pairs table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS buddy_pairs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user1_id INTEGER NOT NULL,
+            user2_id INTEGER NOT NULL,
+            synergy_score REAL DEFAULT 0.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user1_id) REFERENCES users(id),
+            FOREIGN KEY (user2_id) REFERENCES users(id)
+        )
+    """)
+    
+    # Buddy Nudges table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS buddy_nudges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id)
+        )
+    """)
+    
+    conn.commit()
