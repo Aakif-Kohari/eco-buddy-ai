@@ -102,6 +102,18 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS offset_portfolios (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        total_tonnes REAL,
+                        total_cost REAL,
+                        diversification_score REAL,
+                        risk_rating TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pca_balances (
                         user_id TEXT PRIMARY KEY,
                         balance_kg REAL DEFAULT 500.0,
@@ -7624,4 +7636,37 @@ def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_
     """, (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type))
     conn.commit()
     conn.close()
+
+import json
+
+def save_offset_portfolio(user_id: str, summary: dict, risk_profile: dict) -> None:
+    """Saves a snapshot of the user's offset portfolio and risk profile."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO offset_portfolios (user_id, total_tonnes, total_cost, diversification_score, risk_rating)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        user_id,
+        summary.get("total_tonnes", 0.0),
+        summary.get("total_cost", 0.0),
+        risk_profile.get("diversification_score", 0.0),
+        risk_profile.get("overall_risk_rating", "Unknown")
+    ))
+    conn.commit()
+    conn.close()
+
+def get_offset_portfolio_history(user_id: str) -> list:
+    """Retrieves the historical snapshots of a user's offset portfolio."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT total_tonnes, total_cost, diversification_score, risk_rating, timestamp 
+        FROM offset_portfolios 
+        WHERE user_id = ? 
+        ORDER BY timestamp DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
