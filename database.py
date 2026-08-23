@@ -143,6 +143,15 @@ def init_db() -> bool:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS travel_itineraries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        legs_data TEXT,
+                        optimization_report TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS users (
@@ -7623,6 +7632,29 @@ def get_pca_balance(user_id: str) -> float:
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else 500.0
+
+import json
+
+def save_travel_itinerary(legs: list, report: dict) -> None:
+    """Saves a travel itinerary and its optimization report to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO travel_itineraries (legs_data, optimization_report)
+        VALUES (?, ?)
+    """, (json.dumps(legs), json.dumps(report)))
+    conn.commit()
+    conn.close()
+
+def get_travel_itinerary_history() -> list:
+    """Retrieves historical travel itineraries."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT legs_data, optimization_report, timestamp FROM travel_itineraries ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 def update_pca_balance(user_id: str, amount: float) -> None:
     """Updates the PCA balance for a user."""
