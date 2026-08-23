@@ -1,310 +1,88 @@
-import streamlit as st
+"""Streamlit UI for safe, versioned sustainability profile portability."""
 import json
-import os
-import sys
-from datetime import datetime
-from data_io import export_data_json, export_data_csv_zip, import_data_json, import_assessments_bulk
-from database import get_assessments
-from background_tasks import submit_background_task, render_task_progress, clear_background_task
-from styles.theme import apply_theme
+import streamlit as st
 
-apply_theme()
-
-
-def render_export_card(
-    title,
-    description,
-    button_label,
-    export_function,
-    session_key,
-    filename,
-    mime_type,
-    empty_check,
-    format_name,
-    download_key,
-):
-    st.subheader(title)
-    st.markdown(description)
-
-    task_key = f"bg_export_{session_key}"
-
-    if st.button(button_label, key=f"btn_bg_{session_key}"):
-        submit_background_task(
-            task_key,
-            export_function,
-            task_name=f"Generating {format_name}"
-        )
-
-    is_done, export_data = render_task_progress(
-        task_key,
-        success_msg=f"{format_name} generated successfully!"
-    )
-
-    if is_done and export_data is not None:
-        if not empty_check(export_data):
-            st.session_state[session_key] = export_data
-        else:
-            st.warning("⚠️ No data available to export. Add some data before exporting.")
-        clear_background_task(task_key)
-
-    if st.session_state.get(session_key):
-        st.markdown("#### Export Details")
-        st.markdown(f"**📄 File Name:** `{filename}`")
-        st.markdown(f"**🗂 Format:** {format_name}")
-        st.markdown(
-            f"**🕒 Generated At:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-
-        st.download_button(
-            label=f"⬇️ Download {format_name}",
-            data=st.session_state[session_key],
-            file_name=filename,
-            mime=mime_type,
-            key=download_key,
-        )
-
-
-from session_state_utils import ensure_session_state
-
-# -----------------------------
-# Session State Initialization
-# -----------------------------
-ensure_session_state({"csv_export": None, "json_export": None})
-
-
-st.title("💾 Data Portability")
-st.markdown(
-    "Manage your EcoBuddy data. You can export your data to take it with you, "
-    "or import previously exported data to restore your profile."
+from data_portability import (
+    CONFLICT_STRATEGIES,
+    EXPORT_SCHEMA_VERSION,
+    create_import_preview,
+    export_profile_json,
+    import_user_profile,
+    validate_export_document,
 )
 
-user_id = st.session_state.get('user_id')
-assessments = get_assessments(user_id=user_id) if user_id else get_assessments()
-assessment_count = len(assessments) if assessments else 0
+st.title("💾 Portable Sustainability Profile")
+st.caption(f"Versioned JSON schema {EXPORT_SCHEMA_VERSION} — no external upload is used.")
 
-if assessment_count >= 5:
-    st.warning(
-        f"⚠️ **Backup Recommended:** You have accumulated **{assessment_count} saved assessments**. "
-        "Consider exporting a backup copy below to ensure your data is safe."
-    )
+user_id = st.session_state.get("user_id")
+if not user_id:
+    st.warning("Please sign in before exporting or importing your sustainability profile.")
+    st.stop()
 
-st.markdown("---")
-st.header("📤 Export Data")
-st.markdown(
-    "Export your assessments, appliances, gamification progress, and more."
+st.info(
+    "🔐 **Privacy warning:** your export can contain personal sustainability information "
+    "such as assessment history, goals, habits, and recommendation feedback. Keep the JSON file secure. "
+    "EcoBuddy does not upload the file to a third-party service."
 )
 
-col1, col2 = st.columns(2)
+st.header("📤 Export")
+if st.button("Generate portable JSON", type="primary"):
+    st.session_state["portable_export"] = export_profile_json(user_id)
 
-# ======================================================
-# CSV EXPORT
-# ======================================================
-with col1:
-    render_export_card(
-        title="CSV Export",
-        description=(
-            "Download your core data tables as CSV files bundled in a ZIP archive. "
-            "This format is great for analyzing your data in Excel or other tools."
-        ),
-        button_label="Generate CSV Archive",
-        export_function=export_data_csv_zip,
-        session_key="csv_export",
-        filename="ecobuddy_export.zip",
-        mime_type="application/zip",
-        empty_check=lambda data: not data,
-        format_name="ZIP (CSV Archive)",
-        download_key="download_csv_zip",
+if st.session_state.get("portable_export"):
+    st.download_button(
+        "⬇️ Download sustainability profile",
+        data=st.session_state["portable_export"],
+        file_name="ecobuddy_sustainability_profile_v1.json",
+        mime="application/json",
     )
+    st.caption("The export intentionally excludes password credentials.")
 
-# ======================================================
-# JSON EXPORT
-# ======================================================
-with col2:
-    render_export_card(
-        title="JSON Export",
-        description=(
-            "Download a full dump of your data in JSON format. "
-            "This format is required if you want to import your data back into EcoBuddy later."
-        ),
-        button_label="Generate JSON Export",
-        export_function=export_data_json,
-        session_key="json_export",
-        filename="ecobuddy_export.json",
-        mime_type="application/json",
-        empty_check=lambda data: data == "{}",
-        format_name="JSON",
-        download_key="download_json",
-    )
-
-
-st.markdown("---")
-st.header("📥 Import Data")
-st.markdown(
-    "Restore your data from a previously exported JSON file."
+st.divider()
+st.header("📥 Import")
+st.warning(
+    "Import only JSON files you trust. The file is validated before any database write, "
+    "and the import is transactional. No changes are made until you confirm."
 )
 
-import_strategy = st.radio(
-    "Import Strategy",
-    options=["Merge", "Replace"],
+uploaded = st.file_uploader("Upload a JSON profile", type=["json"])
+strategy_label = st.selectbox(
+    "Conflict strategy",
+    ["skip", "merge", "replace"],
     index=0,
-    help=(
-        "Merge: Keeps your existing data and adds new non-duplicate entries. "
-        "Replace: Deletes your current data and replaces it entirely with the imported data."
-    ),
+    help="Skip keeps existing data. Merge updates conflicting records with imported fields. Replace replaces conflicting records."
 )
 
-if import_strategy == "Replace":
-    st.warning(
-        "⚠ **Warning:** Replace will permanently delete your current EcoBuddy data before importing the new backup."
-    )
-
-uploaded_file = st.file_uploader(
-    "Upload JSON Export File",
-    type=["json"],
-)
-
-if uploaded_file is not None:
+if uploaded is not None:
     try:
-        json_bytes = uploaded_file.read()
-        json_content = json_bytes.decode("utf-8")
-        preview = json.loads(json_content)
+        raw = uploaded.getvalue().decode("utf-8")
+        document = json.loads(raw)
+        valid, errors = validate_export_document(document)
+        if valid:
+            st.success(f"Valid EcoBuddy AI profile — schema {document['schema_version']}")
+            preview = create_import_preview(document, user_id)
+            st.subheader("Import preview")
+            cols = st.columns(4)
+            labels = [("Assessments", "assessments"), ("Goals", "goals"), ("Habits", "habits"), ("Recommendations", "recommendations")]
+            for col, (label, key) in zip(cols, labels):
+                col.metric(label, preview["records_found"][key])
+            st.markdown("**New records:** " + ", ".join(f"{k}: {v}" for k, v in preview["new_records"].items()))
+            st.markdown("**Conflicting records:** " + ", ".join(f"{k}: {v}" for k, v in preview["conflicts"].items()))
+            st.caption(f"Selected strategy: `{strategy_label}`. No data is modified yet.")
 
-        st.success("✅ Valid backup file detected")
-
-        st.subheader("📋 Backup Preview")
-        total_records = 0
-
-        for key, value in preview.items():
-            if isinstance(value, list):
-                total_records += len(value)
-                st.write(f"**{key.replace('_',' ').title()}** : {len(value)} records")
-
-        st.info(f"📦 Total Records: {total_records}")
-        file_size = uploaded_file.size / 1024
-        st.caption(f"File Size: {file_size:.2f} KB")
-
-        confirm_replace = True
-        if import_strategy == "Replace":
-            confirm_replace = st.checkbox(
-                "I understand that my existing data will be permanently deleted."
-            )
-
-        if st.button("Restore Data") and confirm_replace:
-            if not json_content.strip():
-                st.error("❌ The uploaded file contains no data.")
-            else:
-                submit_background_task(
-                    "bg_import_json",
-                    import_data_json,
-                    json_content,
-                    strategy=import_strategy.lower(),
-                    task_name="Restoring Backup Data"
-                )
-
-    except Exception:
-        st.error("❌ Invalid JSON file.")
-
-is_done, import_result = render_task_progress(
-    "bg_import_json",
-    success_msg="Import operation completed!"
-)
-
-if is_done and import_result is not None:
-    success, message = import_result
-    if success:
-        # Success notification
-        st.toast("Backup restored successfully!", icon="🎉")
-        st.success("✅ Data restored successfully!")
-        st.balloons()
-
-        # Current restore time
-        restore_time = datetime.now().strftime("%d %b %Y, %I:%M %p")
-
-        # Try to get uploaded file information
-        filename = uploaded_file.name if uploaded_file else "Unknown"
-
-        try:
-            file_size = uploaded_file.size
-            if file_size < 1024:
-                file_size = f"{file_size} Bytes"
-            elif file_size < 1024 * 1024:
-                file_size = f"{file_size / 1024:.2f} KB"
-            else:
-                file_size = f"{file_size / (1024 * 1024):.2f} MB"
-        except AttributeError:
-            file_size = "Unknown"
-
-        # Success Summary Card
-        with st.container(border=True):
-
-            st.subheader("📦 Restore Summary")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric("Status", "Success")
-                st.metric("File", filename)
-
-            with col2:
-                st.metric("Restore Time", restore_time)
-                st.metric("File Size", file_size)
-
-            st.divider()
-
-            st.info(message)
-
-        # Expandable Details
-        with st.expander("📋 Restore Details", expanded=False):
-
-            st.write("### Imported Backup Information")
-
-            st.write(f"**Filename:** {filename}")
-            st.write(f"**Restore Time:** {restore_time}")
-            st.write(f"**File Size:** {file_size}")
-
-            st.divider()
-
-            st.write("### Import Log")
-
-            st.code(message)
-    else:
-        st.error(message)
-
-st.markdown("---")
-st.header("📥 Bulk Import Historical Assessments")
-st.markdown(
-    "Import multiple past assessments at once from a CSV or JSON file. "
-    "Duplicate and invalid rows are skipped automatically and reported below."
-)
-
-bulk_file = st.file_uploader(
-    "Upload Assessments File",
-    type=["csv", "json"],
-    key="bulk_assessments_uploader",
-)
-
-if bulk_file is not None and st.button("Import Assessments"):
-    user_id = st.session_state.get("user_id")
-    if not user_id:
-        st.warning("Please log in from the main application page.")
-        st.stop()
-
-    file_type = "csv" if bulk_file.name.lower().endswith(".csv") else "json"
-
-    with st.spinner("Validating and importing assessments..."):
-        content = bulk_file.read().decode("utf-8")
-        summary = import_assessments_bulk(content, file_type, user_id)
-
-    st.subheader("📋 Import Summary")
-    sum_col1, sum_col2, sum_col3 = st.columns(3)
-    sum_col1.metric("Imported", summary["imported"])
-    sum_col2.metric("Duplicates Skipped", summary["duplicates"])
-    sum_col3.metric("Invalid Rows", summary["invalid"])
-
-    if summary["imported"] > 0:
-        st.success(f"Successfully imported {summary['imported']} assessment(s).")
-    if summary["errors"]:
-        with st.expander(f"View details for {len(summary['errors'])} skipped row(s)"):
-            for err in summary["errors"]:
-                st.write(f"- {err}")
-    clear_background_task("bg_import_json")
+            if st.button("Confirm and import", type="primary"):
+                try:
+                    result = import_user_profile(document, user_id, strategy=strategy_label)
+                    st.success(
+                        f"Import complete: {result['imported']} imported, {result['merged']} merged, "
+                        f"{result['skipped']} skipped."
+                    )
+                    st.session_state.pop("portable_export", None)
+                except Exception as exc:
+                    st.error(f"Import rolled back: {exc}")
+        else:
+            st.error("The file failed validation. Nothing was imported.")
+            for error in errors:
+                st.write(f"- {error}")
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        st.error(f"Invalid JSON file: {exc}")

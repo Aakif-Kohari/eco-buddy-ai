@@ -1,0 +1,6 @@
+{
+  "title": "feat(industrial-ccus): implement Enterprise Industrial Carbon Capture Utilization & Storage Suite (#937)",
+  "head": "dipanshubatra:feature/enterprise-industrial-ccus-carbon-capture-suite",
+  "base": "main",
+  "body": "## 📝 Description\nImplements Enterprise Industrial Carbon Capture, Utilization & Storage (CCUS) Suite for eco-buddy-ai, providing flue gas CO2 absorption telemetry, Direct Air Capture (DAC) monitoring, and Section 45Q carbon credit tracking.\n\nKey highlights:\n- Added engine service (`industrial_ccus_engine.py`).\n- Created Streamlit interface (`pages/Industrial_CCUS_Studio.py`).\n- Created React dashboard component (`src/components/ccus/IndustrialCcusDashboardView.tsx`).\n- Added unit tests (`test_industrial_ccus_engine.py`).\n\n## 🔗 Related Issue\nCloses #937\n\n## ✅ Type of Change\n- [x] ✨ New feature\n\n## 🧪 How Has This Been Tested?\n- Executed CCUS capture calculations.\n\n## 📋 Checklist\n- [x] My code follows conventions"
+}

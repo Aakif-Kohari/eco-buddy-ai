@@ -28,7 +28,7 @@ from invalidation import (
 import streamlit as st
 import bcrypt
 import logging
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 DB_NAME = os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
@@ -101,6 +101,57 @@ def init_db() -> bool:
             with database_connection(DB_NAME) as conn:
                 cursor = conn.cursor()
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS offset_portfolios (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        total_tonnes REAL,
+                        total_cost REAL,
+                        diversification_score REAL,
+                        risk_rating TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_balances (
+                        user_id TEXT PRIMARY KEY,
+                        balance_kg REAL DEFAULT 500.0,
+                        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS neighborhood_scores (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        zip_code TEXT,
+                        eco_score REAL,
+                        carbon_saved_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pca_trades (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        buyer_id TEXT,
+                        seller_id TEXT,
+                        amount_kg REAL,
+                        price_per_tonne REAL,
+                        trade_type TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS travel_itineraries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        legs_data TEXT,
+                        optimization_report TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS users (
@@ -113,6 +164,27 @@ def init_db() -> bool:
                     )
                     """
                 )
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS water_energy_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        household_size INTEGER,
+                        grid_intensity REAL,
+                        comparison_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pantry_inventory (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        item_name TEXT,
+                        purchase_date TEXT,
+                        storage_condition TEXT,
+                        added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS weekly_challenges (
@@ -128,6 +200,26 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS green_finance_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        portfolio_value REAL,
+                        deposit_amount REAL,
+                        investment_results TEXT,
+                        banking_results TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS textile_comparisons (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        garment_data TEXT,
+                        results_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 try:
                     cursor.execute(
                         """
@@ -138,6 +230,16 @@ def init_db() -> bool:
                 except sqlite3.OperationalError as exc:
                     if "duplicate column name" not in str(exc).lower():
                         raise
+                
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS pcf_labels (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_name TEXT,
+                        label_data TEXT,
+                        transparency_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
                 cursor.execute(
                     """
@@ -157,6 +259,18 @@ def init_db() -> bool:
                     )
                     """
                 )
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_health_profiles (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time_allocation TEXT,
+                        weekly_park_visits INTEGER,
+                        tree_canopy_pct REAL,
+                        exposure_data TEXT,
+                        mitigation_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
                 cursor.execute(
                     """
@@ -7184,6 +7298,7 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
         return False
 
 def get_food_scans(user_id: int) -> list[dict]:
+    conn = None
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -7195,6 +7310,7 @@ def get_food_scans(user_id: int) -> list[dict]:
         return []
     finally:
         if conn:
+            conn.close()
             conn.close()
 
 
@@ -7380,6 +7496,27 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
         logger.error(f"Error saving food scan: {e}")
         return False
 
+import json
+
+def save_urban_health_profile(time_allocation: dict, weekly_park_visits: int, tree_canopy_pct: float, 
+                              exposure_data: dict, mitigation_data: dict) -> None:
+    """Saves an urban health impact analysis session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_health_profiles 
+        (time_allocation, weekly_park_visits, tree_canopy_pct, exposure_data, mitigation_data)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        json.dumps(time_allocation),
+        weekly_park_visits,
+        tree_canopy_pct,
+        json.dumps(exposure_data),
+        json.dumps(mitigation_data)
+    ))
+    conn.commit()
+    conn.close()
+
 def get_food_scans(user_id: int) -> list[dict]:
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -7394,6 +7531,19 @@ def get_food_scans(user_id: int) -> list[dict]:
     except sqlite3.Error as e:
         logger.error(f"Error getting food scans: {e}")
         return []
+
+import json
+
+def save_pcf_label(product_name: str, label_data: dict, transparency_data: dict) -> None:
+    """Saves a generated PCF label and transparency score to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pcf_labels (product_name, label_data, transparency_data)
+        VALUES (?, ?, ?)
+    """, (product_name, json.dumps(label_data), json.dumps(transparency_data)))
+    conn.commit()
+    conn.close()
 
 def init_energy_tracker_db() -> bool:
     try:
@@ -7418,6 +7568,19 @@ def init_energy_tracker_db() -> bool:
         if conn:
             conn.close()
 
+import json
+
+def save_textile_comparison(garments: list, results: list) -> None:
+    """Saves a textile comparison session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO textile_comparisons (garment_data, results_data)
+        VALUES (?, ?)
+    """, (json.dumps(garments), json.dumps(results)))
+    conn.commit()
+    conn.close()
+
 def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, record_date: str) -> bool:
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -7434,6 +7597,57 @@ def add_energy_record(user_id: int, electricity_kwh: float, gas_kwh: float, reco
     finally:
         if conn:
             conn.close()
+
+def add_pantry_item(item_name: str, purchase_date: str, storage_condition: str) -> None:
+    """Adds a new item to the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pantry_inventory (item_name, purchase_date, storage_condition)
+        VALUES (?, ?, ?)
+    """, (item_name, purchase_date, storage_condition))
+    conn.commit()
+    conn.close()
+
+def get_pantry_inventory() -> list:
+    """Retrieves all items in the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT item_name, purchase_date, storage_condition FROM pantry_inventory ORDER BY purchase_date ASC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"name": row[0], "purchase_date": row[1], "storage": row[2]} for row in rows]
+
+
+def save_green_finance_profile(portfolio_value: float, deposit_amount: float, 
+                               investment_results: dict, banking_results: dict) -> None:
+    """Saves a green finance analysis profile to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO green_finance_profiles (portfolio_value, deposit_amount, investment_results, banking_results)
+        VALUES (?, ?, ?, ?)
+    """, (portfolio_value, deposit_amount, json.dumps(investment_results), json.dumps(banking_results)))
+    conn.commit()
+    conn.close()
+
+def get_green_finance_history() -> list:
+    """Retrieves historical green finance analysis profiles."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT portfolio_value, deposit_amount, investment_results, banking_results, timestamp FROM green_finance_profiles ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def remove_pantry_item(item_name: str) -> None:
+    """Removes an item from the pantry inventory."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pantry_inventory WHERE item_name = ?", (item_name,))
+    conn.commit()
+    conn.close()
 
 def get_energy_records(user_id: int) -> list[dict]:
     try:
@@ -7453,3 +7667,146 @@ def get_energy_records(user_id: int) -> list[dict]:
     finally:
         if conn:
             conn.close()
+
+import json
+
+def save_water_energy_profile(household_size: int, grid_intensity: float, comparison_data: dict) -> None:
+    """Saves a water-energy nexus comparison profile to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO water_energy_profiles (household_size, grid_intensity, comparison_data)
+        VALUES (?, ?, ?)
+    """, (household_size, grid_intensity, json.dumps(comparison_data)))
+    conn.commit()
+    conn.close()
+
+def get_water_energy_history() -> list:
+    """Retrieves historical water-energy nexus profiles."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT household_size, grid_intensity, comparison_data, timestamp FROM water_energy_profiles ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def get_pca_balance(user_id: str) -> float:
+    """Retrieves the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT balance_kg FROM pca_balances WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 500.0
+
+import json
+
+def save_travel_itinerary(legs: list, report: dict) -> None:
+    """Saves a travel itinerary and its optimization report to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO travel_itineraries (legs_data, optimization_report)
+        VALUES (?, ?)
+    """, (json.dumps(legs), json.dumps(report)))
+    conn.commit()
+    conn.close()
+
+def get_travel_itinerary_history() -> list:
+    """Retrieves historical travel itineraries."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT legs_data, optimization_report, timestamp FROM travel_itineraries ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def update_pca_balance(user_id: str, amount: float) -> None:
+    """Updates the PCA balance for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_balances (user_id, balance_kg, last_updated)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET balance_kg = excluded.balance_kg, last_updated = CURRENT_TIMESTAMP
+    """, (user_id, amount))
+    conn.commit()
+    conn.close()
+
+
+def submit_neighborhood_score(zip_code: str, eco_score: float, carbon_saved_kg: float) -> None:
+    """Submits an anonymous score to the neighborhood aggregation table."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO neighborhood_scores (zip_code, eco_score, carbon_saved_kg)
+        VALUES (?, ?, ?)
+    """, (zip_code, eco_score, carbon_saved_kg))
+    conn.commit()
+    conn.close()
+
+def get_neighborhood_leaderboard() -> list:
+    """Retrieves aggregated leaderboard data from the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            zip_code,
+            COUNT(*) as total_participants,
+            ROUND(AVG(eco_score), 1) as average_eco_score,
+            ROUND(SUM(carbon_saved_kg), 2) as total_carbon_saved_kg
+        FROM neighborhood_scores
+        GROUP BY zip_code
+        ORDER BY average_eco_score DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
+    """Records a PCA trade in the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO pca_trades (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type)
+        VALUES (?, ?, ?, ?, ?)
+    """, (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type))
+    conn.commit()
+    conn.close()
+
+import json
+
+def save_offset_portfolio(user_id: str, summary: dict, risk_profile: dict) -> None:
+    """Saves a snapshot of the user's offset portfolio and risk profile."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO offset_portfolios (user_id, total_tonnes, total_cost, diversification_score, risk_rating)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        user_id,
+        summary.get("total_tonnes", 0.0),
+        summary.get("total_cost", 0.0),
+        risk_profile.get("diversification_score", 0.0),
+        risk_profile.get("overall_risk_rating", "Unknown")
+    ))
+    conn.commit()
+    conn.close()
+
+def get_offset_portfolio_history(user_id: str) -> list:
+    """Retrieves the historical snapshots of a user's offset portfolio."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT total_tonnes, total_cost, diversification_score, risk_rating, timestamp 
+        FROM offset_portfolios 
+        WHERE user_id = ? 
+        ORDER BY timestamp DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+

@@ -233,3 +233,21 @@ Example Output:
         "Please try again in a moment.",
         details=details,
     )
+def validate_user_input(value):
+    """Validate user input before processing."""
+
+    if value is None:
+        raise ValueError("Input cannot be None")
+
+    if not isinstance(value, str):
+        raise TypeError("Input must be a string")
+
+    value = value.strip()
+
+    if not value:
+        raise ValueError("Input cannot be empty")
+
+    if len(value) > 10000:
+        raise ValueError("Input is too long")
+
+    return value
