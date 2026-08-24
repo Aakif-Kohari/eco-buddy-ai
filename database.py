@@ -144,6 +144,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS avoided_emissions_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        activity_type TEXT,
+                        quantity REAL,
+                        avoided_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS neighborhood_scores (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         zip_code TEXT,
@@ -7848,6 +7858,26 @@ def get_offset_portfolio_history(user_id: str) -> list:
         WHERE user_id = ? 
         ORDER BY timestamp DESC
     """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def save_avoided_emissions_log(activity_type: str, quantity: float, avoided_kg: float) -> None:
+    """Saves a logged avoided emissions activity to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO avoided_emissions_logs (activity_type, quantity, avoided_kg)
+        VALUES (?, ?, ?)
+    """, (activity_type, quantity, avoided_kg))
+    conn.commit()
+    conn.close()
+
+def get_avoided_emissions_history() -> list:
+    """Retrieves historical avoided emissions logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT activity_type, quantity, avoided_kg, timestamp FROM avoided_emissions_logs ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
