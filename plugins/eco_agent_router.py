@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from dataclasses import dataclass
 
 try:

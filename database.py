@@ -4471,7 +4471,7 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                         """
                         ALTER TABLE assessments
                         ADD COLUMN created_at
-                        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        TIMESTAMP DEFAULT '2024-01-01 00:00:00'
                         """
                     )
                 except sqlite3.OperationalError as exc:
