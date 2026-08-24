@@ -125,6 +125,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS green_premium_analyses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_key TEXT,
+                        utility_inflation REAL,
+                        subsidy_usd REAL,
+                        result_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pca_balances (
                         user_id TEXT PRIMARY KEY,
                         balance_kg REAL DEFAULT 500.0,
@@ -7865,6 +7876,20 @@ def save_equivalence_preferences(user_id: int, top_metrics: str, region: str) ->
     except sqlite3.Error as e:
         logger.error(f"Database error saving equivalence preferences: {e}")
         return False
+
+
+import json
+
+def save_green_premium_analysis(product_key: str, utility_inflation: float, subsidy_usd: float, result_data: dict) -> None:
+    """Saves a green premium ROI analysis to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO green_premium_analyses (product_key, utility_inflation, subsidy_usd, result_data)
+        VALUES (?, ?, ?, ?)
+    """, (product_key, utility_inflation, subsidy_usd, json.dumps(result_data)))
+    conn.commit()
+    conn.close()
 
 
 def get_equivalence_preferences(user_id: int) -> dict | None:
