@@ -176,6 +176,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS digital_twin_forecasts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        current_footprint REAL,
+                        target_goal REAL,
+                        scenarios_applied TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS travel_itineraries (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         legs_data TEXT,
@@ -7828,6 +7838,30 @@ def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_
     """, (buyer_id, seller_id, amount_kg, price_per_tonne, trade_type))
     conn.commit()
     conn.close()
+
+
+import json
+
+def save_digital_twin_scenario(current_footprint: float, target_goal: float, report_data: dict) -> None:
+    """Saves a digital twin forecasting scenario to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO digital_twin_forecasts (current_footprint, target_goal, scenarios_applied)
+        VALUES (?, ?, ?)
+    """, (current_footprint, target_goal, json.dumps(report_data.get("scenarios_applied", []))))
+    conn.commit()
+    conn.close()
+
+def get_digital_twin_history() -> list:
+    """Retrieves historical digital twin forecasts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT current_footprint, target_goal, scenarios_applied, timestamp FROM digital_twin_forecasts ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 import json
 
