@@ -114,6 +114,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS grocery_optimizations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        budget_usd REAL,
+                        categories TEXT,
+                        result_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS health_transport_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8185,6 +8195,28 @@ def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: fl
     except Exception as e:
         logger.error(f"Error adding travel_record: {e}")
         return False
+
+
+def save_grocery_optimization(budget_usd: float, categories: list, result_data: dict) -> None:
+    """Saves a grocery optimization session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO grocery_optimizations (budget_usd, categories, result_data)
+        VALUES (?, ?, ?)
+    """, (budget_usd, json.dumps(categories), json.dumps(result_data)))
+    conn.commit()
+    conn.close()
+
+def get_grocery_history() -> list:
+    """Retrieves historical grocery optimization sessions."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT budget_usd, categories, result_data, timestamp FROM grocery_optimizations ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
 
 def get_travel_records(user_id: int) -> list:
     try:
