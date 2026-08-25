@@ -32,7 +32,7 @@ def set_version(conn: sqlite3.Connection, version: int) -> None:
     conn.commit()
 
 
-CURRENT_VERSION = 12
+CURRENT_VERSION = 14
 
 
 def migrate() -> tuple[bool, str]:
