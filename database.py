@@ -131,6 +131,14 @@ def init_db() -> bool:
                         price REAL,
                         status TEXT DEFAULT 'OPEN',
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        provider TEXT,
+                        access_token TEXT,
+                        refresh_token TEXT,
+                        expires_at REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
 
@@ -142,6 +150,16 @@ def init_db() -> bool:
                         current_amount REAL DEFAULT 0.0,
                         description TEXT,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS health_transport_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        date TEXT,
+                        activity_type TEXT,
+                        duration_minutes REAL,
+                        distance_km REAL,
+                        calories_burned REAL,
+                        avoided_co2_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
 
@@ -842,6 +860,48 @@ def get_business_footprint_history() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+# -------------------------------------------------------------------------
+# Fitness Integration
+# -------------------------------------------------------------------------
+
+def save_fitness_oauth_token(user_id: str, provider: str, access_token: str, refresh_token: str, expires_at: float) -> None:
+    conn = database_connection(DB_NAME)
+    # Using the context manager database_connection yields the connection
+    with conn as c:
+        cursor = c.cursor()
+        cursor.execute("DELETE FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        cursor.execute("""
+            INSERT INTO fitness_oauth_tokens (user_id, provider, access_token, refresh_token, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (str(user_id), provider, access_token, refresh_token, expires_at))
+
+def get_fitness_oauth_token(user_id: str, provider: str) -> dict | None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        row = cursor.fetchone()
+        if row:
+            columns = [col[0] for col in cursor.description]
+            return dict(zip(columns, row))
+        return None
+
+def save_health_transport_metric(user_id: str, date: str, activity_type: str, duration_minutes: float, distance_km: float, calories_burned: float, avoided_co2_kg: float) -> None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        # Avoid duplicates for the same day/activity combination
+        cursor.execute("DELETE FROM health_transport_metrics WHERE user_id = ? AND date = ? AND activity_type = ?", (str(user_id), date, activity_type))
+        cursor.execute("""
+            INSERT INTO health_transport_metrics (user_id, date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (str(user_id), date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg))
+
+def get_health_transport_metrics(user_id: str) -> list[dict]:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM health_transport_metrics WHERE user_id = ? ORDER BY date ASC", (str(user_id),))
+        rows = cursor.fetchall()
+        return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 # -------------------------------------------------------------------------
 # Assessment Timestamp Migration
 #
