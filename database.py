@@ -151,6 +151,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ej_impact_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        zip_code TEXT,
+                        activity TEXT,
+                        quantity REAL,
+                        impact_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS green_premium_analyses (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         product_key TEXT,
@@ -8147,6 +8158,27 @@ def get_user_civic_actions(user_id: int) -> list:
         if 'conn' in locals():
             conn.close()
 
+import json
+
+def save_ej_impact_log(zip_code: str, activity: str, quantity: float, impact_data: dict) -> None:
+    """Saves an EJ impact analysis log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO ej_impact_logs (zip_code, activity, quantity, impact_data)
+        VALUES (?, ?, ?, ?)
+    """, (zip_code, activity, quantity, json.dumps(impact_data)))
+    conn.commit()
+    conn.close()
+
+def get_ej_history() -> list:
+    """Retrieves historical EJ impact logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT zip_code, activity, quantity, impact_data, timestamp FROM ej_impact_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def init_travel_tracker_db() -> bool:
     try:
