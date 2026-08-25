@@ -244,6 +244,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS challenge_results (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        scenario_id TEXT,
+                        outcome TEXT,
+                        final_carbon REAL,
+                        final_cost REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pantry_inventory (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         item_name TEXT,
@@ -8023,6 +8034,25 @@ def get_avoided_emissions_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+def save_challenge_result(scenario_id: str, outcome: str, final_carbon: float, final_cost: float) -> None:
+    """Saves a scenario challenge result to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO challenge_results (scenario_id, outcome, final_carbon, final_cost)
+        VALUES (?, ?, ?, ?)
+    """, (scenario_id, outcome, final_carbon, final_cost))
+    conn.commit()
+    conn.close()
+
+def get_challenge_history() -> list:
+    """Retrieves historical scenario challenge results."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scenario_id, outcome, final_carbon, final_cost, timestamp FROM challenge_results ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_equivalence_preferences(user_id: int, top_metrics: str, region: str) -> bool:
     try:
