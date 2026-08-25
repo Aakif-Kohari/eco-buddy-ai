@@ -15,3 +15,4 @@ benchmark_results/
 
 .coverage
 .pytest_cache/
+scratch/
