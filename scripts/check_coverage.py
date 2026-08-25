@@ -66,10 +66,10 @@ def check_coverage_gates(
     totals = coverage_data.get("totals", {})
 
     total_percent = totals.get("percent_covered", 0.0)
-    # if total_percent < total_threshold:
-    #     violations.append(
-    #         f"Total coverage {total_percent:.2f}% is below quality gate threshold of {total_threshold:.2f}%"
-    #     )
+    if total_percent < total_threshold:
+        violations.append(
+            f"Total coverage {total_percent:.2f}% is below quality gate threshold of {total_threshold:.2f}%"
+        )
 
     # Check branch coverage if available
     covered_branches = totals.get("covered_branches", 0)
