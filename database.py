@@ -102,6 +102,7 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+<<<<<<< ours
                     CREATE TABLE IF NOT EXISTS eco_ledger_accounts (
                         user_id TEXT PRIMARY KEY,
                         balance REAL DEFAULT 0.0,
@@ -131,6 +132,7 @@ def init_db() -> bool:
                         price REAL,
                         status TEXT DEFAULT 'OPEN',
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+=======
                     CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -139,10 +141,12 @@ def init_db() -> bool:
                         refresh_token TEXT,
                         expires_at REAL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+>>>>>>> theirs
                     )
                 """)
 
                 cursor.execute("""
+<<<<<<< ours
                     CREATE TABLE IF NOT EXISTS eco_community_funds (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         project_name TEXT,
@@ -150,6 +154,7 @@ def init_db() -> bool:
                         current_amount REAL DEFAULT 0.0,
                         description TEXT,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+=======
                     CREATE TABLE IF NOT EXISTS health_transport_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -160,6 +165,7 @@ def init_db() -> bool:
                         calories_burned REAL,
                         avoided_co2_kg REAL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+>>>>>>> theirs
                     )
                 """)
 
