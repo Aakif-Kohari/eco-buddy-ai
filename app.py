@@ -62,6 +62,10 @@ import travel_tracker
 load_dotenv()
 import energy_tracker
 from shopping_assistant import render_shopping_hub
+from components.chat import render_chat_ui
+from components.email_digest_ui import render_email_digest_ui
+import energy_tracker
+import travel_tracker
 from impact_dashboard import render_impact_dashboard
 from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_marketplace_db, init_energy_tracker_db
 import gamification as gf

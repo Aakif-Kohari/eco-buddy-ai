@@ -8109,6 +8109,59 @@ def get_relocation_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+
+def get_virtual_city_state(user_id: int) -> dict:
+    """Retrieve the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT carbon_saved_kg, unlocked_assets, layout_state 
+        FROM virtual_city_state 
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    import json
+    if row:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": row[0],
+            "unlocked_assets": json.loads(row[1]) if row[1] else [],
+            "layout_state": json.loads(row[2]) if row[2] else {}
+        }
+    else:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": 0.0,
+            "unlocked_assets": [],
+            "layout_state": {}
+        }
+
+def save_virtual_city_state(user_id: int, carbon_saved_kg: float, unlocked_assets: list, layout_state: dict) -> None:
+    """Saves or updates the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    import json
+    
+    cursor.execute("SELECT user_id FROM virtual_city_state WHERE user_id = ?", (user_id,))
+    exists = cursor.fetchone()
+    
+    if exists:
+        cursor.execute("""
+            UPDATE virtual_city_state 
+            SET carbon_saved_kg = ?, unlocked_assets = ?, layout_state = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        """, (carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state), user_id))
+    else:
+        cursor.execute("""
+            INSERT INTO virtual_city_state (user_id, carbon_saved_kg, unlocked_assets, layout_state)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state)))
+    
+    conn.commit()
+    conn.close()
+
 def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
     """Logs a civic action taken by a user."""
     try:
@@ -8199,3 +8252,4 @@ def get_travel_records(user_id: int) -> list:
     except Exception as e:
         logger.error(f"Error getting travel_records: {e}")
         return []
+
