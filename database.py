@@ -8041,3 +8041,93 @@ def get_relocation_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
+    """Logs a civic action taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO civic_actions (user_id, bill_id, action_type, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (user_id, bill_id, action_type))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error logging civic action: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def get_user_civic_actions(user_id: int) -> list:
+    """Retrieves civic actions taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, bill_id, action_type, created_at
+            FROM civic_actions
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        ''', (user_id,))
+        rows = cursor.fetchall()
+        return [{"id": r[0], "bill_id": r[1], "action_type": r[2], "created_at": r[3]} for r in rows]
+    except Exception as e:
+        logger.error(f"Error retrieving civic actions: {e}")
+        return []
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def init_travel_tracker_db() -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS travel_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    record_date TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    distance_km REAL NOT NULL,
+                    passengers INTEGER NOT NULL,
+                    emissions_kg REAL NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing travel_tracker_db: {e}")
+        return False
+
+def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: float, passengers: int, emissions_kg: float) -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO travel_records (user_id, record_date, mode, distance_km, passengers, emissions_kg)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, record_date, mode, distance_km, passengers, emissions_kg))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error adding travel_record: {e}")
+        return False
+
+def get_travel_records(user_id: int) -> list:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM travel_records WHERE user_id = ? ORDER BY record_date DESC
+            """, (user_id,))
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting travel_records: {e}")
+        return []

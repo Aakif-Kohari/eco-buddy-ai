@@ -41,8 +41,8 @@ class CircularEconomyEngine:
                 category="Recycled Polymer Plastic",
                 purity_grade_pct=99.2,
                 quantity_metric_tons=450.0,
-                unit_price_usd_ton: 1250.0,
-                embodied_co2_avoided_kg_per_kg: 1.85,
+                unit_price_usd_ton=1250.0,
+                embodied_co2_avoided_kg_per_kg=1.85,
                 seller_facility_name="Bavarian Polymer Recyclers GmbH",
                 certification_status="Verified Circular Grade A"
             ),
@@ -52,8 +52,8 @@ class CircularEconomyEngine:
                 category="Scrap Aluminum Alloy",
                 purity_grade_pct=96.5,
                 quantity_metric_tons=120.0,
-                unit_price_usd_ton: 2100.0,
-                embodied_co2_avoided_kg_per_kg: 8.90,
+                unit_price_usd_ton=2100.0,
+                embodied_co2_avoided_kg_per_kg=8.90,
                 seller_facility_name="Rhein-Main Scrap Smelter",
                 certification_status="Verified Circular Grade A"
             ),
@@ -63,8 +63,8 @@ class CircularEconomyEngine:
                 category="E-Waste Precious Metal Slag",
                 purity_grade_pct=88.0,
                 quantity_metric_tons=35.0,
-                unit_price_usd_ton: 5400.0,
-                embodied_co2_avoided_kg_per_kg: 14.20,
+                unit_price_usd_ton=5400.0,
+                embodied_co2_avoided_kg_per_kg=14.20,
                 seller_facility_name="Nordic Urban Mining Hub",
                 certification_status="Grade B Recycled"
             )
