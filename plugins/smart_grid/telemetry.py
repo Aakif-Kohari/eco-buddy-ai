@@ -7,7 +7,7 @@ allowing devices to broadcast their state and the optimizer to subscribe and rea
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Callable, List, DefaultDict
+from typing import Optional, Dict, Any, Callable, List, DefaultDict
 from collections import defaultdict
 import time
 

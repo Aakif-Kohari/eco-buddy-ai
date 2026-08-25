@@ -1,44 +1,40 @@
+import logging
 import sqlite3
 
+logger = logging.getLogger(__name__)
+
 def migrate(conn: sqlite3.Connection) -> None:
+    """
+    Migration v13: Green Canopy & UHI Simulator
+    Creates tables for neighborhood_canopy_baselines and neighborhood_canopy_targets.
+    """
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS eco_ledger_accounts (
-            user_id TEXT PRIMARY KEY,
-            balance REAL DEFAULT 0.0,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS eco_ledger_transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id TEXT,
-            receiver_id TEXT,
-            amount REAL,
-            timestamp REAL,
-            previous_hash TEXT,
-            hash TEXT,
-            proof_data TEXT
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS eco_order_book (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            order_type TEXT,
-            amount REAL,
-            price REAL,
-            status TEXT DEFAULT 'OPEN',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS eco_community_funds (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_name TEXT,
-            target_amount REAL,
-            current_amount REAL DEFAULT 0.0,
-            description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    try:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS neighborhood_canopy_baselines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                address TEXT UNIQUE NOT NULL,
+                latitude REAL NOT NULL,
+                longitude REAL NOT NULL,
+                green_canopy_percentage REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS neighborhood_canopy_targets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                baseline_id INTEGER NOT NULL,
+                added_trees INTEGER NOT NULL,
+                carbon_drawdown_10y REAL,
+                carbon_drawdown_20y REAL,
+                carbon_drawdown_50y REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (baseline_id) REFERENCES neighborhood_canopy_baselines (id)
+            )
+        ''')
+
+        conn.commit()
+    except sqlite3.Error as exc:
+        logger.error(f"Migration v13 failed: {exc}")
+        raise

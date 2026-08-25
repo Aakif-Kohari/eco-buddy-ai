@@ -18,7 +18,7 @@ def test_get_material_data():
 
 def test_calculate_washing_impact():
     engine = TextileLCAEngine()
-    impact = engine.calculate_washing_impact("polyester", weight_kg=1.0, num_washes10)
+    impact = engine.calculate_washing_impact("polyester", weight_kg=1.0, num_washes=10)
     
     assert impact["microplastics_mg"] == 150.0 * 1.0 * 10  # 1500 mg
     assert impact["washing_water_l"] == 10 * 1.0 * 50.0    # 500 L
