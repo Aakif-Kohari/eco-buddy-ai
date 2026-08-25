@@ -60,8 +60,12 @@ from eco_social import render_eco_social, render_eco_tip
 from volunteer_platform import render_volunteer_hub
 load_dotenv()
 from shopping_assistant import render_shopping_hub
+from components.chat import render_chat_ui
+from components.email_digest_ui import render_email_digest_ui
+import energy_tracker
+import travel_tracker
 from impact_dashboard import render_impact_dashboard
-from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
+from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, init_marketplace_db, init_energy_tracker_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
 import gamification as gf
 from emissions import calculate_footprint, calculate_eco_score
 
@@ -1183,7 +1187,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 from green_mobility import render_mobility_hub
-tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33 = st.tabs([
+tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33, tab_email, tab_chat, tab41, tab40, tab39 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1219,9 +1223,14 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "Eco-Heritage",
     "Eco-Parenting",
     "Eco-Resillence",
-    "green_business.py"
-    "📧 Email Digest"
+    "green_business.py",
+    "📧 Email Digest",
     "💬 Eco Chat",
+    "🏙️ Urban Farming",
+    "🛍️ Ethical Shopping",
+    "🎨 Eco Art",
+    "Extra 1",
+    "Extra 2",
 ])
 # Import
 from urban_farming import render_urban_hub
