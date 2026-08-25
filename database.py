@@ -102,6 +102,32 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        provider TEXT,
+                        access_token TEXT,
+                        refresh_token TEXT,
+                        expires_at REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS health_transport_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        date TEXT,
+                        activity_type TEXT,
+                        duration_minutes REAL,
+                        distance_km REAL,
+                        calories_burned REAL,
+                        avoided_co2_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS relocation_analyses (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         current_city TEXT,
@@ -798,6 +824,48 @@ def get_business_footprint_history() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+# -------------------------------------------------------------------------
+# Fitness Integration
+# -------------------------------------------------------------------------
+
+def save_fitness_oauth_token(user_id: str, provider: str, access_token: str, refresh_token: str, expires_at: float) -> None:
+    conn = database_connection(DB_NAME)
+    # Using the context manager database_connection yields the connection
+    with conn as c:
+        cursor = c.cursor()
+        cursor.execute("DELETE FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        cursor.execute("""
+            INSERT INTO fitness_oauth_tokens (user_id, provider, access_token, refresh_token, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (str(user_id), provider, access_token, refresh_token, expires_at))
+
+def get_fitness_oauth_token(user_id: str, provider: str) -> dict | None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        row = cursor.fetchone()
+        if row:
+            columns = [col[0] for col in cursor.description]
+            return dict(zip(columns, row))
+        return None
+
+def save_health_transport_metric(user_id: str, date: str, activity_type: str, duration_minutes: float, distance_km: float, calories_burned: float, avoided_co2_kg: float) -> None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        # Avoid duplicates for the same day/activity combination
+        cursor.execute("DELETE FROM health_transport_metrics WHERE user_id = ? AND date = ? AND activity_type = ?", (str(user_id), date, activity_type))
+        cursor.execute("""
+            INSERT INTO health_transport_metrics (user_id, date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (str(user_id), date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg))
+
+def get_health_transport_metrics(user_id: str) -> list[dict]:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM health_transport_metrics WHERE user_id = ? ORDER BY date ASC", (str(user_id),))
+        rows = cursor.fetchall()
+        return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 # -------------------------------------------------------------------------
 # Assessment Timestamp Migration
 #
@@ -4471,7 +4539,7 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                         """
                         ALTER TABLE assessments
                         ADD COLUMN created_at
-                        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        TIMESTAMP DEFAULT '2024-01-01 00:00:00'
                         """
                     )
                 except sqlite3.OperationalError as exc:
@@ -8042,7 +8110,7 @@ def get_relocation_history() -> list:
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 
-def get_virtual_city_state(user_id: int) -> dict[str, Any]:
+def get_virtual_city_state(user_id: int) -> dict:
     """Retrieve the user's virtual city state."""
     conn = get_connection()
     cursor = conn.cursor()
@@ -8094,13 +8162,94 @@ def save_virtual_city_state(user_id: int, carbon_saved_kg: float, unlocked_asset
     conn.commit()
     conn.close()
 
+def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
+    """Logs a civic action taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO civic_actions (user_id, bill_id, action_type, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (user_id, bill_id, action_type))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error logging civic action: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-# Dummy functions to fix broken imports
-def get_travel_records(user_id):
-    return []
-def add_travel_record(*args, **kwargs):
-    return True
-def get_energy_records(user_id):
-    return []
-def add_energy_record(*args, **kwargs):
-    return True
+def get_user_civic_actions(user_id: int) -> list:
+    """Retrieves civic actions taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, bill_id, action_type, created_at
+            FROM civic_actions
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        ''', (user_id,))
+        rows = cursor.fetchall()
+        return [{"id": r[0], "bill_id": r[1], "action_type": r[2], "created_at": r[3]} for r in rows]
+    except Exception as e:
+        logger.error(f"Error retrieving civic actions: {e}")
+        return []
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+
+def init_travel_tracker_db() -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS travel_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    record_date TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    distance_km REAL NOT NULL,
+                    passengers INTEGER NOT NULL,
+                    emissions_kg REAL NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing travel_tracker_db: {e}")
+        return False
+
+def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: float, passengers: int, emissions_kg: float) -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO travel_records (user_id, record_date, mode, distance_km, passengers, emissions_kg)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, record_date, mode, distance_km, passengers, emissions_kg))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error adding travel_record: {e}")
+        return False
+
+def get_travel_records(user_id: int) -> list:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM travel_records WHERE user_id = ? ORDER BY record_date DESC
+            """, (user_id,))
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting travel_records: {e}")
+        return []
+
