@@ -110,10 +110,35 @@ def init_db() -> bool:
                         from_month TEXT,
                         to_month TEXT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS eco_ledger_accounts (
+                        user_id TEXT PRIMARY KEY,
+                        balance REAL DEFAULT 0.0,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_ledger_transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        sender_id TEXT,
+                        receiver_id TEXT,
+                        amount REAL,
+                        timestamp REAL,
+                        previous_hash TEXT,
+                        hash TEXT,
+                        proof_data TEXT
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_order_book (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        order_type TEXT,
+                        amount REAL,
+                        price REAL,
+                        status TEXT DEFAULT 'OPEN',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -125,6 +150,16 @@ def init_db() -> bool:
                     )
                 """)
 
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_community_funds (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        project_name TEXT,
+                        target_amount REAL,
+                        current_amount REAL DEFAULT 0.0,
+                        description TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS health_transport_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -8120,6 +8155,59 @@ def get_relocation_history() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def get_virtual_city_state(user_id: int) -> dict:
+    """Retrieve the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT carbon_saved_kg, unlocked_assets, layout_state 
+        FROM virtual_city_state 
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    import json
+    if row:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": row[0],
+            "unlocked_assets": json.loads(row[1]) if row[1] else [],
+            "layout_state": json.loads(row[2]) if row[2] else {}
+        }
+    else:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": 0.0,
+            "unlocked_assets": [],
+            "layout_state": {}
+        }
+
+def save_virtual_city_state(user_id: int, carbon_saved_kg: float, unlocked_assets: list, layout_state: dict) -> None:
+    """Saves or updates the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    import json
+    
+    cursor.execute("SELECT user_id FROM virtual_city_state WHERE user_id = ?", (user_id,))
+    exists = cursor.fetchone()
+    
+    if exists:
+        cursor.execute("""
+            UPDATE virtual_city_state 
+            SET carbon_saved_kg = ?, unlocked_assets = ?, layout_state = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        """, (carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state), user_id))
+    else:
+        cursor.execute("""
+            INSERT INTO virtual_city_state (user_id, carbon_saved_kg, unlocked_assets, layout_state)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state)))
+    
+    conn.commit()
+    conn.close()
 
 def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
     """Logs a civic action taken by a user."""
