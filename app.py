@@ -58,7 +58,9 @@ from travel_planner import render_travel_hub
 from weather_alerts import render_weather_hub
 from eco_social import render_eco_social, render_eco_tip
 from volunteer_platform import render_volunteer_hub
+import travel_tracker
 load_dotenv()
+import energy_tracker
 from shopping_assistant import render_shopping_hub
 from impact_dashboard import render_impact_dashboard
 from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_marketplace_db, init_energy_tracker_db
@@ -190,6 +192,7 @@ def render_top_auth():
         st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
         st.sidebar.page_link("pages/Sustainability_Roadmap.py", label="🗺️ Roadmap")
         st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
+        st.sidebar.page_link("pages/26_Health_Environment.py", label="🏃 Health & Environment")
 
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
@@ -391,7 +394,7 @@ with form:
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
-        init_energy_tracker_db()
+        # init_energy_tracker_db()
 
     run_db_initializations()
     if user_id is None:
@@ -1231,23 +1234,20 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "🌾 Urban Farming"
 ])
 # Import
-from urban_farming import render_urban_hub
-
-# Add as a new tab
-with tab41:
-    render_urban_hub()
-# Import
-from ethical_shopping import render_consumer_hub
-
-# Add as a new tab
-with tab40:
-    render_consumer_hub()
-# Import
-from eco_art import render_art_hub
-
-# Add as a new tab
-with tab39:
-    render_art_hub()
+# from urban_farming import render_urban_hub
+# # Add as a new tab
+# with tab41:
+#     render_urban_hub()
+# # Import
+# from ethical_shopping import render_consumer_hub
+# # Add as a new tab
+# with tab40:
+#     render_consumer_hub()
+# # Import
+# from eco_art import render_art_hub
+# # Add as a new tab
+# with tab39:
+#     render_art_hub()
 with tab38:
     render_mobility_hub()
 with tab37:
@@ -1319,12 +1319,10 @@ with tab14:
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
-from components.chat import render_chat_ui
-from components.email_digest_ui import render_email_digest_ui
-with tab33:
-    render_chat_ui()
-with tab32:
-    render_email_digest_ui(user_id)
+# with tab32:
+#     render_chat_ui()
+# with tab_email:
+#     render_email_digest_ui(user_id)
 # Existing analysis code here
 
 placeholder.empty()
