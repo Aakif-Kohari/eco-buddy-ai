@@ -30,7 +30,8 @@ BADGES = {
     'b1': {'name': 'First Assessment', 'desc': 'Completed your first footprint assessment', 'xp': 20},
     'b2': {'name': '7-Day Streak', 'desc': 'Logged activity for 7 consecutive days', 'xp': 50},
     'b3': {'name': 'Challenge Champion', 'desc': 'Completed 5 weekly challenges', 'xp': 100},
-    'b4': {'name': 'Plant-Based Week', 'desc': 'Avoided non-vegetarian meals for 7 days', 'xp': 50}
+    'b4': {'name': 'Plant-Based Week', 'desc': 'Avoided non-vegetarian meals for 7 days', 'xp': 50},
+    'b5': {'name': 'Civic Champion', 'desc': 'Sent an advocacy letter to a representative', 'xp': 150}
 }
 
 FREEZE_TOKEN_MILESTONES = [
@@ -275,6 +276,12 @@ def award_challenge_xp(user_id: int, challenge_id: str) -> None:
     ch_def = CHALLENGES.get(challenge_id)
     if ch_def:
         award_xp(user_id, 'challenge', challenge_id, ch_def['xp'], f"Completed {ch_def['title']}")
+
+
+def award_civic_xp(user_id: int) -> None:
+    """Award XP for taking civic action and unlock the Civic Champion badge."""
+    award_xp(user_id, 'civic_action', 'advocacy_letter', 50, "Sent an advocacy letter")
+    unlock_badge(user_id, 'b5')
 
 
 def check_badge_eligibility(user_id: int, check_diet: bool = False) -> None:

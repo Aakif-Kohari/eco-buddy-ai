@@ -22,7 +22,7 @@ from hypothesis.strategies import (
     text, integers, floats, booleans, lists, dictionaries, 
     one_of, none, just, sampled_from, datetimes, emails, 
     uuids, builds, composite, recursive, fixed_dictionaries,
-    from_regex, characters, ip_addresses, urls
+    from_regex, characters, ip_addresses
 )
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, precondition
 import string

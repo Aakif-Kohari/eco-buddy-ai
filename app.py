@@ -61,7 +61,7 @@ from volunteer_platform import render_volunteer_hub
 load_dotenv()
 from shopping_assistant import render_shopping_hub
 from impact_dashboard import render_impact_dashboard
-from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_energy_tracker_db
+from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_marketplace_db, init_energy_tracker_db
 import gamification as gf
 import energy_tracker
 import travel_tracker
@@ -4559,6 +4559,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
+    import energy_tracker
     energy_tracker.render_energy_tracker(user_id)
 
 with tab3:
@@ -4869,6 +4870,7 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
     
+    import travel_tracker
     travel_tracker.render_travel_tracker(user_id)
 
 with tab6:

@@ -10,8 +10,7 @@ from src.lib.history_manager import (
     HistoryManager,
     HistoryFilter,
     HistoryPagination,
-    get_history_manager,
-    clear_history_manager
+    get_history_manager
 )
 from src.lib.db_optimizer import (
     QueryCache,

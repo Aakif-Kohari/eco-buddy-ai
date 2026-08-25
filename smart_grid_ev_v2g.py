@@ -55,7 +55,7 @@ class SmartEVV2GEngine:
                 connected_vehicle_model="Tesla Model Y Long Range",
                 battery_capacity_kwh=78.0,
                 current_soc_pct=45.0,
-                target_soc_pct=100.0,
+                target_soc_pct=80.0,
                 v2g_enabled=False,
                 current_power_kw=120.0,  # Fast charging
                 battery_health_soh_pct=98.0
