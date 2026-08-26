@@ -178,6 +178,18 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS net_zero_roadmaps (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        scope1 REAL,
+                        scope2 REAL,
+                        scope3 REAL,
+                        target_year INTEGER,
+                        roadmap_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS relocation_analyses (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         current_city TEXT,
@@ -8273,6 +8285,28 @@ def init_travel_tracker_db() -> bool:
     except Exception as e:
         logger.error(f"Error initializing travel_tracker_db: {e}")
         return False
+
+import json
+
+def save_net_zero_roadmap(scope1: float, scope2: float, scope3: float, target_year: int, roadmap_data: dict) -> None:
+    """Saves a generated net-zero roadmap to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO net_zero_roadmaps (scope1, scope2, scope3, target_year, roadmap_data)
+        VALUES (?, ?, ?, ?, ?)
+    """, (scope1, scope2, scope3, target_year, json.dumps(roadmap_data)))
+    conn.commit()
+    conn.close()
+
+def get_roadmap_history() -> list:
+    """Retrieves historical net-zero roadmap generations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scope1, scope2, scope3, target_year, roadmap_data, timestamp FROM net_zero_roadmaps ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: float, passengers: int, emissions_kg: float) -> bool:
     try:
