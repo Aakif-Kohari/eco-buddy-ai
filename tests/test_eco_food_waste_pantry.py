@@ -5,18 +5,18 @@ Unit and Integration Tests for Smart Pantry & Food Waste Analyzer Engine
 import unittest
 import os
 from datetime import date, timedelta
-from eco_food_waste_pantry_types import (
+from src.environment.eco_food_waste_pantry_types import (
     FoodCategory,
     StorageCondition,
     PantryItem,
 )
-from eco_food_waste_pantry_db import (
+from src.environment.eco_food_waste_pantry_db import (
     init_food_waste_pantry_db,
     get_user_pantry_items,
     mark_pantry_item_status,
     get_food_waste_summary_stats,
 )
-from eco_food_waste_pantry_service import FoodWastePantryService
+from src.environment.eco_food_waste_pantry_service import FoodWastePantryService
 
 TEST_DB = "test_eco_food_waste_pantry.db"
 

@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
-from voice_assistant import (
+from src.ai.voice_assistant import (
     PRIVACY_NOTICE,
     VOICE_PROMPTS,
     parse_voice_command,

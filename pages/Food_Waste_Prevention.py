@@ -7,8 +7,8 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
-from waste_prevention_engine import WastePreventionEngine
-from database import add_pantry_item, get_pantry_inventory, remove_pantry_item
+from src.environment.waste_prevention_engine import WastePreventionEngine
+from src.core.database import add_pantry_item, get_pantry_inventory, remove_pantry_item
 
 st.set_page_config(page_title="Food Waste Prevention", page_icon="🥬", layout="wide")
 

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import json
 from typing import Dict, Any, List
 
-from habit_tracker import load_user_habits_db, save_user_habits_db
+from src.lifestyle.habit_tracker import load_user_habits_db, save_user_habits_db
 from styles.theme import apply_theme
 
 CATEGORIES = ["Transportation", "Food", "Energy", "Water", "Waste", "Shopping", "Other"]

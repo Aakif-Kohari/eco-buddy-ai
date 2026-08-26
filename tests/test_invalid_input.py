@@ -13,7 +13,7 @@ Covers:
 import pytest
 from unittest.mock import patch
 
-from llm_parser import parse_quick_log
+from src.ai.llm_parser import parse_quick_log
 
 
 class TestInvalidUserInput:

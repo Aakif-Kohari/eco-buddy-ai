@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from hourly_matching import (
+from src.energy.hourly_matching import (
     DEFAULT_GRID_PROFILE,
     DEFAULT_LOAD_PROFILE,
     MatchingError,

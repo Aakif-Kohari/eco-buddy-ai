@@ -3,7 +3,7 @@ Streamlit Page for Enterprise Industrial CCUS & Carbon Sequestration Studio
 """
 
 import streamlit as st
-from industrial_ccus_engine import IndustrialCcusEngine, CcusCaptureUnit
+from src.utils.industrial_ccus_engine import IndustrialCcusEngine, CcusCaptureUnit
 
 st.set_page_config(
     page_title="Industrial CCUS Studio",

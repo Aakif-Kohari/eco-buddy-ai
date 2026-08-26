@@ -56,7 +56,7 @@ class HistoryManager:
     
     def load_assessments(self) -> None:
         """Load assessments from database."""
-        from database import get_assessments
+        from src.core.database import get_assessments
         
         raw_data = get_assessments(self.user_id)
         

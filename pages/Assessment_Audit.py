@@ -5,15 +5,15 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from assessment_explainability import (
+from src.utils.assessment_explainability import (
     METHODOLOGY_CHANGED,
     SOURCE_UNAVAILABLE,
     build_assessment_audit,
     compare_audit_traces,
     serialize_audit,
 )
-from database import get_assessments_with_factors
-from emissions import get_factor_version
+from src.core.database import get_assessments_with_factors
+from src.carbon.emissions import get_factor_version
 from styles.theme import apply_theme
 
 

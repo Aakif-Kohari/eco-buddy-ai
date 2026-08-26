@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-import energy_audit as ea
+from src.energy import energy_audit as ea
 from styles.theme import apply_theme
 
 user_id = st.session_state.get('user_id')
@@ -22,7 +22,7 @@ input_mode = st.radio("Choose input method", ["Describe Your Home", "Upload Floo
 
 rooms = []
 
-from session_state_utils import ensure_session_state
+from src.core.session_state_utils import ensure_session_state
 
 ensure_session_state({"blueprint_rooms": []})
 

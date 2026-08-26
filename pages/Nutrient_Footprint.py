@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from nutrient_footprint import (
+from src.environment.nutrient_footprint import (
     BOUNDARY_N_PER_CAPITA,
     BOUNDARY_P_PER_CAPITA,
     APPLICATION_METHODS,

@@ -1,5 +1,5 @@
 import streamlit as st
-from health_environment_dashboard import render_health_environment_dashboard
+from src.reporting.health_environment_dashboard import render_health_environment_dashboard
 
 st.set_page_config(page_title="Health & Environment", page_icon="🏃", layout="wide")
 

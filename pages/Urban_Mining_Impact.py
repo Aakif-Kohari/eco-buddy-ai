@@ -6,9 +6,9 @@ Streamlit page where users can log old devices, view their "recovery value" scor
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from urban_mining_calculator import UrbanMiningCalculator
-from critical_mineral_db import CriticalMineralDB
-from database import save_urban_mining_inventory, get_urban_mining_history
+from src.utils.urban_mining_calculator import UrbanMiningCalculator
+from src.utils.critical_mineral_db import CriticalMineralDB
+from src.core.database import save_urban_mining_inventory, get_urban_mining_history
 
 st.set_page_config(page_title="Urban Mining Impact", page_icon="⛏️", layout="wide")
 

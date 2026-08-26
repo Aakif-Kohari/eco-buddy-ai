@@ -10,20 +10,20 @@ from datetime import datetime
 
 st.set_page_config(page_title="Eco Time Capsule", page_icon="📸", layout="wide")
 
-from eco_time_capsule_service import (
+from src.utils.eco_time_capsule_service import (
     create_snapshot_capsule, get_user_dashboard, open_capsule,
     compare_capsules, auto_detect_milestones, get_timeline_data,
     get_growth_summary,
 )
-from eco_time_capsule_cards import (
+from src.reporting.eco_time_capsule_cards import (
     inject_css, render_capsule_card, render_comparison, render_milestone,
     render_timeline_item, render_growth_card, render_create_form,
 )
-from eco_time_capsule_charts import (
+from src.reporting.eco_time_capsule_charts import (
     render_timeline_chart, render_mood_distribution, render_comparison_radar,
     render_score_gauge, render_capsule_type_bar,
 )
-from eco_time_capsule_db import get_milestones, get_reflections, add_reflection, MOOD_EMOJI
+from src.utils.eco_time_capsule_db import get_milestones, get_reflections, add_reflection, MOOD_EMOJI
 
 inject_css()
 

@@ -5,9 +5,9 @@ Streamlit page featuring an interactive impact dashboard, community vulnerabilit
 
 import streamlit as st
 import plotly.graph_objects as go
-from environmental_justice_mapper import EnvironmentalJusticeMapper
-from local_air_quality_tracker import LocalAirQualityTracker
-from database import save_ej_impact_log, get_ej_history
+from src.utils.environmental_justice_mapper import EnvironmentalJusticeMapper
+from src.utils.local_air_quality_tracker import LocalAirQualityTracker
+from src.core.database import save_ej_impact_log, get_ej_history
 
 st.set_page_config(page_title="EJ Impact Mapper", page_icon="⚖️", layout="wide")
 

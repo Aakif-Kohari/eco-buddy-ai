@@ -1,6 +1,6 @@
 import pytest
 import sqlite3
-from accountability_buddy import BuddySystem
+from src.utils.accountability_buddy import BuddySystem
 
 @pytest.fixture
 def buddy_system():

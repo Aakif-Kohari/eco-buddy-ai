@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments, migrate
+from src.core.database import get_assessments, migrate
 from styles.theme import apply_theme
 
 

@@ -6,8 +6,8 @@ Streamlit page displaying local community progress, anonymous block rankings, an
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from block_leaderboard import BlockLeaderboard
-from database import submit_neighborhood_score, get_neighborhood_leaderboard
+from src.community.block_leaderboard import BlockLeaderboard
+from src.core.database import submit_neighborhood_score, get_neighborhood_leaderboard
 
 st.set_page_config(page_title="Neighborhood Challenge", page_icon="🏘️", layout="wide")
 

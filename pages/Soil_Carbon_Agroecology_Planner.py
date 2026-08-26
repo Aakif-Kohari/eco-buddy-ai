@@ -3,15 +3,15 @@
 
 import streamlit as st
 import pandas as pd
-from soil_carbon_types import (
+from src.carbon.soil_carbon_types import (
     FarmFieldParameters,
     SoilTextureType,
     TillagePractice,
     CoverCropStrategy,
 )
-from soil_carbon_engine import SoilCarbonEngine
-from soil_carbon_cards import render_soil_carbon_kpis
-from soil_carbon_charts import create_soc_trajectory_chart, create_cumulative_credits_chart
+from src.carbon.soil_carbon_engine import SoilCarbonEngine
+from src.carbon.soil_carbon_cards import render_soil_carbon_kpis
+from src.carbon.soil_carbon_charts import create_soc_trajectory_chart, create_cumulative_credits_chart
 
 st.set_page_config(
     page_title="Soil Carbon & Agroecology Planner",

@@ -4,18 +4,18 @@ Unit and Integration Tests for Verified Carbon Offsets Marketplace Engine
 
 import unittest
 import os
-from eco_marketplace_offsets_types import (
+from src.carbon.eco_marketplace_offsets_types import (
     CarbonOffsetProject,
     OffsetProjectType,
     OffsetCertificationStandard,
 )
-from eco_marketplace_offsets_db import (
+from src.carbon.eco_marketplace_offsets_db import (
     init_marketplace_offsets_db,
     get_all_offset_projects,
     purchase_carbon_offsets,
     get_user_offset_portfolio,
 )
-from eco_marketplace_offsets_service import EcoMarketplaceOffsetsService
+from src.carbon.eco_marketplace_offsets_service import EcoMarketplaceOffsetsService
 
 TEST_DB = "test_eco_marketplace_offsets.db"
 

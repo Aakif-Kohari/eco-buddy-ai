@@ -1,8 +1,8 @@
 import pytest
 import sqlite3
-import database
+from src.core import database
 from datetime import datetime
-from eco_pledge import (
+from src.community.eco_pledge import (
     create_pledge,
     support_pledge,
     get_public_pledges,

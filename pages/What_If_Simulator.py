@@ -4,10 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 
-from database import get_assessments
-from emissions import calculate_footprint
-from waste import calculate_waste_footprint, WASTE_CATEGORIES
-from water import calculate_water_footprint
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
+from src.environment.waste import calculate_waste_footprint, WASTE_CATEGORIES
+from src.environment.water import calculate_water_footprint
 from styles.theme import apply_theme
 
 apply_theme()

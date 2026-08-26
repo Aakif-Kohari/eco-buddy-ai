@@ -1,17 +1,17 @@
 import plotly.graph_objects as go
 import streamlit as st
 
-from database import save_ev_charging_session
-from ev_charging_optimizer import (
+from src.core.database import save_ev_charging_session
+from src.energy.ev_charging_optimizer import (
     generate_charging_recommendations,
     optimize_charging_schedule,
 )
-from grid_intensity_simulator import (
+from src.energy.grid_intensity_simulator import (
     generate_grid_intensity_profile,
     generate_pricing_profile,
     get_grid_profile_metadata,
 )
-from units import format_co2, format_currency
+from src.utils.units import format_co2, format_currency
 
 st.set_page_config(page_title="EV Charging Simulator", page_icon="🔋", layout="wide")
 

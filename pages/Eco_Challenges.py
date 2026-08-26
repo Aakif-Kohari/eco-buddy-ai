@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
 
-from database import DB_NAME, add_xp
+from src.core.database import DB_NAME, add_xp
 
 st.set_page_config(page_title="Eco Challenges", page_icon="🎯", layout="wide")
 

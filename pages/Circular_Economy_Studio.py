@@ -3,7 +3,7 @@ Streamlit Page for Enterprise Circular Economy Lifecycle Studio
 """
 
 import streamlit as st
-from circular_economy_engine import CircularEconomyEngine, CircularMaterialComponent
+from src.utils.circular_economy_engine import CircularEconomyEngine, CircularMaterialComponent
 
 st.set_page_config(
     page_title="Circular Economy Lifecycle Studio",

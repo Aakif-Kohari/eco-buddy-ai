@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from household import (
+from src.lifestyle.household import (
     ALLOCATION_METHODS,
     MAX_WEIGHT,
     MEMBER_ROLES,

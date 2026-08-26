@@ -6,19 +6,19 @@ Multi-page section in EcoBuddy AI enabling users to explore, join, track, and co
 import streamlit as st
 import pandas as pd
 
-from eco_community_challenges_service import EcoCommunityChallengesService
-from eco_community_challenges_types import ChallengeCategory, ChallengeDifficulty
-from eco_community_challenges_cards import (
+from src.community.eco_community_challenges_service import EcoCommunityChallengesService
+from src.community.eco_community_challenges_types import ChallengeCategory, ChallengeDifficulty
+from src.community.eco_community_challenges_cards import (
     render_challenge_metrics_header,
     render_challenge_card,
     render_active_enrollment_card,
 )
-from eco_community_challenges_charts import (
+from src.community.eco_community_challenges_charts import (
     build_challenge_category_chart,
     build_user_progress_bar_chart,
     build_community_leaderboard_chart,
 )
-from database import get_leaderboard
+from src.core.database import get_leaderboard
 
 st.set_page_config(
     page_title="Community Eco Challenges - EcoBuddy AI",

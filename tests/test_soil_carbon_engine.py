@@ -2,13 +2,13 @@
 """
 
 import pytest
-from soil_carbon_types import (
+from src.carbon.soil_carbon_types import (
     FarmFieldParameters,
     SoilTextureType,
     TillagePractice,
     CoverCropStrategy,
 )
-from soil_carbon_engine import SoilCarbonEngine
+from src.carbon.soil_carbon_engine import SoilCarbonEngine
 
 
 @pytest.fixture

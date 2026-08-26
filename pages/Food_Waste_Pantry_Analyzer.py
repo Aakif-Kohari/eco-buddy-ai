@@ -7,10 +7,10 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-from eco_food_waste_pantry_service import FoodWastePantryService
-from eco_food_waste_pantry_types import FoodCategory, StorageCondition
-from eco_food_waste_pantry_cards import render_pantry_summary_header, render_pantry_item_card
-from eco_food_waste_pantry_charts import build_spoilage_risk_donut_chart, build_food_category_co2_chart
+from src.environment.eco_food_waste_pantry_service import FoodWastePantryService
+from src.environment.eco_food_waste_pantry_types import FoodCategory, StorageCondition
+from src.environment.eco_food_waste_pantry_cards import render_pantry_summary_header, render_pantry_item_card
+from src.environment.eco_food_waste_pantry_charts import build_spoilage_risk_donut_chart, build_food_category_co2_chart
 
 st.set_page_config(
     page_title="Smart Pantry & Food Waste - EcoBuddy AI",

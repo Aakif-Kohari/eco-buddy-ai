@@ -4,14 +4,14 @@ Unit and Integration Tests for Eco-Habit Streak Tracker Engine
 
 import unittest
 import os
-from eco_habit_streak_types import HabitCategory, HabitFrequency, EcoHabit
-from eco_habit_streak_db import (
+from src.lifestyle.eco_habit_streak_types import HabitCategory, HabitFrequency, EcoHabit
+from src.lifestyle.eco_habit_streak_db import (
     init_habit_streak_db,
     get_user_habits_with_streaks,
     log_habit_completion,
     get_habit_analytics_summary,
 )
-from eco_habit_streak_service import EcoHabitStreakService
+from src.lifestyle.eco_habit_streak_service import EcoHabitStreakService
 
 TEST_DB = "test_eco_habit_streaks.db"
 

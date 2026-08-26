@@ -1,5 +1,5 @@
 import pytest
-from civic_action_engine import CivicActionEngine
+from src.utils.civic_action_engine import CivicActionEngine
 
 @pytest.fixture
 def engine():

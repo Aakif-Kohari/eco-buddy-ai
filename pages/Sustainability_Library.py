@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from sustainability_library import (
+from src.utils.sustainability_library import (
     RESOURCE_TYPES, CATEGORIES, TAGS, search_resources,
     save_favorite, remove_favorite, get_favorites,
     mark_completed, get_completed,

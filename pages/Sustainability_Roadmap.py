@@ -3,7 +3,7 @@ import datetime
 from datetime import timedelta
 import uuid
 
-from sustainability_roadmap import (
+from src.utils.sustainability_roadmap import (
     init_roadmap_db,
     generate_personalized_roadmap,
     get_active_roadmap_for_user,

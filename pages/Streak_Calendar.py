@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import date, timedelta
 import calendar
-import streak_calendar
+from src.community import streak_calendar
 
 st.set_page_config(page_title="Streak Calendar", layout="wide")
 

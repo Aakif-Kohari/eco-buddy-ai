@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
 import datetime
-from sustainability_missions import (
+from src.utils.sustainability_missions import (
     get_active_events, get_all_events, get_user_missions, get_active_mission,
     save_mission, complete_mission, build_mission_from_event, DEFAULT_DAILY_MISSIONS,
 )
-from database import get_total_xp
+from src.core.database import get_total_xp
 from styles.theme import apply_theme
 
 user_id = st.session_state.get("user_id")
