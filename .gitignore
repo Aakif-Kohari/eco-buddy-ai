@@ -12,3 +12,7 @@ AGENTS.md
 
 # Benchmark generated output (keep framework, not run artifacts)
 benchmark_results/
+
+.coverage
+.pytest_cache/
+scratch/

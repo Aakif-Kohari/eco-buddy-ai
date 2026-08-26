@@ -52,8 +52,8 @@ class CircularEconomyEngine:
                 category="Scrap Aluminum Alloy",
                 purity_grade_pct=96.5,
                 quantity_metric_tons=120.0,
-                unit_price_usd_ton=2100.0,
-                embodied_co2_avoided_kg_per_kg=8.90,
+                unit_price_usd_ton=320.0,
+                embodied_co2_avoided_kg_per_kg=0.90,
                 seller_facility_name="Rhein-Main Scrap Smelter",
                 certification_status="Verified Circular Grade A"
             ),

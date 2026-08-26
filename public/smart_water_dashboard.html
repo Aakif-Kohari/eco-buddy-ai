@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<!--
+  Enterprise Architectural Specification & Header:
+  Module: Enterprise Smart Water Management & Desalination Analytics Suite (UI Tier)
+  Architecture: Micro-frontend HTML5 Single Page Telemetry Command Station
+  Compliance & Standards: ISO 14046 Water Footprint Assessment, WMO-No. 168 Hydrological Practice Standards, EPA WaterSense Telemetry Guidelines
+  Security: Zero-inline-script execution policy, CSP Frame Ancestors Self, Strict Input Sanitation Protocol
+  Design Token Specification: Dark Mode Glassmorphic Cyber-Hydro Palette (Background: #0B132B, Card: rgba(28, 37, 65, 0.6), Neon Accent: #00F5D4 / #00BBF9)
+  
+  System Purpose:
+  Provides enterprise-grade real-time monitoring and analytics for municipal and industrial water treatment, reverse osmosis (RO) desalination energy optimization, wastewater recycling efficiency, aquifer recharge tracking, and contaminant concentration warning matrix. Designed for high-velocity IoT telemetry ingestion and operational optimization.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enterprise Smart Water Management & Desalination Analytics Suite for real-time hydrological telemetry, RO efficiency tracking, and water footprint accounting.">
+  <title>Enterprise Smart Water & Desalination Telemetry Suite</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/smart_water_dashboard.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Telemetry & Control Bar -->
+  <header class="app-header" id="app-header-main">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+          <path d="M12 22a4.5 4.5 0 0 0 4.5-4.5c0-1.77-1.02-3.29-2.5-4.03"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1 id="main-dashboard-heading">AQUA-INTEL ENTERPRISE</h1>
+        <span class="sub-title">Smart Water & Desalination Telemetry Hub v4.2</span>
+      </div>
+    </div>
+    
+    <div class="header-controls">
+      <div class="status-badge live" id="system-status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text" id="status-label">TELEMETRY LINK ACTIVE</span>
+      </div>
+      <div class="facility-selector-wrapper">
+        <label for="facility-select" class="visually-hidden">Select Facility</label>
+        <select id="facility-select" class="styled-select" aria-label="Select Water Facility">
+          <option value="FAC-RO-01">Pacifica Desalination Plant (RO-Alpha)</option>
+          <option value="FAC-WR-02">Metro Reclamation & Recovery Facility</option>
+          <option value="FAC-AQ-03">Sierra Aquifer Recharge Station</option>
+          <option value="FAC-IND-04">Titan Industrial Closed-Loop Recycler</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-trigger-refresh" aria-label="Refresh Telemetry Data">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Sync Telemetry
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Dashboard Layout -->
+  <main class="dashboard-container" id="dashboard-main-view">
+    <!-- Key Performance Indicators Row -->
+    <section class="kpi-grid" aria-label="Key Hydrological Metrics">
+      <div class="kpi-card glass-panel" id="kpi-card-throughput">
+        <div class="kpi-icon water-blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Daily Potable Output</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-throughput">142.8</span>
+            <span class="kpi-unit">MLD</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-throughput">▲ +4.2% vs target</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-sec">
+        <div class="kpi-icon energy-yellow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Specific Energy Cons. (SEC)</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-sec">2.84</span>
+            <span class="kpi-unit">kWh/m³</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-sec">▼ -0.15 kWh ERD Efficiency</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-recovery">
+        <div class="kpi-icon cyan-bright">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M16 12l-4-4-4 4M12 8v8"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">RO Membrane Recovery</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-recovery">48.6</span>
+            <span class="kpi-unit">%</span>
+          </div>
+          <span class="kpi-trend neutral" id="kpi-trend-recovery">● Optimal Flux Range</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-salinity">
+        <div class="kpi-icon emerald-green">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Permeate TDS Quality</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-tds">185</span>
+            <span class="kpi-unit">mg/L</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-tds">✔ Pass WHO Drink Standard</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Analytics Module Grid -->
+    <div class="analytics-grid">
+      <!-- High Pressure RO Train Telemetry & Membrane Fouling Monitor -->
+      <article class="panel glass-panel" id="ro-telemetry-panel">
+        <div class="panel-header">
+          <h2>RO High-Pressure Train Operations</h2>
+          <div class="panel-actions">
+            <button class="btn-icon" id="btn-toggle-trains" title="Toggle Train View">⚙</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="train-status-list" id="ro-train-container">
+            <!-- Dynamically Populated by Hydro Engine -->
+            <div class="train-card" id="train-a">
+              <div class="train-header">
+                <span class="train-title">Train Alpha (SWRO)</span>
+                <span class="badge badge-success">ACTIVE</span>
+              </div>
+              <div class="train-metrics">
+                <div class="metric-item">
+                  <span class="label">Feed Pressure:</span>
+                  <span class="value" id="train-a-pressure">64.5 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Diff. Pressure (ΔP):</span>
+                  <span class="value warning" id="train-a-dp">1.82 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Salt Rejection:</span>
+                  <span class="value" id="train-a-rejection">99.74%</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Fouling Index (SDI):</span>
+                  <span class="value" id="train-a-sdi">2.1</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">Membrane Useful Life Integrity</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 82%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="train-card" id="train-b">
+              <div class="train-header">
+                <span class="train-title">Train Bravo (BWRO)</span>
+                <span class="badge badge-success">ACTIVE</span>
+              </div>
+              <div class="train-metrics">
+                <div class="metric-item">
+                  <span class="label">Feed Pressure:</span>
+                  <span class="value" id="train-b-pressure">18.2 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Diff. Pressure (ΔP):</span>
+                  <span class="value" id="train-b-dp">1.15 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Salt Rejection:</span>
+                  <span class="value" id="train-b-rejection">99.88%</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Fouling Index (SDI):</span>
+                  <span class="value" id="train-b-sdi">1.4</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">Membrane Useful Life Integrity</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 94%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Water Mass Balance & Recycling Efficiency Simulator -->
+      <article class="panel glass-panel" id="mass-balance-panel">
+        <div class="panel-header">
+          <h2>Closed-Loop Water Balance Simulator</h2>
+          <span class="tag">ISO 14046 Assessment</span>
+        </div>
+        <div class="panel-body">
+          <form id="mass-balance-form" class="sim-form" onsubmit="return false;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-raw-intake">Seawater / Raw Intake (m³/day)</label>
+                <input type="number" id="input-raw-intake" class="styled-input" value="300000" min="1000" max="1000000" step="500">
+              </div>
+              <div class="form-group">
+                <label for="input-target-recovery">Target RO Recovery Rate (%)</label>
+                <input type="number" id="input-target-recovery" class="styled-input" value="48.5" min="30.0" max="85.0" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-erd-efficiency">Isobaric ERD Efficiency (%)</label>
+                <input type="number" id="input-erd-efficiency" class="styled-input" value="97.2" min="80.0" max="99.5" step="0.1">
+              </div>
+              <div class="form-group">
+                <label for="input-recycled-blend">Wastewater Recycle Blend Rate (%)</label>
+                <input type="number" id="input-recycled-blend" class="styled-input" value="15.0" min="0.0" max="50.0" step="1.0">
+              </div>
+            </div>
+
+            <div class="sim-action-bar">
+              <button type="button" class="btn btn-secondary" id="btn-run-simulation">Execute Optimization Model</button>
+              <button type="button" class="btn btn-outline" id="btn-reset-sim">Reset Standard Parameters</button>
+            </div>
+          </form>
+
+          <div class="simulation-results-box" id="sim-results-output">
+            <h3>Optimization Output Telemetry</h3>
+            <div class="results-grid">
+              <div class="res-item">
+                <span class="res-label">Net Permeate Flow:</span>
+                <span class="res-val" id="res-net-permeate">145,500 m³/d</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Brine Discharge Flow:</span>
+                <span class="res-val" id="res-brine-flow">154,500 m³/d</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Specific Power Requirement:</span>
+                <span class="res-val highlight" id="res-power-req">2.78 kWh/m³</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">CO2 Carbon Footprint Offset:</span>
+                <span class="res-val positive" id="res-co2-offset">-12.4 tCO2e/day</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Contaminant & Chemical Dosing Matrix Table -->
+    <section class="panel glass-panel full-width" id="contaminant-matrix-panel">
+      <div class="panel-header">
+        <h2>Water Quality & Chemical Dosing Precision Matrix</h2>
+        <div class="filter-group">
+          <input type="text" id="table-search-input" class="styled-input search-input" placeholder="Search parameters (e.g. Boron, Chloramine)...">
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-responsive">
+          <table class="data-table" id="quality-telemetry-table">
+            <thead>
+              <tr>
+                <th>Parameter / Analyte</th>
+                <th>Raw Intake Level</th>
+                <th>Permeate Target</th>
+                <th>Measured Permeate</th>
+                <th>Dosing Chemical</th>
+                <th>Dosing Rate (ppm)</th>
+                <th>Compliance Status</th>
+              </tr>
+            </thead>
+            <tbody id="quality-table-body">
+              <tr>
+                <td>Total Dissolved Solids (TDS)</td>
+                <td>35,400 mg/L</td>
+                <td>&lt; 500 mg/L</td>
+                <td>185 mg/L</td>
+                <td>pH Adjust (NaOH)</td>
+                <td>4.2 ppm</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Boron Concentration (B)</td>
+                <td>4.8 mg/L</td>
+                <td>&lt; 0.5 mg/L</td>
+                <td>0.38 mg/L</td>
+                <td>Second Pass RO / Caustic</td>
+                <td>2.1 ppm</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Free Residual Chlorine</td>
+                <td>1.2 mg/L</td>
+                <td>0.00 mg/L (RO Feed)</td>
+                <td>0.00 mg/L</td>
+                <td>Dechlor (NaHSO3)</td>
+                <td>3.5 ppm</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Scale Inhibitor (Antiscalant)</td>
+                <td>N/A</td>
+                <td>3.0 - 5.0 ppm</td>
+                <td>4.1 ppm</td>
+                <td>Phosphonate Blend</td>
+                <td>4.1 ppm</td>
+                <td><span class="badge badge-success">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td>Turbidity (NTU)</td>
+                <td>12.4 NTU</td>
+                <td>&lt; 0.1 NTU</td>
+                <td>0.04 NTU</td>
+                <td>Coagulant (FeCl3)</td>
+                <td>8.5 ppm</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Enterprise Footer & Architectural Compliance Note -->
+  <footer class="app-footer" id="app-footer-main">
+    <div class="footer-content">
+      <p>&copy; 2026 Eco-Buddy-AI Enterprise Suite. ISO 14046 Water Management Telemetry Engine Standard.</p>
+      <div class="footer-links">
+        <span class="footer-tag">Security Class: Enterprise Restricted</span>
+        <span class="footer-tag">Engine Version: v3.14.0-HYDRO</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script Integration -->
+  <script src="../src/services/smart_water_engine.js"></script>
+</body>
+</html>

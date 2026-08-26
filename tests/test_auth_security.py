@@ -14,10 +14,10 @@ import json
 # Check components folder to find the correct module names
 try:
     from app import app, db, User  # Try common pattern
-except ImportError:
+except Exception:
     try:
         from components.app import app, db, User
-    except ImportError:
+    except Exception:
         # Adjust based on what you find in the components folder
         pass
 
