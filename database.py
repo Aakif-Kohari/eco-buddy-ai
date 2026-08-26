@@ -102,7 +102,14 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
-<<<<<<< ours
+                    CREATE TABLE IF NOT EXISTS carbon_banking_actions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        action_type TEXT,
+                        amount REAL,
+                        from_month TEXT,
+                        to_month TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     CREATE TABLE IF NOT EXISTS eco_ledger_accounts (
                         user_id TEXT PRIMARY KEY,
                         balance REAL DEFAULT 0.0,
@@ -132,7 +139,6 @@ def init_db() -> bool:
                         price REAL,
                         status TEXT DEFAULT 'OPEN',
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-=======
                     CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -141,12 +147,10 @@ def init_db() -> bool:
                         refresh_token TEXT,
                         expires_at REAL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
->>>>>>> theirs
                     )
                 """)
 
                 cursor.execute("""
-<<<<<<< ours
                     CREATE TABLE IF NOT EXISTS eco_community_funds (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         project_name TEXT,
@@ -154,7 +158,9 @@ def init_db() -> bool:
                         current_amount REAL DEFAULT 0.0,
                         description TEXT,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-=======
+                    )
+                """)
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS health_transport_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -165,7 +171,6 @@ def init_db() -> bool:
                         calories_burned REAL,
                         avoided_co2_kg REAL,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
->>>>>>> theirs
                     )
                 """)
 
@@ -8294,4 +8299,29 @@ def get_travel_records(user_id: int) -> list:
     except Exception as e:
         logger.error(f"Error getting travel_records: {e}")
         return []
+
+def save_carbon_banking_action(user_id: str, action_type: str, amount: float, from_month: str, to_month: str) -> None:
+    """Saves a carbon banking action (rollover or borrow) to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO carbon_banking_actions (user_id, action_type, amount, from_month, to_month)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, action_type, amount, from_month, to_month))
+    conn.commit()
+    conn.close()
+
+def get_carbon_banking_history(user_id: str) -> list:
+    """Retrieves the carbon banking history for a specific user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT action_type, amount, from_month, to_month, timestamp 
+        FROM carbon_banking_actions 
+        WHERE user_id = ? 
+        ORDER BY timestamp DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
