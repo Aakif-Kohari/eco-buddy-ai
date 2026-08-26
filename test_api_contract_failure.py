@@ -551,8 +551,8 @@ class TestFailurePaths:
             
             # Verify all errors were logged
             assert len(error_log) == len(failures)
-            assert any("Timeout" in str(e) for e in error_log)
-            assert any("Network" in str(e) for e in error_log)
+            assert any("timed out" in str(e).lower() for e in error_log)
+            assert any("connect" in str(e).lower() for e in error_log)
     
     def test_failure_state_preservation(self, client):
         """Test that failure state is properly preserved."""
@@ -644,12 +644,13 @@ class TestRetryAndRecovery:
             
             def get_with_retry(self, endpoint: str, **kwargs) -> Dict[str, Any]:
                 """GET with exponential backoff retry."""
-                for attempt in range(self.max_retries):
+                max_retries = kwargs.pop('max_retries', self.max_retries)
+                for attempt in range(max_retries):
                     try:
                         return self.get(endpoint, **kwargs)
                     except (TimeoutError, ConnectionError, ServerError) as e:
                         self.retry_count[endpoint] += 1
-                        if attempt == self.max_retries - 1:
+                        if attempt == max_retries - 1:
                             raise
                         # Exponential backoff
                         time.sleep(0.1 * (2 ** attempt))

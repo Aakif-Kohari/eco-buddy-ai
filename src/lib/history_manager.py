@@ -384,3 +384,9 @@ def get_history_manager(user_id: int) -> HistoryManager:
     if user_id not in _history_managers:
         _history_managers[user_id] = HistoryManager(user_id)
     return _history_managers[user_id]
+
+def clear_history_manager(user_id: Optional[int] = None) -> None:
+    if user_id is None:
+        _history_managers.clear()
+    else:
+        _history_managers.pop(user_id, None)

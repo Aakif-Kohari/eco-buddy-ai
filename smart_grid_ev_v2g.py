@@ -41,9 +41,9 @@ class SmartEVV2GEngine:
                 station_name="Municipal Logistics Depot - Hub A",
                 charger_type="V2G Bi-Directional Hub 50kW",
                 connected_vehicle_model="Volvo Electric Truck FL",
-                battery_capacity_kwh: 200.0,
-                current_soc_pct: 82.0,
-                target_soc_pct: 90.0,
+                battery_capacity_kwh=200.0,
+                current_soc_pct=82.0,
+                target_soc_pct=90.0,
                 v2g_enabled=True,
                 current_power_kw=-45.0,  # Supplying grid during peak
                 battery_health_soh_pct=96.5
@@ -54,8 +54,8 @@ class SmartEVV2GEngine:
                 charger_type="DC Fast Charger 150kW",
                 connected_vehicle_model="Tesla Model Y Long Range",
                 battery_capacity_kwh=78.0,
-                current_soc_pct: 45.0,
-                target_soc_pct: 80.0,
+                current_soc_pct=45.0,
+                target_soc_pct=80.0,
                 v2g_enabled=False,
                 current_power_kw=120.0,  # Fast charging
                 battery_health_soh_pct=98.0
@@ -66,8 +66,8 @@ class SmartEVV2GEngine:
                 charger_type="V2G Bi-Directional Hub 50kW",
                 connected_vehicle_model="BYD K9 Electric Bus",
                 battery_capacity_kwh=320.0,
-                current_soc_pct: 75.0,
-                target_soc_pct: 85.0,
+                current_soc_pct=75.0,
+                target_soc_pct=85.0,
                 v2g_enabled=True,
                 current_power_kw=-50.0,  # V2G discharge
                 battery_health_soh_pct=94.0

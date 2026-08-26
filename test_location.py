@@ -2,6 +2,7 @@ import io
 import json
 import datetime
 import pytest
+gpxpy = pytest.importorskip("gpxpy")
 from location_parser import (
     parse_gpx,
     parse_google_takeout_json,

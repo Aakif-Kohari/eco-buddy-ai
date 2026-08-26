@@ -5,6 +5,7 @@ and unauthorized access prevention.
 """
 
 import pytest
+flask = pytest.importorskip("flask")
 from flask import Flask, session
 from datetime import datetime, timedelta
 import json

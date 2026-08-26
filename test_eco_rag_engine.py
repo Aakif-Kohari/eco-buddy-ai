@@ -26,6 +26,8 @@ def test_vector_store_persistence():
     assert len(results) == 1
     assert results[0]["id"] == "doc1"
     
+    del store
+    import gc; gc.collect()
     os.remove(db_path)
 
 def test_vector_store_batch_insert():
@@ -38,6 +40,8 @@ def test_vector_store_batch_insert():
     
     store.insert_batch(docs, embs)
     assert store.get_by_id("doc1") is not None
+    del store
+    import gc; gc.collect()
     os.remove(db_path)
 
 # --- 2. Test Document Splitter ---
@@ -75,6 +79,8 @@ def test_eco_rag_initialization_and_mock_build():
         docs = engine.retrieve_context("What do I eat?", top_k=1)
         assert len(docs) == 1
         assert "diet" in docs[0]["content"].lower()
+    del engine
+    import gc; gc.collect()
     if os.path.exists(db_path):
         os.remove(db_path)
 
@@ -91,6 +97,8 @@ def test_agent_memory_sliding_window():
     context = mem.get_context_window("test_session")
     assert len(context) > 0
     assert context[-1]["content"] == "What is my footprint?"
+    del mem
+    import gc; gc.collect()
     if os.path.exists(db_path):
         os.remove(db_path)
 

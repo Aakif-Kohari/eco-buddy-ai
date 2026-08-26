@@ -1,5 +1,8 @@
 import io
-import gpxpy
+try:
+    import gpxpy
+except ImportError:
+    gpxpy = None
 import ijson
 import datetime
 from collections.abc import Callable
@@ -16,6 +19,8 @@ def parse_gpx(file_content_str: str) -> list[dict[str, Any]]:
         ParsingError: the content isn't valid GPX (e.g. corrupted or
             truncated export, or not a GPX file at all).
     """
+    if gpxpy is None:
+        raise ParsingError("GPX parsing is not supported because gpxpy is not installed.")
     try:
         gpx = gpxpy.parse(file_content_str)
     except Exception as exc:
