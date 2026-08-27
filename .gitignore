@@ -17,3 +17,10 @@ benchmark_results/
 .coverage
 .pytest_cache/
 scratch/
+
+# Generated files
+*.db
+.theme_preference.json
+
+*.log
+logs/
