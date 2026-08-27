@@ -262,6 +262,18 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS efficacy_checkins (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        anxiety_level INTEGER,
+                        agency_level INTEGER,
+                        action_taken BOOLEAN,
+                        efficacy_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS offset_portfolios (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8224,6 +8236,31 @@ def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
     finally:
         if 'conn' in locals():
             conn.close()
+
+def save_efficacy_checkin(user_id: str, anxiety_level: int, agency_level: int, action_taken: bool, efficacy_score: float) -> None:
+    """Saves a daily eco-efficacy check-in to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO efficacy_checkins (user_id, anxiety_level, agency_level, action_taken, efficacy_score)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, anxiety_level, agency_level, action_taken, efficacy_score))
+    conn.commit()
+    conn.close()
+
+def get_efficacy_history(user_id: str) -> list:
+    """Retrieves historical eco-efficacy check-ins for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT anxiety_level, agency_level, action_taken, efficacy_score, timestamp 
+        FROM efficacy_checkins 
+        WHERE user_id = ? 
+        ORDER BY timestamp ASC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def get_user_civic_actions(user_id: int) -> list:
     """Retrieves civic actions taken by a user."""
