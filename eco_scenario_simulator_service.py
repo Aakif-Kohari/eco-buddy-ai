@@ -26,14 +26,14 @@ class FootprintScenarioSimulatorService:
         self.db_name = db_name
         init_scenario_simulator_db(self.db_name)
 
-    def get_default_levers(() -> List[ScenarioLever]:
+    def get_default_levers(self) -> List[ScenarioLever]:
         """Provides default lifestyle levers for scenario creation."""
         return [
             ScenarioLever("Car Commute Distance", ScenarioLeverCategory.TRANSPORT, 12000.0, 6000.0, "km/yr", 0.19, "Switch half of driving to remote work / transit"),
-            ScenarioLever("EV vs Gas Vehicle Ratio", ScenarioLeverCategory.TRANSPORT, 0.0, 1.0, "ratio", 1200.0, "Transition from gas vehicle to EV"),
+            ScenarioLever("Gasoline Vehicle Share", ScenarioLeverCategory.TRANSPORT, 1.0, 0.0, "ratio", 1200.0, "Transition from gas vehicle to EV"),
             ScenarioLever("Home Electricity Use", ScenarioLeverCategory.ENERGY, 4500.0, 3000.0, "kWh/yr", 0.45, "Efficiency upgrades & LED lighting"),
-            ScenarioLever("Rooftop Solar Share", ScenarioLeverCategory.ENERGY, 0.0, 0.8, "share", 1800.0, "Install residential solar power"),
-            ScenarioLever("Plant-Based Meal Ratio", ScenarioLeverCategory.DIET, 0.2, 0.7, "share", 950.0, "Shift diet towards plant-based meals"),
+            ScenarioLever("Grid Electricity Share", ScenarioLeverCategory.ENERGY, 1.0, 0.2, "share", 1800.0, "Install residential solar power to reduce grid reliance"),
+            ScenarioLever("Animal-Based Meal Ratio", ScenarioLeverCategory.DIET, 0.8, 0.3, "share", 950.0, "Shift diet away from high-impact animal products"),
             ScenarioLever("Fast Fashion Purchase Count", ScenarioLeverCategory.CONSUMPTION, 20.0, 5.0, "items/yr", 14.5, "Buy sustainable / second-hand apparel"),
         ]
 

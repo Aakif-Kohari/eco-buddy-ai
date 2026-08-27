@@ -20,7 +20,7 @@ from collections import defaultdict
 import logging
 
 # Import from the previous test file
-from test_api_error_handling import (
+from tests.test_api_error_handling import (
     APIClient, 
     APIError, 
     ValidationError,
