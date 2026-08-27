@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from database_integrity import (
+from src.core.database_integrity import (
     EXPECTED_INDEXES,
     EXPECTED_TABLES,
     discover_migrations,
