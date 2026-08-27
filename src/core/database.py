@@ -4639,12 +4639,29 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     """
                 )
 
+                # Immutable calculation-context snapshots. One row per
+                # assessment (UNIQUE assessment_id), written once at
+                # calculation time and never updated afterwards, so a
+                # historical assessment can always be reproduced exactly as
+                # it was originally calculated, even after emission factors,
+                # category weights, or the eco-score formula change.
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS assessment_snapshots (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        assessment_id INTEGER NOT NULL UNIQUE,
+                        snapshot_json TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY(assessment_id) REFERENCES assessments(id)
+                    )
+                    """
+                )
+
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS assessment_drafts (
                         user_id INTEGER PRIMARY KEY,
-                        transport TEXT,
-                        distance REAL,
+                        transport TEXT,                        distance REAL,
                         electricity REAL,
                         diet TEXT,
                         flights INTEGER,
@@ -4872,7 +4889,8 @@ def save_assessment(
     eco_score: int = 0,
     trip_id: str | None = None,
     date: str | None = None,
-    factor_version: str | None = None
+    factor_version: str | None = None,
+    snapshot_json: str | None = None
 ) -> bool:
     """
     Persist an assessment.
@@ -4881,6 +4899,13 @@ def save_assessment(
     (see emission_factors.py). It is optional: rows written without it are read
     back as 'static-v1', which is exactly the factor set the app used before
     versioning existed.
+
+    `snapshot_json` is an optional, pre-serialized immutable calculation
+    snapshot (see core/assessment_snapshot.py) capturing the full context
+    the footprint was computed under: inputs, factor version/provenance,
+    calculation-engine version, eco-score config, and category weights.
+    When supplied, it is written once to `assessment_snapshots` alongside
+    the new assessment row and is never updated afterwards.
     """
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -4926,6 +4951,13 @@ def save_assessment(
             tuple(values),
         )
 
+        if snapshot_json is not None:
+            assessment_id = cursor.lastrowid
+            cursor.execute(
+                "INSERT INTO assessment_snapshots (assessment_id, snapshot_json) VALUES (?, ?)",
+                (assessment_id, snapshot_json),
+            )
+
         conn.commit()
         conn.close()
         invalidate_on_assessment_save()
@@ -4936,9 +4968,34 @@ def save_assessment(
         print(f"Database save error: {e}")
         return False
 
+
+def get_assessment_snapshot(assessment_id: int) -> dict[str, Any] | None:
+    """
+    Read back the immutable calculation snapshot for one assessment.
+
+    Returns None when no snapshot was stored for this assessment (e.g. rows
+    created before this feature existed) rather than reconstructing one, so
+    callers never mistake a fabricated snapshot for the original.
+    """
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT snapshot_json FROM assessment_snapshots WHERE assessment_id = ?",
+            (assessment_id,),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        import json
+        return json.loads(row[0])
+    except sqlite3.Error as e:
+        print(f"Database get_assessment_snapshot error: {e}")
+        return None
+
 # -------------------------------------------------------------------------
-# Assessment Timestamp Migration
-#
+# Assessment Timestamp Migration#
 # This migration introduces the `created_at` column to the assessments
 # table to automatically record when each assessment is created.
 #

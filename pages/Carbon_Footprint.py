@@ -11,7 +11,7 @@ from src.carbon.emissions import (
     forecast_monthly_emission,
     budget_status,
 )
-from src.ai.recommendations import *
+from src.core.assessment_snapshot import build_assessment_snapshot, serialize_snapshotfrom src.ai.recommendations import *
 from src.utils.impact_analyzer import analyze_minimal_change
 import os
 import tempfile
@@ -558,13 +558,22 @@ with tab_assess:
         eco_score = calculate_eco_score(total, contributors)
         footprint_range = calculate_footprint_range(transport, distance, electricity, diet, flights, region)
         audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        # Stamp the assessment with the factor set that produced it, so the
-        # result stays reproducible and comparable after factors change.
+        # Stamp the assessment with the factor set that produced it, and
+        # freeze the full calculation context into an immutable snapshot, so
+        # the result stays reproducible even after factors, category
+        # weights, or the eco-score formula change later.
+        snapshot = build_assessment_snapshot(
+            inputs=footprint_audit.get("inputs", {}),
+            footprint_audit=footprint_audit,
+            contributors=contributors,
+            total=total,
+            eco_score=eco_score,
+        )
         save_assessment(
             user_id, transport, distance, electricity, diet, flights, total, eco_score,
             factor_version=footprint_audit.get("factor_version"),
-        )
-        if user_id:
+            snapshot_json=serialize_snapshot(snapshot),
+        )        if user_id:
             delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
