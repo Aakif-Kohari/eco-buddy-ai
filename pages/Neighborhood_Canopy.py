@@ -4,8 +4,8 @@ from streamlit_folium import st_folium
 import plotly.express as px
 import pandas as pd
 
-from neighborhood_canopy_engine import NeighborhoodCanopyEngine
-import database
+from src.environment.neighborhood_canopy_engine import NeighborhoodCanopyEngine
+from src.core import database
 
 st.set_page_config(
     page_title="Neighborhood Canopy Simulator",

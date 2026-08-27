@@ -3,16 +3,16 @@
 
 import streamlit as st
 import pandas as pd
-from passive_cooling_types import (
+from src.energy.passive_cooling_types import (
     BuildingParameters,
     ClimateZone,
     InsulationLevel,
     ShadingStrategy,
     VentilationMode,
 )
-from passive_cooling_engine import PassiveCoolingEngine
-from passive_cooling_cards import render_passive_cooling_kpis, render_envelope_efficiency_badge
-from passive_cooling_charts import (
+from src.energy.passive_cooling_engine import PassiveCoolingEngine
+from src.energy.passive_cooling_cards import render_passive_cooling_kpis, render_envelope_efficiency_badge
+from src.energy.passive_cooling_charts import (
     create_diurnal_thermal_chart,
     create_pmv_ppd_comfort_chart,
     create_cooling_strategy_breakdown_chart,

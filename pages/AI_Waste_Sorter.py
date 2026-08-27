@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from ai_waste_sorter import (
+from src.environment.ai_waste_sorter import (
     WASTE_CATEGORIES,
     DISPOSAL_RULES,
     classify_waste_image,

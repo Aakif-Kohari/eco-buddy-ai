@@ -4,17 +4,17 @@ Unit and Integration Tests for Eco-Footprint Scenario Simulator
 
 import unittest
 import os
-from eco_scenario_simulator_types import (
+from src.utils.eco_scenario_simulator_types import (
     FootprintScenario,
     ScenarioLever,
     ScenarioLeverCategory,
 )
-from eco_scenario_simulator_db import (
+from src.utils.eco_scenario_simulator_db import (
     init_scenario_simulator_db,
     save_footprint_scenario,
     get_user_scenarios,
 )
-from eco_scenario_simulator_service import FootprintScenarioSimulatorService
+from src.utils.eco_scenario_simulator_service import FootprintScenarioSimulatorService
 
 TEST_DB = "test_eco_scenario_simulator.db"
 

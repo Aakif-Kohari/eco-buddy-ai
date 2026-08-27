@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from lca_allocation import (
+from src.utils.lca_allocation import (
     ALL_BASES,
     BASIS_LABELS,
     DISPLACED_INTENSITIES,

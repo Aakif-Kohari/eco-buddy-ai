@@ -7,9 +7,9 @@ import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from smart_building_iot_sim import SmartBuildingIoTSimulator
-from smart_building_logic import SmartBuildingLogic
-from smart_building_alerts import SmartBuildingAlerts
+from src.energy.smart_building_iot_sim import SmartBuildingIoTSimulator
+from src.energy.smart_building_logic import SmartBuildingLogic
+from src.energy.smart_building_alerts import SmartBuildingAlerts
 
 st.set_page_config(page_title="Smart Building IoT Command Center", layout="wide", page_icon="🏢")
 

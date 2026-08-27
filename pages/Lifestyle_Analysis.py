@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from lifestyle_analysis import (
+from src.lifestyle.lifestyle_analysis import (
     SPACE_TYPES, analyze_image, save_analysis, get_analysis_history,
 )
 from styles.theme import apply_theme

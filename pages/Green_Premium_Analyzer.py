@@ -6,9 +6,9 @@ Streamlit page where users can select product categories, input local utility co
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from substitution_roi_engine import SubstitutionROIEngine
-from green_premium_calculator import GreenPremiumCalculator
-from database import save_green_premium_analysis
+from src.utils.substitution_roi_engine import SubstitutionROIEngine
+from src.utils.green_premium_calculator import GreenPremiumCalculator
+from src.core.database import save_green_premium_analysis
 
 st.set_page_config(page_title="Green Premium Analyzer", page_icon="💵", layout="wide")
 

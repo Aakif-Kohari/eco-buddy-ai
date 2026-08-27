@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from footprint_uncertainty import (
+from src.utils.footprint_uncertainty import (
     ACTIVITY_QUALITY,
     DEFAULT_ITERATIONS,
     DEFAULT_SEED,

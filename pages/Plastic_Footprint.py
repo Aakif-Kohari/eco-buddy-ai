@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from plastic_leakage import (
+from src.environment.plastic_leakage import (
     POLYMERS,
     REGIONS,
     SUBSTITUTIONS,

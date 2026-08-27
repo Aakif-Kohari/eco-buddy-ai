@@ -2,7 +2,7 @@ import pytest
 from datetime import date, timedelta
 from unittest.mock import patch, MagicMock
 
-import streak_calendar
+from src.community import streak_calendar
 
 def test_get_activity_intensity():
     assert streak_calendar.get_activity_intensity(0) == 0

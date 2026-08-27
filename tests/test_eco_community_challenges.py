@@ -5,7 +5,7 @@ Unit and Integration Tests for Eco-Community Challenges Engine
 import unittest
 import os
 import sqlite3
-from eco_community_challenges_types import (
+from src.community.eco_community_challenges_types import (
     ChallengeCategory,
     ChallengeDifficulty,
     VerificationType,
@@ -13,7 +13,7 @@ from eco_community_challenges_types import (
     CommunityChallenge,
     UserChallengeEnrollment,
 )
-from eco_community_challenges_db import (
+from src.community.eco_community_challenges_db import (
     init_community_challenges_db,
     get_all_active_challenges,
     enroll_user_in_challenge,
@@ -21,7 +21,7 @@ from eco_community_challenges_db import (
     record_challenge_progress,
     get_community_analytics_summary,
 )
-from eco_community_challenges_service import EcoCommunityChallengesService
+from src.community.eco_community_challenges_service import EcoCommunityChallengesService
 
 TEST_DB = "test_eco_community_challenges.db"
 

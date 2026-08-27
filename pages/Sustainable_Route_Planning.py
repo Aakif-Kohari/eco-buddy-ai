@@ -6,9 +6,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from vehicle_emissions_data import VehicleEmissionsData
-from route_planning_engine import RoutePlanningEngine
-from logistics_optimization_service import LogisticsOptimizationService
+from src.carbon.vehicle_emissions_data import VehicleEmissionsData
+from src.utils.route_planning_engine import RoutePlanningEngine
+from src.utils.logistics_optimization_service import LogisticsOptimizationService
 
 st.set_page_config(page_title="Sustainable Logistics Fleet Optimizer", layout="wide", page_icon="🚚")
 

@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import os
 from unittest.mock import patch
-from monthly_report_engine import (
+from src.reporting.monthly_report_engine import (
     aggregate_monthly_data,
     compute_monthly_trends,
     generate_actionable_insights,

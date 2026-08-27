@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
-from accountability_buddy import BuddySystem
-from session_state_utils import init_session_state
+from src.utils.accountability_buddy import BuddySystem
+from src.core.session_state_utils import init_session_state
 
 st.set_page_config(page_title="Eco Buddies", page_icon="🤝", layout="wide")
 

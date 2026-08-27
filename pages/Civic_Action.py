@@ -1,7 +1,7 @@
 import streamlit as st
-from civic_action_engine import CivicActionEngine
-from database import log_civic_action, get_user_civic_actions
-from gamification import award_civic_xp
+from src.utils.civic_action_engine import CivicActionEngine
+from src.core.database import log_civic_action, get_user_civic_actions
+from src.community.gamification import award_civic_xp
 
 st.set_page_config(page_title="Civic Action & Policy Impact", page_icon="🏛️")
 
