@@ -23,7 +23,6 @@ finding is the specific harm this exists to prevent, and it is the comparison
 every benchmarking surface in this app currently makes.
 """
 
-import math
 import os
 import tempfile
 import unittest
