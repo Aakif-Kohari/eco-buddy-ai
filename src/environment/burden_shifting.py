@@ -728,8 +728,8 @@ def pareto_front(options, reference="boundary"):
             f"Choosing between them requires a weighting set, because none is "
             f"better than the others in every category."
             if len(front) > 1 else
-            f"One option is better than every alternative in every category "
-            f"with data. No weighting is required and none should be applied."
+            "One option is better than every alternative in every category "
+            "with data. No weighting is required and none should be applied."
         ),
     }
 
