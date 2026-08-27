@@ -211,6 +211,19 @@ def init_db() -> bool:
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS appliance_registrations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        appliance_type TEXT,
+                        age_years INTEGER,
+                        annual_usage_kwh REAL,
+                        circularity_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS health_transport_metrics (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -8295,6 +8308,31 @@ def get_roadmap_history() -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT scope1, scope2, scope3, target_year, roadmap_data, timestamp FROM net_zero_roadmaps ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def save_appliance_registration(user_id: str, appliance_type: str, age_years: int, annual_usage_kwh: float, result_data: dict) -> None:
+    """Saves an appliance lifecycle analysis to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO appliance_registrations (user_id, appliance_type, age_years, annual_usage_kwh, circularity_score)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, appliance_type, age_years, annual_usage_kwh, result_data.get("circularity_score", 0.0)))
+    conn.commit()
+    conn.close()
+
+def get_appliance_history(user_id: str) -> list:
+    """Retrieves historical appliance registrations for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT appliance_type, age_years, annual_usage_kwh, circularity_score, timestamp 
+        FROM appliance_registrations 
+        WHERE user_id = ? 
+        ORDER BY timestamp DESC
+    """, (user_id,))
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
