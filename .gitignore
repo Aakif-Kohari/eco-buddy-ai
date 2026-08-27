@@ -24,3 +24,6 @@ scratch/
 
 *.log
 logs/
+
+.kairo/
+.hypothesis/

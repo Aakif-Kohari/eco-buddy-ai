@@ -3,13 +3,13 @@ Extended coverage tests for Environmental Benchmarking Dataset & Profiles.
 Validates the structural integrity and mathematical boundaries of all profiles.
 """
 import unittest
-from environmental_benchmarking.engine import BenchmarkEngine
-from environmental_benchmarking.models import CategoryStat, UserAssessment
+from src.environmental_benchmarking.engine import BenchmarkEngine
+from src.environmental_benchmarking.models import CategoryStat, UserAssessment
 from datetime import datetime
 import random
-from environmental_benchmarking.advanced_math import TrendForecaster, DataNormalizer
-from environmental_benchmarking.recommendations import RecommendationEngine
-from environmental_benchmarking.models import CategoryComparison
+from src.environmental_benchmarking.advanced_math import TrendForecaster, DataNormalizer
+from src.environmental_benchmarking.recommendations import RecommendationEngine
+from src.environmental_benchmarking.models import CategoryComparison
 
 class TestExtendedProfiles(unittest.TestCase):
     

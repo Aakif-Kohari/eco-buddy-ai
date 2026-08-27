@@ -7,7 +7,7 @@ import math
 import sqlite3
 import os
 
-from environmental_benchmarking.models import (
+from src.environmental_benchmarking.models import (
     CategoryStat, 
     ReferenceProfile, 
     UserAssessment, 
@@ -15,9 +15,9 @@ from environmental_benchmarking.models import (
     BenchmarkResult,
     HistoricalTrendData
 )
-from environmental_benchmarking.engine import BenchmarkEngine
-from environmental_benchmarking.history import HistoryAnalyzer
-from environmental_benchmarking.profiles import get_default_profiles
+from src.environmental_benchmarking.engine import BenchmarkEngine
+from src.environmental_benchmarking.history import HistoryAnalyzer
+from src.environmental_benchmarking.profiles import get_default_profiles
 
 class TestModels(unittest.TestCase):
     
