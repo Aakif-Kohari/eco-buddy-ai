@@ -7505,7 +7505,6 @@ def get_db_optimizer() -> Any:
             _db_optimizer = None
     return _db_optimizer
 
-
 def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: float) -> bool:
     import json
     try:
@@ -7538,173 +7537,13 @@ def get_food_scans(user_id: int) -> list[dict]:
             conn.close()
             conn.close()
 
-
-def update_time_capsule_unlock(capsule_id: int) -> bool:
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE time_capsules
-            SET is_unlocked = 1, unlocked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ? AND is_unlocked = 0
-        """, (capsule_id,))
-        conn.commit()
-        invalidate_on_time_capsule_change()
-        return cursor.rowcount > 0
-    except sqlite3.Error as e:
-        logger.error("update_time_capsule_unlock error: %s", e)
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def update_time_capsule_progress(capsule_id: int, progress_notes: str) -> bool:
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE time_capsules
-            SET progress_notes = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (progress_notes, capsule_id))
-        conn.commit()
-        invalidate_on_time_capsule_change()
-        return True
-    except sqlite3.Error as e:
-        logger.error("update_time_capsule_progress error: %s", e)
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
-def delete_time_capsule(capsule_id: int) -> bool:
-    conn = None
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM time_capsules WHERE id = ?", (capsule_id,))
-        conn.commit()
-        invalidate_on_time_capsule_change()
-        return True
-    except sqlite3.Error as e:
-        logger.error("delete_time_capsule error: %s", e)
-        return False
-    finally:
-        if conn:
-            conn.close()
-def save_weekly_challenge(user_id: int, title: str, difficulty: str, xp: int, category: str) -> bool:
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO weekly_challenges
-        (user_id,title,difficulty,xp,category)
-        VALUES(?,?,?,?,?)
-    """,(user_id,title,difficulty,xp,category))
-
-    conn.commit()
-    conn.close()
-
-    return True
-def get_weekly_challenges(user_id: int) -> list[tuple[Any, ...]]:
-
-    conn=sqlite3.connect(DB_NAME)
-    cursor=conn.cursor()
-
-    cursor.execute("""
-    SELECT *
-    FROM weekly_challenges
-    WHERE user_id=?
-    ORDER BY created_at DESC
-    """,(user_id,))
-
-    data=cursor.fetchall()
-
-    conn.close()
-
-    return data
-def complete_weekly_challenge(challenge_id: int) -> bool:
-
-    conn=sqlite3.connect(DB_NAME)
-    cursor=conn.cursor()
-
-    cursor.execute("""
-    UPDATE weekly_challenges
-    SET status='Completed'
-    WHERE id=?
-    """,(challenge_id,))
-
-    conn.commit()
-
-    conn.close()
-
-
-
-from datetime import datetime, timedelta
-
-def weekly_challenges_exist(user_id: int) -> bool:
-
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    last_week = datetime.now() - timedelta(days=7)
-
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM weekly_challenges
-        WHERE user_id = ?
-        AND created_at >= ?
-    """, (user_id, last_week))
-
-    count = cursor.fetchone()[0]
-
-    conn.close()
-
-    return count > 0
-
-
-def get_completed_challenges(user_id: int) -> list[tuple[Any, ...]]:
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT title,difficulty,created_at
-        FROM weekly_challenges
-        WHERE user_id=?
-        AND status='Completed'
-        ORDER BY created_at DESC
-    """,(user_id,))
-
-    data = cursor.fetchall()
-
-    conn.close()
-
-    return data
-
-
-# ============================================================================
-# OPTIMIZED DATABASE QUERIES - Issue #778
-# Add this entire block at the END of database.py
-# ============================================================================
-
-from src.lib.db_optimizer import get_query_optimizer, cached_query, batch_queries
-from src.lib.db_optimizer import QueryOptimizer
-import time
-
-# Initialize optimizer
-_db_optimizer = None
-
-
-def get_db_optimizer() -> QueryOptimizer:
+def get_db_optimizer() -> Any:
     """Get the database optimizer instance."""
     global _db_optimizer
     if _db_optimizer is None:
         _db_optimizer = get_query_optimizer()
     return _db_optimizer
+
 def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: float) -> bool:
     import json
     try:
@@ -7720,8 +7559,6 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
     except sqlite3.Error as e:
         logger.error(f"Error saving food scan: {e}")
         return False
-
-import json
 
 def save_urban_health_profile(time_allocation: dict, weekly_park_visits: int, tree_canopy_pct: float, 
                               exposure_data: dict, mitigation_data: dict) -> None:
@@ -7757,8 +7594,6 @@ def get_food_scans(user_id: int) -> list[dict]:
         logger.error(f"Error getting food scans: {e}")
         return []
 
-import json
-
 def save_pcf_label(product_name: str, label_data: dict, transparency_data: dict) -> None:
     """Saves a generated PCF label and transparency score to the database."""
     conn = get_connection()
@@ -7792,8 +7627,6 @@ def init_energy_tracker_db() -> bool:
     finally:
         if conn:
             conn.close()
-
-import json
 
 def save_textile_comparison(garments: list, results: list) -> None:
     """Saves a textile comparison session to the database."""
@@ -7843,7 +7676,6 @@ def get_pantry_inventory() -> list:
     conn.close()
     return [{"name": row[0], "purchase_date": row[1], "storage": row[2]} for row in rows]
 
-
 def save_green_finance_profile(portfolio_value: float, deposit_amount: float, 
                                investment_results: dict, banking_results: dict) -> None:
     """Saves a green finance analysis profile to the database."""
@@ -7864,7 +7696,6 @@ def get_green_finance_history() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
-
 
 def remove_pantry_item(item_name: str) -> None:
     """Removes an item from the pantry inventory."""
@@ -7893,8 +7724,6 @@ def get_energy_records(user_id: int) -> list[dict]:
         if conn:
             conn.close()
 
-import json
-
 def save_water_energy_profile(household_size: int, grid_intensity: float, comparison_data: dict) -> None:
     """Saves a water-energy nexus comparison profile to the database."""
     conn = get_connection()
@@ -7915,7 +7744,6 @@ def get_water_energy_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
-
 def get_pca_balance(user_id: str) -> float:
     """Retrieves the PCA balance for a user."""
     conn = get_connection()
@@ -7924,8 +7752,6 @@ def get_pca_balance(user_id: str) -> float:
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else 500.0
-
-import json
 
 def save_travel_itinerary(legs: list, report: dict) -> None:
     """Saves a travel itinerary and its optimization report to the database."""
@@ -7988,7 +7814,6 @@ def update_pca_balance(user_id: str, amount: float) -> None:
     conn.commit()
     conn.close()
 
-
 def submit_neighborhood_score(zip_code: str, eco_score: float, carbon_saved_kg: float) -> None:
     """Submits an anonymous score to the neighborhood aggregation table."""
     conn = get_connection()
@@ -8017,7 +7842,6 @@ def get_neighborhood_leaderboard() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
-
 
 def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
     """Records a PCA trade in the database."""
