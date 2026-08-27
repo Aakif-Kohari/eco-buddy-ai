@@ -1,29 +1,41 @@
+# Python
 __pycache__/
 *.pyc
-*.db
-coverage*.json
-*.pdf
-
-.env
-fetch_issues.py
 venv/
-
-.agent/
-AGENTS.md
-
-# Benchmark generated output (keep framework, not run artifacts)
-benchmark_results/
-
-.coverage
+.venv/
+.mypy_cache/
 .pytest_cache/
-scratch/
+.coverage
+coverage*.json
+htmlcov/
+build/
+dist/
+*.egg-info/
 
-# Generated files
+# Databases & Data
 *.db
+*.sqlite3
+
+# Environment & Config
+.env
 .theme_preference.json
 
+# Local scripts & Agent tools
+fetch_issues.py
+.agent/
+AGENTS.md
+scratch/
+
+# Benchmarking output
+benchmark_results/
+
+# Logs & Caches
 *.log
 logs/
-
 .kairo/
 .hypothesis/
+*.pdf
+
+# OS Files
+.DS_Store
+Thumbs.db
