@@ -156,6 +156,29 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS skill_listings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        skill_name TEXT,
+                        category TEXT,
+                        difficulty TEXT,
+                        karma_cost INTEGER,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS skill_swaps (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        learner_id TEXT,
+                        teacher_id TEXT,
+                        skill_name TEXT,
+                        karma_transferred INTEGER,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS eco_order_book (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8312,6 +8335,27 @@ def get_grocery_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+def save_skill_listing(user_id: str, skill_name: str, category: str, difficulty: str, karma_cost: int) -> None:
+    """Saves a new skill listing to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO skill_listings (user_id, skill_name, category, difficulty, karma_cost)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, skill_name, category, difficulty, karma_cost))
+    conn.commit()
+    conn.close()
+
+def execute_skill_swap_db(learner_id: str, teacher_id: str, skill_name: str, karma_transferred: int) -> None:
+    """Records a completed skill swap in the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO skill_swaps (learner_id, teacher_id, skill_name, karma_transferred)
+        VALUES (?, ?, ?, ?)
+    """, (learner_id, teacher_id, skill_name, karma_transferred))
+    conn.commit()
+    conn.close()
 
 def get_travel_records(user_id: int) -> list:
     try:
