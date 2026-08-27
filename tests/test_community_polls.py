@@ -1,6 +1,6 @@
 """Unit tests for Community Polls functionality."""
 
-from database import (
+from src.core.database import (
     init_community_polls_db,
     seed_community_polls,
     get_active_polls,

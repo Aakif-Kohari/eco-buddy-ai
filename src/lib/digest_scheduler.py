@@ -27,7 +27,7 @@ class DigestScheduler:
         self._digest_count = 0
     
     def start(self) -> None:
-        """Start the scheduler."""
+        """Start the src.notifications.scheduler."""
         if self._running:
             return
         
@@ -37,7 +37,7 @@ class DigestScheduler:
         logger.info("Digest scheduler started")
     
     def stop(self) -> None:
-        """Stop the scheduler."""
+        """Stop the src.notifications.scheduler."""
         self._running = False
         if self._thread:
             self._thread.join(timeout=5)
@@ -127,15 +127,15 @@ def get_scheduler() -> DigestScheduler:
 
 
 def start_digest_scheduler() -> None:
-    """Start the digest scheduler."""
+    """Start the digest src.notifications.scheduler."""
     scheduler = get_scheduler()
-    scheduler.start()
+    src.notifications.scheduler.start()
 
 
 def stop_digest_scheduler() -> None:
-    """Stop the digest scheduler."""
+    """Stop the digest src.notifications.scheduler."""
     scheduler = get_scheduler()
-    scheduler.stop()
+    src.notifications.scheduler.stop()
 
 
 def send_digest_now(user_id: int) -> bool:

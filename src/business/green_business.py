@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: green_business.py
+# FILE: src.business.green_business.py
 # EcoBuddy AI+ Green Business Accelerator
 # ============================================================
 

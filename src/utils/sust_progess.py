@@ -42,7 +42,7 @@ LOG_FILE = "spia_advanced_log.txt"
 # ============================================================================
 
 class ModelType(Enum):
-    """Types of ML models."""
+    """Types of ML src.notifications.models."""
     LINEAR_REGRESSION = auto()
     RIDGE = auto()
     LASSO = auto()
@@ -111,7 +111,7 @@ class AdvancedAnalyticsEngine:
         self.feature_cache = {}
         
     def prepare_features(self, metric_names: List[str], lookback_days: int = 30) -> np.ndarray:
-        """Prepare feature matrix for ML models."""
+        """Prepare feature matrix for ML src.notifications.models."""
         features = []
         for metric_name in metric_names:
             metrics = [m for m in self.tracker.metrics if m.name == metric_name]
@@ -813,7 +813,7 @@ class SustainabilityAnalyticsAPI:
         return self.analytics.perform_sensitivity_analysis(current_metrics, parameters, ranges)
         
     def generate_full_report(self) -> Dict[str, Any]:
-        """Generate comprehensive analytics report."""
+        """Generate comprehensive analytics src.reporting.report."""
         report = {
             "generated_at": datetime.datetime.now().isoformat(),
             "analytics_summary": self.get_analytics_summary(),

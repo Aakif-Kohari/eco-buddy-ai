@@ -1,6 +1,6 @@
 """Unit tests for Climate Career Hub functionality."""
 
-from database import (
+from src.core.database import (
     init_climate_careers_db,
     seed_climate_careers,
     get_career_opportunities,

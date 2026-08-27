@@ -99,7 +99,7 @@ class HouseholdSize(Enum):
 
 @dataclass
 class TransportationInput:
-    """Input data for transportation emissions."""
+    """Input data for transportation src.carbon.emissions."""
     mode: TransportationMode
     distance_km: float
     frequency_per_week: int
@@ -118,7 +118,7 @@ class TransportationInput:
 
 @dataclass
 class EnergyInput:
-    """Input data for energy emissions."""
+    """Input data for energy src.carbon.emissions."""
     electricity_kwh: float
     natural_gas_kwh: float
     heating_oil_liters: float
@@ -141,7 +141,7 @@ class EnergyInput:
 
 @dataclass
 class FoodInput:
-    """Input data for food emissions."""
+    """Input data for food src.carbon.emissions."""
     diet_type: DietType
     meat_per_week_kg: float
     dairy_per_week_kg: float
@@ -179,7 +179,7 @@ class FoodInput:
 
 @dataclass
 class HouseholdInput:
-    """Input data for household emissions."""
+    """Input data for household src.carbon.emissions."""
     household_size: HouseholdSize
     number_of_bedrooms: int
     water_usage_liters_per_day: float
@@ -199,7 +199,7 @@ class HouseholdInput:
 
 @dataclass
 class ConsumptionInput:
-    """Input data for consumption emissions."""
+    """Input data for consumption src.carbon.emissions."""
     clothing_annual_spend_usd: float
     electronics_annual_spend_usd: float
     furniture_annual_spend_usd: float
@@ -233,7 +233,7 @@ class ConsumptionInput:
 
 @dataclass
 class WasteInput:
-    """Input data for waste emissions."""
+    """Input data for waste src.carbon.emissions."""
     total_waste_kg_per_week: float
     recycling_kg_per_week: float
     composting_kg_per_week: float
@@ -331,7 +331,7 @@ class EmissionFactorsDatabase:
         return cls._instance
     
     def _initialize_factors(self):
-        """Initialize the emission factors database."""
+        """Initialize the emission factors src.core.database."""
         # Transportation emission factors (kg CO2e per km)
         self.transportation_factors = {
             TransportationMode.CAR_PETROL: {
@@ -780,7 +780,7 @@ class CarbonFootprintEngine:
     """Main calculation engine for carbon footprint estimation."""
     
     def __init__(self):
-        """Initialize the engine with emission factors database."""
+        """Initialize the engine with emission factors src.core.database."""
         self.factors = EmissionFactorsDatabase()
         self.logger = logging.getLogger(f"{__name__}.CarbonFootprintEngine")
     
@@ -830,7 +830,7 @@ class CarbonFootprintEngine:
     def calculate_energy(self, energy_input: EnergyInput, 
                         country: Optional[str] = None) -> float:
         """
-        Calculate energy-related emissions.
+        Calculate energy-related src.carbon.emissions.
         
         Args:
             energy_input: EnergyInput object
@@ -887,7 +887,7 @@ class CarbonFootprintEngine:
     
     def calculate_food(self, food_input: FoodInput) -> float:
         """
-        Calculate food-related emissions.
+        Calculate food-related src.carbon.emissions.
         
         Args:
             food_input: FoodInput object
@@ -954,7 +954,7 @@ class CarbonFootprintEngine:
         return emissions
     
     def _calculate_dairy_emissions(self, annual_kg: float) -> float:
-        """Calculate dairy emissions."""
+        """Calculate dairy src.carbon.emissions."""
         if annual_kg <= 0:
             return 0.0
         
@@ -971,7 +971,7 @@ class CarbonFootprintEngine:
         return emissions
     
     def _calculate_egg_emissions(self, annual_eggs: int) -> float:
-        """Calculate egg emissions."""
+        """Calculate egg src.carbon.emissions."""
         if annual_eggs <= 0:
             return 0.0
         
@@ -982,7 +982,7 @@ class CarbonFootprintEngine:
         return annual_kg * factor
     
     def _calculate_fish_emissions(self, annual_kg: float) -> float:
-        """Calculate fish emissions."""
+        """Calculate fish src.carbon.emissions."""
         if annual_kg <= 0:
             return 0.0
         
@@ -990,7 +990,7 @@ class CarbonFootprintEngine:
         return annual_kg * factor
     
     def _calculate_fruits_vegetables_emissions(self, annual_kg: float) -> float:
-        """Calculate fruits and vegetables emissions."""
+        """Calculate fruits and vegetables src.carbon.emissions."""
         if annual_kg <= 0:
             return 0.0
         
@@ -1007,7 +1007,7 @@ class CarbonFootprintEngine:
         return emissions
     
     def _calculate_grains_emissions(self, annual_kg: float) -> float:
-        """Calculate grains emissions."""
+        """Calculate grains src.carbon.emissions."""
         if annual_kg <= 0:
             return 0.0
         
@@ -1027,7 +1027,7 @@ class CarbonFootprintEngine:
         return emissions
     
     def _calculate_processed_emissions(self, annual_kg: float) -> float:
-        """Calculate processed food emissions."""
+        """Calculate processed food src.carbon.emissions."""
         if annual_kg <= 0:
             return 0.0
         
@@ -1036,7 +1036,7 @@ class CarbonFootprintEngine:
     
     def calculate_household(self, household_input: HouseholdInput) -> float:
         """
-        Calculate household-related emissions.
+        Calculate household-related src.carbon.emissions.
         
         Args:
             household_input: HouseholdInput object
@@ -1094,7 +1094,7 @@ class CarbonFootprintEngine:
     
     def calculate_consumption(self, consumption_input: ConsumptionInput) -> float:
         """
-        Calculate consumption-related emissions.
+        Calculate consumption-related src.carbon.emissions.
         
         Args:
             consumption_input: ConsumptionInput object
@@ -1143,7 +1143,7 @@ class CarbonFootprintEngine:
     
     def calculate_waste(self, waste_input: WasteInput) -> float:
         """
-        Calculate waste-related emissions.
+        Calculate waste-related src.carbon.emissions.
         
         Args:
             waste_input: WasteInput object
@@ -1277,26 +1277,26 @@ class CarbonFootprintEngine:
     def _get_highest_impact_categories(self, 
                                        emissions: CategoryEmissions) -> List[Tuple[str, float]]:
         """Identify the highest impact categories."""
-        categories = emissions.to_dict()
+        categories = src.carbon.emissions.to_dict()
         sorted_categories = sorted(categories.items(), key=lambda x: x[1], reverse=True)
         return sorted_categories[:3]  # Return top 3
     
     def _generate_recommendations(self, emissions: CategoryEmissions, 
                                  profile: UserProfile) -> List[Dict[str, Any]]:
         """
-        Generate personalized recommendations for reducing emissions.
+        Generate personalized recommendations for reducing src.carbon.emissions.
         """
         recommendations = []
-        total = emissions.total()
-        category_emissions = emissions.to_dict()
+        total = src.carbon.emissions.total()
+        category_emissions = src.carbon.emissions.to_dict()
         
         # Transportation recommendations
-        if emissions.transportation > total * 0.2:  # If transportation is >20% of total
-            recommendations.append({
+        if src.carbon.emissions.transportation > total * 0.2:  # If transportation is >20% of total
+            src.ai.recommendations.append({
                 "category": "transportation",
                 "priority": "high",
                 "recommendation": "Consider using public transport, carpooling, or cycling more often.",
-                "potential_savings": emissions.transportation * 0.25,
+                "potential_savings": src.carbon.emissions.transportation * 0.25,
                 "tips": [
                     "Walk or bike for trips under 5 km",
                     "Use public transport for commuting",
@@ -1311,11 +1311,11 @@ class CarbonFootprintEngine:
             TransportationMode.INTERNATIONAL_FLIGHT,
             TransportationMode.LONG_HAUL_FLIGHT
         ]:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "transportation",
                 "priority": "high",
                 "recommendation": "Reduce air travel or offset carbon emissions from flights.",
-                "potential_savings": emissions.transportation * 0.30,
+                "potential_savings": src.carbon.emissions.transportation * 0.30,
                 "tips": [
                     "Choose direct flights when possible",
                     "Consider video conferencing instead of business travel",
@@ -1325,12 +1325,12 @@ class CarbonFootprintEngine:
             })
         
         # Energy recommendations
-        if emissions.energy > total * 0.25:
-            recommendations.append({
+        if src.carbon.emissions.energy > total * 0.25:
+            src.ai.recommendations.append({
                 "category": "energy",
                 "priority": "high",
                 "recommendation": "Improve home energy efficiency and consider renewable energy.",
-                "potential_savings": emissions.energy * 0.30,
+                "potential_savings": src.carbon.emissions.energy * 0.30,
                 "tips": [
                     "Switch to LED lighting",
                     "Install a programmable thermostat",
@@ -1341,11 +1341,11 @@ class CarbonFootprintEngine:
             })
         
         if profile.energy and profile.energy.renewable_percentage < 30:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "energy",
                 "priority": "medium",
                 "recommendation": "Increase your renewable energy usage.",
-                "potential_savings": emissions.energy * 0.15,
+                "potential_savings": src.carbon.emissions.energy * 0.15,
                 "tips": [
                     "Choose a green energy provider",
                     "Install solar panels if feasible",
@@ -1355,12 +1355,12 @@ class CarbonFootprintEngine:
             })
         
         # Food recommendations
-        if emissions.food > total * 0.15:
-            recommendations.append({
+        if src.carbon.emissions.food > total * 0.15:
+            src.ai.recommendations.append({
                 "category": "food",
                 "priority": "medium",
                 "recommendation": "Adopt a more sustainable diet with lower environmental impact.",
-                "potential_savings": emissions.food * 0.25,
+                "potential_savings": src.carbon.emissions.food * 0.25,
                 "tips": [
                     "Reduce meat consumption, especially beef and lamb",
                     "Choose organic and locally produced foods",
@@ -1371,11 +1371,11 @@ class CarbonFootprintEngine:
             })
         
         if profile.food and profile.food.meat_per_week_kg > 1.0:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "food",
                 "priority": "high",
                 "recommendation": "Significantly reduce meat consumption.",
-                "potential_savings": emissions.food * 0.30,
+                "potential_savings": src.carbon.emissions.food * 0.30,
                 "tips": [
                     "Try meatless Mondays",
                     "Replace beef with poultry or fish",
@@ -1385,12 +1385,12 @@ class CarbonFootprintEngine:
             })
         
         # Household recommendations
-        if emissions.household > total * 0.15:
-            recommendations.append({
+        if src.carbon.emissions.household > total * 0.15:
+            src.ai.recommendations.append({
                 "category": "household",
                 "priority": "medium",
                 "recommendation": "Optimize household water and energy usage.",
-                "potential_savings": emissions.household * 0.20,
+                "potential_savings": src.carbon.emissions.household * 0.20,
                 "tips": [
                     "Fix leaky faucets and toilets",
                     "Use water-efficient fixtures",
@@ -1401,12 +1401,12 @@ class CarbonFootprintEngine:
             })
         
         # Consumption recommendations
-        if emissions.consumption > total * 0.15:
-            recommendations.append({
+        if src.carbon.emissions.consumption > total * 0.15:
+            src.ai.recommendations.append({
                 "category": "consumption",
                 "priority": "medium",
                 "recommendation": "Adopt more sustainable consumption habits.",
-                "potential_savings": emissions.consumption * 0.25,
+                "potential_savings": src.carbon.emissions.consumption * 0.25,
                 "tips": [
                     "Buy second-hand and vintage items",
                     "Choose quality over quantity",
@@ -1417,12 +1417,12 @@ class CarbonFootprintEngine:
             })
         
         # Waste recommendations
-        if emissions.waste > total * 0.05:
-            recommendations.append({
+        if src.carbon.emissions.waste > total * 0.05:
+            src.ai.recommendations.append({
                 "category": "waste",
                 "priority": "low",
                 "recommendation": "Improve waste management and reduction.",
-                "potential_savings": emissions.waste * 0.30,
+                "potential_savings": src.carbon.emissions.waste * 0.30,
                 "tips": [
                     "Recycle more and recycle correctly",
                     "Start composting food waste",
@@ -1434,7 +1434,7 @@ class CarbonFootprintEngine:
         
         # General recommendations based on total emissions
         if total > 15000:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "general",
                 "priority": "high",
                 "recommendation": "Your carbon footprint is significantly above average. Consider a lifestyle audit.",
@@ -1448,7 +1448,7 @@ class CarbonFootprintEngine:
                 ]
             })
         elif total > 10000:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "general",
                 "priority": "medium",
                 "recommendation": "Your carbon footprint is above average. Start with high-impact changes.",
@@ -1461,7 +1461,7 @@ class CarbonFootprintEngine:
                 ]
             })
         else:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "category": "general",
                 "priority": "low",
                 "recommendation": "Great job! Your carbon footprint is below average. Keep it up!",
@@ -1476,14 +1476,14 @@ class CarbonFootprintEngine:
         
         # Sort recommendations by priority
         priority_order = {"high": 0, "medium": 1, "low": 2}
-        recommendations.sort(key=lambda x: priority_order.get(x["priority"], 3))
+        src.ai.recommendations.sort(key=lambda x: priority_order.get(x["priority"], 3))
         
         return recommendations
     
     def _get_comparison_to_average(self, emissions: CategoryEmissions) -> Dict[str, float]:
-        """Calculate comparison to average emissions."""
+        """Calculate comparison to average src.carbon.emissions."""
         averages = self.factors.get_average_emissions()
-        category_emissions = emissions.to_dict()
+        category_emissions = src.carbon.emissions.to_dict()
         
         comparison = {}
         for category, avg_value in averages.items():
@@ -1496,7 +1496,7 @@ class CarbonFootprintEngine:
         """
         Calculate approximate percentile ranking based on global distribution.
         
-        This is a simplified model assuming normal distribution of emissions.
+        This is a simplified model assuming normal distribution of src.carbon.emissions.
         """
         # Global average and standard deviation (approximate)
         mean = 14100.0  # Average total emissions
@@ -1544,79 +1544,79 @@ class InputValidator:
         if profile.transportation:
             try:
                 if profile.transportation.distance_km < 0:
-                    errors.append("Transportation distance cannot be negative")
+                    src.core.errors.append("Transportation distance cannot be negative")
                 if profile.transportation.frequency_per_week < 0:
-                    errors.append("Transportation frequency cannot be negative")
+                    src.core.errors.append("Transportation frequency cannot be negative")
                 if profile.transportation.occupancy <= 0:
-                    errors.append("Transportation occupancy must be at least 1")
+                    src.core.errors.append("Transportation occupancy must be at least 1")
             except Exception as e:
-                errors.append(f"Transportation validation error: {str(e)}")
+                src.core.errors.append(f"Transportation validation error: {str(e)}")
         
         # Validate energy
         if profile.energy:
             try:
                 if profile.energy.electricity_kwh < 0:
-                    errors.append("Electricity consumption cannot be negative")
+                    src.core.errors.append("Electricity consumption cannot be negative")
                 if profile.energy.natural_gas_kwh < 0:
-                    errors.append("Natural gas consumption cannot be negative")
+                    src.core.errors.append("Natural gas consumption cannot be negative")
                 if profile.energy.heating_oil_liters < 0:
-                    errors.append("Heating oil consumption cannot be negative")
+                    src.core.errors.append("Heating oil consumption cannot be negative")
                 if not 0 <= profile.energy.renewable_percentage <= 100:
-                    errors.append("Renewable percentage must be between 0 and 100")
+                    src.core.errors.append("Renewable percentage must be between 0 and 100")
             except Exception as e:
-                errors.append(f"Energy validation error: {str(e)}")
+                src.core.errors.append(f"Energy validation error: {str(e)}")
         
         # Validate food
         if profile.food:
             try:
                 if profile.food.meat_per_week_kg < 0:
-                    errors.append("Meat consumption cannot be negative")
+                    src.core.errors.append("Meat consumption cannot be negative")
                 if profile.food.dairy_per_week_kg < 0:
-                    errors.append("Dairy consumption cannot be negative")
+                    src.core.errors.append("Dairy consumption cannot be negative")
                 if profile.food.eggs_per_week < 0:
-                    errors.append("Eggs per week cannot be negative")
+                    src.core.errors.append("Eggs per week cannot be negative")
                 if profile.food.fish_per_week_kg < 0:
-                    errors.append("Fish consumption cannot be negative")
+                    src.core.errors.append("Fish consumption cannot be negative")
                 if not 0 <= profile.food.organic_percentage <= 100:
-                    errors.append("Organic percentage must be between 0 and 100")
+                    src.core.errors.append("Organic percentage must be between 0 and 100")
             except Exception as e:
-                errors.append(f"Food validation error: {str(e)}")
+                src.core.errors.append(f"Food validation error: {str(e)}")
         
         # Validate household
         if profile.household:
             try:
                 if profile.household.number_of_bedrooms < 0:
-                    errors.append("Number of bedrooms cannot be negative")
+                    src.core.errors.append("Number of bedrooms cannot be negative")
                 if profile.household.water_usage_liters_per_day < 0:
-                    errors.append("Water usage cannot be negative")
+                    src.core.errors.append("Water usage cannot be negative")
             except Exception as e:
-                errors.append(f"Household validation error: {str(e)}")
+                src.core.errors.append(f"Household validation error: {str(e)}")
         
         # Validate consumption
         if profile.consumption:
             try:
                 if profile.consumption.clothing_annual_spend_usd < 0:
-                    errors.append("Clothing spend cannot be negative")
+                    src.core.errors.append("Clothing spend cannot be negative")
                 if profile.consumption.electronics_annual_spend_usd < 0:
-                    errors.append("Electronics spend cannot be negative")
+                    src.core.errors.append("Electronics spend cannot be negative")
                 if not 0 <= profile.consumption.sustainable_purchases_percentage <= 100:
-                    errors.append("Sustainable purchases percentage must be between 0 and 100")
+                    src.core.errors.append("Sustainable purchases percentage must be between 0 and 100")
             except Exception as e:
-                errors.append(f"Consumption validation error: {str(e)}")
+                src.core.errors.append(f"Consumption validation error: {str(e)}")
         
         # Validate waste
         if profile.waste:
             try:
                 if profile.waste.total_waste_kg_per_week < 0:
-                    errors.append("Total waste cannot be negative")
+                    src.core.errors.append("Total waste cannot be negative")
                 if profile.waste.recycling_kg_per_week < 0:
-                    errors.append("Recycling amount cannot be negative")
+                    src.core.errors.append("Recycling amount cannot be negative")
                 if profile.waste.composting_kg_per_week < 0:
-                    errors.append("Composting amount cannot be negative")
+                    src.core.errors.append("Composting amount cannot be negative")
                 if profile.waste.landfill_kg_per_week < 0:
-                    errors.append("Landfill amount cannot be negative")
+                    src.core.errors.append("Landfill amount cannot be negative")
             except Exception as e:
-                errors.append(f"Waste validation error: {str(e)}")
+                src.core.errors.append(f"Waste validation error: {str(e)}")
         
         return len(errors) == 0, errors
     
@@ -1697,7 +1697,7 @@ class EmissionReporter:
     
     @staticmethod
     def generate_text_report(result: EmissionResult) -> str:
-        """Generate a formatted text report."""
+        """Generate a formatted text src.reporting.report."""
         lines = []
         lines.append("=" * 60)
         lines.append("CARBON FOOTPRINT REPORT")
@@ -1750,7 +1750,7 @@ class EmissionReporter:
     
     @staticmethod
     def generate_json_report(result: EmissionResult) -> str:
-        """Generate a JSON report."""
+        """Generate a JSON src.reporting.report."""
         data = {
             "total_emissions_kg_co2e": result.total_emissions_kg_co2e,
             "per_capita_emissions": result.per_capita_emissions,

@@ -56,12 +56,12 @@ def _calc_recyclable_pct(waste_by_category: dict) -> float:
 WASTE_REDUCTION_TIPS = {
     "Food Scraps": [
         "Start composting food scraps instead of sending them to landfill.",
-        "Plan meals ahead to reduce food waste.",
+        "Plan meals ahead to reduce food src.environment.waste.",
         "Store produce correctly to extend freshness.",
     ],
     "Plastic Packaging": [
         "Switch to reusable shopping bags and containers.",
-        "Buy in bulk to reduce packaging waste.",
+        "Buy in bulk to reduce packaging src.environment.waste.",
         "Choose products with minimal or recyclable packaging.",
     ],
     "Paper & Cardboard": [
@@ -92,6 +92,6 @@ WASTE_REDUCTION_TIPS = {
     "Other (Mixed Waste)": [
         "Audit your trash to identify what can be reduced, reused, or recycled.",
         "Avoid single-use items wherever possible.",
-        "Choose products with longer lifespans to reduce overall waste.",
+        "Choose products with longer lifespans to reduce overall src.environment.waste.",
     ],
 }

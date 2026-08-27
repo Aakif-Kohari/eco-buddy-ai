@@ -2,8 +2,8 @@
 Tests for Explainable AI (XAI) feature importance and transparent recommendation reasoning.
 """
 import pytest
-from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
-from recommendations import generate_recommendations
+from src.carbon.emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
+from src.ai.recommendations import generate_recommendations
 
 def test_xai_audit_log_contains_feature_importance_breakdown():
     total, contributors, footprint_audit = calculate_footprint(

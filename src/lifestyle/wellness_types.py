@@ -140,7 +140,7 @@ class WellnessGoal:
 
 @dataclass
 class WellnessWeeklyReport:
-    """Weekly wellness summary report."""
+    """Weekly wellness summary src.reporting.report."""
     week_start: str
     week_end: str
     total_habits_completed: int

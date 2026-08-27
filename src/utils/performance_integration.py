@@ -116,7 +116,7 @@ def _patch_function(obj, func_name: str, operation: str):
 # Performance report generation
 
 def generate_performance_report() -> Dict[str, Any]:
-    """Generate a comprehensive performance report."""
+    """Generate a comprehensive performance src.reporting.report."""
     monitor = get_performance_monitor()
     
     return {
@@ -148,7 +148,7 @@ def print_performance_report():
         print(f"  {op}: {data['count']} ops, avg {data['avg_ms']}ms")
     
     print("\n--- Slow Operations ---")
-    for op in report.get("slow_operations", [])[:5]:
+    for op in src.reporting.report.get("slow_operations", [])[:5]:
         print(f"  {op['operation']}: {op['duration_ms']}ms")
     
     print("=" * 60)

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from scenario_lab import (
+from src.utils.scenario_lab import (
     SCENARIO_PRESETS,
     ScenarioInput,
     ScenarioResult,

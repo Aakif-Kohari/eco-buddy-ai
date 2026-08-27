@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-import land_opportunity_cost as loc
+import src.environment.land_opportunity_cost as loc
 
 
 class TestFoodTable(unittest.TestCase):
@@ -423,7 +423,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a temporary src.core.database."""
 
     @classmethod
     def setUpClass(cls):

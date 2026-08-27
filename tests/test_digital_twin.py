@@ -3,8 +3,8 @@ Unit tests for Footprint Digital Twin and Predictive Forecaster.
 """
 
 import pytest
-from footprint_digital_twin import FootprintDigitalTwin
-from predictive_forecaster import PredictiveForecaster
+from src.utils.footprint_digital_twin import FootprintDigitalTwin
+from src.ai.predictive_forecaster import PredictiveForecaster
 
 
 def test_digital_twin_baseline():

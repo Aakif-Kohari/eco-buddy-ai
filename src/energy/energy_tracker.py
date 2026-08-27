@@ -21,7 +21,7 @@ def render_energy_tracker(user_id: int):
             submit = st.form_submit_button("Save Reading")
             
             if submit:
-                success = db.add_energy_record(
+                success = src.notifications.db.add_energy_record(
                     user_id=user_id,
                     electricity_kwh=electricity_kwh,
                     gas_kwh=gas_kwh,
@@ -33,7 +33,7 @@ def render_energy_tracker(user_id: int):
                 else:
                     st.error("Failed to save energy reading.")
 
-    records = db.get_energy_records(user_id)
+    records = src.notifications.db.get_energy_records(user_id)
     
     if records:
         df = pd.DataFrame(records)

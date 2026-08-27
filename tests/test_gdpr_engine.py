@@ -1,9 +1,9 @@
 import pytest
 import json
 import datetime
-from data_portability_engine import DataPortabilityEngine
-from gdpr_compliance_checker import GDPRComplianceChecker
-from data_deletion_service import DataDeletionService
+from src.data.data_portability_engine import DataPortabilityEngine
+from src.utils.gdpr_compliance_checker import GDPRComplianceChecker
+from src.data.data_deletion_service import DataDeletionService
 
 class TestGDPRSystems:
 

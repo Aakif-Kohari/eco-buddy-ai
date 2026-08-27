@@ -23,7 +23,7 @@ import os
 import tempfile
 import unittest
 
-import material_footprint as mf
+import src.environment.material_footprint as mf
 
 
 class TestMaterialTable(unittest.TestCase):

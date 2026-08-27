@@ -9,7 +9,7 @@ from datetime import datetime
 
 
 class WastePreventionEngine:
-    """Generates actionable insights to prevent food waste."""
+    """Generates actionable insights to prevent food src.environment.waste."""
 
     def __init__(self):
         self.predictor = SpoilagePredictor()

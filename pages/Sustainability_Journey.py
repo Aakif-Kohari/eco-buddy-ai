@@ -388,7 +388,7 @@ st.markdown("### 💡 Tips for Your Next Step")
 tips = [
     "🌱 Choose walking, cycling, or public transport for shorter journeys.",
     "⚡ Switch off unnecessary lights and standby appliances.",
-    "🍽️ Plan meals carefully to reduce food waste.",
+    "🍽️ Plan meals carefully to reduce food src.environment.waste.",
     "✈️ Consider reducing unnecessary flights where possible.",
 ]
 

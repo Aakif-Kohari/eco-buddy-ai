@@ -11,14 +11,14 @@ class SupplyChainReportGenerator:
     Generates a PDF report for the Supply Chain ESG metrics using ReportLab.
     """
 
-    def __init__(self, data: pd.DataFrame, summary_metrics: dict, output_path: str = "supply_chain_report.pdf"):
+    def __init__(self, data: pd.DataFrame, summary_metrics: dict, output_path: str = "src.business.supply_chain_report.pdf"):
         self.data = data
         self.summary_metrics = summary_metrics
         self.output_path = output_path
         self.styles = getSampleStyleSheet()
 
     def generate_report(self):
-        """Builds and saves the PDF report."""
+        """Builds and saves the PDF src.reporting.report."""
         doc = SimpleDocTemplate(self.output_path, pagesize=letter)
         elements = []
 

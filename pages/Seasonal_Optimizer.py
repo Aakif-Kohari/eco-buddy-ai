@@ -14,8 +14,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from styles.theme import apply_theme
-from emissions import calculate_footprint, calculate_eco_score
-from seasonal_carbon_optimizer import (
+from src.carbon.emissions import calculate_footprint, calculate_eco_score
+from src.carbon.seasonal_carbon_optimizer import (
     calculate_seasonal_footprint,
     seasonal_eco_score,
     generate_seasonal_recommendations,
@@ -175,8 +175,8 @@ with tab_analysis:
         )
     else:
         report = data["report"]
-        sc = report.score_data
-        fp = report.footprint_result
+        sc = src.reporting.report.score_data
+        fp = src.reporting.report.footprint_result
 
         # ── Score banner ─────────────────────────────────────────────────
         st.markdown(
@@ -212,7 +212,7 @@ with tab_analysis:
         )
         c4.metric(
             "💡 Monthly Savings Potential",
-            f"{report.monthly_savings_potential_kg:,.0f} kg",
+            f"{src.reporting.report.monthly_savings_potential_kg:,.0f} kg",
         )
 
         st.markdown("---")
@@ -230,7 +230,7 @@ with tab_analysis:
             marker_color="#64748b",
         ))
         fig_bar.add_trace(go.Bar(
-            name=f"Adjusted ({report.season.title()})",
+            name=f"Adjusted ({src.reporting.report.season.title()})",
             x=cats, y=adj_vals,
             marker_color=sc["color"],
         ))
@@ -279,8 +279,8 @@ with tab_analysis:
         st.markdown("---")
         st.markdown("### 🎯 Seasonal Recommendations")
 
-        if report.recommendations:
-            for rec in report.recommendations:
+        if src.reporting.report.recommendations:
+            for rec in src.reporting.report.recommendations:
                 diff_icon = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(
                     rec["difficulty"], "⚪"
                 )
@@ -311,7 +311,7 @@ with tab_analysis:
         # ── Summary ──────────────────────────────────────────────────────
         st.markdown("---")
         st.markdown("### 📋 Report Summary")
-        st.code(report.summary_text, language="text")
+        st.code(src.reporting.report.summary_text, language="text")
 
 
 # ── Tab 3: 12-Month Forecast ────────────────────────────────────────────────

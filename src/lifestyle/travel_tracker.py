@@ -28,7 +28,7 @@ def render_travel_tracker(user_id: int):
                 # Calculate emissions
                 try:
                     emissions_kg = calculate_trip_emissions(distance_km, mode, passengers)
-                    success = db.add_travel_record(
+                    success = src.notifications.db.add_travel_record(
                         user_id=user_id,
                         record_date=record_date.isoformat(),
                         mode=mode,
@@ -44,7 +44,7 @@ def render_travel_tracker(user_id: int):
                 except Exception as e:
                     st.error(f"Error calculating emissions: {e}")
 
-    records = db.get_travel_records(user_id)
+    records = src.notifications.db.get_travel_records(user_id)
     
     if records:
         df = pd.DataFrame(records)

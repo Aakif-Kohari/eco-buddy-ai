@@ -106,35 +106,35 @@ def get_recommendations(df: pd.DataFrame) -> List[str]:
     recommendations = []
     
     if df.empty:
-        return ["Add appliances to your registry to get personalized recommendations."]
+        return ["Add appliances to your registry to get personalized src.ai.recommendations."]
         
     # Sort by impact
     df_sorted = df.sort_values(by="Monthly kWh", ascending=False)
     top_hog = df_sorted.iloc[0]
     
-    recommendations.append(f"🔴 **Highest Impact**: Your **{top_hog['Name']}** consumes the most energy ({top_hog['Monthly kWh']:.1f} kWh/month). Consider reducing its usage by even 10%.")
+    src.ai.recommendations.append(f"🔴 **Highest Impact**: Your **{top_hog['Name']}** consumes the most energy ({top_hog['Monthly kWh']:.1f} kWh/month). Consider reducing its usage by even 10%.")
     
     # Check for high standby power
     high_standby = df[df["Standby (W)"] > 15]
     for _, row in high_standby.iterrows():
-        recommendations.append(f"🔌 **Phantom Load**: **{row['Name']}** draws {row['Standby (W)']}W while off. Use a smart plug or unplug it when not in use.")
+        src.ai.recommendations.append(f"🔌 **Phantom Load**: **{row['Name']}** draws {row['Standby (W)']}W while off. Use a smart plug or unplug it when not in use.")
         
     # Check for heavy heating/cooling usage
     climate_hogs = df[(df["Category"].isin(["AC", "Heat Pump"])) & (df["Hours/Day"] > 8)]
     if not climate_hogs.empty:
-        recommendations.append("🌡️ **Climate Control**: Your AC/Heating usage is quite high. Consider adjusting the thermostat by 1-2 degrees or improving home insulation to drastically cut costs.")
+        src.ai.recommendations.append("🌡️ **Climate Control**: Your AC/Heating usage is quite high. Consider adjusting the thermostat by 1-2 degrees or improving home insulation to drastically cut costs.")
         
     # Lighting efficiency
     lighting = df[df["Category"] == "Lighting"]
     if not lighting.empty:
         total_lighting_watts = (lighting["Power (W)"] * lighting["Quantity"]).sum()
         if total_lighting_watts > 300:
-            recommendations.append("💡 **Lighting**: Your total lighting wattage is high. Switching to LED bulbs can reduce lighting energy by up to 80%.")
+            src.ai.recommendations.append("💡 **Lighting**: Your total lighting wattage is high. Switching to LED bulbs can reduce lighting energy by up to 80%.")
             
     # Add general tips if too few
     if len(recommendations) < 3:
-        recommendations.append("🕒 **Time of Use**: Shift heavy appliance usage (like washing machines) to off-peak hours if your utility offers time-of-use rates.")
-        recommendations.append("🌬️ **Maintenance**: Regularly clean appliance filters (AC, dryers) to maintain their efficiency.")
+        src.ai.recommendations.append("🕒 **Time of Use**: Shift heavy appliance usage (like washing machines) to off-peak hours if your utility offers time-of-use rates.")
+        src.ai.recommendations.append("🌬️ **Maintenance**: Regularly clean appliance filters (AC, dryers) to maintain their efficiency.")
         
     return recommendations
 

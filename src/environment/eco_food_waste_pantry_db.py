@@ -176,7 +176,7 @@ def mark_pantry_item_status(item_id: int, is_consumed: bool, is_wasted: bool, db
 
 
 def get_food_waste_summary_stats(user_id: int, db_name: str = DB_NAME) -> FoodWasteSummary:
-    """Calculates overall food waste prevention metrics, financial savings, and CO2 emissions."""
+    """Calculates overall food waste prevention metrics, financial savings, and CO2 src.carbon.emissions."""
     def _summary():
         with database_connection(db_name) as conn:
             cursor = conn.cursor()

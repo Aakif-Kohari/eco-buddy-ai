@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-from certificate import generate_certificate
+from src.utils.certificate import generate_certificate
 
 
 def test_generate_certificate_success():
@@ -87,7 +87,7 @@ def test_generate_certificate_no_score():
             pdf_path.unlink()
 
 
-@patch("certificate.os.path.exists")
+@patch("src.utils.certificate.os.path.exists")
 def test_generate_certificate_missing_font(mock_exists):
     """Test certificate generation successfully falls back when font is missing."""
     mock_exists.return_value = False  # Simulate font missing

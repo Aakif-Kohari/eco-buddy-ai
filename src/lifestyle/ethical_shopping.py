@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: ethical_shopping.py
+# FILE: src.lifestyle.ethical_shopping.py
 # EcoBuddy AI+ Ethical Shopping & Conscious Consumer Guide
 # ============================================================
 

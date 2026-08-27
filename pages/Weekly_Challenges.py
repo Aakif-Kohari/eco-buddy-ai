@@ -2,7 +2,7 @@
 
 The generator and the storage functions for this feature were already in the
 codebase; the page that drives them was not — the Streamlit calls had been
-pasted into ``database.py`` at module scope, where they ran on import and
+pasted into ``src.core.database.py`` at module scope, where they ran on import and
 referenced names that do not exist there. This page is that UI, given a file
 of its own and the session context it needs.
 """

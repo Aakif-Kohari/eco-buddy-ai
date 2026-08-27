@@ -616,7 +616,7 @@ def audit_assessments(
     include_drift: bool = True,
 ) -> dict[str, Any]:
     """
-    Run every detector and return a full quality report.
+    Run every detector and return a full quality src.reporting.report.
 
     `include_drift` exists because recomputing every row calls into
     `emissions`, which is the one detector with a non-trivial cost.

@@ -49,7 +49,7 @@ class ComparisonPeriod(Enum):
 
 
 class EnergyGoalType(Enum):
-    """Types of energy goals."""
+    """Types of energy src.utils.goals."""
     REDUCE_CONSUMPTION = "reduce_consumption"
     INCREASE_SUSTAINABLE = "increase_sustainable"
     REDUCE_COST = "reduce_cost"

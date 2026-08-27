@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from report import generate_pdf
-from report_validation import validate_report_data
+from src.reporting.report import generate_pdf
+from src.reporting.report_validation import validate_report_data
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: eco_news.py
+# FILE: src.utils.eco_news.py
 # EcoBuddy AI+ Eco-News & Sustainability Updates
 # ============================================================
 
@@ -153,7 +153,7 @@ class EcoNewsDatabase:
             "category": "Waste",
             "source": "Waste Management",
             "date": datetime.now() - timedelta(days=10),
-            "summary": "New chemical recycling process can recycle all types of plastic waste.",
+            "summary": "New chemical recycling process can recycle all types of plastic src.environment.waste.",
             "content": "The breakthrough technology can break down plastic into its original components, enabling infinite recycling.",
             "impact": "Positive",
             "tags": ["Recycling", "Plastic", "Technology"],

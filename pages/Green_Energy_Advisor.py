@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from styles.theme import apply_theme
-from green_energy_advisor import (
+from src.energy.green_energy_advisor import (
     GRID_INTENSITY,
     SOLAR_SYSTEMS,
     BATTERY_OPTIONS,
@@ -308,7 +308,7 @@ with tab_report:
     report_btn = st.button("📋 Generate Full Report", use_container_width=True, type="primary")
 
     if report_btn:
-        with st.spinner("Building comprehensive energy report..."):
+        with st.spinner("Building comprehensive energy src.reporting.report..."):
             report = build_energy_advisor_report(user_id, monthly_kwh, region)
             st.session_state.energy_report = report
 
@@ -323,9 +323,9 @@ with tab_report:
                     ⚡ Your Clean Energy Potential
                 </h3>
                 <p style="margin:6px 0 0;color:#cbd5e1;">
-                    Monthly Usage: {report.monthly_kwh:,.0f} kWh &nbsp;|&nbsp;
-                    Region: {report.region} &nbsp;|&nbsp;
-                    Grid Intensity: {report.grid_intensity} kg CO₂/kWh
+                    Monthly Usage: {src.reporting.report.monthly_kwh:,.0f} kWh &nbsp;|&nbsp;
+                    Region: {src.reporting.report.region} &nbsp;|&nbsp;
+                    Grid Intensity: {src.reporting.report.grid_intensity} kg CO₂/kWh
                 </p>
             </div>
             """,
@@ -333,15 +333,15 @@ with tab_report:
         )
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("💰 Current Annual Cost", f"${report.current_annual_cost:,.0f}")
-        c2.metric("🌍 Current CO₂", f"{report.current_annual_co2_kg:,.0f} kg/yr")
+        c1.metric("💰 Current Annual Cost", f"${src.reporting.report.current_annual_cost:,.0f}")
+        c2.metric("🌍 Current CO₂", f"{src.reporting.report.current_annual_co2_kg:,.0f} kg/yr")
         c3.metric(
             "💵 Savings Potential",
-            f"${report.total_annual_savings_potential:,.0f}/yr",
+            f"${src.reporting.report.total_annual_savings_potential:,.0f}/yr",
         )
         c4.metric(
             "🌿 CO₂ Reduction",
-            f"{report.total_annual_co2_reduction_kg:,.0f} kg/yr",
+            f"{src.reporting.report.total_annual_co2_reduction_kg:,.0f} kg/yr",
         )
 
         # ── Best picks ──────────────────────────────────────────────────
@@ -350,8 +350,8 @@ with tab_report:
 
         col_a, col_b, col_c = st.columns(3)
         with col_a:
-            if report.best_solar:
-                s = report.best_solar
+            if src.reporting.report.best_solar:
+                s = src.reporting.report.best_solar
                 st.markdown(
                     f"**☀️ Solar:** {s.system_name}\n\n"
                     f"Payback: {s.payback_years} years | "
@@ -359,8 +359,8 @@ with tab_report:
                     f"ROI: {s.roi_pct:.0f}% | NPV: ${s.npv_usd:,.0f}"
                 )
         with col_b:
-            if report.best_battery:
-                b = report.best_battery
+            if src.reporting.report.best_battery:
+                b = src.reporting.report.best_battery
                 st.markdown(
                     f"**🔋 Battery:** {b.battery_name}\n\n"
                     f"Payback: {b.payback_years} years | "
@@ -368,8 +368,8 @@ with tab_report:
                     f"Capacity: {b.capacity_kwh} kWh"
                 )
         with col_c:
-            if report.best_provider:
-                p = report.best_provider
+            if src.reporting.report.best_provider:
+                p = src.reporting.report.best_provider
                 st.markdown(
                     f"**⚡ Provider:** {p.provider_name}\n\n"
                     f"Plan: {p.plan_type}\n\n"
@@ -380,14 +380,14 @@ with tab_report:
         # ── Recommendations ─────────────────────────────────────────────
         st.markdown("---")
         st.markdown("### 💡 Recommendations")
-        for rec in report.recommendations:
+        for rec in src.reporting.report.recommendations:
             st.markdown(f"- {rec}")
 
         # ── System comparison table ─────────────────────────────────────
         st.markdown("---")
         st.markdown("### 📊 All Solar Systems Comparison")
         solar_rows = []
-        for s in report.solar_options:
+        for s in src.reporting.report.solar_options:
             solar_rows.append({
                 "System": s.system_name,
                 "Capacity": f"{s.capacity_kwp} kWp",

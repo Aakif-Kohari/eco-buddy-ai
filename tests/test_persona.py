@@ -1,5 +1,5 @@
 import pytest
-import eco_persona as ep
+import src.utils.eco_persona as ep
 
 
 def _metrics(**overrides):
@@ -159,8 +159,8 @@ def test_analyze_user_behavior_with_db(monkeypatch, tmp_path):
     from invalidation import invalidate_all_db_caches
 
     test_db = str(tmp_path / "persona_test.db")
-    original_db_name = db.DB_NAME
-    db.DB_NAME = test_db
+    original_db_name = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = test_db
     # The @cached decorators wrap streamlit's session-wide cache, which can
     # hold stale reads from earlier tests pointing at other database files.
     invalidate_all_db_caches()
@@ -215,6 +215,6 @@ def test_analyze_user_behavior_with_db(monkeypatch, tmp_path):
         profile = ep.generate_persona_profile(1)
         assert profile["persona_id"] in ("green_guardian", "transport_titan", "plant_powered_pal")
     finally:
-        db.DB_NAME = original_db_name
+        src.notifications.db.DB_NAME = original_db_name
         if os.path.exists(test_db):
             os.remove(test_db)

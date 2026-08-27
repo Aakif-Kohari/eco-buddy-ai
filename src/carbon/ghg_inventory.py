@@ -1,6 +1,6 @@
 """GHG Protocol scope classification and inventory for a household boundary.
 
-`emissions.py` and the assessment flow add everything into one number. That is
+`src.carbon.emissions.py` and the assessment flow add everything into one number. That is
 fine for a headline and wrong for almost everything else, because it conflates
 three categories that behave completely differently:
 
@@ -51,7 +51,7 @@ Changing method is not the same as changing behaviour, and without the
 standard recalculation rules the two are indistinguishable on a trend line.
 `recalculate_base_year()` applies them.
 
-This module classifies and reports; it does not recompute anyone's emissions.
+This module classifies and reports; it does not recompute anyone's src.carbon.emissions.
 It takes the totals the rest of the app already produces and gives them the
 structure they have been missing, which keeps the change additive and leaves
 the assessment path untouched.

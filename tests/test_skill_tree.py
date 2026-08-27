@@ -1,21 +1,21 @@
 import pytest
 import sqlite3
 import os
-from database import DB_NAME, init_db, init_gamification_db, get_skill_tree_progress, update_skill_node_status, award_xp, get_total_xp
-from gamification import evaluate_skill_tree, complete_skill_node
-from skill_tree_data import SKILL_TREE_NODES
+from src.core.database import DB_NAME, init_db, init_gamification_db, get_skill_tree_progress, update_skill_node_status, award_xp, get_total_xp
+from src.community.gamification import evaluate_skill_tree, complete_skill_node
+from src.utils.skill_tree_data import SKILL_TREE_NODES
 
 TEST_DB = "test_eco_buddy_skill.db"
 
 @pytest.fixture(autouse=True)
 def setup_db():
     import database as db
-    old_db = db.DB_NAME
-    db.DB_NAME = TEST_DB
+    old_db = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = TEST_DB
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
-    db.init_db()
-    db.init_gamification_db()
+    src.notifications.db.init_db()
+    src.notifications.db.init_gamification_db()
     
     get_skill_tree_progress.clear()
     get_total_xp.clear()
@@ -24,7 +24,7 @@ def setup_db():
     
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
-    db.DB_NAME = old_db
+    src.notifications.db.DB_NAME = old_db
 
 def test_initial_evaluation():
     node_status = evaluate_skill_tree(1)

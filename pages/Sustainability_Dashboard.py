@@ -17,7 +17,7 @@ from src.carbon.emissions import calculate_footprint
 st.set_page_config(page_title="Sustainability Dashboard", page_icon="📊", layout="wide")
 
 st.title("📊 Personal Sustainability Dashboard")
-st.write("Monitor your comprehensive environmental footprint across transportation, diet, home energy, water, and waste. Compare your impact against your historical records and active reduction goals.")
+st.write("Monitor your comprehensive environmental footprint across transportation, diet, home energy, water, and src.environment.waste. Compare your impact against your historical records and active reduction src.utils.goals.")
 
 user_id = st.session_state.get('user_id', 1)
 

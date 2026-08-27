@@ -7,7 +7,7 @@ from typing import Dict, Any, List
 
 
 class AvoidedEmissionsTracker:
-    """Tracks and calculates Scope 4 (Avoided) emissions."""
+    """Tracks and calculates Scope 4 (Avoided) src.carbon.emissions."""
 
     def __init__(self):
         self.avoided_activities: List[Dict[str, Any]] = []
@@ -21,7 +21,7 @@ class AvoidedEmissionsTracker:
         alternative_factor: float,
     ) -> Dict[str, Any]:
         """
-        Logs an activity and calculates the avoided emissions.
+        Logs an activity and calculates the avoided src.carbon.emissions.
 
         Args:
             activity_type: e.g., "remote_work_day", "virtual_meeting", "digital_document"
@@ -47,7 +47,7 @@ class AvoidedEmissionsTracker:
         return record
 
     def get_summary(self) -> Dict[str, Any]:
-        """Returns a summary of all logged avoided emissions."""
+        """Returns a summary of all logged avoided src.carbon.emissions."""
         # Group by activity type
         by_type = {}
         for activity in self.avoided_activities:

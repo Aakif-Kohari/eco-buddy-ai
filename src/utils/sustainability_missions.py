@@ -5,7 +5,7 @@ Earth Day, World Environment Day, or World Water Day, tracks completion per
 user, and awards bonus XP.
 
 The module is self-contained: its SQLite table is created lazily and it uses
-the existing database.award_xp helper for XP without modifying shared files.
+the existing src.core.database.award_xp helper for XP without modifying shared files.
 """
 
 import os
@@ -53,7 +53,7 @@ ENVIRONMENTAL_EVENTS = [
         "description": "Focusing attention on the importance of freshwater and sustainable water management.",
         "mission": {
             "title": "30-Day Water Challenge",
-            "description": "Cut your daily water use by 20% — shorter showers, fix a leak, or reuse cooking water.",
+            "description": "Cut your daily water use by 20% — shorter showers, fix a leak, or reuse cooking src.environment.water.",
             "xp": 40,
         },
     },

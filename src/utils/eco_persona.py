@@ -555,7 +555,7 @@ def get_strengths(metrics: dict[str, Any]) -> list[str]:
             "CO₂, funding verified climate projects."
         )
     if metrics["water_assessment_count"] > 0:
-        strengths.append("You monitor your water footprint, including virtual water.")
+        strengths.append("You monitor your water footprint, including virtual src.environment.water.")
     if metrics["waste_assessment_count"] > 0:
         strengths.append("You track and minimize your waste stream.")
     if not strengths:

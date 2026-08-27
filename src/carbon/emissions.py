@@ -346,7 +346,7 @@ def calculate_budget_progress(budget_limit: float, current_emission: float) -> f
     return min(current_emission / budget_limit, 1.0)
 def forecast_monthly_emission(current_emission: float) -> float:
     """
-    Estimate end-of-month emissions.
+    Estimate end-of-month src.carbon.emissions.
     """
 
     today = datetime.datetime.today()

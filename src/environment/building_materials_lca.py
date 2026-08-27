@@ -1,6 +1,6 @@
 """Whole-life carbon for a renovation, counted against a real starting debt.
 
-``carbon_payback.py`` tells a user how much operational carbon a measure saves.
+``src.carbon.carbon_payback.py`` tells a user how much operational carbon a measure saves.
 It does not count what the measure costs to build. Insulation, glazing, a heat
 pump, a floor slab - all of it carries manufacturing and installation emissions
 that land in the atmosphere the moment the work is done, while the savings
@@ -26,7 +26,7 @@ Stages kept apart, per EN 15978
 *   **A1-A3** product stage, cradle to factory gate.
 *   **A4** transport to site. Negligible for local mineral wool, not negligible
     for imported stone.
-*   **A5** construction, including installation waste. A 10% cut-and-fit waste
+*   **A5** construction, including installation src.environment.waste. A 10% cut-and-fit waste
     rate on a rigid board is a real 10% addition to A1-A3, not a rounding error.
 *   **B4** replacement over the assessment period. A component with a 20-year
     life inside a 60-year study is manufactured three times, and a "low carbon"
@@ -44,7 +44,7 @@ calls a total.
 
 Timing, which the app is currently inconsistent about
 ------------------------------------------------------
-Upfront carbon is emitted now; the savings accrue later. ``climate_metrics.py``
+Upfront carbon is emitted now; the savings accrue later. ``src.environment.climate_metrics.py``
 implements GWP* precisely because when a forcing happens matters. Flat payback
 arithmetic contradicts that. Both views are reported: undiscounted tonnes, and a
 time-weighted figure that does not treat a tonne saved in 2065 as equal to a
@@ -55,7 +55,7 @@ Biogenic carbon, both ways
 Timber stores carbon. Whether that counts depends on the convention: -1/+1
 credits the sequestration and charges the release, 0/0 does neither. They give
 different answers for timber and identical answers for everything else. Both are
-shown, following the precedent set by ``lca_allocation.py``, because presenting
+shown, following the precedent set by ``src.utils.lca_allocation.py``, because presenting
 one as settled would be the real error.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
@@ -163,7 +163,7 @@ MATERIALS = {
         "eol": {"landfill": 0.50, "incineration": 0.45, "recycling": 0.05},
         "note": "The lowest upfront carbon of any insulation here, because the "
                 "feedstock is waste paper. Blown rather than cut, so almost no "
-                "installation waste.",
+                "installation src.environment.waste.",
     },
     "sheeps_wool": {
         "label": "Sheep's wool batt",
@@ -175,7 +175,7 @@ MATERIALS = {
         "eol": {"landfill": 0.60, "incineration": 0.35, "recycling": 0.05},
         "note": "Allocation-sensitive: whether wool carries any of the sheep's "
                 "footprint depends on the co-product split, which is exactly "
-                "the choice lca_allocation.py exists to make visible.",
+                "the choice src.utils.lca_allocation.py exists to make visible.",
     },
     "aerogel": {
         "label": "Aerogel blanket",
@@ -396,7 +396,7 @@ HEAT_SOURCES = {
     },
 }
 
-# Degree days for a temperate heating climate, K.day. ``degree_days.py`` holds
+# Degree days for a temperate heating climate, K.day. ``src.energy.degree_days.py`` holds
 # the proper location-specific model; this is a default so the engine stays
 # importable on its own.
 DEFAULT_HEATING_DEGREE_DAYS = 2100.0
@@ -750,7 +750,7 @@ def time_weighted_payback(
     """Net whole-life carbon with future savings discounted.
 
     Flat arithmetic treats a tonne saved in 2065 as equal to a tonne emitted
-    today, which contradicts the reasoning GWP* in ``climate_metrics.py`` is
+    today, which contradicts the reasoning GWP* in ``src.environment.climate_metrics.py`` is
     built on. Both views are returned so the gap is visible.
     """
     if assessment_period <= 0:
@@ -939,7 +939,7 @@ def get_lca_insights(result: dict) -> list:
     waste_share = result["install_waste_fraction"] * 100.0
     if waste_share >= 10.0:
         insights.append(
-            f"{waste_share:.0f}% installation waste. That is a real addition to "
+            f"{waste_share:.0f}% installation src.environment.waste. That is a real addition to "
             f"the product stage, charged in A5 rather than hidden inside A1-A3."
         )
 

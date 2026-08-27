@@ -209,7 +209,7 @@ ACTIVITIES = {
         "pm25": 0.000, "nox": 0.000, "so2": 0.000, "voc": 0.000,
         "co2e": 15.0,
         "setting": "stack",
-        "basis": "Wind or solar. Manufacturing carbon only, no operating emissions.",
+        "basis": "Wind or solar. Manufacturing carbon only, no operating src.carbon.emissions.",
     },
 }
 
@@ -386,7 +386,7 @@ def pollutant_emissions(activity_name: str, amount: float) -> dict[str, Any]:
 def exposure_weighted_emissions(
     grams: dict[str, float], setting: str, density: str = DEFAULT_DENSITY
 ) -> dict[str, Any]:
-    """Apply the intake weighting to a set of pollutant emissions.
+    """Apply the intake weighting to a set of pollutant src.carbon.emissions.
 
     Carbon is deliberately left unweighted: a tonne of CO2e does the same
     damage wherever it is released, which is precisely what distinguishes it
@@ -421,7 +421,7 @@ def health_outcomes(pm25_grams: float) -> dict[str, float]:
 
 
 def damage_cost(weighted_grams: dict[str, float]) -> dict[str, Any]:
-    """Monetised damage from a set of exposure-weighted emissions.
+    """Monetised damage from a set of exposure-weighted src.carbon.emissions.
 
     Returns air quality damage and carbon damage separately as well as
     combined, because the whole point is to be able to see when one is

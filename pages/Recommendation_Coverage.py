@@ -6,11 +6,11 @@ import json
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments
-from emissions import calculate_footprint
-from recommendations import generate_recommendations
-from recommendation_feedback import get_feedback_history
-from recommendation_coverage import (
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.ai.recommendation_feedback import get_feedback_history
+from src.utils.recommendation_coverage import (
     CoverageStatus,
     GapSeverity,
     RecommendationCoverageStore,
@@ -127,11 +127,11 @@ with st.container(border=True):
     st.subheader("Current assessment baseline")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Annual footprint", f"{footprint:,.0f} kg CO₂e")
-    c2.metric("Recommendations", report.recommendation_count)
+    c2.metric("Recommendations", src.reporting.report.recommendation_count)
     c3.metric("Coverage score", f"{summary['overall_percent']:.0f}%")
-    c4.metric("High-impact gaps", report.high_impact_uncovered_count)
+    c4.metric("High-impact gaps", src.reporting.report.high_impact_uncovered_count)
 
-status = report.status.value
+status = src.reporting.report.status.value
 if status == CoverageStatus.COVERED.value:
     st.success("Recommendation coverage is strong across the measured impact categories.")
 elif status == CoverageStatus.PARTIAL.value:
@@ -169,7 +169,7 @@ with left:
 
 with right:
     st.subheader("Recommendation mix")
-    distribution = report.metadata.get("category_distribution", {})
+    distribution = src.reporting.report.metadata.get("category_distribution", {})
     if distribution:
         chart = pd.DataFrame(
             {"Recommendations": distribution}
@@ -178,7 +178,7 @@ with right:
     else:
         st.info("No recommendation distribution is available.")
 
-    st.metric("Category diversity", f"{report.recommendation_diversity * 100:.0f}%")
+    st.metric("Category diversity", f"{src.reporting.report.recommendation_diversity * 100:.0f}%")
     st.caption(
         "Diversity measures how evenly the existing recommendation set is spread "
         "across sustainability categories. It is not a quality score by itself."
@@ -187,10 +187,10 @@ with right:
 st.divider()
 
 st.subheader("🚩 Sustainability gaps")
-if not report.gaps:
+if not src.reporting.report.gaps:
     st.success("No material recommendation coverage gaps were detected.")
 else:
-    for gap in report.gaps:
+    for gap in src.reporting.report.gaps:
         severity = gap.severity.value
         with st.expander(f"{_severity_badge(severity)} · {gap.title}", expanded=severity in {"critical", "high"}):
             st.markdown(f"**Category:** {gap.label}")
@@ -200,13 +200,13 @@ else:
             st.markdown(f"**Relevant recommendations:** {gap.relevant_count}")
             st.info(gap.suggested_follow_up)
 
-if report.repeated_recommendations:
+if src.reporting.report.repeated_recommendations:
     st.warning(
         "Repeated recommendation titles detected: "
-        + ", ".join(f"`{title}`" for title in report.repeated_recommendations)
+        + ", ".join(f"`{title}`" for title in src.reporting.report.repeated_recommendations)
     )
 
-if report.duplicate_ids:
+if src.reporting.report.duplicate_ids:
     st.warning(
         "Duplicate recommendation IDs detected. These are flagged for catalog cleanup and are not silently removed."
     )
@@ -214,7 +214,7 @@ if report.duplicate_ids:
 st.divider()
 
 st.subheader("🔎 Why was this category flagged?")
-for row in report.categories:
+for row in src.reporting.report.categories:
     if row.status in {CoverageStatus.GAP, CoverageStatus.PARTIAL} and row.impact > 0:
         with st.expander(f"{row.label} · {row.impact_share * 100:.0f}% of impact"):
             st.write(row.reason)
@@ -255,7 +255,7 @@ st.divider()
 
 save_col, download_col = st.columns(2)
 with save_col:
-    fingerprint = json.dumps(report.to_dict(), sort_keys=True)
+    fingerprint = json.dumps(src.reporting.report.to_dict(), sort_keys=True)
     last_saved = st.session_state.get("recommendation_coverage_last_saved")
     if st.button("Save current coverage report", type="primary", use_container_width=True):
         if fingerprint == last_saved:
@@ -272,7 +272,7 @@ with save_col:
 with download_col:
     st.download_button(
         "Download coverage report (JSON)",
-        data=report.to_json(indent=2),
+        data=src.reporting.report.to_json(indent=2),
         file_name="recommendation_coverage_report.json",
         mime="application/json",
         use_container_width=True,

@@ -29,7 +29,7 @@ Use the compost you started to plant some basil, mint, or cilantro!
     "zero_waste_grocery": {
         "id": "zero_waste_grocery",
         "label": "Zero-Waste Grocery Shopping",
-        "description": "Use reusable bags, jars, and buy in bulk to eliminate packaging waste.",
+        "description": "Use reusable bags, jars, and buy in bulk to eliminate packaging src.environment.waste.",
         "xp_reward": 100,
         "prerequisites": [],
         "content": """

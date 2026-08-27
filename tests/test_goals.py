@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from goals import (
+from src.utils.goals import (
     AT_RISK_THRESHOLD,
     DAYS_PER_MONTH,
     GOAL_ACTIVE,
@@ -43,7 +43,7 @@ def make_goal(baseline=5000.0, target=3500.0, start=START, end=END):
 
 
 def assessment_row(record_date, footprint):
-    """Build a row shaped exactly like database.get_assessments() returns."""
+    """Build a row shaped exactly like src.core.database.get_assessments() returns."""
     return (1, record_date.isoformat(), "Car", 10.0, 300.0, "Vegetarian", 2, footprint, 60)
 
 

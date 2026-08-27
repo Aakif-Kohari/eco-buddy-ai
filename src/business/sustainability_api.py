@@ -172,7 +172,7 @@ OPENAPI_SPEC = {
         _route("/insights/goals"): {
             "get": {
                 "summary": "Get Active Reduction Goals",
-                "description": "Retrieve status and evaluation of active carbon reduction goals.",
+                "description": "Retrieve status and evaluation of active carbon reduction src.utils.goals.",
                 "security": [{"ApiKeyAuth": []}],
                 "responses": {
                     "200": {"description": "Active reduction goal and progress evaluation"},

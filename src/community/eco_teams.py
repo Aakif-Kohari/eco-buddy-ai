@@ -1,7 +1,7 @@
 """Community Eco-Teams & Group Footprint Challenges.
 
 Social layer where users form eco-teams (family, workplace, classmates)
-working toward shared emissions-reduction goals. Features:
+working toward shared emissions-reduction src.utils.goals. Features:
   - Create/join teams with invite codes, role-based permissions (owner, member)
   - Aggregate individual assessments into team footprint with per-capita normalization
   - Team challenges with collective progress tracking

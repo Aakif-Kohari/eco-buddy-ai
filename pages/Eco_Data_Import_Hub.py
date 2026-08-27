@@ -11,12 +11,12 @@ import io
 import csv
 
 from src.lifestyle.household import get_households_for_user
-from data_import_schema import STANDARD_SCHEMA, detect_schema_mapping, validate_mapping, apply_mapping
-from data_import_cleaner import DataCleaner
-from data_import_normalizer import normalize_units, estimate_missing_emissions
-from data_import_history import init_import_db, log_import_job, save_imported_records, get_import_history, get_imported_records
-from data_import_analytics import generate_import_analytics, merge_import_data_with_core_system
-from data_import_visualizations import create_import_category_pie, create_import_time_series, create_data_quality_donut
+from src.data.data_import_schema import STANDARD_SCHEMA, detect_schema_mapping, validate_mapping, apply_mapping
+from src.data.data_import_cleaner import DataCleaner
+from src.data.data_import_normalizer import normalize_units, estimate_missing_emissions
+from src.data.data_import_history import init_import_db, log_import_job, save_imported_records, get_import_history, get_imported_records
+from src.data.data_import_analytics import generate_import_analytics, merge_import_data_with_core_system
+from src.data.data_import_visualizations import create_import_category_pie, create_import_time_series, create_data_quality_donut
 
 def render_import_hub():
     st.set_page_config(page_title="Data Import Hub", page_icon="📥", layout="wide")
@@ -284,7 +284,7 @@ def render_data_quality_dashboard():
     # Commit action
     st.markdown("---")
     if valid_recs:
-        st.info("Review the cleaned data above. If it looks correct, you can save it to your EcoBuddy database.")
+        st.info("Review the cleaned data above. If it looks correct, you can save it to your EcoBuddy src.core.database.")
         
         if st.button("Commit to Database", type="primary"):
             import_id = log_import_job(

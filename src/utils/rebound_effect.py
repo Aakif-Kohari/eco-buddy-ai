@@ -28,13 +28,13 @@ today, so it reports the gross saving with full confidence.
 
 Where this bites in code that is already merged
 -----------------------------------------------
-*   ``carbon_payback.py`` divides embodied carbon by an annual saving. Overstate
+*   ``src.carbon.carbon_payback.py`` divides embodied carbon by an annual saving. Overstate
     the saving by 20% and the payback period is understated by the same
     proportion - and payback periods decide whether a purchase happens.
-*   ``lifestyle_optimizer.py`` ranks actions by projected saving. Rebound
+*   ``src.lifestyle.lifestyle_optimizer.py`` ranks actions by projected saving. Rebound
     differs by a factor of three between action types, so the *ranking*
     changes, not just the magnitudes.
-*   ``goals.py`` sets targets against gross projections, which makes them
+*   ``src.utils.goals.py`` sets targets against gross projections, which makes them
     quietly unachievable and makes the user look like the reason.
 
 The correction has a direction
@@ -498,7 +498,7 @@ def corrected_payback_years(embodied_kg: float, gross_annual_saving_kg: float, a
                             respending: str = DEFAULT_RESPENDING) -> dict[str, Any]:
     """Payback period computed from net rather than gross saving.
 
-    ``carbon_payback.py`` divides embodied carbon by a gross annual saving.
+    ``src.carbon.carbon_payback.py`` divides embodied carbon by a gross annual saving.
     Overstate the saving by 20% and the payback period is understated by the
     same proportion - and payback periods are what decide whether a purchase
     is worth making.

@@ -201,7 +201,7 @@ class TestAPIClientBasicFailures:
                 client.get("/test")
     
     def test_connection_error(self):
-        """Test handling of connection errors."""
+        """Test handling of connection src.core.errors."""
         client = APIClient()
         
         with patch('requests.Session.request') as mock_request:
@@ -514,7 +514,7 @@ class TestFallbackMechanisms:
             
             def get_cached_data(self, endpoint):
                 cache = {"/test": {"data": "cached"}}
-                return cache.get(endpoint)
+                return src.core.cache.get(endpoint)
         
         client = HierarchicalFallbackClient()
         result = client.call_with_fallback("/test")
@@ -611,7 +611,7 @@ class TestDependencyFailures:
                     return {"error": "Database unavailable"}
         
         db = DatabaseService()
-        result = db.query("SELECT * FROM users")
+        result = src.notifications.db.query("SELECT * FROM users")
         assert result["error"] == "Database unavailable"
     
     def test_cache_service_failure(self):
@@ -915,7 +915,7 @@ class TestMonitoringAndLogging:
     """Test monitoring and logging of failures."""
     
     def test_failure_logging(self):
-        """Test logging of failures and errors."""
+        """Test logging of failures and src.core.errors."""
         class FailureLogger:
             def __init__(self):
                 self.logs = []

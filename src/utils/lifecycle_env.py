@@ -1247,7 +1247,7 @@ class RiskForecastingEngine:
         self.model_weights = {}
     
     def _initialize_forecast_models(self) -> Dict[str, Callable]:
-        """Initialize forecasting models."""
+        """Initialize forecasting src.notifications.models."""
         return {
             "time_series": self._forecast_time_series,
             "arima": self._forecast_arima,
@@ -1718,12 +1718,12 @@ class SpatiotemporalRiskIntelligenceFramework:
         return assessment
     
     def _generate_risk_recommendations(self, assessment: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate risk-based recommendations."""
+        """Generate risk-based src.ai.recommendations."""
         recommendations = []
         
         critical_indicators = assessment.get("critical_indicators", [])
         if critical_indicators:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "high",
                 "action": f"Immediate attention needed for: {', '.join(critical_indicators)}",
                 "details": "Critical indicators exceed safety thresholds",
@@ -1733,7 +1733,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         # Forecast-based recommendations
         for forecast in assessment.get("forecasts", []):
             if forecast.predicted_probability > 0.6:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "high" if forecast.predicted_probability > 0.8 else "medium",
                     "action": f"Prepare for {forecast.risk_type.value} within {forecast.lead_time_hours} hours",
                     "details": f"Probability: {forecast.predicted_probability:.1%}",
@@ -1744,7 +1744,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         trends = assessment.get("trends", {})
         for key, value in trends.items():
             if "increasing" in str(value) and "_trend" in key:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "medium",
                     "action": f"Monitor {key} - increasing trend detected",
                     "details": f"Trend magnitude: {abs(float(value) if isinstance(value, (int, float)) else 0):.2f}",
@@ -1753,7 +1753,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         
         # General recommendations
         if len(recommendations) < 2:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "low",
                 "action": "Continue monitoring environmental indicators",
                 "details": "No immediate risks detected",
@@ -2472,7 +2472,7 @@ class AnomalyDetector(ABC):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.model = None
-        self.threshold = config.get('threshold', 0.95)
+        self.threshold = src.core.config.get('threshold', 0.95)
         
     @abstractmethod
     def fit(self, data: pd.DataFrame) -> None:
@@ -2583,7 +2583,7 @@ class StatisticalAnomalyDetector(AnomalyDetector):
         return reports
     
     def _create_anomaly_report(self, timestamp, col, value, score, anomaly_type, severity):
-        """Create an anomaly report."""
+        """Create an anomaly src.reporting.report."""
         return AnomalyReport(
             timestamp=timestamp or datetime.now(),
             parameter=col,
@@ -2750,7 +2750,7 @@ class TimeSeriesAnomalyDetector(AnomalyDetector):
         self.seasonal_period = self.config.get('seasonal_period', 24)
         
     def fit(self, data: pd.DataFrame) -> None:
-        """Fit time series models."""
+        """Fit time series src.notifications.models."""
         self.time_series_stats = {}
         
         for col in data.select_dtypes(include=[np.number]).columns:
@@ -2933,7 +2933,7 @@ class EnsembleAnomalyDetector(AnomalyDetector):
         ])
         
         for config in detector_configs:
-            detector_type = config.get('type')
+            detector_type = src.core.config.get('type')
             if detector_type == 'statistical':
                 detector = StatisticalAnomalyDetector(config)
             elif detector_type == 'machine_learning':
@@ -3041,7 +3041,7 @@ class EarlyWarningSystem:
     def initialize_detector(self, detector_type: str = 'ensemble', **kwargs) -> None:
         """Initialize the anomaly detector."""
         config = self.config.copy()
-        config.update(kwargs)
+        src.core.config.update(kwargs)
         
         if detector_type == 'statistical':
             self.detector = StatisticalAnomalyDetector(config)

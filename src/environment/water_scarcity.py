@@ -1,6 +1,6 @@
 """Water scarcity footprint: blue/green/grey separation with AWARE weighting.
 
-``water.py`` reports a water footprint in litres. A litre is not a unit of
+``src.environment.water.py`` reports a water footprint in litres. A litre is not a unit of
 impact. A litre drawn from an aquifer in a drought and a litre of rain that
 fell on a field are the same number and completely different things, and the
 current model adds them together.
@@ -50,7 +50,7 @@ footprint and food is nearly all of it. That inversion is the output worth
 having, and the module states plainly when it happens.
 
 Self-contained: standard library only, SQLite tables created lazily, no
-shared files modified. ``water.py`` is untouched, so no stored litre figure
+shared files modified. ``src.environment.water.py`` is untouched, so no stored litre figure
 changes meaning underneath a user.
 """
 
@@ -159,7 +159,7 @@ HOUSEHOLD_ACTIVITIES = {
         "grey_factor": 0.6,
         "note": "Nearly all of it returns to the sewer. The scarcity impact "
                 "is a twentieth of the litre count, and the energy to heat "
-                "it usually matters more than the water.",
+                "it usually matters more than the src.environment.water.",
     },
     "bath": {
         "withdrawal": 80.0,
@@ -233,7 +233,7 @@ FOOD_WATER = {
     "Chicken": {"blue": 310, "green": 3550, "grey": 470,
                 "note": "Lower across the board than red meat."},
     "Cheese": {"blue": 400, "green": 4600, "grey": 250,
-               "note": "Concentrated milk, so concentrated water."},
+               "note": "Concentrated milk, so concentrated src.environment.water."},
     "Milk": {"blue": 90, "green": 860, "grey": 70,
              "note": "Modest per litre; the volumes are what add up."},
     "Eggs": {"blue": 240, "green": 2600, "grey": 430,
@@ -513,7 +513,7 @@ def assess(
     """
     region_detail = get_region(region)
 
-    household_consumption = _non_negative(household.get("consumption_litres"))
+    household_consumption = _non_negative(src.lifestyle.household.get("consumption_litres"))
     diet_blue = _non_negative(diet.get("blue_litres"))
 
     household_scarcity = scarcity_footprint(household_consumption, region, month)
@@ -525,7 +525,7 @@ def assess(
     )
 
     total_litres = (
-        _non_negative(household.get("withdrawal_litres"))
+        _non_negative(src.lifestyle.household.get("withdrawal_litres"))
         + _non_negative(diet.get("total_litres"))
     )
 
@@ -535,9 +535,9 @@ def assess(
         "factor": household_scarcity["factor"],
         "month": month,
         "household": {
-            "withdrawal_litres": _non_negative(household.get("withdrawal_litres")),
+            "withdrawal_litres": _non_negative(src.lifestyle.household.get("withdrawal_litres")),
             "consumption_litres": household_consumption,
-            "grey_litres": _non_negative(household.get("grey_litres")),
+            "grey_litres": _non_negative(src.lifestyle.household.get("grey_litres")),
             "scarcity_m3": household_scarcity["scarcity_m3_world_eq"],
         },
         "diet": {
@@ -639,8 +639,8 @@ def get_water_insights(assessment: dict[str, Any], diet_detail: dict[str, Any] |
         )
 
     household = assessment.get("household", {})
-    withdrawal = household.get("withdrawal_litres", 0.0)
-    consumption = household.get("consumption_litres", 0.0)
+    withdrawal = src.lifestyle.household.get("withdrawal_litres", 0.0)
+    consumption = src.lifestyle.household.get("consumption_litres", 0.0)
     if withdrawal > 0 and consumption / withdrawal < 0.2:
         insights.append(
             f"You withdraw {withdrawal:,.0f} litres at home and consume "
@@ -686,7 +686,7 @@ def get_water_insights(assessment: dict[str, Any], diet_detail: dict[str, Any] |
         if green_heavy:
             names = ", ".join(line["food"] for line in green_heavy[:3])
             insights.append(
-                f"{names}: large totals, almost entirely green water. These "
+                f"{names}: large totals, almost entirely green src.environment.water. These "
                 "look alarming in litres and are close to irrelevant for "
                 "scarcity - the rain was falling there regardless."
             )

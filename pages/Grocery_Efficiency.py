@@ -1,6 +1,6 @@
 """
 Grocery Efficiency Page.
-Streamlit page featuring an interactive shopping list builder, price-vs-carbon scatter plots, and substitution recommendations.
+Streamlit page featuring an interactive shopping list builder, price-vs-carbon scatter plots, and substitution src.ai.recommendations.
 """
 
 import streamlit as st

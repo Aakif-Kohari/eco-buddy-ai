@@ -63,7 +63,7 @@ if address:
         col2.metric("Projected UHI Cooling", f"-{projection.temperature_reduction_c} °C")
         
         # Save target to DB
-        with database.database_connection(database.DB_NAME) as conn:
+        with src.core.database.database_connection(src.core.database.DB_NAME) as conn:
             cursor = conn.cursor()
             # Insert baseline (ignore if exists)
             cursor.execute('''

@@ -2,8 +2,8 @@
 Unit tests for data processing pipeline optimization and minimal change analysis.
 """
 import pytest
-from impact_analyzer import analyze_minimal_change
-from emissions import calculate_footprint
+from src.utils.impact_analyzer import analyze_minimal_change
+from src.carbon.emissions import calculate_footprint
 
 def test_analyze_minimal_change_reuses_data_and_returns_ranked_candidates():
     total, contributors = calculate_footprint("Car", 20.0, 300.0, "Non-Vegetarian", 2, "US")

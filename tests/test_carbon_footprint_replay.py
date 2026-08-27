@@ -4,7 +4,7 @@ Unit tests for Carbon Footprint Replay (#332).
 
 import pandas as pd
 import pytest
-from carbon_footprint_replay import (
+from src.carbon.carbon_footprint_replay import (
     aggregate_historical_emissions,
     detect_milestones,
     export_replay_gif,

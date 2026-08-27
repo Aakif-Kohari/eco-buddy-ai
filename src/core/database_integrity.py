@@ -462,47 +462,47 @@ def inspect_connection(
 
     integrity_rows = connection.execute("PRAGMA integrity_check").fetchall()
     integrity_messages = [str(row[0]) for row in integrity_rows]
-    report.integrity_check = ", ".join(integrity_messages)
+    src.reporting.report.integrity_check = ", ".join(integrity_messages)
     if integrity_messages != ["ok"]:
         for message in integrity_messages:
-            report.errors.append(f"SQLite integrity error: {message}")
+            src.reporting.report.errors.append(f"SQLite integrity error: {message}")
 
     foreign_key_rows = connection.execute(
         "PRAGMA foreign_key_check"
     ).fetchall()
-    report.foreign_key_violations = len(foreign_key_rows)
+    src.reporting.report.foreign_key_violations = len(foreign_key_rows)
     for table, rowid, parent, foreign_key_id in foreign_key_rows:
-        report.errors.append(
+        src.reporting.report.errors.append(
             "Foreign-key violation: "
             f"table={table}, rowid={rowid}, parent={parent}, "
             f"constraint={foreign_key_id}"
         )
 
     version_row = connection.execute("PRAGMA user_version").fetchone()
-    report.actual_version = int(version_row[0])
-    if report.actual_version != expected_version:
-        report.errors.append(
+    src.reporting.report.actual_version = int(version_row[0])
+    if src.reporting.report.actual_version != expected_version:
+        src.reporting.report.errors.append(
             "Schema version mismatch: "
-            f"found {report.actual_version}, expected {expected_version}"
+            f"found {src.reporting.report.actual_version}, expected {expected_version}"
         )
 
     actual_tables = _table_names(connection)
     for table_name, expected_columns in expected_tables.items():
         if table_name not in actual_tables:
-            report.errors.append(f"Missing table: {table_name}")
+            src.reporting.report.errors.append(f"Missing table: {table_name}")
             continue
 
         actual_columns = _table_columns(connection, table_name)
         for column_name, expected_type in expected_columns.items():
             if column_name not in actual_columns:
-                report.errors.append(
+                src.reporting.report.errors.append(
                     f"Missing column: {table_name}.{column_name}"
                 )
                 continue
 
             actual_type = actual_columns[column_name]
             if actual_type != _normalise_type(expected_type):
-                report.errors.append(
+                src.reporting.report.errors.append(
                     "Column type mismatch: "
                     f"{table_name}.{column_name} is {actual_type or '<none>'}, "
                     f"expected {_normalise_type(expected_type)}"
@@ -511,19 +511,19 @@ def inspect_connection(
     actual_indexes = _index_details(connection)
     for index_name, expected_details in expected_indexes.items():
         if index_name not in actual_indexes:
-            report.errors.append(f"Missing index: {index_name}")
+            src.reporting.report.errors.append(f"Missing index: {index_name}")
             continue
 
         actual_table, actual_columns = actual_indexes[index_name]
         expected_table, expected_columns = expected_details
         if actual_table != expected_table:
-            report.errors.append(
+            src.reporting.report.errors.append(
                 "Index table mismatch: "
                 f"{index_name} belongs to {actual_table}, "
                 f"expected {expected_table}"
             )
         if actual_columns != expected_columns:
-            report.errors.append(
+            src.reporting.report.errors.append(
                 "Index column mismatch: "
                 f"{index_name} has {actual_columns}, "
                 f"expected {expected_columns}"
@@ -533,18 +533,18 @@ def inspect_connection(
         migration_directory,
         expected_version,
     )
-    report.migration_inventory = inventory
+    src.reporting.report.migration_inventory = inventory
 
     for version in inventory.duplicate_versions:
-        report.errors.append(
+        src.reporting.report.errors.append(
             f"Duplicate migration version: v{version}"
         )
     for version in inventory.missing_versions:
-        report.errors.append(
+        src.reporting.report.errors.append(
             f"Missing migration file: migrate_v{version}.py"
         )
     for version in inventory.unexpected_future_versions:
-        report.errors.append(
+        src.reporting.report.errors.append(
             "Migration version exceeds CURRENT_VERSION: "
             f"v{version} > v{expected_version}"
         )

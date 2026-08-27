@@ -115,7 +115,7 @@ def generate_mock_alerts() -> List[EnergyAlert]:
 
 
 def generate_mock_goals() -> List[EnergyGoal]:
-    """Generate mock energy goals."""
+    """Generate mock energy src.utils.goals."""
     goals_data = [
         (EnergyGoalType.REDUCE_CONSUMPTION, "Reduce Monthly Usage", 350, 312, "kWh", "2026-12-31"),
         (EnergyGoalType.INCREASE_SUSTAINABLE, "50% Renewable Energy", 50, 38, "%", "2026-12-31"),
@@ -165,9 +165,9 @@ def generate_mock_insights() -> List[EnergyInsight]:
     """Generate AI energy insights."""
     return [
         EnergyInsight("i1", "Optimize AC Schedule", "Your AC runs 2 hours longer than needed during off-peak hours. Setting a schedule could save significant energy.", "scheduling", 45.0, 5.40, 21.4, 0.92, ["Set AC timer to turn off at 11 PM", "Use programmable thermostat"]),
-        EnergyInsight("i2", "Replace Old Fridge", "Your refrigerator uses 40% more energy than modern A++ models. Upgrading could pay for itself in 3 years.", "upgrade", 1200.0, 144.0, 570.0, 0.85, ["Consider A++ rated refrigerator", "Check rebate programs"]),
+        EnergyInsight("i2", "Replace Old Fridge", "Your refrigerator uses 40% more energy than modern A++ src.notifications.models. Upgrading could pay for itself in 3 years.", "upgrade", 1200.0, 144.0, 570.0, 0.85, ["Consider A++ rated refrigerator", "Check rebate programs"]),
         EnergyInsight("i3", "Maximize Solar Usage", "You're exporting 60% of solar production. Using more during peak hours saves grid costs.", "optimization", 80.0, 9.60, 38.0, 0.88, ["Run laundry during solar peak", "Charge EV at midday"]),
-        EnergyInsight("i4", "Phantom Load Detection", "Standby devices consume 2.1kWh daily. Smart plugs could eliminate this waste.", "efficiency", 63.0, 7.56, 29.9, 0.78, ["Install smart plugs", "Use power strips with switches"]),
+        EnergyInsight("i4", "Phantom Load Detection", "Standby devices consume 2.1kWh daily. Smart plugs could eliminate this src.environment.waste.", "efficiency", 63.0, 7.56, 29.9, 0.78, ["Install smart plugs", "Use power strips with switches"]),
     ]
 
 

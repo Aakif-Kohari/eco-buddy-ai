@@ -170,7 +170,7 @@ class ImpactLevel(Enum):
     POSITIVE_HIGH = 7
 
 class GoalStatus(Enum):
-    """Status of sustainability goals."""
+    """Status of sustainability src.utils.goals."""
     NOT_STARTED = auto()
     IN_PROGRESS = auto()
     COMPLETED = auto()
@@ -563,9 +563,9 @@ class SustainabilityDataManager:
         
     def _serialize_water(self, water: WaterFootprint) -> Dict:
         return {
-            "total": water.total,
-            "breakdown": water.breakdown,
-            "date": water.date.isoformat()
+            "total": src.environment.water.total,
+            "breakdown": src.environment.water.breakdown,
+            "date": src.environment.water.date.isoformat()
         }
         
     def _deserialize_water(self, data: Dict) -> WaterFootprint:
@@ -577,12 +577,12 @@ class SustainabilityDataManager:
         
     def _serialize_waste(self, waste: WasteFootprint) -> Dict:
         return {
-            "total": waste.total,
-            "recycled": waste.recycled,
-            "composted": waste.composted,
-            "landfill": waste.landfill,
-            "breakdown": waste.breakdown,
-            "date": waste.date.isoformat()
+            "total": src.environment.waste.total,
+            "recycled": src.environment.waste.recycled,
+            "composted": src.environment.waste.composted,
+            "landfill": src.environment.waste.landfill,
+            "breakdown": src.environment.waste.breakdown,
+            "date": src.environment.waste.date.isoformat()
         }
         
     def _deserialize_waste(self, data: Dict) -> WasteFootprint:
@@ -849,12 +849,12 @@ class SustainabilityAnalyzer:
         
         # Water score (lower is better)
         water = self.calculate_water_footprint()
-        water_score = max(0, 100 - (water.total / 100))  # Assuming 100 gallons is baseline
+        water_score = max(0, 100 - (src.environment.water.total / 100))  # Assuming 100 gallons is baseline
         scores.append(water_score)
         
         # Waste score (lower is better)
         waste = self.calculate_waste_footprint()
-        waste_score = max(0, 100 - (waste.total / 10))  # Assuming 10 kg waste is baseline
+        waste_score = max(0, 100 - (src.environment.waste.total / 10))  # Assuming 10 kg waste is baseline
         scores.append(waste_score)
         
         # Goal progress score
@@ -886,29 +886,29 @@ class SustainabilityAnalyzer:
         return 0.0
         
     def generate_recommendations(self) -> List[str]:
-        """Generate personalized sustainability recommendations."""
+        """Generate personalized sustainability src.ai.recommendations."""
         recommendations = []
         
         # Carbon recommendations
         carbon = self.calculate_carbon_footprint()
         if carbon.total > 100:
-            recommendations.append(
+            src.ai.recommendations.append(
                 "High carbon footprint detected. Consider reducing energy usage "
                 "and using more sustainable transportation options."
             )
             
         # Water recommendations
         water = self.calculate_water_footprint()
-        if water.total > 500:
-            recommendations.append(
+        if src.environment.water.total > 500:
+            src.ai.recommendations.append(
                 "High water usage detected. Consider installing water-efficient "
                 "fixtures and reducing shower time."
             )
             
         # Waste recommendations
         waste = self.calculate_waste_footprint()
-        if waste.total > 20:
-            recommendations.append(
+        if src.environment.waste.total > 20:
+            src.ai.recommendations.append(
                 "High waste generation. Consider increasing recycling efforts "
                 "and reducing single-use items."
             )
@@ -917,17 +917,17 @@ class SustainabilityAnalyzer:
         for goal in self.data_manager.goals:
             if goal.status != GoalStatus.COMPLETED:
                 if goal.dimension == SustainabilityDimension.ENERGY:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Work towards {goal.title}. Consider using energy-efficient "
                         f"appliances and LED lighting."
                     )
                 elif goal.dimension == SustainabilityDimension.WATER:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Work towards {goal.title}. Consider fixing leaks and "
                         f"using water-efficient fixtures."
                     )
                 elif goal.dimension == SustainabilityDimension.WASTE:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Work towards {goal.title}. Consider composting and "
                         f"buying products with minimal packaging."
                     )
@@ -935,7 +935,7 @@ class SustainabilityAnalyzer:
         # Action-based recommendations
         for action in self.data_manager.actions:
             if action.completed < action.target:
-                recommendations.append(
+                src.ai.recommendations.append(
                     f"Complete {action.name}. {action.description}"
                 )
                 
@@ -1021,14 +1021,14 @@ class SustainabilityOptimizer:
         average_usage = total_energy / len(energy_metrics) if energy_metrics else 0
         
         if average_usage > 400:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Reduce electricity usage from {average_usage:.1f} to under 400 kWh/month. "
                 f"Potential savings: 20%"
             )
             potential_savings += average_usage * 0.2 * CARBON_FACTORS["electricity"]
             
         if average_usage > 100:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Reduce natural gas usage from {average_usage:.1f} to under 100 therms/month."
             )
             
@@ -1036,7 +1036,7 @@ class SustainabilityOptimizer:
         for action in self.data_manager.actions:
             if action.dimension == SustainabilityDimension.ENERGY:
                 if action.completed < action.target:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Implement {action.name}. CO2 reduction: {action.co2_reduction:.1f} kg/year"
                     )
                     
@@ -1064,7 +1064,7 @@ class SustainabilityOptimizer:
         average_usage = total_water / len(water_metrics) if water_metrics else 0
         
         if average_usage > 200:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Reduce water usage from {average_usage:.1f} to under 200 gallons/month. "
                 f"Potential savings: 15%"
             )
@@ -1074,7 +1074,7 @@ class SustainabilityOptimizer:
         for action in self.data_manager.actions:
             if action.dimension == SustainabilityDimension.WATER:
                 if action.completed < action.target:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Implement {action.name}. Water savings: {action.water_savings:.1f} gallons/use"
                     )
                     
@@ -1102,7 +1102,7 @@ class SustainabilityOptimizer:
         average_usage = total_waste / len(waste_metrics) if waste_metrics else 0
         
         if average_usage > 50:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Reduce waste generation from {average_usage:.1f} to under 50 kg/month. "
                 f"Potential savings: 30% reduction in landfill waste"
             )
@@ -1112,7 +1112,7 @@ class SustainabilityOptimizer:
         for action in self.data_manager.actions:
             if action.dimension == SustainabilityDimension.WASTE:
                 if action.completed < action.target:
-                    recommendations.append(
+                    src.ai.recommendations.append(
                         f"Implement {action.name}. Waste reduction: {action.waste_reduction:.1f} kg/use"
                     )
                     
@@ -1163,7 +1163,7 @@ class SustainabilityReporter:
         self.analyzer = SustainabilityAnalyzer(data_manager)
         
     def generate_report(self, period_days: int = 30) -> Dict[str, Any]:
-        """Generate a comprehensive sustainability report."""
+        """Generate a comprehensive sustainability src.reporting.report."""
         start_date = datetime.datetime.now() - datetime.timedelta(days=period_days)
         end_date = datetime.datetime.now()
         
@@ -1205,13 +1205,13 @@ class SustainabilityReporter:
             "sustainability_score": score,
             "carbon_footprint": carbon.total,
             "carbon_breakdown": carbon.breakdown,
-            "water_footprint": water.total,
-            "water_breakdown": water.breakdown,
-            "waste_footprint": waste.total,
-            "waste_breakdown": waste.breakdown,
-            "waste_recycled": waste.recycled,
-            "waste_composted": waste.composted,
-            "waste_landfill": waste.landfill,
+            "water_footprint": src.environment.water.total,
+            "water_breakdown": src.environment.water.breakdown,
+            "waste_footprint": src.environment.waste.total,
+            "waste_breakdown": src.environment.waste.breakdown,
+            "waste_recycled": src.environment.waste.recycled,
+            "waste_composted": src.environment.waste.composted,
+            "waste_landfill": src.environment.waste.landfill,
             "goal_progress": goal_progress,
             "action_status": action_status,
             "recommendations": recommendations,
@@ -1234,7 +1234,7 @@ class SustainabilityReporter:
         }
         
     def generate_progress_report(self, period_days: int = 30) -> ProgressReport:
-        """Generate a detailed progress report."""
+        """Generate a detailed progress src.reporting.report."""
         start_date = datetime.datetime.now() - datetime.timedelta(days=period_days)
         end_date = datetime.datetime.now()
         
@@ -1277,23 +1277,23 @@ class SustainabilityReporter:
             writer.writerow(['Metric', 'Value', 'Unit'])
             
             # Write key metrics
-            writer.writerow(['Sustainability Score', report.get('sustainability_score', 0), 'score'])
-            writer.writerow(['Carbon Footprint', report.get('carbon_footprint', 0), 'kg CO2e'])
-            writer.writerow(['Water Footprint', report.get('water_footprint', 0), 'gallons'])
-            writer.writerow(['Waste Footprint', report.get('waste_footprint', 0), 'kg'])
+            writer.writerow(['Sustainability Score', src.reporting.report.get('sustainability_score', 0), 'score'])
+            writer.writerow(['Carbon Footprint', src.reporting.report.get('carbon_footprint', 0), 'kg CO2e'])
+            writer.writerow(['Water Footprint', src.reporting.report.get('water_footprint', 0), 'gallons'])
+            writer.writerow(['Waste Footprint', src.reporting.report.get('waste_footprint', 0), 'kg'])
             
             # Write carbon breakdown
-            writer.writerow(['Carbon Breakdown - Electricity', report.get('carbon_breakdown', {}).get('electricity', 0), 'kg CO2e'])
-            writer.writerow(['Carbon Breakdown - Natural Gas', report.get('carbon_breakdown', {}).get('natural_gas', 0), 'kg CO2e'])
-            writer.writerow(['Carbon Breakdown - Car Travel', report.get('carbon_breakdown', {}).get('car_travel', 0), 'kg CO2e'])
-            writer.writerow(['Carbon Breakdown - Air Travel', report.get('carbon_breakdown', {}).get('air_travel', 0), 'kg CO2e'])
+            writer.writerow(['Carbon Breakdown - Electricity', src.reporting.report.get('carbon_breakdown', {}).get('electricity', 0), 'kg CO2e'])
+            writer.writerow(['Carbon Breakdown - Natural Gas', src.reporting.report.get('carbon_breakdown', {}).get('natural_gas', 0), 'kg CO2e'])
+            writer.writerow(['Carbon Breakdown - Car Travel', src.reporting.report.get('carbon_breakdown', {}).get('car_travel', 0), 'kg CO2e'])
+            writer.writerow(['Carbon Breakdown - Air Travel', src.reporting.report.get('carbon_breakdown', {}).get('air_travel', 0), 'kg CO2e'])
             
             # Write goals
-            for goal in report.get('goal_progress', []):
+            for goal in src.reporting.report.get('goal_progress', []):
                 writer.writerow(['Goal', goal.get('title', ''), goal.get('progress', 0), '%'])
                 
             # Write actions
-            for action in report.get('action_status', []):
+            for action in src.reporting.report.get('action_status', []):
                 writer.writerow(['Action', action.get('name', ''), action.get('completion', 0), '%'])
                 
         return filename
@@ -1447,15 +1447,15 @@ class SustainabilityAPI:
         return self.reporter.generate_summary()
         
     def get_report(self, period_days: int = 30) -> Dict[str, Any]:
-        """Get comprehensive sustainability report."""
+        """Get comprehensive sustainability src.reporting.report."""
         return self.reporter.generate_report(period_days)
         
     def get_progress_report(self, period_days: int = 30) -> ProgressReport:
-        """Get detailed progress report."""
+        """Get detailed progress src.reporting.report."""
         return self.reporter.generate_progress_report(period_days)
         
     def get_recommendations(self) -> List[str]:
-        """Get sustainability recommendations."""
+        """Get sustainability src.ai.recommendations."""
         return self.analyzer.generate_recommendations()
         
     def get_carbon_footprint(self, period_days: int = 30) -> CarbonFootprint:
@@ -1479,19 +1479,19 @@ class SustainabilityAPI:
         return self.analyzer.calculate_trends(dimension, period_days)
         
     def optimize_energy(self) -> Dict[str, Any]:
-        """Get energy optimization recommendations."""
+        """Get energy optimization src.ai.recommendations."""
         return self.optimizer.optimize_energy_usage()
         
     def optimize_water(self) -> Dict[str, Any]:
-        """Get water optimization recommendations."""
+        """Get water optimization src.ai.recommendations."""
         return self.optimizer.optimize_water_usage()
         
     def optimize_waste(self) -> Dict[str, Any]:
-        """Get waste optimization recommendations."""
+        """Get waste optimization src.ai.recommendations."""
         return self.optimizer.optimize_waste_management()
         
     def prioritize_goals(self) -> List[Tuple[str, float]]:
-        """Get prioritized goals."""
+        """Get prioritized src.utils.goals."""
         return self.optimizer.optimize_goal_priority()
         
     def get_chart_data(self, chart_type: str, period_days: int = 90) -> Dict[str, Any]:
@@ -1649,15 +1649,15 @@ class SustainabilityCLI:
         days = int(args[0]) if args else 30
         report = self.api.get_report(days)
         print(f"=== Sustainability Report (Last {days} days) ===")
-        print(f"Score: {report.get('sustainability_score', 0):.2f}")
-        print(f"Carbon Footprint: {report.get('carbon_footprint', 0):.2f} kg CO2e")
-        print(f"Water Footprint: {report.get('water_footprint', 0):.2f} gallons")
-        print(f"Waste Footprint: {report.get('waste_footprint', 0):.2f} kg")
+        print(f"Score: {src.reporting.report.get('sustainability_score', 0):.2f}")
+        print(f"Carbon Footprint: {src.reporting.report.get('carbon_footprint', 0):.2f} kg CO2e")
+        print(f"Water Footprint: {src.reporting.report.get('water_footprint', 0):.2f} gallons")
+        print(f"Waste Footprint: {src.reporting.report.get('waste_footprint', 0):.2f} kg")
         print("\nGoals:")
-        for goal in report.get('goal_progress', []):
+        for goal in src.reporting.report.get('goal_progress', []):
             print(f"  - {goal['title']}: {goal['progress']:.1f}% ({goal['status']})")
         print("\nRecommendations:")
-        for rec in report.get('recommendations', [])[:5]:
+        for rec in src.reporting.report.get('recommendations', [])[:5]:
             print(f"  - {rec}")
             
     def _cmd_progress(self, args: List[str]):
@@ -1697,9 +1697,9 @@ class SustainabilityCLI:
         days = int(args[0]) if args else 30
         water = self.api.get_water_footprint(days)
         print(f"=== Water Footprint (Last {days} days) ===")
-        print(f"Total: {water.total:.2f} gallons")
+        print(f"Total: {src.environment.water.total:.2f} gallons")
         print("\nBreakdown:")
-        for category, value in water.breakdown.items():
+        for category, value in src.environment.water.breakdown.items():
             if value > 0:
                 print(f"  {category}: {value:.2f} gallons")
                 
@@ -1707,10 +1707,10 @@ class SustainabilityCLI:
         days = int(args[0]) if args else 30
         waste = self.api.get_waste_footprint(days)
         print(f"=== Waste Footprint (Last {days} days) ===")
-        print(f"Total: {waste.total:.2f} kg")
-        print(f"Recycled: {waste.recycled:.2f} kg")
-        print(f"Composted: {waste.composted:.2f} kg")
-        print(f"Landfill: {waste.landfill:.2f} kg")
+        print(f"Total: {src.environment.waste.total:.2f} kg")
+        print(f"Recycled: {src.environment.waste.recycled:.2f} kg")
+        print(f"Composted: {src.environment.waste.composted:.2f} kg")
+        print(f"Landfill: {src.environment.waste.landfill:.2f} kg")
         
     def _cmd_trends(self, args: List[str]):
         if not args:

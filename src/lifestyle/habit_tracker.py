@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: habit_tracker.py
+# FILE: src.lifestyle.habit_tracker.py
 # EcoBuddy AI+ Eco-Productivity & Habit Tracker
 # ============================================================
 

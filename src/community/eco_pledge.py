@@ -113,7 +113,7 @@ def complete_pledge(pledge_id: str) -> bool:
         )
         # Award 50 XP (Assuming an add_xp function exists in database module, falling back to dummy update if not)
         try:
-            database.add_xp(user_id, 50, "Pledge Completed")
+            src.core.database.add_xp(user_id, 50, "Pledge Completed")
         except AttributeError:
             pass # In tests or if function doesn't exist, ignore
             

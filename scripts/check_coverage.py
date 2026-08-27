@@ -25,7 +25,7 @@ CRITICAL_MODULES_THRESHOLDS: Dict[str, float] = {
 
 
 def run_coverage_analysis() -> Dict[str, Any]:
-    """Execute pytest with coverage and return the parsed JSON report."""
+    """Execute pytest with coverage and return the parsed JSON src.reporting.report."""
     subprocess.run(
         [
             sys.executable,

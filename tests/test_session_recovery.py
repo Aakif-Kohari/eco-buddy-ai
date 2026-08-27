@@ -2,8 +2,8 @@
 
 import sqlite3
 
-import database
-import session_recovery
+import src.core.database
+import src.core.session_recovery
 
 DEFAULTS = {
     "region": "Global",
@@ -16,7 +16,7 @@ DEFAULTS = {
 
 
 def test_normalise_draft_returns_complete_typed_values():
-    draft = session_recovery.normalise_draft(
+    draft = src.core.session_recovery.normalise_draft(
         {
             "transport": "Bike",
             "distance": "12.5",
@@ -43,7 +43,7 @@ def test_default_form_is_not_saved(monkeypatch):
         lambda *args: called.append(args) or True,
     )
 
-    result = session_recovery.save_draft_if_changed(
+    result = src.core.session_recovery.save_draft_if_changed(
         1,
         DEFAULTS,
         DEFAULTS,
@@ -63,12 +63,12 @@ def test_changed_draft_is_saved_once(monkeypatch):
     )
     values = {**DEFAULTS, "transport": "Bike"}
 
-    first = session_recovery.save_draft_if_changed(
+    first = src.core.session_recovery.save_draft_if_changed(
         1,
         values,
         DEFAULTS,
     )
-    second = session_recovery.save_draft_if_changed(
+    second = src.core.session_recovery.save_draft_if_changed(
         1,
         values,
         DEFAULTS,
@@ -84,7 +84,7 @@ def test_changed_draft_is_saved_once(monkeypatch):
 def test_restore_populates_session_state():
     state = {}
 
-    session_recovery.restore_draft_into_session(
+    src.core.session_recovery.restore_draft_into_session(
         {
             "region": "UK",
             "transport": "Public Transport",
@@ -125,7 +125,7 @@ def test_database_draft_is_updated_and_user_scoped(tmp_path, monkeypatch):
     conn.commit()
     conn.close()
 
-    assert database.save_assessment_draft(
+    assert src.core.database.save_assessment_draft(
         1,
         "Car",
         10,
@@ -134,7 +134,7 @@ def test_database_draft_is_updated_and_user_scoped(tmp_path, monkeypatch):
         0,
         "Global",
     )
-    assert database.save_assessment_draft(
+    assert src.core.database.save_assessment_draft(
         1,
         "Bike",
         4,
@@ -143,7 +143,7 @@ def test_database_draft_is_updated_and_user_scoped(tmp_path, monkeypatch):
         0,
         "EU",
     )
-    assert database.save_assessment_draft(
+    assert src.core.database.save_assessment_draft(
         2,
         "Walking",
         2,
@@ -153,13 +153,13 @@ def test_database_draft_is_updated_and_user_scoped(tmp_path, monkeypatch):
         "UK",
     )
 
-    user_one = database.get_assessment_draft(1)
-    user_two = database.get_assessment_draft(2)
+    user_one = src.core.database.get_assessment_draft(1)
+    user_two = src.core.database.get_assessment_draft(2)
 
     assert user_one["transport"] == "Bike"
     assert user_one["region"] == "EU"
     assert user_two["transport"] == "Walking"
 
-    assert database.delete_assessment_draft(1)
-    assert database.get_assessment_draft(1) is None
-    assert database.get_assessment_draft(2) is not None
+    assert src.core.database.delete_assessment_draft(1)
+    assert src.core.database.get_assessment_draft(1) is None
+    assert src.core.database.get_assessment_draft(2) is not None

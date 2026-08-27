@@ -4,7 +4,7 @@ A conversational sustainability advisor. Instead of static recommendations,
 users can ask questions like "How can I reduce my footprint by 30%?" and
 receive personalized action plans grounded in their own assessment history.
 
-Self-contained module: uses the same Gemini/Groq pattern as llm_parser.py and
+Self-contained module: uses the same Gemini/Groq pattern as src.ai.llm_parser.py and
 persists conversations in its own lazily-created SQLite table.
 """
 

@@ -1,7 +1,7 @@
 
 
 # ============================================================
-# FILE: eco_parenting.py
+# FILE: src.lifestyle.eco_parenting.py
 # EcoBuddy AI+ Eco-Parenting & Family Green Living Guide
 # ============================================================
 

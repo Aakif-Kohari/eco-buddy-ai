@@ -1,5 +1,5 @@
 import unittest
-from industrial_carbon_capture_ccus import CCUSEngine
+from src.carbon.industrial_carbon_capture_ccus import CCUSEngine
 
 class TestIndustrialCarbonCaptureCCUS(unittest.TestCase):
     def setUp(self):

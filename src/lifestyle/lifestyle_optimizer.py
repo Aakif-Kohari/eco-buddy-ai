@@ -88,7 +88,7 @@ LIFESTYLE_ACTIONS_CATALOG = [
         "annual_savings_kg": 350.0,
         "impact": "Medium",
         "effort": "Low",
-        "description": "Share car rides for daily commuting to split vehicle emissions.",
+        "description": "Share car rides for daily commuting to split vehicle src.carbon.emissions.",
         "requires_context": {"transport": ["Car"]}
     },
     {

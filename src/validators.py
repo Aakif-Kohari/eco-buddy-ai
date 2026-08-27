@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class ValidationError(Exception):
-    """Custom exception for validation errors."""
+    """Custom exception for validation src.core.errors."""
     pass
 
 
@@ -219,10 +219,10 @@ def validate_assessment_data(data: Dict[str, Any]) -> Dict[str, List[str]]:
         "notes": (data.get("notes", ""), lambda v: validate_length(v, "Notes", max_length=1000)),
     }
     
-    for field_name, (value, validator) in validators.items():
+    for field_name, (value, validator) in src.validators.items():
         is_valid, error = validator(value)
         if not is_valid and error:
-            errors.setdefault(field_name, []).append(error)
+            src.core.errors.setdefault(field_name, []).append(error)
     
     return errors
 
@@ -246,12 +246,12 @@ def validate_profile_data(data: Dict[str, Any]) -> Dict[str, List[str]]:
         "bio": (data.get("bio", ""), lambda v: validate_length(v, "Bio", max_length=500)),
     }
     
-    for field_name, (value, validator) in validators.items():
+    for field_name, (value, validator) in src.validators.items():
         if value is None:
             continue
         is_valid, error = validator(value)
         if not is_valid and error:
-            errors.setdefault(field_name, []).append(error)
+            src.core.errors.setdefault(field_name, []).append(error)
     
     return errors
 
@@ -272,14 +272,14 @@ def validate_quiz_answer(data: Dict[str, Any]) -> Dict[str, List[str]]:
     quiz_id = data.get("quiz_id")
     is_valid, error = validate_required(quiz_id, "Quiz ID")
     if not is_valid and error:
-        errors.setdefault("quiz_id", []).append(error)
+        src.core.errors.setdefault("quiz_id", []).append(error)
     
     # Validate answers
     answers = data.get("answers", {})
     if not answers or not isinstance(answers, dict):
-        errors.setdefault("answers", []).append("Answers are required.")
+        src.core.errors.setdefault("answers", []).append("Answers are required.")
     elif len(answers) == 0:
-        errors.setdefault("answers", []).append("Please answer all questions.")
+        src.core.errors.setdefault("answers", []).append("Please answer all questions.")
     
     return errors
 
@@ -303,10 +303,10 @@ def validate_recommendation_feedback(data: Dict[str, Any]) -> Dict[str, List[str
         "useful": (data.get("useful"), lambda v: validate_required(v, "Usefulness")),
     }
     
-    for field_name, (value, validator) in validators.items():
+    for field_name, (value, validator) in src.validators.items():
         is_valid, error = validator(value)
         if not is_valid and error:
-            errors.setdefault(field_name, []).append(error)
+            src.core.errors.setdefault(field_name, []).append(error)
     
     return errors
 
@@ -325,9 +325,9 @@ def validate_widget_preferences(data: Dict[str, Any]) -> Dict[str, List[str]]:
     
     widgets = data.get("widgets", [])
     if not widgets or not isinstance(widgets, list):
-        errors.setdefault("widgets", []).append("Widget selection is required.")
+        src.core.errors.setdefault("widgets", []).append("Widget selection is required.")
     elif len(widgets) == 0:
-        errors.setdefault("widgets", []).append("Please select at least one widget.")
+        src.core.errors.setdefault("widgets", []).append("Please select at least one widget.")
     
     return errors
 
@@ -355,7 +355,7 @@ def validate_form(data: Dict[str, Any], form_type: str) -> Dict[str, List[str]]:
         "widgets": validate_widget_preferences,
     }
     
-    validator = validators.get(form_type)
+    validator = src.validators.get(form_type)
     if not validator:
         return {"form": [f"Unknown form type: {form_type}"]}
     

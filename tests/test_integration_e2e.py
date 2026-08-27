@@ -17,11 +17,11 @@ import sqlite3
 import datetime
 from unittest.mock import patch, MagicMock
 
-import database as db
-import gamification as gf
-from emissions import calculate_footprint, calculate_eco_score
-from recommendations import generate_recommendations
-from report import generate_pdf as report_generate_pdf
+import src.core.database as db
+import src.community.gamification as gf
+from src.carbon.emissions import calculate_footprint, calculate_eco_score
+from src.ai.recommendations import generate_recommendations
+from src.reporting.report import generate_pdf as report_generate_pdf
 
 
 TEST_USER_ID = 1
@@ -30,25 +30,25 @@ TEST_USER_ID = 1
 @pytest.fixture(autouse=True)
 def setup_teardown():
     """Setup and teardown for all integration tests."""
-    original_db_name = db.DB_NAME
+    original_db_name = src.notifications.db.DB_NAME
     test_db_name = f"test_e2e_{uuid.uuid4().hex[:8]}.db"
-    db.DB_NAME = test_db_name
+    src.notifications.db.DB_NAME = test_db_name
     
     # Initialize all databases
-    db.init_db()
-    db.init_gamification_db()
-    db.init_marketplace_db()
+    src.notifications.db.init_db()
+    src.notifications.db.init_gamification_db()
+    src.notifications.db.init_marketplace_db()
     
     # Create test user
     username = f"testuser_{uuid.uuid4().hex[:6]}"
     email = f"{username}@example.com"
     password = "SecurePassword123!"
-    db.create_user(username, email, password)
+    src.notifications.db.create_user(username, email, password)
     
     yield
     
     # Teardown - cleanup
-    db.DB_NAME = original_db_name
+    src.notifications.db.DB_NAME = original_db_name
     if os.path.exists(test_db_name):
         try:
             os.remove(test_db_name)
@@ -74,7 +74,7 @@ class TestCompleteAssessmentWorkflow:
         region = "US"
 
         # Step 2: Calculate emissions (mocking external API calls)
-        with patch('emissions.os.environ.get', return_value=None):
+        with patch('src.carbon.emissions.os.environ.get', return_value=None):
             total, contributors = calculate_footprint(
                 transport, distance, electricity, diet, flights, region
             )
@@ -98,7 +98,7 @@ class TestCompleteAssessmentWorkflow:
         assert isinstance(recommendations, list)
 
         # Step 4: Save assessment to database
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, transport, distance, electricity, diet,
             flights, total, eco_score
         )
@@ -106,7 +106,7 @@ class TestCompleteAssessmentWorkflow:
         assert success is True
 
         # Step 5: Retrieve and verify saved assessment
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
         
         saved = assessments[0]
@@ -127,7 +127,7 @@ class TestCompleteAssessmentWorkflow:
         flights = 0
         region = "Global"
 
-        with patch('emissions.os.environ.get', return_value=None):
+        with patch('src.carbon.emissions.os.environ.get', return_value=None):
             total, contributors = calculate_footprint(
                 transport, distance, electricity, diet, flights, region
             )
@@ -141,7 +141,7 @@ class TestCompleteAssessmentWorkflow:
         assert contributors["Transport"] == 0.0
 
         # Save and verify
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, transport, distance, electricity, diet,
             flights, total, eco_score
         )
@@ -152,21 +152,21 @@ class TestCompleteAssessmentWorkflow:
         regions = ["Global", "US", "UK", "EU"]
         
         for region in regions:
-            with patch('emissions.os.environ.get', return_value=None):
+            with patch('src.carbon.emissions.os.environ.get', return_value=None):
                 total, contributors = calculate_footprint(
                     "Car", 15.0, 200.0, "Vegetarian", 1, region
                 )
                 eco_score = calculate_eco_score(total, contributors)
 
             # Save assessment
-            success = db.save_assessment(
+            success = src.notifications.db.save_assessment(
                 TEST_USER_ID, "Car", 15.0, 200.0, "Vegetarian",
                 1, total, eco_score
             )
             assert success is True
 
         # Verify all assessments saved
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == len(regions)
 
 
@@ -187,11 +187,11 @@ class TestDatabasePersistence:
         ]
 
         for data in assessments_data:
-            success = db.save_assessment(TEST_USER_ID, *data)
+            success = src.notifications.db.save_assessment(TEST_USER_ID, *data)
             assert success is True
 
         # Retrieve assessments
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 3
 
         # Verify order (most recent first)
@@ -208,14 +208,14 @@ class TestDatabasePersistence:
         footprint = 7265.0
         eco_score = 8
 
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, transport, distance, electricity, diet,
             flights, footprint, eco_score
         )
         assert success is True
 
         # Retrieve and verify
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         saved = assessments[0]
 
         # Verify all fields match
@@ -229,7 +229,7 @@ class TestDatabasePersistence:
 
     def test_assessment_history_empty_user(self):
         """Test history retrieval for non-existent user."""
-        assessments = db.get_assessments(99999)  # Non-existent user
+        assessments = src.notifications.db.get_assessments(99999)  # Non-existent user
         assert assessments == []
 
     def test_assessment_duplicate_save_fails(self):
@@ -244,21 +244,21 @@ class TestDatabasePersistence:
         trip_id = "unique_trip_123"
 
         # First save should succeed
-        success1 = db.save_assessment(
+        success1 = src.notifications.db.save_assessment(
             TEST_USER_ID, transport, distance, electricity, diet,
             flights, footprint, eco_score, trip_id=trip_id
         )
         assert success1 is True
 
         # Second save with same trip_id should fail
-        success2 = db.save_assessment(
+        success2 = src.notifications.db.save_assessment(
             TEST_USER_ID, transport, distance, electricity, diet,
             flights, footprint, eco_score, trip_id=trip_id
         )
         assert success2 is False
 
         # Only one assessment should exist
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
 
 
@@ -323,7 +323,7 @@ class TestPDFGeneration:
         eco_score = 35
         insight = (
             "Your carbon footprint is above average. "
-            "Transportation contributes 35% of your emissions. "
+            "Transportation contributes 35% of your src.carbon.emissions. "
             "Consider switching to public transport for daily commutes. "
             "Additionally, reducing meat consumption could help."
         )
@@ -362,9 +362,9 @@ class TestMultiPageWorkflow:
         ]
 
         for data in assessments_data:
-            db.save_assessment(TEST_USER_ID, *data)
+            src.notifications.db.save_assessment(TEST_USER_ID, *data)
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 3
 
         footprints = [a[7] for a in assessments]
@@ -387,12 +387,12 @@ class TestMultiPageWorkflow:
         footprints = [8000.0, 6500.0, 5000.0]
 
         for dt, footprint in zip(dates, footprints):
-            db.save_assessment(
+            src.notifications.db.save_assessment(
                 TEST_USER_ID, "Car", 20.0, 250.0, "Non-Vegetarian",
                 2, footprint, 25, date=dt
             )
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 3
 
         assert assessments[0][7] == 5000.0  # Latest
@@ -406,12 +406,12 @@ class TestMultiPageWorkflow:
 
     def test_export_assessment_data(self):
         """Test exporting assessment data (simulating data_io)."""
-        db.save_assessment(
+        src.notifications.db.save_assessment(
             TEST_USER_ID, "Car", 20.0, 250.0, "Non-Vegetarian",
             2, 6293.0, 19
         )
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
         assessment = assessments[0]
 
@@ -445,14 +445,14 @@ class TestEndToEndUserJourney:
 
     def test_user_registers_and_completes_assessment(self):
         """Test complete user journey: register → login → assessment."""
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, "Car", 15.0, 200.0, "Vegetarian",
             1, 4751.0, 36
         )
 
         assert success is True
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
 
     def test_user_views_assessment_history(self):
@@ -460,16 +460,16 @@ class TestEndToEndUserJourney:
         dt1 = (datetime.datetime.now() - datetime.timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
         dt2 = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        db.save_assessment(
+        src.notifications.db.save_assessment(
             TEST_USER_ID, "Car", 20.0, 250.0, "Non-Vegetarian",
             2, 6293.0, 19, date=dt1
         )
-        db.save_assessment(
+        src.notifications.db.save_assessment(
             TEST_USER_ID, "Bike", 10.0, 150.0, "Vegetarian",
             0, 1984.0, 77, date=dt2
         )
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 2
         assert assessments[0][7] == 1984.0  # More recent, lower footprint
 
@@ -496,12 +496,12 @@ class TestEndToEndUserJourney:
         dates = [(today - datetime.timedelta(days=i)).strftime("%Y-%m-%d %H:%M:%S") for i in range(7)]
 
         for dt in dates:
-            db.save_assessment(
+            src.notifications.db.save_assessment(
                 TEST_USER_ID, "Car", 10.0, 200.0, "Vegetarian",
                 0, 3260.0, 50, date=dt
             )
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         activities_dates = [str(a[1])[:10] for a in assessments]
         unique_dates = list(set(activities_dates))
         assert len(unique_dates) >= 7
@@ -519,14 +519,14 @@ class TestEdgeCases:
         total = 1000.0
         eco_score = 86
 
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, "Walking", 0.0, 0.0, "Vegetarian",
             0, total, eco_score
         )
 
         assert success is True
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
         assert assessments[0][7] == 1000.0
 
@@ -535,14 +535,14 @@ class TestEdgeCases:
         total = 1011700.0
         eco_score = 0
 
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, "Car", 500.0, 10000.0, "Non-Vegetarian",
             365, total, eco_score
         )
 
         assert success is True
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
         assert assessments[0][7] == 1011700.0
 
@@ -564,14 +564,14 @@ class TestEdgeCases:
 
     def test_assessment_save_with_invalid_data(self):
         """Test assessment save with invalid data types."""
-        success = db.save_assessment(
+        success = src.notifications.db.save_assessment(
             TEST_USER_ID, "Car", -10.0, 250.0, "Non-Vegetarian",
             2, 5000.0, 40
         )
 
         assert success is True
 
-        assessments = db.get_assessments(TEST_USER_ID)
+        assessments = src.notifications.db.get_assessments(TEST_USER_ID)
         assert len(assessments) == 1
 
 
@@ -593,7 +593,7 @@ def create_assessment_data():
 
 def calculate_assessment(data):
     """Helper to calculate assessment metrics."""
-    with patch('emissions.os.environ.get', return_value=None):
+    with patch('src.carbon.emissions.os.environ.get', return_value=None):
         total, contributors = calculate_footprint(
             data["transport"], data["distance"], data["electricity"],
             data["diet"], data["flights"], data["region"]

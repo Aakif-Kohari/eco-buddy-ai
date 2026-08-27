@@ -824,42 +824,42 @@ class RegressionReport:
         summary = self.registry.get_issue_summary(issue_id)
         
         report = []
-        report.append("=" * 80)
-        report.append(f"REGRESSION TEST REPORT - Issue #{issue_id}")
-        report.append("=" * 80)
-        report.append(f"Generated: {datetime.utcnow().isoformat()}")
-        report.append("")
+        src.reporting.report.append("=" * 80)
+        src.reporting.report.append(f"REGRESSION TEST REPORT - Issue #{issue_id}")
+        src.reporting.report.append("=" * 80)
+        src.reporting.report.append(f"Generated: {datetime.utcnow().isoformat()}")
+        src.reporting.report.append("")
         
         if summary['total_tests'] == 0:
-            report.append("No regression tests found for this issue.")
+            src.reporting.report.append("No regression tests found for this issue.")
             return "\n".join(report)
         
-        report.append(f"Total Tests: {summary['total_tests']}")
-        report.append(f"Passed: {summary['passed']}")
-        report.append(f"Failed: {summary['failed']}")
-        report.append(f"Pending: {summary['pending']}")
-        report.append(f"Overall Status: {summary['overall_status'].upper()}")
-        report.append("")
-        report.append("Test Details:")
-        report.append("-" * 40)
+        src.reporting.report.append(f"Total Tests: {summary['total_tests']}")
+        src.reporting.report.append(f"Passed: {summary['passed']}")
+        src.reporting.report.append(f"Failed: {summary['failed']}")
+        src.reporting.report.append(f"Pending: {summary['pending']}")
+        src.reporting.report.append(f"Overall Status: {summary['overall_status'].upper()}")
+        src.reporting.report.append("")
+        src.reporting.report.append("Test Details:")
+        src.reporting.report.append("-" * 40)
         
         for test_info in summary['tests']:
             test_id = f"{issue_id}_{test_info['id']}"
             stats = self.registry.get_test_stats(test_id)
             
             status_symbol = "✓" if test_info['status'] == 'passed' else "✗"
-            report.append(f"{status_symbol} {test_info['id']}: {test_info['status']}")
+            src.reporting.report.append(f"{status_symbol} {test_info['id']}: {test_info['status']}")
             
             if stats:
-                report.append(f"   Runs: {stats['total_runs']}, "
+                src.reporting.report.append(f"   Runs: {stats['total_runs']}, "
                             f"Success Rate: {stats['success_rate']:.1f}%")
                 if stats['last_failure']:
-                    report.append(f"   Last Failure: {stats['last_failure']}")
+                    src.reporting.report.append(f"   Last Failure: {stats['last_failure']}")
                 if stats['last_success']:
-                    report.append(f"   Last Success: {stats['last_success']}")
-            report.append("")
+                    src.reporting.report.append(f"   Last Success: {stats['last_success']}")
+            src.reporting.report.append("")
         
-        report.append("=" * 80)
+        src.reporting.report.append("=" * 80)
         return "\n".join(report)
     
     def save_report(self, issue_id: str, output_file: Optional[str] = None):
@@ -950,7 +950,7 @@ def run_regression_tests():
     
     # Generate report
     report = RegressionReport(registry)
-    report_file = report.save_report("958")
+    report_file = src.reporting.report.save_report("958")
     
     print(f"\nReport saved to: {report_file}")
     

@@ -7,7 +7,7 @@ Pipeline:
   1. Transcribe speech -> text (Groq Whisper when GROQ_API_KEY is set, or the
      browser Web Speech API via the page layer).
   2. Parse the transcript into structured activity data, extending the
-     llm_parser.py approach to handle spoken-style phrasing and disfluencies
+     src.ai.llm_parser.py approach to handle spoken-style phrasing and disfluencies
      ("um", "like", "about").
   3. Present a confirmation summary; only save after the user confirms.
   4. Persist using the same database functions as manual entry so voice logs

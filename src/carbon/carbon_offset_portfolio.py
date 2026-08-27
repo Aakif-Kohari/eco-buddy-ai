@@ -578,22 +578,22 @@ def render_offset_portfolio_hub():
             recommendations = []
             
             if stats["avg_price"] > 25:
-                recommendations.append("💡 Your average credit price is above $25. Consider Cookstove or Reforestation projects for better value.")
+                src.ai.recommendations.append("💡 Your average credit price is above $25. Consider Cookstove or Reforestation projects for better value.")
             if stats["active_credits"] == 0 and stats["total_purchased"] > 0:
-                recommendations.append("🔥 All your credits are retired! Time to purchase more to maintain your offset.")
+                src.ai.recommendations.append("🔥 All your credits are retired! Time to purchase more to maintain your offset.")
             if len(credits) > 0:
                 types = set(c["type"] for c in credits)
                 if len(types) < 3:
-                    recommendations.append("🎯 Diversify your portfolio across more project types for broader impact.")
+                    src.ai.recommendations.append("🎯 Diversify your portfolio across more project types for broader impact.")
             
             total_co2 = stats["total_co2_offset"] / 1000
             if total_co2 < 1:
-                recommendations.append("🌍 You've offset less than 1 tonne of CO₂. Consider increasing your purchases.")
+                src.ai.recommendations.append("🌍 You've offset less than 1 tonne of CO₂. Consider increasing your purchases.")
             elif total_co2 > 10:
-                recommendations.append("🌟 Amazing! You've offset over 10 tonnes of CO₂. You're making a real difference!")
+                src.ai.recommendations.append("🌟 Amazing! You've offset over 10 tonnes of CO₂. You're making a real difference!")
             
             if not recommendations:
-                recommendations.append("✅ Your portfolio looks well-balanced! Keep up the great work.")
+                src.ai.recommendations.append("✅ Your portfolio looks well-balanced! Keep up the great work.")
             
             for rec in recommendations:
                 st.info(rec)

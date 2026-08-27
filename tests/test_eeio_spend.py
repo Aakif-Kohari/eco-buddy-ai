@@ -17,7 +17,7 @@ import os
 import tempfile
 import unittest
 
-import eeio_spend as ee
+import src.business.eeio_spend as ee
 
 
 SAMPLE_SPEND = {
@@ -190,7 +190,7 @@ class TestIntensities(unittest.TestCase):
 
     def test_truncation_climbs_towards_the_total(self):
         # This is the argument. A per-category factor is the one-term
-        # truncation, and every extra tier of supply chain adds emissions.
+        # truncation, and every extra tier of supply chain adds src.carbon.emissions.
         totals = ee.total_intensities()
         previous = {key: 0.0 for key in ee.list_sectors()}
         for terms in range(1, 9):
@@ -499,7 +499,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database."""
+    """Persistence, against a throwaway src.core.database."""
 
     def setUp(self):
         handle, self.path = tempfile.mkstemp(suffix=".db")

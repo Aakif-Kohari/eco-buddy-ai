@@ -1072,7 +1072,7 @@ class ContextAwareDecisionEngine:
     
     def _calculate_goal_alignment(self, option: DecisionOption, 
                                  context: DecisionContext) -> float:
-        """Calculate how well the option aligns with user's sustainability goals."""
+        """Calculate how well the option aligns with user's sustainability src.utils.goals."""
         if not context.personal.personal_goals:
             return 0.5
         
@@ -1323,7 +1323,7 @@ class ContextAwareDecisionEngine:
 # ============================================================================
 
 class DecisionLearningModel:
-    """Machine learning model for improving decision recommendations."""
+    """Machine learning model for improving decision src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the learning model."""
@@ -1396,7 +1396,7 @@ class DecisionLearningModel:
         return statistics.mean(preferences) if preferences else 0.5
     
     def get_optimization_suggestions(self) -> List[Dict[str, Any]]:
-        """Get suggestions for optimizing recommendations."""
+        """Get suggestions for optimizing src.ai.recommendations."""
         suggestions = []
         
         # Analyze option performance
@@ -1416,7 +1416,7 @@ class DecisionLearningModel:
 
 
 class BehavioralPatternRecognizer:
-    """Recognize patterns in user behavior for better recommendations."""
+    """Recognize patterns in user behavior for better src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the pattern recognizer."""
@@ -1518,7 +1518,7 @@ class BehavioralPatternRecognizer:
 
 
 class RecommendationGenerator:
-    """Generate personalized recommendations."""
+    """Generate personalized src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the recommendation generator."""
@@ -1711,7 +1711,7 @@ class SmartDecisionOrchestrator:
                                 context: DecisionContext,
                                 category: Optional[str] = None) -> DecisionResult:
         """
-        Process a decision request and return recommendations.
+        Process a decision request and return src.ai.recommendations.
         """
         self.logger.info(f"Processing decision request for user: {user_id}")
         
@@ -2338,7 +2338,7 @@ class AnomalyDetector(ABC):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.model = None
-        self.threshold = config.get('threshold', 0.95)
+        self.threshold = src.core.config.get('threshold', 0.95)
         
     @abstractmethod
     def fit(self, data: pd.DataFrame) -> None:
@@ -2449,7 +2449,7 @@ class StatisticalAnomalyDetector(AnomalyDetector):
         return reports
     
     def _create_anomaly_report(self, timestamp, col, value, score, anomaly_type, severity):
-        """Create an anomaly report."""
+        """Create an anomaly src.reporting.report."""
         return AnomalyReport(
             timestamp=timestamp or datetime.now(),
             parameter=col,
@@ -2616,7 +2616,7 @@ class TimeSeriesAnomalyDetector(AnomalyDetector):
         self.seasonal_period = self.config.get('seasonal_period', 24)
         
     def fit(self, data: pd.DataFrame) -> None:
-        """Fit time series models."""
+        """Fit time series src.notifications.models."""
         self.time_series_stats = {}
         
         for col in data.select_dtypes(include=[np.number]).columns:
@@ -2799,7 +2799,7 @@ class EnsembleAnomalyDetector(AnomalyDetector):
         ])
         
         for config in detector_configs:
-            detector_type = config.get('type')
+            detector_type = src.core.config.get('type')
             if detector_type == 'statistical':
                 detector = StatisticalAnomalyDetector(config)
             elif detector_type == 'machine_learning':
@@ -2907,7 +2907,7 @@ class EarlyWarningSystem:
     def initialize_detector(self, detector_type: str = 'ensemble', **kwargs) -> None:
         """Initialize the anomaly detector."""
         config = self.config.copy()
-        config.update(kwargs)
+        src.core.config.update(kwargs)
         
         if detector_type == 'statistical':
             self.detector = StatisticalAnomalyDetector(config)

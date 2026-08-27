@@ -7,7 +7,7 @@ import json
 import logging
 import sys
 
-from log_sanitizer import (
+from src.core.log_sanitizer import (
     REDACTED,
     get_operation_id,
     mask_email,
@@ -15,7 +15,7 @@ from log_sanitizer import (
     sanitize_data,
     sanitize_string,
 )
-from logging_config import (
+from src.core.logging_config import (
     JsonLogFormatter,
     SecureLogFilter,
     SecureTextFormatter,
@@ -53,7 +53,7 @@ def test_common_string_patterns_are_redacted():
     value = (
         "Authorization: Bearer abc.def.ghi "
         "api_key=super-secret password=hunter2 "
-        "database_url=postgresql://admin:pass@db.example.com/app "
+        "database_url=postgresql://admin:pass@src.notifications.db.example.com/app "
         "https://example.com/callback?token=url-secret "
         "contact jane@example.com"
     )

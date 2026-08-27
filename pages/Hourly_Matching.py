@@ -169,7 +169,7 @@ with annual_col:
     st.metric(
         "Annual matching",
         f"{result['annual_match_pct']:.0f}%",
-        help="The figure a tariff or a solar quote would report.",
+        help="The figure a tariff or a solar quote would src.reporting.report.",
     )
 with hourly_col:
     st.metric(

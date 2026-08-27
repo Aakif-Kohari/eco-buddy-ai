@@ -8,7 +8,7 @@ tracking, and viewing community impact of weekly green pledges.
 import streamlit as st
 from datetime import datetime
 
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     get_all_templates,
     get_categories,

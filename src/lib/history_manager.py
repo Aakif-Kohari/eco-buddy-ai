@@ -55,7 +55,7 @@ class HistoryManager:
         self._filtered_assessments: List[Dict[str, Any]] = []
     
     def load_assessments(self) -> None:
-        """Load assessments from database."""
+        """Load assessments from src.core.database."""
         from src.core.database import get_assessments
         
         raw_data = get_assessments(self.user_id)

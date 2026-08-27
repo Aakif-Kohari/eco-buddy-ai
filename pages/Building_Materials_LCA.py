@@ -263,7 +263,7 @@ with tab_element:
                 value=float(DEFAULT_HEATING_DEGREE_DAYS),
                 step=100.0,
                 key="lca_degree_days",
-                help="degree_days.py holds the location-specific model; this "
+                help="src.energy.degree_days.py holds the location-specific model; this "
                      "is a temperate default.",
             )
 

@@ -146,7 +146,7 @@ their per-category contributors, so it can only run once those exist.
 
     elif largest == "Diet":
 
-        st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+        st.info("🥗 Try adding more plant-based meals to reduce src.carbon.emissions.")
 
     elif largest == "Flights":
 
@@ -204,7 +204,7 @@ If everyone adopted similar habits:
 
 ✅ Global emissions would reduce dramatically.
 
-🌍 This would contribute positively toward climate goals.
+🌍 This would contribute positively toward climate src.utils.goals.
 """)
 
     elif percentage < 0:
@@ -224,7 +224,7 @@ Small improvements in transportation and electricity usage could create an even 
 
 Your lifestyle is close to the current global average.
 
-A few sustainable changes could noticeably reduce global emissions.
+A few sustainable changes could noticeably reduce global src.carbon.emissions.
 """)
 
     else:
@@ -259,7 +259,7 @@ Consider reducing:
     facts = [
         "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
         "💡 LED bulbs use much less electricity than traditional bulbs.",
-        "🚲 Cycling produces almost zero direct carbon emissions.",
+        "🚲 Cycling produces almost zero direct carbon src.carbon.emissions.",
         "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
     ]
 
@@ -435,7 +435,7 @@ with tab_assess:
         uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_bill is not None:
             # Reject oversize bills up front so the user gets feedback before
-            # the background task even starts. `ocr_utils.extract_text_from_bytes`
+            # the background task even starts. `src.utils.ocr_utils.extract_text_from_bytes`
             # enforces the same cap and is the authoritative gate, but doing it
             # here too means the OCR button never even becomes clickable for a
             # multi-hundred-MB phone dump that would have OOM-ed the worker.
@@ -860,7 +860,7 @@ else:
 
             <div class="empty-subtitle">
                 Complete your lifestyle profile above and click
-                <b>"Analyze My Impact"</b> to generate your first carbon footprint report.
+                <b>"Analyze My Impact"</b> to generate your first carbon footprint src.reporting.report.
             </div>
 
             <div class="empty-checklist">
@@ -888,7 +888,7 @@ else:
 
     with col1:
         st.success("📊 Carbon Footprint Dashboard")
-        st.caption("Track your yearly emissions.")
+        st.caption("Track your yearly src.carbon.emissions.")
 
     with col2:
         st.success("🤖 AI Insights")
@@ -1035,7 +1035,7 @@ with tab_clone:
 
     st.write(
         "Imagine if everyone on Earth lived exactly like you. "
-        "This simulator estimates the impact on global carbon emissions."
+        "This simulator estimates the impact on global carbon src.carbon.emissions."
     )
 
     if "analysis" not in st.session_state:

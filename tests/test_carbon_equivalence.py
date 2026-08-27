@@ -57,10 +57,10 @@ def temp_db():
     test_db_path = f"test_carbon_eq_{uuid.uuid4().hex}.db"
     if os.path.exists(test_db_path):
         os.remove(test_db_path)
-    original_db = database.DB_NAME
-    database.DB_NAME = test_db_path
+    original_db = src.core.database.DB_NAME
+    src.core.database.DB_NAME = test_db_path
     
-    database.init_db()
+    src.core.database.init_db()
     
     # Force table creation just to be absolutely sure
     with sqlite3.connect(test_db_path) as conn:
@@ -75,7 +75,7 @@ def temp_db():
         conn.commit()
     
     yield
-    database.DB_NAME = original_db
+    src.core.database.DB_NAME = original_db
     
     import gc
     gc.collect()

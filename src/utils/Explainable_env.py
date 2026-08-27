@@ -282,7 +282,7 @@ class ClimateScenarioDatabase:
         return cls._instance
     
     def _initialize_scenarios(self):
-        """Initialize the scenario database."""
+        """Initialize the scenario src.core.database."""
         self.scenarios = {}
         self._load_rcp_scenarios()
         self._load_ssp_scenarios()
@@ -1495,7 +1495,7 @@ class ClimateSimulationEngine:
         # Temperature-based recommendations
         temp_anomaly = final_year.global_temperature_anomaly_c
         if temp_anomaly > 3.0:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "critical",
                 "category": "mitigation",
                 "recommendation": "Immediate and aggressive emissions reduction required to avoid catastrophic warming",
@@ -1510,7 +1510,7 @@ class ClimateSimulationEngine:
                 ]
             })
         elif temp_anomaly > 2.0:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "high",
                 "category": "mitigation",
                 "recommendation": "Accelerate emissions reduction to limit warming to 2°C",
@@ -1528,7 +1528,7 @@ class ClimateSimulationEngine:
         # Sea level rise recommendations
         sea_level = final_year.sea_level_rise_m
         if sea_level > 0.8:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "high",
                 "category": "adaptation",
                 "recommendation": "Urgent coastal adaptation and protection measures needed",
@@ -1548,7 +1548,7 @@ class ClimateSimulationEngine:
         if ag_impacts:
             avg_ag_impact = statistics.mean([i.impact_score for i in ag_impacts])
             if avg_ag_impact > 0.6:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "high",
                     "category": "adaptation",
                     "recommendation": "Transform agricultural systems for climate resilience",
@@ -1568,7 +1568,7 @@ class ClimateSimulationEngine:
         if water_impacts:
             avg_water_impact = statistics.mean([i.impact_score for i in water_impacts])
             if avg_water_impact > 0.5:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "medium",
                     "category": "adaptation",
                     "recommendation": "Enhance water management and conservation",
@@ -1588,7 +1588,7 @@ class ClimateSimulationEngine:
         if health_impacts:
             avg_health_impact = statistics.mean([i.impact_score for i in health_impacts])
             if avg_health_impact > 0.4:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "medium",
                     "category": "adaptation",
                     "recommendation": "Strengthen health systems for climate-related challenges",
@@ -1606,7 +1606,7 @@ class ClimateSimulationEngine:
         # Tipping point recommendations
         high_risk_tipping_points = [tp for tp in tipping_points if tp.current_risk > 0.5]
         if high_risk_tipping_points:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "critical",
                 "category": "mitigation",
                 "recommendation": f"Avoid triggering {len(high_risk_tipping_points)} critical tipping points",
@@ -1628,7 +1628,7 @@ class ClimateSimulationEngine:
                 high_risk_regions.append(region_name)
         
         if high_risk_regions:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "high",
                 "category": "adaptation",
                 "recommendation": f"Develop adaptation strategies for high-risk regions: {', '.join(high_risk_regions[:3])}",
@@ -1644,7 +1644,7 @@ class ClimateSimulationEngine:
             })
         
         # General sustainability recommendations
-        recommendations.append({
+        src.ai.recommendations.append({
             "priority": "medium",
             "category": "sustainability",
             "recommendation": "Integrate climate resilience into all planning and development",
@@ -1785,7 +1785,7 @@ class ClimateReportGenerator:
     
     @staticmethod
     def generate_text_report(result: ScenarioSimulationResult) -> str:
-        """Generate a detailed text report."""
+        """Generate a detailed text src.reporting.report."""
         lines = []
         lines.append("=" * 80)
         lines.append(f"CLIMATE SCENARIO SIMULATION REPORT")
@@ -1885,7 +1885,7 @@ class ClimateReportGenerator:
     
     @staticmethod
     def generate_json_report(result: ScenarioSimulationResult) -> str:
-        """Generate a JSON report."""
+        """Generate a JSON src.reporting.report."""
         data = {
             "scenario_id": result.scenario_id,
             "scenario_name": result.scenario_name,
@@ -2040,7 +2040,7 @@ class ComparativeScenarioAnalyzer:
         return comparison
     
     def generate_comparison_report(self, comparison: Dict[str, Any]) -> str:
-        """Generate a comparison report."""
+        """Generate a comparison src.reporting.report."""
         lines = []
         lines.append("=" * 80)
         lines.append("SCENARIO COMPARISON REPORT")
@@ -2269,13 +2269,13 @@ def run_tests():
     # Test 1: Scenario database
     print("Test 1: Scenario Database")
     db = ClimateScenarioDatabase()
-    scenarios = db.get_all_scenarios()
+    scenarios = src.notifications.db.get_all_scenarios()
     assert len(scenarios) >= 8, "Should have at least 8 scenarios"
     print(f"✓ Database initialized with {len(scenarios)} scenarios")
     
     # Test 2: Scenario retrieval
     print("\nTest 2: Scenario Retrieval")
-    scenario = db.get_scenario("rcp_2.6")
+    scenario = src.notifications.db.get_scenario("rcp_2.6")
     assert scenario is not None, "Should retrieve RCP 2.6"
     assert scenario.scenario_type == ClimateScenarioType.RCP_2_6
     print(f"✓ Retrieved {scenario.name}")
@@ -3623,7 +3623,7 @@ class RiskForecastingEngine:
         self.model_weights = {}
     
     def _initialize_forecast_models(self) -> Dict[str, Callable]:
-        """Initialize forecasting models."""
+        """Initialize forecasting src.notifications.models."""
         return {
             "time_series": self._forecast_time_series,
             "arima": self._forecast_arima,
@@ -4094,12 +4094,12 @@ class SpatiotemporalRiskIntelligenceFramework:
         return assessment
     
     def _generate_risk_recommendations(self, assessment: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate risk-based recommendations."""
+        """Generate risk-based src.ai.recommendations."""
         recommendations = []
         
         critical_indicators = assessment.get("critical_indicators", [])
         if critical_indicators:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "high",
                 "action": f"Immediate attention needed for: {', '.join(critical_indicators)}",
                 "details": "Critical indicators exceed safety thresholds",
@@ -4109,7 +4109,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         # Forecast-based recommendations
         for forecast in assessment.get("forecasts", []):
             if forecast.predicted_probability > 0.6:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "high" if forecast.predicted_probability > 0.8 else "medium",
                     "action": f"Prepare for {forecast.risk_type.value} within {forecast.lead_time_hours} hours",
                     "details": f"Probability: {forecast.predicted_probability:.1%}",
@@ -4120,7 +4120,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         trends = assessment.get("trends", {})
         for key, value in trends.items():
             if "increasing" in str(value) and "_trend" in key:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "priority": "medium",
                     "action": f"Monitor {key} - increasing trend detected",
                     "details": f"Trend magnitude: {abs(float(value) if isinstance(value, (int, float)) else 0):.2f}",
@@ -4129,7 +4129,7 @@ class SpatiotemporalRiskIntelligenceFramework:
         
         # General recommendations
         if len(recommendations) < 2:
-            recommendations.append({
+            src.ai.recommendations.append({
                 "priority": "low",
                 "action": "Continue monitoring environmental indicators",
                 "details": "No immediate risks detected",

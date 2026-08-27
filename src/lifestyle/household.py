@@ -1,7 +1,7 @@
 """Household carbon sharing and per-capita emission allocation.
 
 Every calculator in EcoBuddy AI is single-user, so someone sharing a flat is
-charged for the whole home's electricity, water and waste. This module lets a
+charged for the whole home's electricity, water and src.environment.waste. This module lets a
 user define a household, add its members, and split shared emissions fairly
 so each person sees an honest per-capita footprint.
 
@@ -123,7 +123,7 @@ def validate_member_weights(members: list[dict[str, Any]]) -> tuple[bool, str]:
     if any(not name for name in names):
         return False, "Every member needs a name."
     if len(set(names)) != len(names):
-        return False, "Member names must be unique within a household."
+        return False, "Member names must be unique within a src.lifestyle.household."
 
     for member in members:
         try:
@@ -574,7 +574,7 @@ def update_household(household_id: int, name: str | None = None, method: str | N
 
 
 def add_member(household_id: int, name: str, weight: float = DEFAULT_WEIGHT, role: str = "Adult", user_id: int | None = None) -> int | None:
-    """Add a member to a household. Names are unique per household."""
+    """Add a member to a src.lifestyle.household. Names are unique per src.lifestyle.household."""
     init_household_db()
     name = str(name or "").strip()
     if not name:
@@ -671,7 +671,7 @@ def update_member(member_id: int, weight: float | None = None, role: str | None 
 
 
 def remove_member(member_id: int) -> bool:
-    """Remove a single member from a household."""
+    """Remove a single member from a src.lifestyle.household."""
     init_household_db()
     conn = None
     try:
@@ -701,12 +701,12 @@ def join_household(code: str, user_id: int, display_name: str) -> tuple[bool, st
 
     for member in household["members"]:
         if member["user_id"] == user_id:
-            return False, "You are already part of this household."
+            return False, "You are already part of this src.lifestyle.household."
         if member["name"].lower() == display_name.lower():
-            return False, "That name is already taken in this household."
+            return False, "That name is already taken in this src.lifestyle.household."
 
     if add_member(household["id"], display_name, user_id=user_id) is None:
-        return False, "Could not join this household."
+        return False, "Could not join this src.lifestyle.household."
 
     return True, f"You joined {household['name']}."
 

@@ -7,10 +7,10 @@ This replaces scattered `.clear()` calls with a centralized, maintainable regist
 Usage:
     from src.core.invalidation import invalidate_on_assessment_save, invalidate_all_db_caches
 
-    # In database.py save_assessment():
+    # In src.core.database.py save_assessment():
     invalidate_on_assessment_save()
 
-    # In data_io.py import_data_json():
+    # In src.data.data_io.py import_data_json():
     invalidate_all_db_caches()
 """
 
@@ -27,7 +27,7 @@ def register_cached_function(func: Callable[..., Any], category: str) -> None:
     """
     Register a cached function in the global registry.
 
-    Called automatically by the @cached decorator in cache.py.
+    Called automatically by the @cached decorator in src.core.cache.py.
     """
     name = getattr(func, '_cache_name', func.__qualname__)
     _CACHED_FUNCTION_REGISTRY[name] = {
@@ -219,7 +219,7 @@ def invalidate_all_db_caches() -> None:
     """
     Invalidate ALL database read caches.
 
-    Used during bulk data import (data_io.import_data_json) where
+    Used during bulk data import (src.data.data_io.import_data_json) where
     any table could have changed.
     """
     db_read_names = [

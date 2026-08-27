@@ -65,7 +65,7 @@ with route_col:
 
     if calc_btn:
         try:
-            with st.spinner("Calculating transit emissions..."):
+            with st.spinner("Calculating transit src.carbon.emissions..."):
                 comparisons = compare_transit_modes(dist_val, pass_val)
 
             st.write(f"**Estimated Emissions for a {dist_val}km trip:**")

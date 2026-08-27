@@ -134,7 +134,7 @@ class BackgroundTaskStore:
         if database_path is None:
             from src.core import database
 
-            database_path = database.DB_NAME
+            database_path = src.core.database.DB_NAME
         self.database_path = database_path
         self._ensure_schema()
 

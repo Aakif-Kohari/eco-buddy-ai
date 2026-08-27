@@ -40,7 +40,7 @@ st.markdown("""
 <div style="text-align:center;padding:20px 0 12px;background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(59,130,246,0.04));border-radius:16px;margin-bottom:20px;">
     <span style="font-size:36px;">🎯</span>
     <h1 style="margin:6px 0 2px;font-size:28px;font-weight:900;">Carbon Budget Planner</h1>
-    <p style="color:#6b7280;font-size:14px;">Set limits, track spending, and stay on track with your carbon goals.</p>
+    <p style="color:#6b7280;font-size:14px;">Set limits, track spending, and stay on track with your carbon src.utils.goals.</p>
 </div>""", unsafe_allow_html=True)
 
 categories = seed_default_categories()

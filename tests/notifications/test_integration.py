@@ -13,14 +13,14 @@ from src.notifications.models import NotificationPreference
 from src.notifications.db import NotificationDB
 from src.notifications.dispatcher import NotificationDispatcher
 from src.notifications.scheduler import NotificationScheduler
-from database import DB_NAME
+from src.core.database import DB_NAME
 
 @pytest.fixture
 def integration_env(tmp_path):
     test_db = str(tmp_path / "integration.db")
     db = NotificationDB(db_path=test_db)
     
-    conn = db._get_conn()
+    conn = src.notifications.db._get_conn()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS goals (
@@ -61,10 +61,10 @@ def test_full_pipeline_delivery(integration_env, monkeypatch):
         in_app_enabled=True,
         weekly_digest_enabled=True
     )
-    db.save_preferences(pref)
+    src.notifications.db.save_preferences(pref)
     
     # 2. Trigger an immediate notification
-    notif_id = dispatcher.dispatch(
+    notif_id = src.notifications.dispatcher.dispatch(
         user_id=101,
         category="general",
         title="Welcome",
@@ -74,30 +74,30 @@ def test_full_pipeline_delivery(integration_env, monkeypatch):
     assert notif_id is not None
     
     # 3. Check Pending state
-    pending = db.get_pending_notifications()
+    pending = src.notifications.db.get_pending_notifications()
     assert len(pending) == 1
     assert pending[0].title == "Welcome"
     assert pending[0].status == "pending"
     
     # 4. Process Queue (Simulate background worker)
-    dispatcher.process_queue()
+    src.notifications.dispatcher.process_queue()
     
     # 5. Verify it moved to history and status updated
-    pending_after = db.get_pending_notifications()
+    pending_after = src.notifications.db.get_pending_notifications()
     assert len(pending_after) == 0
     
-    unread = db.get_user_history(101, unread_only=True)
+    unread = src.notifications.db.get_user_history(101, unread_only=True)
     assert len(unread) == 1
     assert unread[0].status == "sent"
     assert unread[0].title == "Welcome"
     
     # 6. Simulate UI 'Mark as Read'
-    db.mark_all_read(101)
+    src.notifications.db.mark_all_read(101)
     
-    unread_after = db.get_user_history(101, unread_only=True)
+    unread_after = src.notifications.db.get_user_history(101, unread_only=True)
     assert len(unread_after) == 0
     
-    history = db.get_user_history(101)
+    history = src.notifications.db.get_user_history(101)
     assert len(history) == 1
     assert history[0].status == "read"
 
@@ -108,51 +108,51 @@ def test_deduplication_and_opt_out_pipeline(integration_env):
         user_id=102,
         opted_out_categories=["system"]
     )
-    db.save_preferences(pref)
+    src.notifications.db.save_preferences(pref)
     
     # System message should be ignored
-    assert dispatcher.dispatch(102, "system", "System Update", "V2 deployed") is None
+    assert src.notifications.dispatcher.dispatch(102, "system", "System Update", "V2 deployed") is None
     
     # Valid message
-    id1 = dispatcher.dispatch(102, "general", "Alert", "First alert", dedupe_key="alert_x")
+    id1 = src.notifications.dispatcher.dispatch(102, "general", "Alert", "First alert", dedupe_key="alert_x")
     assert id1 is not None
     
     # Duplicate message should be ignored
-    id2 = dispatcher.dispatch(102, "general", "Alert", "Second alert", dedupe_key="alert_x")
+    id2 = src.notifications.dispatcher.dispatch(102, "general", "Alert", "Second alert", dedupe_key="alert_x")
     assert id2 is None
     
     # Check queue
-    assert len(db.get_pending_notifications()) == 1
+    assert len(src.notifications.db.get_pending_notifications()) == 1
 
 def test_retry_mechanism(integration_env):
     db, dispatcher, scheduler = integration_env
     
     # Dispatch an alert
-    notif_id = dispatcher.dispatch(201, "general", "Test Retry", "Message")
+    notif_id = src.notifications.dispatcher.dispatch(201, "general", "Test Retry", "Message")
     
     # Force failure simulation by messing up the status update temporarily
-    original_update = db.update_notification_status
+    original_update = src.notifications.db.update_notification_status
     def mock_update(notif_id, status, *args, **kwargs):
         if status == "sent":
             raise Exception("Network Error")
         return original_update(notif_id, status, *args, **kwargs)
         
-    db.update_notification_status = mock_update
+    src.notifications.db.update_notification_status = mock_update
     
     # Try processing - it should fail and increment retry
-    dispatcher.process_queue()
+    src.notifications.dispatcher.process_queue()
     
     # Restore original method
-    db.update_notification_status = original_update
+    src.notifications.db.update_notification_status = original_update
     
     # Let's inspect the DB directly since process_queue swallows the error and updates retry count
     # Actually wait, if the mock failed, the retry update inside process_queue ALSO failed because it calls update_notification_status!
     # So we should just manually call the failure path to test the DB update.
     
-    db.update_notification_status(notif_id, "pending", error_log="Network Error", retry_count=1)
+    src.notifications.db.update_notification_status(notif_id, "pending", error_log="Network Error", retry_count=1)
     
     # Check the database directly to see the backoff scheduled_for
-    conn = db._get_conn()
+    conn = src.notifications.db._get_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT retry_count, error_log, scheduled_for FROM notifications WHERE id = ?", (notif_id,))
     row = cursor.fetchone()
@@ -164,7 +164,7 @@ def test_retry_mechanism(integration_env):
     assert row[2] is not None  # scheduled_for should be set in the future
     
     # Simulate final failure
-    db.update_notification_status(notif_id, "failed", error_log="Permanent Failure", retry_count=3)
+    src.notifications.db.update_notification_status(notif_id, "failed", error_log="Permanent Failure", retry_count=3)
     
     # It should no longer be in pending
-    assert len(db.get_pending_notifications()) == 0
+    assert len(src.notifications.db.get_pending_notifications()) == 0

@@ -3,7 +3,7 @@ Unit tests for AI Receipt Categorization (#349).
 """
 
 import pytest
-from receipt_categorization import (
+from src.utils.receipt_categorization import (
     classify_product_name,
     parse_receipt_text,
     estimate_item_emissions,

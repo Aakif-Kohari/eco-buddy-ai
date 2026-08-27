@@ -1,6 +1,6 @@
 """Marginal abatement cost curve for a household with a finite budget.
 
-``lifestyle_optimizer.py`` ranks actions by how much carbon they save. That is
+``src.lifestyle.lifestyle_optimizer.py`` ranks actions by how much carbon they save. That is
 the right ranking for a household with unlimited money and no ranking at all for
 a household without it. A heat pump and a draught-proofing kit are not
 comparable on carbon alone: one saves more and costs sixty times as much.
@@ -494,7 +494,7 @@ def select_under_budget(
     for key in keys:
         by_activity.setdefault(MEASURES[key]["activity"], []).append(key)
 
-    # dp[u] is the best abatement achievable using u budget units.
+    # dp[u] is the best abatement achievable using u budget src.utils.units.
     dp = [0.0] * (units + 1)
     dp_choice: list[list[str]] = [[] for _ in range(units + 1)]
 

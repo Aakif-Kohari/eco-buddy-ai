@@ -163,7 +163,7 @@ def parse_and_segment_file_bytes(
     The "waypoints"/"segments"/"error" keys are kept for backward
     compatibility with existing callers; "success" and "error_code" are
     added so this function follows the same envelope used elsewhere (see
-    errors.py) instead of only exposing a bare error string.
+    src.core.errors.py) instead of only exposing a bare error string.
     """
     if progress_callback:
         progress_callback(0.1, "Reading file bytes...")

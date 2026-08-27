@@ -145,7 +145,7 @@ FUND_ARCHETYPES = {
         "asset_class": "Fixed income",
         "intensity": 12.0,
         "description": "Sovereign debt. Attribution here is genuinely contested.",
-        "basis": "Sovereign index, production-based national emissions.",
+        "basis": "Sovereign index, production-based national src.carbon.emissions.",
     },
     "Green bonds": {
         "asset_class": "Fixed income",

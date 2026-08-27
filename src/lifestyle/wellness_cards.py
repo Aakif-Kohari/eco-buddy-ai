@@ -185,10 +185,10 @@ def render_goal_card(goal: WellnessGoal):
 
 def render_weekly_report_card(report: WellnessWeeklyReport):
     """Render a weekly wellness report card."""
-    trend_icon = "📈" if report.completion_rate > 0.7 else "➡️" if report.completion_rate > 0.5 else "📉"
+    trend_icon = "📈" if src.reporting.report.completion_rate > 0.7 else "➡️" if src.reporting.report.completion_rate > 0.5 else "📉"
 
     streaks_html = ""
-    for sh in report.streak_highlights:
+    for sh in src.reporting.report.streak_highlights:
         streaks_html += f"<span style='margin-right: 8px;'>🔥 {sh['habit']}: {sh['streak']}</span>"
 
     st.markdown(f"""
@@ -201,36 +201,36 @@ def render_weekly_report_card(report: WellnessWeeklyReport):
     '>
         <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'>
             <div>
-                <div style='font-size: 14px; font-weight: 700; color: #111827;'>Week of {report.week_start}</div>
-                <div style='font-size: 11px; color: #9ca3af;'>{report.week_start} to {report.week_end}</div>
+                <div style='font-size: 14px; font-weight: 700; color: #111827;'>Week of {src.reporting.report.week_start}</div>
+                <div style='font-size: 11px; color: #9ca3af;'>{src.reporting.report.week_start} to {src.reporting.report.week_end}</div>
             </div>
             <span style='font-size: 20px;'>{trend_icon}</span>
         </div>
         <div style='display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;'>
             <div style='text-align: center;'>
-                <div style='font-size: 20px; font-weight: 800; color: #22c55e;'>{report.total_habits_completed}</div>
+                <div style='font-size: 20px; font-weight: 800; color: #22c55e;'>{src.reporting.report.total_habits_completed}</div>
                 <div style='font-size: 9px; color: #6b7280; text-transform: uppercase;'>Habits Done</div>
             </div>
             <div style='text-align: center;'>
-                <div style='font-size: 20px; font-weight: 800; color: #0ea5e9;'>{report.total_eco_points}</div>
+                <div style='font-size: 20px; font-weight: 800; color: #0ea5e9;'>{src.reporting.report.total_eco_points}</div>
                 <div style='font-size: 9px; color: #6b7280; text-transform: uppercase;'>Eco Points</div>
             </div>
             <div style='text-align: center;'>
-                <div style='font-size: 20px; font-weight: 800; color: #16a34a;'>{report.total_carbon_saved_kg:.1f}</div>
+                <div style='font-size: 20px; font-weight: 800; color: #16a34a;'>{src.reporting.report.total_carbon_saved_kg:.1f}</div>
                 <div style='font-size: 9px; color: #6b7280; text-transform: uppercase;'>kg CO₂ Saved</div>
             </div>
             <div style='text-align: center;'>
-                <div style='font-size: 20px; font-weight: 800; color: #8b5cf6;'>{report.completion_rate:.0%}</div>
+                <div style='font-size: 20px; font-weight: 800; color: #8b5cf6;'>{src.reporting.report.completion_rate:.0%}</div>
                 <div style='font-size: 9px; color: #6b7280; text-transform: uppercase;'>Completion</div>
             </div>
         </div>
         <div style='display: flex; gap: 16px; font-size: 11px; color: #6b7280; margin-bottom: 8px;'>
-            <span>😊 Mood: {report.avg_mood}/5</span>
-            <span>⚡ Energy: {report.avg_energy}/5</span>
-            <span>🌿 Nature: {report.total_nature_minutes} min</span>
-            <span>🧘 Mindful: {report.total_mindfulness_minutes} min</span>
+            <span>😊 Mood: {src.reporting.report.avg_mood}/5</span>
+            <span>⚡ Energy: {src.reporting.report.avg_energy}/5</span>
+            <span>🌿 Nature: {src.reporting.report.total_nature_minutes} min</span>
+            <span>🧘 Mindful: {src.reporting.report.total_mindfulness_minutes} min</span>
         </div>
-        <div style='font-size: 11px; color: #9ca3af;'>🏆 Top: {report.top_habit}</div>
+        <div style='font-size: 11px; color: #9ca3af;'>🏆 Top: {src.reporting.report.top_habit}</div>
     </div>
     """, unsafe_allow_html=True)
 

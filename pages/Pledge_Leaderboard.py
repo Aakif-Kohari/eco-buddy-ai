@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 
-from pledge_leaderboard import (
+from src.community.pledge_leaderboard import (
     init_leaderboard_tables,
     create_group,
     join_group,
@@ -37,7 +37,7 @@ from pledge_leaderboard import (
     GROUP_PRIVACY_PUBLIC,
     GROUP_PRIVACY_PRIVATE,
 )
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     current_week_start,
     current_week_end,

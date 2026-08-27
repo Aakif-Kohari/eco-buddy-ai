@@ -376,7 +376,7 @@ class AudioSynesthesiaEngine:
             'alarming': 'Focus on solutions while acknowledging the urgency'
         }
         
-        return recommendations.get(dominant_audio.mood, 'Listen to the data symphony')
+        return src.ai.recommendations.get(dominant_audio.mood, 'Listen to the data symphony')
 
 # ============================================================
 # OLFACTORY SYNESTHESIA ENGINE

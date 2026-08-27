@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: volunteer_platform.py
+# FILE: src.community.volunteer_platform.py
 # EcoBuddy AI+ Volunteer & Community Action Platform
 # ============================================================
 
@@ -79,7 +79,7 @@ class VolunteerOpportunities:
             "location": "Community Hall",
             "date": datetime.now() + timedelta(days=12),
             "duration": "2 hours",
-            "description": "Learn about sustainable food practices, meal planning, and reducing food waste.",
+            "description": "Learn about sustainable food practices, meal planning, and reducing food src.environment.waste.",
             "skills_needed": ["Interest in sustainability"],
             "impact": "Educate community, reduce food waste, promote sustainability",
             "spots_available": 20,
@@ -113,7 +113,7 @@ class VolunteerOpportunities:
             "location": "Community Garden",
             "date": datetime.now() + timedelta(days=3),
             "duration": "3 hours",
-            "description": "Help set up and manage community composting system for organic waste.",
+            "description": "Help set up and manage community composting system for organic src.environment.waste.",
             "skills_needed": ["Organizational skills", "Interest in composting"],
             "impact": "Reduce waste, create fertilizer, educate community",
             "spots_available": 10,

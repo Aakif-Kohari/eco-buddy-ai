@@ -26,7 +26,7 @@ class DataDeletionService:
 
     def execute_hard_delete(self, user_id: str) -> bool:
         """
-        Permanently deletes all traces of the user from the database.
+        Permanently deletes all traces of the user from the src.core.database.
         WARNING: This breaks statistical continuity.
         """
         self.logger.info(f"Initiating HARD DELETE for user {user_id}")

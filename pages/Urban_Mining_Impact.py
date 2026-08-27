@@ -19,7 +19,7 @@ st.markdown(
 
 calculator = UrbanMiningCalculator()
 db = CriticalMineralDB()
-devices = db.get_all_devices()
+devices = src.notifications.db.get_all_devices()
 
 # --- Input Section ---
 st.subheader("📱 Log Your End-of-Life Devices")
@@ -29,7 +29,7 @@ with col1:
     selected_device = st.selectbox(
         "Device Type",
         options=devices,
-        format_func=lambda x: db.get_device_display_name(x),
+        format_func=lambda x: src.notifications.db.get_device_display_name(x),
     )
 with col2:
     quantity = st.number_input("Quantity", min_value=1, step=1, value=1)
@@ -38,7 +38,7 @@ with col3:
     st.write("")  # Spacer
     if st.button("➕ Add to Inventory"):
         calculator.add_device(selected_device, quantity)
-        st.success(f"Added {quantity}x {db.get_device_display_name(selected_device)}")
+        st.success(f"Added {quantity}x {src.notifications.db.get_device_display_name(selected_device)}")
         st.rerun()
 
 # Display current inventory

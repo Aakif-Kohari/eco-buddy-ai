@@ -488,7 +488,7 @@ class SustainabilityQuiz:
             "question": "What is the most effective way to reduce individual carbon footprint?",
             "options": ["Recycling", "Eating less meat", "Flying less", "All of the above"],
             "correct": 3,
-            "explanation": "A combination of behavioral changes is most effective. Reducing air travel, adopting plant-based diets, and recycling all contribute to lower emissions."
+            "explanation": "A combination of behavioral changes is most effective. Reducing air travel, adopting plant-based diets, and recycling all contribute to lower src.carbon.emissions."
         },
         {
             "question": "How much CO₂ does a single tree absorb in a year?",

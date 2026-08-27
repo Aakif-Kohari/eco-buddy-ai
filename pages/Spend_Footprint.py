@@ -401,7 +401,7 @@ with tab_table:
     st.subheader("The table underneath")
     st.markdown(
         "Nothing here is a black box, so here is the table. Multipliers say how "
-        "much the supply chain adds to each sector's own emissions."
+        "much the supply chain adds to each sector's own src.carbon.emissions."
     )
 
     totals = total_intensities()

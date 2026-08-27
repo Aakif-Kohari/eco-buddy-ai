@@ -1,7 +1,7 @@
 import sqlite3
 
-import database
-from environmental_timeline import (
+import src.core.database
+from src.utils.environmental_timeline import (
     MilestoneDefinition,
     evaluate_milestones,
     sync_environmental_milestones,
@@ -52,23 +52,23 @@ def test_record_and_get_milestones_are_user_scoped(tmp_path, monkeypatch):
     migrate(conn)
     conn.close()
 
-    assert database.record_environmental_milestone(
+    assert src.core.database.record_environmental_milestone(
         1, "first_assessment", "Journey Started", "Done"
     )
-    assert not database.record_environmental_milestone(
+    assert not src.core.database.record_environmental_milestone(
         1, "first_assessment", "Journey Started", "Done"
     )
-    assert database.record_environmental_milestone(
+    assert src.core.database.record_environmental_milestone(
         2, "first_assessment", "Journey Started", "Done"
     )
 
-    assert len(database.get_environmental_milestones(1)) == 1
-    assert len(database.get_environmental_milestones(2)) == 1
+    assert len(src.core.database.get_environmental_milestones(1)) == 1
+    assert len(src.core.database.get_environmental_milestones(2)) == 1
 
 
 def test_sync_only_reports_new_milestones(monkeypatch):
     monkeypatch.setattr(
-        "environmental_timeline.get_assessments",
+        "src.utils.environmental_timeline.get_assessments",
         lambda user_id: [assessment(4.0, 90)],
     )
     inserted = []
@@ -78,7 +78,7 @@ def test_sync_only_reports_new_milestones(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "environmental_timeline.record_environmental_milestone",
+        "src.utils.environmental_timeline.record_environmental_milestone",
         fake_record,
     )
     count = sync_environmental_milestones(7)
@@ -93,10 +93,10 @@ def test_sync_only_reports_new_milestones(monkeypatch):
 
 def test_init_and_seed_historical_events():
     """Verify initialization and seeding of historical environmental events."""
-    assert database.init_historical_events_db() is True
-    database.seed_historical_events()
+    assert src.core.database.init_historical_events_db() is True
+    src.core.database.seed_historical_events()
 
-    events = database.get_historical_events()
+    events = src.core.database.get_historical_events()
     assert len(events) >= 7
     titles = [e["title"] for e in events]
     assert "First Earth Day Founded" in titles
@@ -105,16 +105,16 @@ def test_init_and_seed_historical_events():
 
 def test_filter_and_search_historical_events():
     """Verify filtering by category and searching by keyword/year."""
-    policy_events = database.get_historical_events(category="Policy & Treaties")
+    policy_events = src.core.database.get_historical_events(category="Policy & Treaties")
     assert len(policy_events) >= 4
     for e in policy_events:
         assert e["category"] == "Policy & Treaties"
 
-    paris_search = database.get_historical_events(search_query="Paris")
+    paris_search = src.core.database.get_historical_events(search_query="Paris")
     assert len(paris_search) == 1
     assert paris_search[0]["title"] == "Paris Climate Agreement Adopted"
 
-    year_search = database.get_historical_events(search_query="1970")
+    year_search = src.core.database.get_historical_events(search_query="1970")
     assert len(year_search) == 1
     assert year_search[0]["year"] == 1970
 
@@ -123,7 +123,7 @@ def test_add_historical_event():
     """Verify adding a custom historical climate milestone event."""
     import uuid
     unique_title = f"Global Plastics Treaty High-Level Summit {uuid.uuid4().hex[:6]}"
-    success = database.add_historical_event(
+    success = src.core.database.add_historical_event(
         year=2025,
         title=unique_title,
         category="Policy & Treaties",
@@ -134,7 +134,7 @@ def test_add_historical_event():
     )
     assert success is True
 
-    fetched = database.get_historical_events(search_query=unique_title)
+    fetched = src.core.database.get_historical_events(search_query=unique_title)
     assert len(fetched) == 1
     assert fetched[0]["year"] == 2025
     assert fetched[0]["title"] == unique_title

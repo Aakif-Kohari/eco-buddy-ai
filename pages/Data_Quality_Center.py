@@ -81,7 +81,7 @@ report = build_quality_report(
 
 payload = build_dashboard_payload(report)
 
-if report.assessments_checked == 0:
+if src.reporting.report.assessments_checked == 0:
     st.warning(
         "No assessment records are available for quality analysis. "
         "Complete an assessment to establish a baseline."
@@ -91,11 +91,11 @@ badges = payload["overview"]
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Quality score", f'{badges["score"]:.1f}/100')
 c2.metric("Completeness", f'{badges["completeness_pct"]:.1f}%')
-c3.metric("Assessments", report.assessments_checked)
-c4.metric("Errors", report.assessments_with_errors)
-c5.metric("Needs review", report.assessments_needing_review)
+c3.metric("Assessments", src.reporting.report.assessments_checked)
+c4.metric("Errors", src.reporting.report.assessments_with_errors)
+c5.metric("Needs review", src.reporting.report.assessments_needing_review)
 
-st.subheader(f"Overall status: {status_label(report.status)}")
+st.subheader(f"Overall status: {status_label(src.reporting.report.status)}")
 st.write(
     "The center checks the values already stored by EcoBuddy. "
     "It does not rewrite assessments or recalculate historical footprints."
@@ -139,18 +139,18 @@ all_issues = sorted_issues(
 )
 if issue_filter == "Errors":
     all_issues = sorted_issues(
-        filter_issues(report.assessments[0].issues if report.assessments else (), severity=IssueSeverity.ERROR)
-        if report.assessments else ()
+        filter_issues(src.reporting.report.assessments[0].issues if src.reporting.report.assessments else (), severity=IssueSeverity.ERROR)
+        if src.reporting.report.assessments else ()
     )
 elif issue_filter == "Warnings":
     all_issues = sorted_issues(
-        filter_issues(report.assessments[0].issues if report.assessments else (), severity=IssueSeverity.WARNING)
-        if report.assessments else ()
+        filter_issues(src.reporting.report.assessments[0].issues if src.reporting.report.assessments else (), severity=IssueSeverity.WARNING)
+        if src.reporting.report.assessments else ()
     )
 elif issue_filter == "Information":
     all_issues = sorted_issues(
         filter_issues(
-            [issue for assessment in report.assessments for issue in assessment.issues],
+            [issue for assessment in src.reporting.report.assessments for issue in assessment.issues],
             severity=IssueSeverity.INFO,
         )
     )
@@ -168,7 +168,7 @@ if all_issues:
 
 if show_details:
     st.subheader("Assessment completeness")
-    for assessment in report.assessments:
+    for assessment in src.reporting.report.assessments:
         with st.expander(
             f"{assessment.assessment_id} · "
             f"{assessment.status.value} · "
@@ -217,7 +217,7 @@ writer = csv.DictWriter(
     ],
 )
 writer.writeheader()
-for assessment in report.assessments:
+for assessment in src.reporting.report.assessments:
     writer.writerow({
         "assessment_id": assessment.assessment_id,
         "status": assessment.status.value,

@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: home_guide.py
+# FILE: src.lifestyle.home_guide.py
 # EcoBuddy AI+ Eco-Home & Sustainable Living Guide
 # ============================================================
 

@@ -422,11 +422,11 @@ def classify_goal_status(
         return GoalStatus(STATUS_ACHIEVED, "Goal achieved", "Current footprint is at or below the target.", "high")
     required = max(total_required_reduction(goal), 1e-9)
     ratio = progress["variance_kg"] / required
-    if ratio <= config.ahead_ratio:
+    if ratio <= src.core.config.ahead_ratio:
         return GoalStatus(STATUS_AHEAD, "Ahead of schedule", "Current footprint is below the ideal pathway.", "high")
-    if ratio <= config.on_track_ratio:
+    if ratio <= src.core.config.on_track_ratio:
         return GoalStatus(STATUS_ON_TRACK, "On track", "Current footprint is close to the ideal pathway.", "high")
-    if ratio <= config.at_risk_ratio:
+    if ratio <= src.core.config.at_risk_ratio:
         return GoalStatus(STATUS_AT_RISK, "At risk", "Current footprint is above the ideal pathway and needs a faster reduction pace.", "high")
     return GoalStatus(STATUS_OFF_TRACK, "Off track", "Current footprint is substantially above the ideal pathway.", "high")
 
@@ -660,7 +660,7 @@ def analyze_goal_pathway(
     progress = calculate_progress(normalized, records, when)
     status = classify_goal_status(normalized, progress, config)
     projection = build_projection(normalized, records, when)
-    milestones = generate_milestones(normalized, records, when, config.milestone_percents)
+    milestones = generate_milestones(normalized, records, when, src.core.config.milestone_percents)
     snapshots = build_snapshots(normalized, records, config)
     categories = calculate_category_progress(normalized, records)
     warnings: list[str] = []
@@ -766,13 +766,13 @@ def target_date_at_current_pace(goal: Mapping[str, Any], assessments: Iterable[A
 
 
 def validate_pathway_config(config: PathwayConfig) -> None:
-    if not (config.ahead_ratio <= config.on_track_ratio <= config.at_risk_ratio):
+    if not (src.core.config.ahead_ratio <= src.core.config.on_track_ratio <= src.core.config.at_risk_ratio):
         raise GoalPathwayValidationError("status thresholds must be ordered ahead <= on-track <= at-risk")
-    if config.significant_change_pct < 0:
+    if src.core.config.significant_change_pct < 0:
         raise GoalPathwayValidationError("significant_change_pct cannot be negative")
-    if not config.milestone_percents:
+    if not src.core.config.milestone_percents:
         raise GoalPathwayValidationError("at least one milestone is required")
-    if any(percent < 0 or percent > 100 for percent in config.milestone_percents):
+    if any(percent < 0 or percent > 100 for percent in src.core.config.milestone_percents):
         raise GoalPathwayValidationError("milestones must be between 0 and 100")
 
 

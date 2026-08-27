@@ -1,7 +1,7 @@
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from water import calculate_water_footprint, validate_water_inputs
-from recommendations import generate_water_recommendations
-from config import DIET_VIRTUAL_WATER
+from src.environment.water import calculate_water_footprint, validate_water_inputs
+from src.ai.recommendations import generate_water_recommendations
+from src.core.config import DIET_VIRTUAL_WATER
 
 
 class WaterFootprintPlugin(CalculatorPlugin):

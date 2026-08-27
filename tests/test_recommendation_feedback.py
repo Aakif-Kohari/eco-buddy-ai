@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from recommendation_feedback import (
+from src.ai.recommendation_feedback import (
     FEEDBACK_TYPES,
     RecommendationFeedback,
     RecommendationFeedbackStore,

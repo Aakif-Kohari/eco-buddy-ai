@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import rainwater
-from rainwater import (
+import src.environment.rainwater
+from src.environment.rainwater import (
     CLIMATE_ZONES,
     DAYS_IN_MONTH,
     DEFAULT_CLIMATE_ZONE,
@@ -43,10 +43,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = rainwater.DB_NAME
-    rainwater.DB_NAME = db_path
+    original = src.environment.rainwater.DB_NAME
+    src.environment.rainwater.DB_NAME = db_path
     yield db_path
-    rainwater.DB_NAME = original
+    src.environment.rainwater.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:

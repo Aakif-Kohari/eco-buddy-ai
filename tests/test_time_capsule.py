@@ -7,12 +7,12 @@ from datetime import date, timedelta
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-from database import (
+from src.core.database import (
     DB_NAME, create_time_capsule, get_time_capsules,
     update_time_capsule_unlock, update_time_capsule_progress,
     delete_time_capsule,
 )
-from time_capsule import CAPSULE_CATEGORIES, get_progress_summary
+from src.utils.time_capsule import CAPSULE_CATEGORIES, get_progress_summary
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +21,7 @@ def setup_db():
         test_db = f.name
     os.environ["ECO_BUDDY_DB"] = test_db
     import database
-    database.DB_NAME = test_db
+    src.core.database.DB_NAME = test_db
     import migrations
     original_get_db_name = migrations.get_db_name
     migrations.get_db_name = lambda: test_db

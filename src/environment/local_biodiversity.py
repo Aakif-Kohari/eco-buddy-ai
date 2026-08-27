@@ -120,7 +120,7 @@ SPECIES_DATABASE: List[Dict[str, Any]] = [
 
 
 def get_all_species() -> List[Dict[str, Any]]:
-    """Return complete species database."""
+    """Return complete species src.core.database."""
     return SPECIES_DATABASE
 
 

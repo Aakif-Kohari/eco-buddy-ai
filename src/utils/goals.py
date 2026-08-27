@@ -210,7 +210,7 @@ def required_monthly_reduction(goal: dict[str, Any]) -> float:
 
 
 def required_daily_reduction(goal: dict[str, Any]) -> float:
-    """The same pace expressed per day, useful for short-window goals."""
+    """The same pace expressed per day, useful for short-window src.utils.goals."""
     return required_monthly_reduction(goal) / DAYS_PER_MONTH
 
 
@@ -554,7 +554,7 @@ def suggest_feasible_target(baseline_kg: float, contributors: dict[str, float]) 
 # --- Presentation helpers ---------------------------------------------------
 
 def summarize_goal(goal: dict[str, Any], progress: dict[str, Any]) -> str:
-    """One-sentence summary for the dashboard banner and the PDF report."""
+    """One-sentence summary for the dashboard banner and the PDF src.reporting.report."""
     status = progress["status"]
     target = progress["target_kg"]
     current = progress["current_kg"]

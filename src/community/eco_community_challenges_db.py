@@ -119,7 +119,7 @@ def _seed_default_challenges(db_name: str = DB_NAME) -> None:
                     ),
                     (
                         "14-Day Plant-Power Transformation",
-                        "Eat exclusively plant-based meals for 14 consecutive days to reduce dietary emissions.",
+                        "Eat exclusively plant-based meals for 14 consecutive days to reduce dietary src.carbon.emissions.",
                         ChallengeCategory.PLANT_BASED_DIET.value,
                         ChallengeDifficulty.ADVANCED.value,
                         14,
@@ -139,7 +139,7 @@ def _seed_default_challenges(db_name: str = DB_NAME) -> None:
                     ),
                     (
                         "Water-Saver Shower Challenge",
-                        "Keep all showers under 5 minutes for 10 days to conserve thousands of liters of clean water.",
+                        "Keep all showers under 5 minutes for 10 days to conserve thousands of liters of clean src.environment.water.",
                         ChallengeCategory.WATER_CONSERVATION.value,
                         ChallengeDifficulty.BEGINNER.value,
                         10,

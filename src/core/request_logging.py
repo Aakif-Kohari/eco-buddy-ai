@@ -2,7 +2,7 @@
 Lightweight Request Logging Utility for EcoBuddy AI.
 
 Provides sanitized API request logging integrated with the project's
-logging configuration (logging_config.py). Ensures sensitive headers,
+logging configuration (src.core.logging_config.py). Ensures sensitive headers,
 auth tokens, and confidential query credentials are never written to logs.
 """
 

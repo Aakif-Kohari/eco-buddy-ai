@@ -1,7 +1,7 @@
 """Uncertainty propagation and confidence intervals for footprint estimates.
 
 Every number this app reports is a point estimate. The assessment says 4.2
-tonnes, `goals.py` builds a reduction pathway against it, and the trend chart
+tonnes, `src.utils.goals.py` builds a reduction pathway against it, and the trend chart
 plots it next to last year's figure as though both were measured. None of them
 were. A carbon footprint is an estimate built from remembered activity data
 multiplied by emission factors that are themselves ranges, and the app has
@@ -126,7 +126,7 @@ DEFAULT_ACTIVITY_QUALITY = "estimated"
 # used in life-cycle inventory work: the further a factor is from a direct
 # measurement of the exact thing being estimated, the wider its distribution.
 #
-# `emission_factors.py` already records provenance and distinguishes static
+# `src.carbon.emission_factors.py` already records provenance and distinguishes static
 # from API-derived factor sets. `factor_tier_for_kind()` below maps that
 # registry vocabulary onto these tiers so the provenance work already in the
 # repo finally has a quantitative consequence.
@@ -160,7 +160,7 @@ FACTOR_TIER = {
 
 DEFAULT_FACTOR_TIER = "published"
 
-# Mapping from the `emission_factors.py` registry vocabulary onto factor tiers.
+# Mapping from the `src.carbon.emission_factors.py` registry vocabulary onto factor tiers.
 # A static built-in constant is a published average; a live API response for
 # the user's own region is better than that but not measured for them.
 FACTOR_KIND_TIERS = {
@@ -214,7 +214,7 @@ def factor_gsd(tier: str) -> float:
 
 
 def factor_tier_for_kind(kind: str) -> str:
-    """Map an `emission_factors.py` factor-set kind onto a quality tier."""
+    """Map an `src.carbon.emission_factors.py` factor-set kind onto a quality tier."""
     return FACTOR_KIND_TIERS.get(kind, DEFAULT_FACTOR_TIER)
 
 

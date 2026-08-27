@@ -189,8 +189,8 @@ def generate_room_recommendations(room_type: str, daily_kwh: float) -> tuple[lis
         ],
     }
 
-    recommendations.extend(common_recs)
-    recommendations.extend(room_specific.get(room_type, []))
+    src.ai.recommendations.extend(common_recs)
+    src.ai.recommendations.extend(room_specific.get(room_type, []))
 
     savings_pct = sum(r[3] for r in recommendations)
     potential_savings_kwh = daily_kwh * (savings_pct / 100.0)

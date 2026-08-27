@@ -32,7 +32,7 @@ What the correction actually does to the comparison
 ---------------------------------------------------
 Not what one might expect. Adding a term proportional to land area *narrows* the
 ratio between beef and peas, because the difference in land use between them,
-while large, is smaller than the difference in production emissions. What it
+while large, is smaller than the difference in production src.carbon.emissions. What it
 widens - roughly doubling it for ruminants - is the **absolute** gap in kg. That
 matters because the app compares actions in kg: dietary change is competing with
 insulation and flights on an absolute scale, and it has been competing with a
@@ -48,13 +48,13 @@ than asserted.
 
 Where this connects to code already merged
 ------------------------------------------
-*   ``meal_planner.py`` and ``food_scanner.py`` score meals on production-only
+*   ``src.lifestyle.meal_planner.py`` and ``src.lifestyle.food_scanner.py`` score meals on production-only
     factors.
-*   ``emission_factors.py`` carries no land column, so no downstream module
+*   ``src.carbon.emission_factors.py`` carries no land column, so no downstream module
     *can* account for this even if it wanted to.
-*   ``lifestyle_optimizer.py`` ranks actions in kg, which is exactly the scale
+*   ``src.lifestyle.lifestyle_optimizer.py`` ranks actions in kg, which is exactly the scale
     this correction changes.
-*   ``local_biodiversity.py`` already reasons about land and habitat; this is
+*   ``src.environment.local_biodiversity.py`` already reasons about land and habitat; this is
     the carbon side of the same coin.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
@@ -739,7 +739,7 @@ def get_land_insights(result: dict[str, Any] | None) -> list[str]:
         insights.append(
             f"Land opportunity cost is {share * 100:.0f}% of this footprint - "
             f"{land:,.0f} kg against {production:,.0f} kg of production "
-            f"emissions. The larger term is the one no food label reports."
+            f"src.carbon.emissions. The larger term is the one no food label reports."
         )
     elif share >= 0.15:
         insights.append(

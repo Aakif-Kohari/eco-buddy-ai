@@ -1,7 +1,7 @@
 
 
 # ============================================================
-# FILE: eco_school.py
+# FILE: src.utils.eco_school.py
 # EcoBuddy AI+ Eco-School & Youth Sustainability Education
 # ============================================================
 

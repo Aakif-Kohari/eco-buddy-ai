@@ -25,22 +25,22 @@ from typing import Generator, Dict, Any
 
 import pytest
 
-import database as db
-from database_connection import database_connection
-from invalidation import invalidate_all_db_caches
-import api_auth
-from api_auth import (
+import src.core.database as db
+from src.core.database_connection import database_connection
+from src.core.invalidation import invalidate_all_db_caches
+import src.core.api_auth
+from src.core.api_auth import (
     generate_api_key,
     validate_api_key,
     revoke_api_key,
     init_api_keys_db,
 )
-from sustainability_api import (
+from src.business.sustainability_api import (
     process_api_request,
     API_VERSION_PREFIX,
 )
-from emissions import validate_footprint_inputs
-from rainwater import (
+from src.carbon.emissions import validate_footprint_inputs
+from src.environment.rainwater import (
     annual_harvest_potential,
     monthly_harvest,
     simulate_storage,
@@ -54,20 +54,20 @@ from rainwater import (
 def setup_isolated_db(tmp_path) -> Generator[str, None, None]:
     """Isolate SQLite database for every test to avoid cross-test pollution."""
     db_file = str(tmp_path / f"test_negative_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
+    original_db = src.notifications.db.DB_NAME
     original_api_db = getattr(api_auth, "DB_NAME", "eco_buddy.db")
-    db.DB_NAME = db_file
-    api_auth.DB_NAME = db_file
+    src.notifications.db.DB_NAME = db_file
+    src.core.api_auth.DB_NAME = db_file
     os.environ["ECO_BUDDY_DB"] = db_file
 
     try:
-        db.init_db()
+        src.notifications.db.init_db()
         init_api_keys_db()
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
-        api_auth.DB_NAME = original_api_db
+        src.notifications.db.DB_NAME = original_db
+        src.core.api_auth.DB_NAME = original_api_db
         os.environ["ECO_BUDDY_DB"] = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
@@ -285,6 +285,6 @@ def test_invalid_identifiers_and_injection_safety(auth_headers: Dict[str, str]):
         # Key validation with injection string
         assert validate_api_key(inj) is None
         # User lookup with injection string
-        assert db.get_user_by_username(inj) is None
+        assert src.notifications.db.get_user_by_username(inj) is None
         # Revoke non-existent string/negative ID
         assert revoke_api_key(-9999) is False

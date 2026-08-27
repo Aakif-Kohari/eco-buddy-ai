@@ -4,7 +4,7 @@ Allows users to debate environmental topics with an AI that provides
 fact-based counterarguments and educational feedback.
 
 This module is intentionally self-contained: the LLM client mirrors the
-Gemini/Groq pattern used by llm_parser.py, and the SQLite table used to
+Gemini/Groq pattern used by src.ai.llm_parser.py, and the SQLite table used to
 persist debate history is created lazily (CREATE TABLE IF NOT EXISTS) so no
 shared database files need to be modified.
 """

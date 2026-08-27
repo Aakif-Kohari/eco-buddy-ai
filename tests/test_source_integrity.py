@@ -145,7 +145,7 @@ def test_file_parses(path):
     """Every Python file in the repository is syntactically valid.
 
     This is the check that was missing. Five files were unparseable on `main`,
-    one of them `database.py`, which every other module imports.
+    one of them `src.core.database.py`, which every other module imports.
     """
     _parse(path)
 
@@ -193,7 +193,7 @@ def _module_level_streamlit_calls(tree):
 def test_library_modules_have_no_module_level_ui():
     """Only pages and the app entry point may render UI at import time.
 
-    An entire challenge-tracking page was once pasted into `database.py` at
+    An entire challenge-tracking page was once pasted into `src.core.database.py` at
     module scope. It called `st.button`, `st.metric` and `st.progress` against
     names that do not exist there, so importing the data layer raised
     `NameError` — and importing the data layer is the first thing every test
@@ -227,11 +227,11 @@ def test_library_modules_have_no_module_level_ui():
 def test_no_module_imports_itself():
     """A module importing its own names always fails.
 
-    `database.py` contained `from database import save_weekly_challenge, ...`,
+    `src.core.database.py` contained `from database import save_weekly_challenge, ...`,
     which raises `ImportError` on a partially initialised module. The names
     were defined a few thousand lines further down in the same file.
 
-    Compared on the full dotted path, so `plugins/carbon_payback.py` importing
+    Compared on the full dotted path, so `plugins/src.carbon.carbon_payback.py` importing
     the top-level `carbon_payback` is correctly left alone.
     """
     offenders = []
@@ -276,7 +276,7 @@ def test_every_import_resolves_to_something_that_exists():
 
     `app.py` imported `components.header` and `components.profile` from a
     `components/` package that was never added to the repository, and
-    `challenge_generator.py` imported `utils.challenge_generator` from a
+    `src.community.challenge_generator.py` imported `utils.challenge_generator` from a
     `utils/` package that does not exist either. Both are import-time failures,
     so the app did not start and the module could not be used.
 
@@ -400,7 +400,7 @@ def _uses_star_import(tree):
 def test_module_level_code_defines_the_names_it_uses():
     """Import-time code does not read a name that nothing in the file binds.
 
-    This is what a pasted-in block looks like from the outside. `database.py`
+    This is what a pasted-in block looks like from the outside. `src.core.database.py`
     read `user_id`, `footprint` and `challenges` at module scope; the top of
     `pages/Carbon_Footprint.py` read `user_footprint` and `contributors` two
     hundred lines before either existed. Both raise `NameError` on import.
@@ -525,11 +525,11 @@ def test_the_guard_covers_the_pages_directory():
 
 
 def test_the_guard_covers_the_top_level_modules():
-    """The top-level modules are in scope, including database.py."""
+    """The top-level modules are in scope, including src.core.database.py."""
     top_level = {
         path.name for path in ALL_FILES if path.parent == REPO_ROOT
     }
-    assert "database.py" in top_level
+    assert "src.core.database.py" in top_level
     assert "app.py" in top_level
     assert len(top_level) > 50, (
         f"Only {len(top_level)} top-level modules found — discovery is not working."

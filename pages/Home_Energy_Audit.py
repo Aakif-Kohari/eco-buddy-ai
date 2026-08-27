@@ -38,7 +38,7 @@ if not user_id:
 st.markdown("<div class='section-header'>⚡ Home Energy Audit</div>", unsafe_allow_html=True)
 
 # Init energy db
-db.init_energy_db()
+src.notifications.db.init_energy_db()
 
 st.markdown("### 🔌 Appliance Registry")
 with st.expander("➕ Add New Appliance", expanded=False):
@@ -60,42 +60,42 @@ if submit_app:
 
     # Validate appliance name
     if not app_name.strip():
-        errors.append("Please enter an appliance name.")
+        src.core.errors.append("Please enter an appliance name.")
 
     # Check for duplicate appliance
-    existing_appliances = db.get_appliances(user_id)
+    existing_appliances = src.notifications.db.get_appliances(user_id)
     duplicate = any(
         appliance["name"].strip().lower() == app_name.strip().lower()
         for appliance in existing_appliances
     )
 
     if duplicate:
-        errors.append("An appliance with this name already exists.")
+        src.core.errors.append("An appliance with this name already exists.")
 
     # Validate power rating
     if app_power <= 0:
-        errors.append("Power rating must be greater than 0 W.")
+        src.core.errors.append("Power rating must be greater than 0 W.")
     elif app_power > 10000:
-        errors.append("Power rating cannot exceed 10,000 W.")
+        src.core.errors.append("Power rating cannot exceed 10,000 W.")
 
     # Validate usage hours
     if app_hours <= 0:
-        errors.append("Hours used per day must be greater than 0.")
+        src.core.errors.append("Hours used per day must be greater than 0.")
     elif app_hours > 24:
-        errors.append("Hours used per day cannot exceed 24.")
+        src.core.errors.append("Hours used per day cannot exceed 24.")
 
     # Validate quantity
     if app_qty <= 0:
-        errors.append("Quantity must be at least 1.")
+        src.core.errors.append("Quantity must be at least 1.")
     elif app_qty > 100:
-        errors.append("Quantity cannot exceed 100.")
+        src.core.errors.append("Quantity cannot exceed 100.")
 
     # Show errors or save appliance
     if errors:
         for error in errors:
             st.error(error)
     else:
-        db.add_appliance(user_id, 
+        src.notifications.db.add_appliance(user_id, 
             app_name.strip(),
             app_cat,
             app_qty,
@@ -106,7 +106,7 @@ if submit_app:
         st.success(f"Added {app_name.strip()}")
         st.rerun()
 
-appliances = db.get_appliances(user_id)
+appliances = src.notifications.db.get_appliances(user_id)
 df = pd.DataFrame(appliances)
 if appliances:
     # Build a styled HTML table instead of st.dataframe
@@ -139,7 +139,7 @@ if appliances:
         del_id = st.selectbox("Select appliance to remove", options=[(a['id'], a['name']) for a in appliances], format_func=lambda x: x[1], label_visibility="collapsed")
     with del_cols[1]:
         if st.button("🗑️ Remove", key="del_app"):
-            db.delete_appliance(del_id[0])
+            src.notifications.db.delete_appliance(del_id[0])
             st.rerun()
 
     # Calculate summaries

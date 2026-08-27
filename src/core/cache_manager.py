@@ -242,7 +242,7 @@ def cached_emission_factor(ttl: Optional[int] = None):
                     cache_key_kwargs[f"arg_{i}"] = str(arg)
             cache_key_kwargs.update(kwargs)
             
-            return cache.get_or_compute(
+            return src.core.cache.get_or_compute(
                 factor_type,
                 lambda **kw: func(*args, **kw),
                 ttl=ttl,

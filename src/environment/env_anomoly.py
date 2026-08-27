@@ -270,7 +270,7 @@ class AnomalyDetector(ABC):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.model = None
-        self.threshold = config.get('threshold', 0.95)
+        self.threshold = src.core.config.get('threshold', 0.95)
         
     @abstractmethod
     def fit(self, data: pd.DataFrame) -> None:
@@ -381,7 +381,7 @@ class StatisticalAnomalyDetector(AnomalyDetector):
         return reports
     
     def _create_anomaly_report(self, timestamp, col, value, score, anomaly_type, severity):
-        """Create an anomaly report."""
+        """Create an anomaly src.reporting.report."""
         return AnomalyReport(
             timestamp=timestamp or datetime.now(),
             parameter=col,
@@ -548,7 +548,7 @@ class TimeSeriesAnomalyDetector(AnomalyDetector):
         self.seasonal_period = self.config.get('seasonal_period', 24)
         
     def fit(self, data: pd.DataFrame) -> None:
-        """Fit time series models."""
+        """Fit time series src.notifications.models."""
         self.time_series_stats = {}
         
         for col in data.select_dtypes(include=[np.number]).columns:
@@ -731,7 +731,7 @@ class EnsembleAnomalyDetector(AnomalyDetector):
         ])
         
         for config in detector_configs:
-            detector_type = config.get('type')
+            detector_type = src.core.config.get('type')
             if detector_type == 'statistical':
                 detector = StatisticalAnomalyDetector(config)
             elif detector_type == 'machine_learning':
@@ -839,7 +839,7 @@ class EarlyWarningSystem:
     def initialize_detector(self, detector_type: str = 'ensemble', **kwargs) -> None:
         """Initialize the anomaly detector."""
         config = self.config.copy()
-        config.update(kwargs)
+        src.core.config.update(kwargs)
         
         if detector_type == 'statistical':
             self.detector = StatisticalAnomalyDetector(config)

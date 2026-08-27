@@ -109,7 +109,7 @@ ECO_TIPS = [
     {
         "id": "tip_007",
         "title": "Use Reusable Bags",
-        "description": "Always carry reusable bags for shopping. Eliminates single-use plastic and reduces waste.",
+        "description": "Always carry reusable bags for shopping. Eliminates single-use plastic and reduces src.environment.waste.",
         "category": "waste",
         "difficulty": "easy",
         "co2_savings": 30,
@@ -119,7 +119,7 @@ ECO_TIPS = [
     {
         "id": "tip_008",
         "title": "Install Solar Panels",
-        "description": "If possible, install solar panels for renewable energy. Cuts electricity bills and carbon emissions.",
+        "description": "If possible, install solar panels for renewable energy. Cuts electricity bills and carbon src.carbon.emissions.",
         "category": "energy",
         "difficulty": "hard",
         "co2_savings": 800,
@@ -139,7 +139,7 @@ ECO_TIPS = [
     {
         "id": "tip_010",
         "title": "Reduce Food Waste",
-        "description": "Plan meals and shop with a list to reduce food waste. Saves money and reduces methane emissions.",
+        "description": "Plan meals and shop with a list to reduce food src.environment.waste. Saves money and reduces methane src.carbon.emissions.",
         "category": "food",
         "difficulty": "easy",
         "co2_savings": 120,
@@ -169,7 +169,7 @@ ECO_TIPS = [
     {
         "id": "tip_013",
         "title": "Recycle Effectively",
-        "description": "Learn your local recycling rules and recycle properly. Reduces landfill waste.",
+        "description": "Learn your local recycling rules and recycle properly. Reduces landfill src.environment.waste.",
         "category": "waste",
         "difficulty": "easy",
         "co2_savings": 80,
@@ -189,7 +189,7 @@ ECO_TIPS = [
     {
         "id": "tip_015",
         "title": "Use Energy-Efficient Appliances",
-        "description": "When replacing appliances, choose Energy Star rated models. Saves energy and money long-term.",
+        "description": "When replacing appliances, choose Energy Star rated src.notifications.models. Saves energy and money long-term.",
         "category": "energy",
         "difficulty": "hard",
         "co2_savings": 300,

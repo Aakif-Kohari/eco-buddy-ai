@@ -126,13 +126,13 @@ def cache_session_value(ttl: int = 300):
             
             # Generate key from args
             key = f"{args}_{kwargs}"
-            value = cache.get(key)
+            value = src.core.cache.get(key)
             
             if value is not None:
                 return value
             
             value = func(*args, **kwargs)
-            cache.set(key, value)
+            src.core.cache.set(key, value)
             return value
         return wrapper
     return decorator
@@ -174,17 +174,17 @@ def clear_cached_footprint() -> None:
 
 
 def get_cached_recommendations() -> Optional[List[Dict[str, Any]]]:
-    """Get cached recommendations."""
+    """Get cached src.ai.recommendations."""
     return get_session_value("cached_recommendations")
 
 
 def set_cached_recommendations(recommendations: List[Dict[str, Any]]) -> None:
-    """Set cached recommendations."""
+    """Set cached src.ai.recommendations."""
     set_session_value("cached_recommendations", recommendations, ttl=300)
 
 
 def clear_cached_recommendations() -> None:
-    """Clear cached recommendations."""
+    """Clear cached src.ai.recommendations."""
     delete_session_value("cached_recommendations")
 
 

@@ -175,7 +175,7 @@ with tab_profile:
         st.caption(
             "The gap between the two lines is what the site catches and what "
             "the cover soil oxidises. It is the largest single lever here, and "
-            "it is a property of the site rather than of the waste."
+            "it is a property of the site rather than of the src.environment.waste."
         )
 
         st.markdown("#### Against the flat constant")

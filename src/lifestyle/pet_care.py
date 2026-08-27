@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: pet_care.py
+# FILE: src.lifestyle.pet_care.py
 # EcoBuddy AI+ Sustainable Pet Care Guide
 # ============================================================
 

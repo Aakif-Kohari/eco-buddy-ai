@@ -311,7 +311,7 @@ def generate_mock_goals(user_id: str) -> List[GoalProgress]:
 
     goals = []
     for i, (title, cat, target, current, unit, deadline) in enumerate(goals_data):
-        goals.append(GoalProgress(
+        src.utils.goals.append(GoalProgress(
             goal_id=generate_id("goal", i),
             user_id=user_id,
             title=title,

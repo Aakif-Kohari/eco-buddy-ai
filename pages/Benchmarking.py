@@ -14,8 +14,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from styles.theme import apply_theme
-from emissions import calculate_footprint, calculate_eco_score
-from carbon_benchmarking import (
+from src.carbon.emissions import calculate_footprint, calculate_eco_score
+from src.carbon.carbon_benchmarking import (
     COUNTRY_BENCHMARKS,
     LIFESTYLE_ARCHETYPES,
     compare_against_country,
@@ -148,12 +148,12 @@ with tab_overview:
             <div style="background:#1e293b;padding:20px;border-radius:14px;
                         border-left:6px solid #38bdf8;margin-bottom:20px;">
                 <h3 style="margin:0;color:#38bdf8;">
-                    Your Footprint: {report.footprint_kg:,.0f} kg CO₂/year
-                    &nbsp;|&nbsp; Eco Score: {report.eco_score}/100
+                    Your Footprint: {src.reporting.report.footprint_kg:,.0f} kg CO₂/year
+                    &nbsp;|&nbsp; Eco Score: {src.reporting.report.eco_score}/100
                 </h3>
                 <p style="margin:6px 0 0;color:#cbd5e1;">
-                    Global Percentile: Top {report.global_percentile}% &nbsp;|&nbsp;
-                    {report.lifestyle_match.archetype_name if report.lifestyle_match else 'N/A'}
+                    Global Percentile: Top {src.reporting.report.global_percentile}% &nbsp;|&nbsp;
+                    {src.reporting.report.lifestyle_match.archetype_name if src.reporting.report.lifestyle_match else 'N/A'}
                 </p>
             </div>
             """,
@@ -162,26 +162,26 @@ with tab_overview:
 
         # ── Key Metrics ─────────────────────────────────────────────────
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("🌍 Global Percentile", f"Top {report.global_percentile}%")
+        c1.metric("🌍 Global Percentile", f"Top {src.reporting.report.global_percentile}%")
         paris = COUNTRY_BENCHMARKS["Paris_Agreement_Target"]
         c2.metric(
             "🌡️ vs Paris Target",
-            f"{report.footprint_kg - paris['per_capita_kg']:+,.0f} kg",
+            f"{src.reporting.report.footprint_kg - paris['per_capita_kg']:+,.0f} kg",
             delta=f"Target: {paris['per_capita_kg']:,} kg",
             delta_color="inverse",
         )
         c3.metric(
             f"🏳️ vs {country_code}",
-            f"{report.footprint_kg - COUNTRY_BENCHMARKS.get(country_code, COUNTRY_BENCHMARKS['Global'])['per_capita_kg']:+,.0f} kg",
+            f"{src.reporting.report.footprint_kg - COUNTRY_BENCHMARKS.get(country_code, COUNTRY_BENCHMARKS['Global'])['per_capita_kg']:+,.0f} kg",
             delta=f"Avg: {COUNTRY_BENCHMARKS.get(country_code, COUNTRY_BENCHMARKS['Global'])['per_capita_kg']:,} kg",
             delta_color="inverse",
         )
-        c4.metric("💡 Actions", f"{len(report.improvement_actions)}")
+        c4.metric("💡 Actions", f"{len(src.reporting.report.improvement_actions)}")
 
         # ── Insights ────────────────────────────────────────────────────
         st.markdown("---")
         st.markdown("### 💡 Key Insights")
-        for insight in report.insights:
+        for insight in src.reporting.report.insights:
             st.markdown(f"- {insight}")
 
         # ── Radar chart ─────────────────────────────────────────────────
@@ -189,14 +189,14 @@ with tab_overview:
         st.markdown("### 📊 Category Breakdown vs Benchmark")
 
         ref_result = compare_against_country(
-            report.footprint_kg, report.contributors, country_code,
+            src.reporting.report.footprint_kg, src.reporting.report.contributors, country_code,
         )
         ref_breakdown = COUNTRY_BENCHMARKS.get(country_code, COUNTRY_BENCHMARKS["Global"]).get(
             "category_breakdown", {}
         )
 
-        cats = list(report.contributors.keys())
-        user_vals = [report.contributors[c] for c in cats]
+        cats = list(src.reporting.report.contributors.keys())
+        user_vals = [src.reporting.report.contributors[c] for c in cats]
         ref_vals = [ref_breakdown.get(c, 0) for c in cats]
 
         fig_radar = go.Figure()
@@ -485,8 +485,8 @@ with tab_plan:
     st.markdown("### 📋 Prioritised Improvement Plan")
 
     report = st.session_state.get("benchmark_report")
-    if report and report.improvement_actions:
-        for i, action in enumerate(report.improvement_actions, 1):
+    if report and src.reporting.report.improvement_actions:
+        for i, action in enumerate(src.reporting.report.improvement_actions, 1):
             diff_badge = {"easy": "🟢", "medium": "🟡", "hard": "🔴"}.get(
                 action["difficulty"], "⚪"
             )
@@ -514,12 +514,12 @@ with tab_plan:
                 unsafe_allow_html=True,
             )
 
-        total_savings = sum(a["potential_savings_kg"] for a in report.improvement_actions)
+        total_savings = sum(a["potential_savings_kg"] for a in src.reporting.report.improvement_actions)
         st.markdown("---")
         st.metric(
             "🎯 Total Potential Savings",
             f"{total_savings:,.0f} kg CO₂/year",
-            delta=f"Reduce by {total_savings / report.footprint_kg * 100:.0f}%",
+            delta=f"Reduce by {total_savings / src.reporting.report.footprint_kg * 100:.0f}%",
         )
     elif report:
         st.success(

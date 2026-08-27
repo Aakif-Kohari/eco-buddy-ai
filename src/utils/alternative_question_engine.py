@@ -81,7 +81,7 @@ class AlternativeQuestionEngine:
             similarity = float(score)
 
             if similarity >= min_similarity:
-                recommendations.append(
+                src.ai.recommendations.append(
                     {
                         "question": item["question"],
                         "concept": item.get("concept", "General"),
@@ -89,7 +89,7 @@ class AlternativeQuestionEngine:
                     }
                 )
 
-        recommendations.sort(
+        src.ai.recommendations.sort(
             key=lambda item: item["similarity"],
             reverse=True,
         )

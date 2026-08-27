@@ -3,8 +3,8 @@ Unit tests for Green Investment Tracker and Banking Impact Analyzer.
 """
 
 import pytest
-from green_investment_tracker import GreenInvestmentTracker
-from banking_impact_analyzer import BankingImpactAnalyzer
+from src.utils.green_investment_tracker import GreenInvestmentTracker
+from src.utils.banking_impact_analyzer import BankingImpactAnalyzer
 
 
 def test_investment_tracker_allocation():

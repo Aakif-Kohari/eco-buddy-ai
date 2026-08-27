@@ -38,7 +38,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    "Sharing a home means sharing emissions. Split electricity, water and waste "
+    "Sharing a home means sharing src.carbon.emissions. Split electricity, water and waste "
     "fairly so everyone sees their real per-person footprint."
 )
 
@@ -62,7 +62,7 @@ if not households:
                     st.success("Household created.")
                     st.rerun()
                 else:
-                    st.error("Could not create the household. Please try again.")
+                    st.error("Could not create the src.lifestyle.household. Please try again.")
 
     with join_tab:
         with st.form("join_household_form"):

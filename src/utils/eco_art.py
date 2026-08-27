@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: eco_art.py
+# FILE: src.utils.eco_art.py
 # EcoBuddy AI+ Eco-Art & Creative Sustainability
 # ============================================================
 

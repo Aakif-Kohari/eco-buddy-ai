@@ -11,7 +11,7 @@ CONTAMINATION_RULES = {
         "recycling": "Different melting point than bottle glass. Landfill or special facility."
     },
     "battery": {
-        "recycling": "Fire hazard in recycling trucks. Must go to hazardous waste."
+        "recycling": "Fire hazard in recycling trucks. Must go to hazardous src.environment.waste."
     },
     "electronics": {
         "recycling": "Contains hazardous materials. Must go to e-waste/hazardous."

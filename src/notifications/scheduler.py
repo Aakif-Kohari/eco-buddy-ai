@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import sqlite3
 from typing import Optional
 
-from database import DB_NAME
+from src.core.database import DB_NAME
 import sqlite3
 def get_connection():
     return sqlite3.connect(DB_NAME)

@@ -153,26 +153,26 @@ def _validate_record_list(name: str, records: Any, numeric_ranges: dict[str, tup
     for index, record in enumerate(records):
         prefix = f"{name}[{index}]"
         if not isinstance(record, dict):
-            errors.append(f"{prefix} must be an object")
+            src.core.errors.append(f"{prefix} must be an object")
             continue
         if "id" in record:
             rid = str(record["id"])
             if rid in ids:
-                errors.append(f"{prefix}.id is duplicated")
+                src.core.errors.append(f"{prefix}.id is duplicated")
             ids.add(rid)
         for key in ("date", "created_at", "updated_at"):
             if key in record and record[key] is not None:
                 try:
                     _parse_iso(record[key], f"{prefix}.{key}")
                 except ValueError as exc:
-                    errors.append(str(exc))
+                    src.core.errors.append(str(exc))
         if numeric_ranges:
             for key, (minimum, maximum) in numeric_ranges.items():
                 if key in record and record[key] is not None:
                     if isinstance(record[key], bool) or not isinstance(record[key], (int, float)):
-                        errors.append(f"{prefix}.{key} must be numeric")
+                        src.core.errors.append(f"{prefix}.{key} must be numeric")
                     elif not minimum <= record[key] <= maximum:
-                        errors.append(f"{prefix}.{key} must be between {minimum} and {maximum}")
+                        src.core.errors.append(f"{prefix}.{key} must be between {minimum} and {maximum}")
     return errors
 
 
@@ -182,30 +182,30 @@ def validate_export_document(document: Any) -> tuple[bool, list[str]]:
     if not isinstance(document, dict):
         return False, ["Export document must be a JSON object"]
     required = ("schema_version", "exported_at", "application", "profile", "assessments", "goals", "habits", "recommendations", "metadata")
-    errors.extend(f"Missing required field: {key}" for key in required if key not in document)
+    src.core.errors.extend(f"Missing required field: {key}" for key in required if key not in document)
     if "schema_version" in document and document["schema_version"] not in SUPPORTED_SCHEMA_VERSIONS:
-        errors.append(f"Unsupported schema version: {document.get('schema_version')}")
+        src.core.errors.append(f"Unsupported schema version: {document.get('schema_version')}")
     if "exported_at" in document:
         try:
             _parse_iso(document["exported_at"], "exported_at")
         except ValueError as exc:
-            errors.append(str(exc))
+            src.core.errors.append(str(exc))
     if document.get("application") != APPLICATION_NAME:
-        errors.append("application must be 'EcoBuddy AI'")
+        src.core.errors.append("application must be 'EcoBuddy AI'")
     if not isinstance(document.get("profile"), dict):
-        errors.append("profile must be an object")
+        src.core.errors.append("profile must be an object")
     if isinstance(document.get("metadata"), dict) and "exported_user_id" in document["metadata"]:
         uid = document["metadata"]["exported_user_id"]
         if isinstance(uid, bool) or not isinstance(uid, int) or uid < 1:
-            errors.append("metadata.exported_user_id must be a positive integer")
-    errors.extend(_validate_record_list("assessments", document.get("assessments", []), {
+            src.core.errors.append("metadata.exported_user_id must be a positive integer")
+    src.core.errors.extend(_validate_record_list("assessments", document.get("assessments", []), {
         "distance": (0, 10_000_000), "electricity": (0, 10_000_000), "flights": (0, 10_000), "footprint": (0, 10_000_000), "eco_score": (0, 100),
     }))
-    errors.extend(_validate_record_list("goals", document.get("goals", []), {"baseline_kg": (0, 10_000_000), "target_kg": (0, 10_000_000)}))
-    errors.extend(_validate_record_list("habits", document.get("habits", [])))
-    errors.extend(_validate_record_list("recommendations", document.get("recommendations", [])))
+    src.core.errors.extend(_validate_record_list("goals", document.get("goals", []), {"baseline_kg": (0, 10_000_000), "target_kg": (0, 10_000_000)}))
+    src.core.errors.extend(_validate_record_list("habits", document.get("habits", [])))
+    src.core.errors.extend(_validate_record_list("recommendations", document.get("recommendations", [])))
     if not isinstance(document.get("profile", {}), dict):
-        errors.append("profile must be an object")
+        src.core.errors.append("profile must be an object")
     return not errors, errors
 
 

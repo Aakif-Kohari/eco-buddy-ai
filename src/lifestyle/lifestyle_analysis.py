@@ -2,7 +2,7 @@
 
 Lets users upload photos of rooms, kitchens, or workspaces and receive
 AI-powered sustainability suggestions. Detects energy-consuming items,
-estimates potential improvements, and generates recommendations.
+estimates potential improvements, and generates src.ai.recommendations.
 
 Approach: OCR extracts any visible labels/text, while the LLM (Gemini, which
 supports vision, with a heuristic fallback) identifies energy-consuming items

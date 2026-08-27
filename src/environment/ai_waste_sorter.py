@@ -7,7 +7,7 @@ Lets users upload a photo of a waste item and get:
   - "Did you know" fact + disposal tip
   - History with accuracy feedback
 
-Reuses the OCR + LLM vision pipeline from lifestyle_analysis.py.
+Reuses the OCR + LLM vision pipeline from src.lifestyle.lifestyle_analysis.py.
 Self-contained SQLite table for classification history.
 """
 
@@ -80,7 +80,7 @@ DISPOSAL_RULES = {
         "hazardous": "Recycling centre (milieupark / déchetterie / Wertstoffhof).",
     },
     "India": {
-        "recyclable": "Dry waste bin (blue) — give to kabadiwala or municipal dry waste.",
+        "recyclable": "Dry waste bin (blue) — give to kabadiwala or municipal dry src.environment.waste.",
         "compostable": "Wet waste bin (green) for composting / biogas.",
         "landfill": "Reject waste bin (red/black) — sanitary landfill.",
         "e_waste": "Authorized e-waste recycler (CPCB list) or producer take-back.",
@@ -102,8 +102,8 @@ WASTE_FACTS = {
     ],
     "landfill": [
         "The average person sends ~1.5 kg of waste to landfill every day.",
-        "Landfills are the 3rd largest source of human-related methane emissions.",
-        "Reducing single-use items is the most effective way to shrink landfill waste.",
+        "Landfills are the 3rd largest source of human-related methane src.carbon.emissions.",
+        "Reducing single-use items is the most effective way to shrink landfill src.environment.waste.",
     ],
     "e_waste": [
         "E-waste is the world's fastest-growing waste stream — 50+ million tonnes/year.",
@@ -111,7 +111,7 @@ WASTE_FACTS = {
         "Proper e-waste recycling recovers rare earths and prevents toxic leaching.",
     ],
     "hazardous": [
-        "One button cell battery can contaminate 600,000 liters of water.",
+        "One button cell battery can contaminate 600,000 liters of src.environment.water.",
         "CFL bulbs contain mercury — never put them in household trash.",
         "Unused medication should be returned to a pharmacy, not flushed.",
     ],
@@ -433,14 +433,14 @@ def get_classification_accuracy(user_id: int) -> dict[str, Any]:
 def add_classified_item_to_waste_assessment(user_id: int, classification: dict[str, Any]) -> bool:
     """Add a classified item to the user's weekly waste assessment.
 
-    Maps the category/subcategory to waste.py categories and increments
+    Maps the category/subcategory to src.environment.waste.py categories and increments
     the weekly kg estimate.
     """
     from src.environment.waste import calculate_waste_footprint, WASTE_CATEGORIES as WC
     from src.core.database import save_waste_assessment
 
     subcat = classification.get("subcategory") or classification["category"]
-    # Map to waste.py categories
+    # Map to src.environment.waste.py categories
     mapping = {
         "Food Scraps": "Food Scraps",
         "Plastic Packaging": "Plastic Packaging",

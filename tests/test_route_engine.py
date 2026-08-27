@@ -1,7 +1,7 @@
 import pytest
-from vehicle_emissions_data import VehicleEmissionsData
-from route_planning_engine import RoutePlanningEngine
-from logistics_optimization_service import LogisticsOptimizationService
+from src.carbon.vehicle_emissions_data import VehicleEmissionsData
+from src.utils.route_planning_engine import RoutePlanningEngine
+from src.utils.logistics_optimization_service import LogisticsOptimizationService
 
 class TestRouteOptimization:
 

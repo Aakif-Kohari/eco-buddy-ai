@@ -59,7 +59,7 @@ def main():
     latest = _assessment(rows[-1])
     total, contributors = calculate_footprint(latest.get("transport"), latest.get("distance", 0), latest.get("electricity", 0), latest.get("diet"), latest.get("flights", 0), latest.get("region", "Global"))
     st.metric("Current annual footprint", f"{total:,.0f} kg CO₂e")
-    st.caption("Actions are prioritized from your existing EcoBuddy recommendations. Savings are never invented when supporting data is unavailable.")
+    st.caption("Actions are prioritized from your existing EcoBuddy src.ai.recommendations. Savings are never invented when supporting data is unavailable.")
 
     _, recommendations = generate_recommendations(latest.get("transport"), latest.get("electricity", 0), latest.get("diet"), latest.get("flights", 0), contributors)
     actions = _recommendation_actions(recommendations, contributors)

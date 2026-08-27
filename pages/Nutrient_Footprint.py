@@ -499,7 +499,7 @@ with tab_balance:
             returned = st.checkbox(
                 "Returned to my own soil", value=True, key="balance_returned",
                 help="Composted and sent away is still diversion from landfill. "
-                     "It is not recovery for this household.",
+                     "It is not recovery for this src.lifestyle.household.",
             )
 
         balance = household_nutrient_balance(

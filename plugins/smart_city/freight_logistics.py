@@ -1,7 +1,7 @@
 """
 Smart City Freight & Logistics Simulator.
 Models the macroscopic impact of heavy-duty trucks and last-mile delivery vans
-on city congestion and emissions.
+on city congestion and src.carbon.emissions.
 """
 
 from typing import List, Dict, Optional

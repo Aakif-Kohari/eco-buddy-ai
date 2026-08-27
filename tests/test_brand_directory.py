@@ -1,6 +1,6 @@
 """Unit tests for Sustainable Brand Directory functionality."""
 
-from database import (
+from src.core.database import (
     init_brand_directory_db,
     seed_sustainable_brands,
     get_sustainable_brands,

@@ -1,5 +1,5 @@
-from bill_categorizer import categorize_bill, get_available_categories
-from receipt_parser import mock_ocr_extraction, parse_receipt_text
+from src.utils.bill_categorizer import categorize_bill, get_available_categories
+from src.utils.receipt_parser import mock_ocr_extraction, parse_receipt_text
 
 
 def test_mock_ocr_extraction_electric():

@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from net_energy_eroi import (
+from src.carbon.net_energy_eroi import (
     BOUNDARIES,
     DEFAULT_BOUNDARY,
     SOCIETAL_MINIMUM_EROI,
@@ -666,7 +666,7 @@ with tab_household:
             st.warning(
                 "This household's own supply sits below the contested societal "
                 "minimum. That is a statement about the mix, not about the "
-                "household."
+                "src.lifestyle.household."
             )
 
         h_fig = go.Figure()

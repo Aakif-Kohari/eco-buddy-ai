@@ -1,5 +1,5 @@
 import unittest
-from smart_grid_ev_v2g import SmartEVV2GEngine
+from src.energy.smart_grid_ev_v2g import SmartEVV2GEngine
 
 class TestSmartEVV2G(unittest.TestCase):
     def setUp(self):

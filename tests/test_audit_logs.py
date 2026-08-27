@@ -11,7 +11,7 @@ Tests:
 
 import pytest
 import json
-from emissions import (
+from src.carbon.emissions import (
     calculate_footprint,
     calculate_eco_score,
     generate_full_audit_log,

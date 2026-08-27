@@ -7,7 +7,7 @@ import logging
 import pytest
 from unittest.mock import patch
 
-from request_logging import (
+from src.core.request_logging import (
     log_api_request,
     sanitize_headers,
     sanitize_url,
@@ -42,7 +42,7 @@ def test_sanitize_url_redacts_sensitive_query_params():
 
 
 def test_log_api_request_get():
-    with patch("request_logging.logger.info") as mock_log:
+    with patch("src.core.request_logging.logger.info") as mock_log:
         url = "https://api.climatiq.io/data/v1/estimate"
         headers = {"Authorization": "Bearer token123"}
         log_msg = log_api_request("GET", url, headers=headers, status_code=200)
@@ -62,7 +62,7 @@ def test_log_api_request_get():
 
 
 def test_log_api_request_post():
-    with patch("request_logging.logger.info") as mock_log:
+    with patch("src.core.request_logging.logger.info") as mock_log:
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -79,7 +79,7 @@ def test_log_api_request_post():
 
 
 def test_log_api_request_without_optional_status_or_headers():
-    with patch("request_logging.logger.info") as mock_log:
+    with patch("src.core.request_logging.logger.info") as mock_log:
         url = "https://api.example.com/v1/resource"
         log_msg = log_api_request("DELETE", url)
 

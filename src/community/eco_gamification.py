@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: eco_gamification.py
+# FILE: src.community.eco_gamification.py
 # EcoBuddy AI+ Eco-Gamification & Rewards Engine
 # ============================================================
 

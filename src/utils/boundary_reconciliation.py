@@ -8,16 +8,16 @@ the same kilowatt-hour is saved twice.
 
 Cases that are reachable today
 ------------------------------
-*   ``digital_footprint.py`` estimates the electricity used by a household's
-    devices. ``household.py`` computes emissions from the electricity bill. The
+*   ``src.utils.digital_footprint.py`` estimates the electricity used by a household's
+    devices. ``src.lifestyle.household.py`` computes emissions from the electricity bill. The
     device electricity is *inside* the bill.
-*   ``device_lifecycle.py`` amortises embodied manufacturing carbon.
-    ``shopping_assistant.py`` scores the purchase. Buy a laptop and the
+*   ``src.utils.device_lifecycle.py`` amortises embodied manufacturing carbon.
+    ``src.lifestyle.shopping_assistant.py`` scores the purchase. Buy a laptop and the
     embodied carbon can appear in both.
-*   ``grid_scheduler.py`` projects a saving from shifting flexible load.
-    ``smart_home.py`` projects a saving from automation that shifts the same
+*   ``src.energy.grid_scheduler.py`` projects a saving from shifting flexible load.
+    ``src.energy.smart_home.py`` projects a saving from automation that shifts the same
     load. A user with both sees two savings from one dishwasher.
-*   ``financed_emissions.py`` attributes emissions from investments. That is a
+*   ``src.carbon.financed_emissions.py`` attributes emissions from investments. That is a
     production-side attribution, and adding it to a consumption footprint is
     mixing two frames rather than summing within one.
 
@@ -708,8 +708,8 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
         return ["Submit some claims to see whether they overlap."]
 
     insights: list[str] = []
-    overstatement = _as_float(report.get("overstatement_kg"))
-    percentage = _as_float(report.get("overstatement_pct"))
+    overstatement = _as_float(src.reporting.report.get("overstatement_kg"))
+    percentage = _as_float(src.reporting.report.get("overstatement_pct"))
 
     if overstatement > 1.0:
         insights.append(
@@ -723,7 +723,7 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
             "total agree, which is worth knowing rather than assuming."
         )
 
-    footprints = report.get("footprints") or {}
+    footprints = src.reporting.report.get("footprints") or {}
     removed = _as_float(footprints.get("removed_kg"))
     if removed > 1.0:
         insights.append(
@@ -732,7 +732,7 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
             f"removal is in the audit trail with the rule that produced it."
         )
 
-    savings = report.get("savings") or {}
+    savings = src.reporting.report.get("savings") or {}
     interaction = _as_float(savings.get("interaction_loss_kg"))
     if interaction > 1.0:
         insights.append(
@@ -743,7 +743,7 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
             f"them overstates."
         )
 
-    frames = [name for name in (report.get("frames_reported_separately") or [])]
+    frames = [name for name in (src.reporting.report.get("frames_reported_separately") or [])]
     if len(frames) > 1:
         labels = ", ".join(FRAMES[name]["label"].lower() for name in frames)
         insights.append(
@@ -753,7 +753,7 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
             f"different people."
         )
 
-    conflicts = report.get("conflicts") or []
+    conflicts = src.reporting.report.get("conflicts") or []
     if conflicts:
         insights.append(
             f"{len(conflicts)} conflict(s) could not be resolved by the rules "
@@ -761,7 +761,7 @@ def get_reconciliation_insights(report: dict[str, Any] | None) -> list[str]:
             f"is how this problem gets reproduced one level up."
         )
 
-    unreconcilable = report.get("unreconcilable") or []
+    unreconcilable = src.reporting.report.get("unreconcilable") or []
     if unreconcilable:
         insights.append(
             f"{len(unreconcilable)} claim(s) did not declare enough boundary to "
@@ -815,7 +815,7 @@ def init_reconciliation_db() -> bool:
 
 
 def save_reconciliation(user_id: int, name: str, report: dict[str, Any]) -> int | None:
-    """Persist a report. Returns the row id or None."""
+    """Persist a src.reporting.report. Returns the row id or None."""
     init_reconciliation_db()
     conn = None
     try:
@@ -830,9 +830,9 @@ def save_reconciliation(user_id: int, name: str, report: dict[str, Any]) -> int 
             (
                 user_id,
                 (name or "Reconciliation").strip() or "Reconciliation",
-                _as_float(report.get("naive_total_kg")),
-                _as_float(report.get("overstatement_kg")),
-                len(report.get("conflicts") or []),
+                _as_float(src.reporting.report.get("naive_total_kg")),
+                _as_float(src.reporting.report.get("overstatement_kg")),
+                len(src.reporting.report.get("conflicts") or []),
                 json.dumps(report, default=str),
             ),
         )
@@ -883,7 +883,7 @@ def get_reconciliations(user_id: int, limit: int = 25) -> list[dict[str, Any]]:
 
 
 def delete_reconciliation(report_id: int) -> bool:
-    """Delete a saved report."""
+    """Delete a saved src.reporting.report."""
     init_reconciliation_db()
     conn = None
     try:

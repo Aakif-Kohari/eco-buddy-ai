@@ -9,8 +9,8 @@ import pytest
 # capture it — which in a full-suite run leaves other modules' storage tests
 # looking for tables in a database that was never created. The autouse
 # fixture below isolates this module's tests without touching anything else.
-import marginal_emissions
-from marginal_emissions import (
+import src.carbon.marginal_emissions
+from src.carbon.marginal_emissions import (
     AVAILABILITY_SHAPES,
     DECARBONISATION_RATES,
     DEFAULT_STACK,
@@ -59,10 +59,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = marginal_emissions.DB_NAME
-    marginal_emissions.DB_NAME = db_path
+    original = src.carbon.marginal_emissions.DB_NAME
+    src.carbon.marginal_emissions.DB_NAME = db_path
     yield db_path
-    marginal_emissions.DB_NAME = original
+    src.carbon.marginal_emissions.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:
@@ -70,7 +70,7 @@ def temp_db():
 
 
 # A deliberately tiny stack: one must-run renewable that only runs in the
-# middle of the day, and two thermal units. Every dispatch assertion against
+# middle of the day, and two thermal src.utils.units. Every dispatch assertion against
 # it can be checked by hand.
 TOY_STACK = [
     {"name": "Sun", "capacity": 1.0, "intensity": 40.0,

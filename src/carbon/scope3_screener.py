@@ -49,7 +49,7 @@ def categorize_business_expense(
     expense_type: str, amount: float, unit: str = "usd"
 ) -> dict[str, Any]:
     """
-    Categorizes a business expense into a Scope 3 category and calculates emissions.
+    Categorizes a business expense into a Scope 3 category and calculates src.carbon.emissions.
     """
     if expense_type not in SCOPE3_CATEGORIES:
         raise ValueError(f"Unknown expense type: {expense_type}")

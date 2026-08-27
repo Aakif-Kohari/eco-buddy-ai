@@ -14,7 +14,7 @@ st.set_page_config(page_title="Business Footprint", page_icon="🏢", layout="wi
 
 st.title("🏢 Corporate Scope 3 Emission Screener")
 st.markdown(
-    "Estimate and manage your micro-business or freelance supply chain emissions."
+    "Estimate and manage your micro-business or freelance supply chain src.carbon.emissions."
 )
 
 # --- Session State for Expenses ---
@@ -56,7 +56,7 @@ if st.session_state.business_expenses:
     st.dataframe(df, use_container_width=True)
 
     if st.button("Calculate Footprint & Save"):
-        with st.spinner("Analyzing Scope 3 emissions..."):
+        with st.spinner("Analyzing Scope 3 src.carbon.emissions..."):
             footprint = calculate_business_footprint(st.session_state.business_expenses)
 
             # Save to DB

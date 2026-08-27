@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: learning_center.py
+# FILE: src.utils.learning_center.py
 # EcoBuddy AI+ Eco-Education & Learning Center
 # ============================================================
 

@@ -1,7 +1,7 @@
 import pytest
-from carbon_credits_market import CarbonCreditsMarketplace
-from gamification_engine import GamificationEngine
-from user_wallet_service import UserWalletService
+from src.carbon.carbon_credits_market import CarbonCreditsMarketplace
+from src.community.gamification_engine import GamificationEngine
+from src.utils.user_wallet_service import UserWalletService
 
 class TestEcoMarketplace:
 

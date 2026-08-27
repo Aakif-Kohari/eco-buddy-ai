@@ -1,5 +1,5 @@
 import pytest
-from lifestyle_optimizer import generate_optimized_lifestyle_plan, filter_eligible_actions, LIFESTYLE_ACTIONS_CATALOG
+from src.lifestyle.lifestyle_optimizer import generate_optimized_lifestyle_plan, filter_eligible_actions, LIFESTYLE_ACTIONS_CATALOG
 
 
 def test_lifestyle_actions_catalog_structure():

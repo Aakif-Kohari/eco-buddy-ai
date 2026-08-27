@@ -7,14 +7,14 @@ import threading
 TEST_DB = "test_eco_credits.db"
 os.environ["ECO_BUDDY_DB"] = TEST_DB
 
-from eco_credits_ledger import mint_credits, transfer_credits, get_balance, verify_ledger_integrity
-from database import init_db
-import database
-import eco_credits_ledger
-from database_connection import database_connection
+from src.utils.eco_credits_ledger import mint_credits, transfer_credits, get_balance, verify_ledger_integrity
+from src.core.database import init_db
+import src.core.database
+import src.utils.eco_credits_ledger
+from src.core.database_connection import database_connection
 
-database.DB_NAME = TEST_DB
-eco_credits_ledger.DB_NAME = TEST_DB
+src.core.database.DB_NAME = TEST_DB
+src.utils.eco_credits_ledger.DB_NAME = TEST_DB
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
