@@ -102,6 +102,94 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS carbon_banking_actions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        action_type TEXT,
+                        amount REAL,
+                        from_month TEXT,
+                        to_month TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS eco_ledger_accounts (
+                        user_id TEXT PRIMARY KEY,
+                        balance REAL DEFAULT 0.0,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_ledger_transactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        sender_id TEXT,
+                        receiver_id TEXT,
+                        amount REAL,
+                        timestamp REAL,
+                        previous_hash TEXT,
+                        hash TEXT,
+                        proof_data TEXT
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_order_book (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        order_type TEXT,
+                        amount REAL,
+                        price REAL,
+                        status TEXT DEFAULT 'OPEN',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        provider TEXT,
+                        access_token TEXT,
+                        refresh_token TEXT,
+                        expires_at REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS eco_community_funds (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        project_name TEXT,
+                        target_amount REAL,
+                        current_amount REAL DEFAULT 0.0,
+                        description TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS health_transport_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        date TEXT,
+                        activity_type TEXT,
+                        duration_minutes REAL,
+                        distance_km REAL,
+                        calories_burned REAL,
+                        avoided_co2_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS net_zero_roadmaps (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        scope1 REAL,
+                        scope2 REAL,
+                        scope3 REAL,
+                        target_year INTEGER,
+                        roadmap_data TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS relocation_analyses (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         current_city TEXT,
@@ -120,6 +208,17 @@ def init_db() -> bool:
                         total_cost REAL,
                         diversification_score REAL,
                         risk_rating TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ej_impact_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        zip_code TEXT,
+                        activity TEXT,
+                        quantity REAL,
+                        impact_data TEXT,
                         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -176,6 +275,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS digital_twin_forecasts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        current_footprint REAL,
+                        target_goal REAL,
+                        scenarios_applied TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS travel_itineraries (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         legs_data TEXT,
@@ -208,12 +317,34 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS challenge_results (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        scenario_id TEXT,
+                        outcome TEXT,
+                        final_carbon REAL,
+                        final_cost REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS pantry_inventory (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         item_name TEXT,
                         purchase_date TEXT,
                         storage_condition TEXT,
                         added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_mining_inventories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        device_list TEXT,
+                        total_devices INTEGER,
+                        carbon_avoided_kg REAL,
+                        mining_score INTEGER,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
 
@@ -777,6 +908,48 @@ def get_business_footprint_history() -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+# -------------------------------------------------------------------------
+# Fitness Integration
+# -------------------------------------------------------------------------
+
+def save_fitness_oauth_token(user_id: str, provider: str, access_token: str, refresh_token: str, expires_at: float) -> None:
+    conn = database_connection(DB_NAME)
+    # Using the context manager database_connection yields the connection
+    with conn as c:
+        cursor = c.cursor()
+        cursor.execute("DELETE FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        cursor.execute("""
+            INSERT INTO fitness_oauth_tokens (user_id, provider, access_token, refresh_token, expires_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (str(user_id), provider, access_token, refresh_token, expires_at))
+
+def get_fitness_oauth_token(user_id: str, provider: str) -> dict | None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM fitness_oauth_tokens WHERE user_id = ? AND provider = ?", (str(user_id), provider))
+        row = cursor.fetchone()
+        if row:
+            columns = [col[0] for col in cursor.description]
+            return dict(zip(columns, row))
+        return None
+
+def save_health_transport_metric(user_id: str, date: str, activity_type: str, duration_minutes: float, distance_km: float, calories_burned: float, avoided_co2_kg: float) -> None:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        # Avoid duplicates for the same day/activity combination
+        cursor.execute("DELETE FROM health_transport_metrics WHERE user_id = ? AND date = ? AND activity_type = ?", (str(user_id), date, activity_type))
+        cursor.execute("""
+            INSERT INTO health_transport_metrics (user_id, date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (str(user_id), date, activity_type, duration_minutes, distance_km, calories_burned, avoided_co2_kg))
+
+def get_health_transport_metrics(user_id: str) -> list[dict]:
+    with database_connection(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM health_transport_metrics WHERE user_id = ? ORDER BY date ASC", (str(user_id),))
+        rows = cursor.fetchall()
+        return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 # -------------------------------------------------------------------------
 # Assessment Timestamp Migration
 #
@@ -4450,7 +4623,7 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                         """
                         ALTER TABLE assessments
                         ADD COLUMN created_at
-                        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        TIMESTAMP DEFAULT '2024-01-01 00:00:00'
                         """
                     )
                 except sqlite3.OperationalError as exc:
@@ -7775,6 +7948,34 @@ def get_travel_itinerary_history() -> list:
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 
+import json
+
+def save_urban_mining_inventory(device_list: list, result_data: dict) -> None:
+    """Saves an urban mining inventory calculation to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_mining_inventories (device_list, total_devices, carbon_avoided_kg, mining_score)
+        VALUES (?, ?, ?, ?)
+    """, (
+        json.dumps(device_list),
+        result_data.get("total_devices", 0),
+        result_data.get("total_carbon_avoided_kg", 0.0),
+        result_data.get("urban_mining_score", 0)
+    ))
+    conn.commit()
+    conn.close()
+
+def get_urban_mining_history() -> list:
+    """Retrieves historical urban mining inventory calculations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT device_list, total_devices, carbon_avoided_kg, mining_score, timestamp FROM urban_mining_inventories ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
 def update_pca_balance(user_id: str, amount: float) -> None:
     """Updates the PCA balance for a user."""
     conn = get_connection()
@@ -7829,6 +8030,30 @@ def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_
     conn.commit()
     conn.close()
 
+
+import json
+
+def save_digital_twin_scenario(current_footprint: float, target_goal: float, report_data: dict) -> None:
+    """Saves a digital twin forecasting scenario to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO digital_twin_forecasts (current_footprint, target_goal, scenarios_applied)
+        VALUES (?, ?, ?)
+    """, (current_footprint, target_goal, json.dumps(report_data.get("scenarios_applied", []))))
+    conn.commit()
+    conn.close()
+
+def get_digital_twin_history() -> list:
+    """Retrieves historical digital twin forecasts."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT current_footprint, target_goal, scenarios_applied, timestamp FROM digital_twin_forecasts ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
 import json
 
 def save_offset_portfolio(user_id: str, summary: dict, risk_profile: dict) -> None:
@@ -7882,6 +8107,25 @@ def get_avoided_emissions_history() -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+def save_challenge_result(scenario_id: str, outcome: str, final_carbon: float, final_cost: float) -> None:
+    """Saves a scenario challenge result to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO challenge_results (scenario_id, outcome, final_carbon, final_cost)
+        VALUES (?, ?, ?, ?)
+    """, (scenario_id, outcome, final_carbon, final_cost))
+    conn.commit()
+    conn.close()
+
+def get_challenge_history() -> list:
+    """Retrieves historical scenario challenge results."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scenario_id, outcome, final_carbon, final_cost, timestamp FROM challenge_results ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_equivalence_preferences(user_id: int, top_metrics: str, region: str) -> bool:
     try:
@@ -7964,6 +8208,240 @@ def get_relocation_history() -> list:
         FROM relocation_analyses 
         ORDER BY timestamp DESC
     """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def get_virtual_city_state(user_id: int) -> dict:
+    """Retrieve the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT carbon_saved_kg, unlocked_assets, layout_state 
+        FROM virtual_city_state 
+        WHERE user_id = ?
+    """, (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    import json
+    if row:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": row[0],
+            "unlocked_assets": json.loads(row[1]) if row[1] else [],
+            "layout_state": json.loads(row[2]) if row[2] else {}
+        }
+    else:
+        return {
+            "user_id": user_id,
+            "carbon_saved_kg": 0.0,
+            "unlocked_assets": [],
+            "layout_state": {}
+        }
+
+def save_virtual_city_state(user_id: int, carbon_saved_kg: float, unlocked_assets: list, layout_state: dict) -> None:
+    """Saves or updates the user's virtual city state."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    import json
+    
+    cursor.execute("SELECT user_id FROM virtual_city_state WHERE user_id = ?", (user_id,))
+    exists = cursor.fetchone()
+    
+    if exists:
+        cursor.execute("""
+            UPDATE virtual_city_state 
+            SET carbon_saved_kg = ?, unlocked_assets = ?, layout_state = ?, last_updated = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        """, (carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state), user_id))
+    else:
+        cursor.execute("""
+            INSERT INTO virtual_city_state (user_id, carbon_saved_kg, unlocked_assets, layout_state)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, carbon_saved_kg, json.dumps(unlocked_assets), json.dumps(layout_state)))
+    
+    conn.commit()
+    conn.close()
+
+def log_civic_action(user_id: int, bill_id: str, action_type: str) -> bool:
+    """Logs a civic action taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO civic_actions (user_id, bill_id, action_type, created_at)
+            VALUES (?, ?, ?, datetime('now'))
+        ''', (user_id, bill_id, action_type))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error logging civic action: {e}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def get_user_civic_actions(user_id: int) -> list:
+    """Retrieves civic actions taken by a user."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, bill_id, action_type, created_at
+            FROM civic_actions
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        ''', (user_id,))
+        rows = cursor.fetchall()
+        return [{"id": r[0], "bill_id": r[1], "action_type": r[2], "created_at": r[3]} for r in rows]
+    except Exception as e:
+        logger.error(f"Error retrieving civic actions: {e}")
+        return []
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+import json
+
+def save_ej_impact_log(zip_code: str, activity: str, quantity: float, impact_data: dict) -> None:
+    """Saves an EJ impact analysis log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO ej_impact_logs (zip_code, activity, quantity, impact_data)
+        VALUES (?, ?, ?, ?)
+    """, (zip_code, activity, quantity, json.dumps(impact_data)))
+    conn.commit()
+    conn.close()
+
+def get_ej_history() -> list:
+    """Retrieves historical EJ impact logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT zip_code, activity, quantity, impact_data, timestamp FROM ej_impact_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def init_travel_tracker_db() -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS travel_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    record_date TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    distance_km REAL NOT NULL,
+                    passengers INTEGER NOT NULL,
+                    emissions_kg REAL NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing travel_tracker_db: {e}")
+        return False
+
+import json
+
+def save_net_zero_roadmap(scope1: float, scope2: float, scope3: float, target_year: int, roadmap_data: dict) -> None:
+    """Saves a generated net-zero roadmap to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO net_zero_roadmaps (scope1, scope2, scope3, target_year, roadmap_data)
+        VALUES (?, ?, ?, ?, ?)
+    """, (scope1, scope2, scope3, target_year, json.dumps(roadmap_data)))
+    conn.commit()
+    conn.close()
+
+def get_roadmap_history() -> list:
+    """Retrieves historical net-zero roadmap generations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT scope1, scope2, scope3, target_year, roadmap_data, timestamp FROM net_zero_roadmaps ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: float, passengers: int, emissions_kg: float) -> bool:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO travel_records (user_id, record_date, mode, distance_km, passengers, emissions_kg)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, record_date, mode, distance_km, passengers, emissions_kg))
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error adding travel_record: {e}")
+        return False
+
+
+def save_grocery_optimization(budget_usd: float, categories: list, result_data: dict) -> None:
+    """Saves a grocery optimization session to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO grocery_optimizations (budget_usd, categories, result_data)
+        VALUES (?, ?, ?)
+    """, (budget_usd, json.dumps(categories), json.dumps(result_data)))
+    conn.commit()
+    conn.close()
+
+def get_grocery_history() -> list:
+    """Retrieves historical grocery optimization sessions."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT budget_usd, categories, result_data, timestamp FROM grocery_optimizations ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+def get_travel_records(user_id: int) -> list:
+    try:
+        import sqlite3
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM travel_records WHERE user_id = ? ORDER BY record_date DESC
+            """, (user_id,))
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting travel_records: {e}")
+        return []
+
+def save_carbon_banking_action(user_id: str, action_type: str, amount: float, from_month: str, to_month: str) -> None:
+    """Saves a carbon banking action (rollover or borrow) to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO carbon_banking_actions (user_id, action_type, amount, from_month, to_month)
+        VALUES (?, ?, ?, ?, ?)
+    """, (user_id, action_type, amount, from_month, to_month))
+    conn.commit()
+    conn.close()
+
+def get_carbon_banking_history(user_id: str) -> list:
+    """Retrieves the carbon banking history for a specific user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT action_type, amount, from_month, to_month, timestamp 
+        FROM carbon_banking_actions 
+        WHERE user_id = ? 
+        ORDER BY timestamp DESC
+    """, (user_id,))
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
