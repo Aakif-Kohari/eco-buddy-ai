@@ -613,9 +613,20 @@ def provenance_block(version: str) -> dict[str, Any]:
     }
 
 
-def normalize_version(version: str | None) -> str:
+def factor_uncertainty_percent(version: str) -> float:
     """
-    Map a stored value onto a usable version id.
+    The uncertainty percentage documented for a factor set's source.
+
+    Lets the uncertainty-aware calculation engine turn a single factor set
+    into lower/central/upper emission bounds without unpacking the full
+    provenance block.
+    """
+    factor_set = get_factor_set(version)
+    return float(factor_set["source"]["uncertainty_percent"])
+
+
+def normalize_version(version: str | None) -> str:
+    """    Map a stored value onto a usable version id.
 
     Rows written before factor versioning existed have NULL here, and are
     treated as static-v1 because that is exactly what they were computed with.

@@ -17,8 +17,7 @@ from src.core.config import (
 )
 from src.core.cache import cached
 from src.core.cache_config import TTL_EXTERNAL_API, CACHE_CATEGORY_API
-from src.carbon.emission_factors import provenance_block, resolve_factor_set
-
+from src.carbon.emission_factors import provenance_block, resolve_factor_set, factor_uncertainty_percent
 
 @cached(ttl=TTL_EXTERNAL_API, category=CACHE_CATEGORY_API)
 def fetch_emission_factors(region: str) -> dict:
@@ -246,8 +245,97 @@ def calculate_footprint(
     return total_rounded, contributors
 
 
-def calculate_eco_score(total_footprint: float, contributors: dict[str, Any] | None = None,
-                        return_audit: bool = False) -> int | tuple[int, dict[str, Any]]:
+def apply_uncertainty_bounds(raw_emissions: dict[str, float], uncertainty_percent: float) -> dict[str, dict[str, float]]:
+    """
+    Turns raw per-category emissions into lower/central/upper bounds using a
+    single uncertainty percentage (the documented uncertainty of the
+    emission-factor set that produced them).
+
+    Returns a dict keyed by category with `low_kg`, `central_kg`, `high_kg`,
+    and `range_kg` (the width of the interval, used to rank uncertainty
+    contributors).
+    """
+    fraction = max(0.0, float(uncertainty_percent)) / 100.0
+    bounds = {}
+    for category, value in raw_emissions.items():
+        low = value * (1 - fraction)
+        high = value * (1 + fraction)
+        bounds[category] = {
+            "low_kg": round(low, 2),
+            "central_kg": round(value, 2),
+            "high_kg": round(high, 2),
+            "range_kg": round(high - low, 2),
+        }
+    return bounds
+
+
+def rank_uncertainty_contributors(category_bounds: dict[str, dict[str, float]]) -> list[dict[str, Any]]:
+    """
+    Ranks categories by how much of the total uncertainty range they
+    contribute, largest first, so the UI can point out which input drives
+    the estimate's imprecision the most.
+    """
+    total_range = sum(bound["range_kg"] for bound in category_bounds.values())
+    ranked = []
+    for category, bound in category_bounds.items():
+        share = (bound["range_kg"] / total_range * 100.0) if total_range > 0 else 0.0
+        ranked.append({
+            "category": category,
+            "range_kg": bound["range_kg"],
+            "share_percent": round(share, 2),
+        })
+    ranked.sort(key=lambda item: item["range_kg"], reverse=True)
+    return ranked
+
+
+def calculate_footprint_range(
+    transport: str,
+    distance: float,
+    electricity: float,
+    diet: str,
+    flights: int,
+    region: str = "Global",
+) -> dict[str, Any]:
+    """
+    Uncertainty-aware companion to `calculate_footprint()`.
+
+    Produces lower, central and upper annual footprint estimates instead of
+    a single number, using the uncertainty percentage documented for the
+    emission-factor set the calculation resolves to. Purely additive:
+    existing callers of `calculate_footprint()` are unaffected.
+    """
+    diet, distance, electricity, flights, region = validate_footprint_inputs(
+        transport, distance, electricity, diet, flights, region
+    )
+
+    dynamic_factors = fetch_emission_factors(region)
+    factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
+    uncertainty_percent = factor_uncertainty_percent(factor_version)
+
+    _, raw_emissions, _ = calculate_category_emissions(
+        transport, distance, electricity, diet, flights, dynamic_factors
+    )
+
+    category_bounds = apply_uncertainty_bounds(raw_emissions, uncertainty_percent)
+    contributors = rank_uncertainty_contributors(category_bounds)
+
+    total_low = round(sum(bound["low_kg"] for bound in category_bounds.values()), 2)
+    total_central = round(sum(bound["central_kg"] for bound in category_bounds.values()), 2)
+    total_high = round(sum(bound["high_kg"] for bound in category_bounds.values()), 2)
+
+    return {
+        "low_kg": total_low,
+        "central_kg": total_central,
+        "high_kg": total_high,
+        "uncertainty_percent": uncertainty_percent,
+        "factor_version": factor_version,
+        "provenance": provenance_block(factor_version),
+        "category_bounds": category_bounds,
+        "top_uncertainty_contributors": contributors,
+    }
+
+
+def calculate_eco_score(total_footprint: float, contributors: dict[str, Any] | None = None,                        return_audit: bool = False) -> int | tuple[int, dict[str, Any]]:
     """
     Higher score = better sustainability
     Calculates a continuous score based on a sigmoid function.
