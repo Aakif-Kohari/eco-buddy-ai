@@ -12,8 +12,7 @@ from src.utils.assessment_explainability import (
     compare_audit_traces,
     serialize_audit,
 )
-from src.core.database import get_assessments_with_factors
-from src.carbon.emissions import get_factor_version
+from src.core.database import get_assessments_with_factors, get_assessment_snapshotfrom src.carbon.emissions import get_factor_version
 from styles.theme import apply_theme
 
 
@@ -43,9 +42,9 @@ labels = {
 
 selected_id = st.selectbox("Assessment", options=[item["id"] for item in assessments], format_func=lambda value: labels[value])
 selected = next(item for item in assessments if item["id"] == selected_id)
+snapshot = get_assessment_snapshot(selected_id)
 
-try:
-    current_factor_version = get_factor_version("Global")
+try:    current_factor_version = get_factor_version("Global")
 except Exception:
     current_factor_version = None
 
@@ -59,12 +58,19 @@ for note in audit.notes:
     if note not in (METHODOLOGY_CHANGED,):
         st.caption(f"ℹ️ {note}")
 
+if snapshot:
+    st.success("✅ Using the immutable calculation snapshot stored with this assessment — no recalculation performed.")
+else:
+    st.caption("ℹ️ No stored snapshot for this assessment (it predates snapshotting); showing a reconstructed trace instead.")
+
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Stored footprint", f"{audit.stored_footprint:.2f} kg" if audit.stored_footprint is not None else "Unavailable")
-m2.metric("Reconstructed trace", f"{audit.trace.total_result:.2f} kg" if audit.methodology_available else "Unavailable")
+if snapshot:
+    m2.metric("Snapshot total", f"{snapshot['total_kg']:.2f} kg")
+else:
+    m2.metric("Reconstructed trace", f"{audit.trace.total_result:.2f} kg" if audit.methodology_available else "Unavailable")
 m3.metric("Eco score", str(audit.stored_eco_score) if audit.stored_eco_score is not None else "Unavailable")
 m4.metric("Factor version", audit.factor_version or "Unavailable")
-
 st.subheader("📊 Category Contributions")
 if audit.contributions:
     contribution_df = pd.DataFrame([
@@ -112,7 +118,6 @@ else:
 st.subheader("🔬 Factor Metadata")
 metadata = audit.factor_metadata
 st.json(metadata)
-
 st.subheader("↔️ Previous vs Current")
 previous_candidates = [item for item in assessments if item["id"] != selected_id]
 if previous_candidates:
