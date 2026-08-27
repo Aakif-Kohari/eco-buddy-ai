@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import household as household_module
-from household import (
+import src.lifestyle.household as household_module
+from src.lifestyle.household import (
     ALLOCATION_METHODS,
     DEFAULT_WEIGHT,
     JOIN_CODE_ALPHABET,

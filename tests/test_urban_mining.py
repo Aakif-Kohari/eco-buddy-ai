@@ -3,18 +3,18 @@ Unit tests for Urban Mining Calculator and Critical Mineral DB.
 """
 
 import pytest
-from urban_mining_calculator import UrbanMiningCalculator
-from critical_mineral_db import CriticalMineralDB
+from src.utils.urban_mining_calculator import UrbanMiningCalculator
+from src.utils.critical_mineral_db import CriticalMineralDB
 
 
 def test_db_retrieval():
     db = CriticalMineralDB()
-    profile = db.get_device_profile("smartphone")
+    profile = src.notifications.db.get_device_profile("smartphone")
     assert profile is not None
     assert profile["name"] == "Smartphone"
     assert "lithium" in profile["minerals"]
 
-    assert db.get_device_display_name("smartwatch") == "Smartwatch"
+    assert src.notifications.db.get_device_display_name("smartwatch") == "Smartwatch"
 
 
 def test_calculator_add_device():

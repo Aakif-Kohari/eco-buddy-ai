@@ -237,7 +237,7 @@ def render_sustainable_food_planner():
                 w_co2 = factor["co2"] * waste_kg
                 w_water = factor["water"] * waste_kg
                 
-                st.error(f"⚠️ Your weekly {waste_cat} waste generates approx **{w_co2:.1f} kg CO₂** and wastes **{w_water:,.0f} L** of water.")
+                st.error(f"⚠️ Your weekly {waste_cat} waste generates approx **{w_co2:.1f} kg CO₂** and wastes **{w_water:,.0f} L** of src.environment.water.")
                 
                 st.markdown("### Practical Waste Reduction Tips")
                 st.markdown("- **Plan Meals:** Buy only what you need using a shopping list.")
@@ -251,7 +251,7 @@ def render_sustainable_food_planner():
         st.session_state.food_reduction_goal = goal
 
         if not st.session_state.meal_plan:
-            st.info("Start building your meal plan to track progress against your goals.")
+            st.info("Start building your meal plan to track progress against your src.utils.goals.")
         else:
             plan_df = pd.DataFrame(st.session_state.meal_plan)
             # Estimate a baseline if user had average meat-heavy diet (for demo purposes)

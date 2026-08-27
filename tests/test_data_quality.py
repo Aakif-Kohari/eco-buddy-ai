@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from data_quality import (
+from src.data.data_quality import (
     CODE_DUPLICATE,
     CODE_DUPLICATE_TIMESTAMP,
     CODE_FUTURE_DATE,
@@ -41,7 +41,7 @@ NOW = datetime.datetime(2026, 7, 30, 12, 0, 0)
 
 def row(record_id, when, footprint, transport="Car", distance=10.0,
         electricity=300.0, diet="Vegetarian", flights=2, eco_score=60):
-    """A row shaped exactly like database.get_assessments() returns."""
+    """A row shaped exactly like src.core.database.get_assessments() returns."""
     when_text = when.isoformat() if hasattr(when, "isoformat") else when
     return (record_id, when_text, transport, distance, electricity, diet,
             flights, footprint, eco_score)

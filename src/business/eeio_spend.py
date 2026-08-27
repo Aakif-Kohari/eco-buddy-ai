@@ -1,7 +1,7 @@
 """Spend-based consumption footprint by environmentally-extended input-output.
 
 Everything in this repository that turns money into carbon does it with a
-per-category factor. ``receipt_categorization.py`` sorts a receipt into a
+per-category factor. ``src.utils.receipt_categorization.py`` sorts a receipt into a
 category and a kg-per-currency-unit number is applied. That number is a
 *direct* intensity: it accounts for what the seller emitted and nothing for what
 the seller bought in order to sell it.
@@ -36,9 +36,9 @@ upstream multiplier to it.
 deflating reports inflation as emissions growth.
 
 **Spend double counts against physical data.** If electricity is already counted
-in kWh by ``emissions.py`` and the electricity *spend* also goes through this
+in kWh by ``src.carbon.emissions.py`` and the electricity *spend* also goes through this
 model, it is in the inventory twice. Every sector here declares what it overlaps
-with, so ``boundary_reconciliation.py`` has something to work from and a hybrid
+with, so ``src.utils.boundary_reconciliation.py`` has something to work from and a hybrid
 inventory can subtract cleanly rather than hope.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
@@ -370,7 +370,7 @@ DEFLATORS: dict[int, float] = {
 #
 # A spend-based total is only safe to add to a physical one after the overlap
 # has been taken out. Each sector declares which physical activity it covers, so
-# ``boundary_reconciliation.py`` has something to reconcile against instead of
+# ``src.utils.boundary_reconciliation.py`` has something to reconcile against instead of
 # having to infer it.
 # ---------------------------------------------------------------------------
 
@@ -771,7 +771,7 @@ def hybrid_footprint(
     """Physical data where it exists, spend-based for the rest, overlap removed.
 
     This is the construction that makes a spend-based module safe to use next to
-    ``emissions.py``. The removal is the whole point: a hybrid inventory that
+    ``src.carbon.emissions.py``. The removal is the whole point: a hybrid inventory that
     adds a spend total to a physical total without subtracting the intersection
     is not a better inventory, it is a double-counted one.
     """

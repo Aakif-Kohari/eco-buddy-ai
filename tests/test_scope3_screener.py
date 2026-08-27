@@ -1,10 +1,10 @@
 import pytest
 
-from business_footprint import (
+from src.business.business_footprint import (
     calculate_business_footprint,
     generate_b2b_recommendations,
 )
-from scope3_screener import categorize_business_expense
+from src.carbon.scope3_screener import categorize_business_expense
 
 
 def test_categorize_business_expense_software():

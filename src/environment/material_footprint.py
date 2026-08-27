@@ -1,7 +1,7 @@
 """How much material had to move, which no emission figure can tell you.
 
 Every impact this app reports is an output: something leaving a system into air
-or water. Nothing measures the input - the rock, ore, sand, biomass and soil
+or src.environment.water. Nothing measures the input - the rock, ore, sand, biomass and soil
 that has to be moved to put a product in someone's hand.
 
 That gap matters because carbon and material use decouple more often than people
@@ -51,12 +51,12 @@ assumption wherever the depletion figures use it.
 
 Where this connects to code already merged
 -------------------------------------------
-*   ``circular_economy_engine.py`` argues for repair and reuse without a metric
+*   ``src.utils.circular_economy_engine.py`` argues for repair and reuse without a metric
     that shows the size of the prize. This is that metric.
-*   ``device_lifecycle.py`` models replacement intervals; extending a laptop
+*   ``src.utils.device_lifecycle.py`` models replacement intervals; extending a laptop
     from three years to six avoids a material footprint far more striking than
     the carbon saving.
-*   ``emission_factors.py`` covers the output side. This is the input side.
+*   ``src.carbon.emission_factors.py`` covers the output side. This is the input side.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
 files modified.
@@ -345,7 +345,7 @@ MATERIALS = {
         "adp": 0.0, "hhi": 900, "substitutability": 0.25,
         "recycling_input_rate": 0.01,
         "note": "Fifteen kilograms of soil moved per kilogram of fibre, and "
-                "ten tonnes of water. Neither number appears anywhere in a "
+                "ten tonnes of src.environment.water. Neither number appears anywhere in a "
                 "carbon footprint.",
     },
 }
@@ -439,7 +439,7 @@ PRODUCTS = {
         "typical_life_years": 3.0,
         "bom": {"cotton": 0.200},
         "note": "Included as a contrast: almost no abiotic flow, a great deal "
-                "of soil and water. A single-category metric would rank it "
+                "of soil and src.environment.water. A single-category metric would rank it "
                 "either far too well or far too badly.",
     },
 }

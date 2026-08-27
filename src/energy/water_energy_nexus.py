@@ -30,7 +30,7 @@ class WaterEnergyNexus:
         temp_celsius: float,
         inlet_temp_celsius: float = 15.0,
     ) -> float:
-        """Calculates the energy required to heat a given volume of water."""
+        """Calculates the energy required to heat a given volume of src.environment.water."""
         if temp_celsius <= inlet_temp_celsius:
             return 0.0
 

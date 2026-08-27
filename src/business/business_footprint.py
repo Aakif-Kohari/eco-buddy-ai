@@ -5,7 +5,7 @@ from src.carbon.scope3_screener import categorize_business_expense
 
 def calculate_business_footprint(expenses: list[dict[str, Any]]) -> dict[str, Any]:
     """
-    Aggregates business expenses into a comprehensive Scope 3 footprint report.
+    Aggregates business expenses into a comprehensive Scope 3 footprint src.reporting.report.
     """
     total_emissions = 0.0
     category_breakdown = {}
@@ -48,7 +48,7 @@ def calculate_business_footprint(expenses: list[dict[str, Any]]) -> dict[str, An
 
 
 def generate_b2b_recommendations(footprint: dict[str, Any]) -> list[str]:
-    """Generates B2B-specific sustainability recommendations."""
+    """Generates B2B-specific sustainability src.ai.recommendations."""
     recommendations = []
     breakdown = footprint["category_breakdown"]
 
@@ -56,26 +56,26 @@ def generate_b2b_recommendations(footprint: dict[str, Any]) -> list[str]:
         "Purchased Goods and Services" in breakdown
         and breakdown["Purchased Goods and Services"] > 100
     ):
-        recommendations.append(
-            "🖥️ **IT & Procurement:** Consider switching to green web hosting providers and purchasing refurbished office equipment to reduce Category 1 emissions."
+        src.ai.recommendations.append(
+            "🖥️ **IT & Procurement:** Consider switching to green web hosting providers and purchasing refurbished office equipment to reduce Category 1 src.carbon.emissions."
         )
 
     if "Business Travel" in breakdown and breakdown["Business Travel"] > 200:
-        recommendations.append(
+        src.ai.recommendations.append(
             "✈️ **Travel Policy:** Implement a 'virtual-first' meeting policy and prioritize rail travel over short-haul flights for Category 6 reductions."
         )
 
     if "Employee Commuting" in breakdown and breakdown["Employee Commuting"] > 150:
-        recommendations.append(
-            "🚲 **Commuting:** Offer incentives for public transit, carpooling, or remote work days to lower Category 7 emissions."
+        src.ai.recommendations.append(
+            "🚲 **Commuting:** Offer incentives for public transit, carpooling, or remote work days to lower Category 7 src.carbon.emissions."
         )
 
     if footprint["business_eco_score"] > 80:
-        recommendations.append(
+        src.ai.recommendations.append(
             "🏆 **Leadership:** Your business footprint is excellent! Consider publishing a sustainability report to showcase your commitment to stakeholders."
         )
     elif not recommendations:
-        recommendations.append(
+        src.ai.recommendations.append(
             "📊 **Baseline:** Start by tracking your expenses in the app to identify your largest emission hotspots."
         )
 

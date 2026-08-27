@@ -1,6 +1,6 @@
 """
 Intelligent Traffic Light Controllers.
-Models dynamic signal timings to optimize traffic flow and reduce idling emissions.
+Models dynamic signal timings to optimize traffic flow and reduce idling src.carbon.emissions.
 """
 
 from typing import Dict, List

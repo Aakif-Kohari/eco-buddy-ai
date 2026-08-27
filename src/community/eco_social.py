@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: eco_social.py
+# FILE: src.community.eco_social.py
 # EcoBuddy AI+ Social Community Features
 # ============================================================
 

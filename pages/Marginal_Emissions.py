@@ -1,4 +1,4 @@
-"""Consequential (marginal) emissions.
+"""Consequential (marginal) src.carbon.emissions.
 
 Every factor elsewhere in the app is an average. This page shows what a
 change actually causes, and — more usefully — where the two answers disagree

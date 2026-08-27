@@ -3,8 +3,8 @@ Unit tests for PCF Label Generator and Supply Chain Transparency.
 """
 
 import pytest
-from pcf_label_generator import PCFLabelGenerator
-from supply_chain_transparency import SupplyChainTransparency
+from src.utils.pcf_label_generator import PCFLabelGenerator
+from src.business.supply_chain_transparency import SupplyChainTransparency
 
 
 def test_calculate_material_impact():

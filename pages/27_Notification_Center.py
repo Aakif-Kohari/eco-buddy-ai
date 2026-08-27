@@ -20,13 +20,13 @@ tab_inbox, tab_history, tab_prefs = st.tabs(["📥 Inbox", "📜 History", "⚙�
 with tab_inbox:
     st.subheader("Unread Notifications")
     
-    unread = db.get_user_history(user_id, limit=50, unread_only=True)
+    unread = src.notifications.db.get_user_history(user_id, limit=50, unread_only=True)
     
     if not unread:
         st.info("You're all caught up! No unread notifications.")
     else:
         if st.button("Mark All as Read"):
-            db.mark_all_read(user_id)
+            src.notifications.db.mark_all_read(user_id)
             st.rerun()
             
         for notif in unread:
@@ -40,12 +40,12 @@ with tab_inbox:
                     st.caption(f"{notif.category.title()} • {notif.created_at.strftime('%Y-%m-%d %H:%M')} UTC")
                     
                     if st.button("Mark Read", key=f"read_{notif.id}"):
-                        db.update_notification_status(notif.id, "read")
+                        src.notifications.db.update_notification_status(notif.id, "read")
                         st.rerun()
 
 with tab_history:
     st.subheader("Notification History")
-    history = db.get_user_history(user_id, limit=100, unread_only=False)
+    history = src.notifications.db.get_user_history(user_id, limit=100, unread_only=False)
     
     if not history:
         st.write("No notification history found.")

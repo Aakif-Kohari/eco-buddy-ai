@@ -6,7 +6,7 @@ import pytest
 import sqlite3
 import os
 import tempfile
-from habit_tracker import (
+from src.lifestyle.habit_tracker import (
     HabitDatabase,
     HabitTracker,
     HabitRecommender,

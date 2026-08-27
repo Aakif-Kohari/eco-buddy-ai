@@ -15,7 +15,7 @@ import os
 import tempfile
 import unittest
 
-import hourly_matching as hm
+import src.energy.hourly_matching as hm
 
 
 SOLAR = [{"profile": "rooftop_solar", "annual_kwh": 3000.0}]
@@ -466,7 +466,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a temporary src.core.database."""
 
     @classmethod
     def setUpClass(cls):

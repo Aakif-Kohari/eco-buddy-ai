@@ -1,5 +1,5 @@
 import unittest
-from scope3_supply_chain import Scope3SupplyChainEngine
+from src.carbon.scope3_supply_chain import Scope3SupplyChainEngine
 
 class TestScope3SupplyChain(unittest.TestCase):
     def setUp(self):

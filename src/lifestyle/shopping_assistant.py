@@ -1,7 +1,7 @@
 
 
 # ============================================================
-# FILE: shopping_assistant.py
+# FILE: src.lifestyle.shopping_assistant.py
 # EcoBuddy AI+ Eco-Smart Shopping Assistant
 # ============================================================
 

@@ -367,7 +367,7 @@ class TestSecurityStrictness:
 
 class TestRealWorldUsage:
     def test_default_ecobuddy_green(self):
-        # From certificate.py: textColor=colors.HexColor("#2E7D32")
+        # From src.utils.certificate.py: textColor=colors.HexColor("#2E7D32")
         assert is_valid_hex_color("#2E7D32") is True
 
     def test_default_ecobuddy_blue(self):

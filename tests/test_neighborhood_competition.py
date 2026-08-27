@@ -3,8 +3,8 @@ Unit tests for Neighborhood Competition and Block Leaderboard.
 """
 
 import pytest
-from neighborhood_competition import NeighborhoodCompetition
-from block_leaderboard import BlockLeaderboard
+from src.lifestyle.neighborhood_competition import NeighborhoodCompetition
+from src.community.block_leaderboard import BlockLeaderboard
 
 
 def test_anonymization():

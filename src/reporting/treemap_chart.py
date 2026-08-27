@@ -13,7 +13,7 @@ def create_emission_treemap(contributors: dict, total: float) -> go.Figure:
     """
     Build an interactive treemap showing how each lifestyle category
     (Transport, Electricity, Diet, Flights) contributes to the user's
-    total carbon footprint, sized by emissions.
+    total carbon footprint, sized by src.carbon.emissions.
 
     Includes hover details and category-wise percentage contribution.
     """

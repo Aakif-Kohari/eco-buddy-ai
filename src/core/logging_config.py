@@ -356,7 +356,7 @@ def runtime_error_boundary(
     context: dict[str, Any] | None = None,
     user_id: Any | None = None,
 ):
-    """Context manager that catches, logs structured telemetry for, and optionally suppresses runtime errors."""
+    """Context manager that catches, logs structured telemetry for, and optionally suppresses runtime src.core.errors."""
     try:
         yield
     except BaseException as exc:

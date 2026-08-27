@@ -3,7 +3,7 @@ Comprehensive Unit Tests for Smart Grid EV V2G Engine
 """
 
 import pytest
-from smart_grid_ev_v2g_engine import SmartGridEvV2gEngine, EvChargerAsset
+from src.energy.smart_grid_ev_v2g_engine import SmartGridEvV2gEngine, EvChargerAsset
 
 def test_v2g_capacity_calculation():
     engine = SmartGridEvV2gEngine()

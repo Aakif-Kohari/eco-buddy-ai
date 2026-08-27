@@ -141,7 +141,7 @@ if sim_distance > 80:
 if sim_electricity > 1500:
     validation_warnings.append("High electricity consumption detected. A home energy audit might be beneficial.")
 if sim_flights > 10:
-    validation_warnings.append("Frequent flying contributes significantly to emissions. Explore train travel or virtual meetings.")
+    validation_warnings.append("Frequent flying contributes significantly to src.carbon.emissions. Explore train travel or virtual meetings.")
 
 if validation_warnings:
     for w in validation_warnings:
@@ -269,7 +269,7 @@ if improvements:
     saved = improvements[best_cat]
     st.info(f"**Top Impact Area:** Your changes in **{best_cat}** provided the largest reduction, saving **{saved:,.0f} kg CO₂**!")
 else:
-    st.info("Try adjusting the controls to see how lifestyle changes can reduce your emissions.")
+    st.info("Try adjusting the controls to see how lifestyle changes can reduce your src.carbon.emissions.")
 
 if st.session_state.scenario_history:
     st.markdown("---")

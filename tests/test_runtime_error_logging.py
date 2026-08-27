@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import pytest
 
-from errors import AppError, ConfigurationError, ExternalServiceError, ValidationError
-from log_sanitizer import REDACTED, operation_context
-from logging_config import (
+from src.core.errors import AppError, ConfigurationError, ExternalServiceError, ValidationError
+from src.core.log_sanitizer import REDACTED, operation_context
+from src.core.logging_config import (
     log_on_error,
     log_runtime_error,
     runtime_error_boundary,

@@ -139,7 +139,7 @@ class OffsetImpact:
 
 @dataclass
 class OffsetFilterOptions:
-    """Filter options for the marketplace."""
+    """Filter options for the src.utils.marketplace."""
     search: str
     category: OffsetCategory | None
     continent: str

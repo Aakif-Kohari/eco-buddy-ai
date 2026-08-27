@@ -2,8 +2,8 @@
 Unit tests for Textile LCA Engine and Fashion Impact Comparator.
 """
 import pytest
-from textile_lca_engine import TextileLCAEngine
-from fashion_impact_comparator import FashionImpactComparator
+from src.utils.textile_lca_engine import TextileLCAEngine
+from src.lifestyle.fashion_impact_comparator import FashionImpactComparator
 
 def test_get_material_data():
     engine = TextileLCAEngine()

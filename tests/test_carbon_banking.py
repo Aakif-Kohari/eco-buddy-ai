@@ -3,8 +3,8 @@ Unit tests for Carbon Banking Engine and Intertemporal Trading.
 """
 
 import pytest
-from carbon_banking_engine import CarbonBankingEngine
-from intertemporal_trading import IntertemporalTrading
+from src.carbon.carbon_banking_engine import CarbonBankingEngine
+from src.utils.intertemporal_trading import IntertemporalTrading
 
 
 def test_rollover_logic():

@@ -1,6 +1,6 @@
 """Explainability and audit snapshots for EcoBuddy sustainability assessments.
 
-This module is deliberately read-only with respect to the assessment database.
+This module is deliberately read-only with respect to the assessment src.core.database.
 It reconstructs calculations from the immutable factor-set registry when the
 assessment has a known factor version and refuses to invent historical factors
 when that metadata is unavailable.

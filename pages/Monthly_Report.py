@@ -44,7 +44,7 @@ def render_monthly_report():
 
     user = get_current_user()
     if not user:
-        st.warning("Please log in to view your monthly report.")
+        st.warning("Please log in to view your monthly src.reporting.report.")
         return
 
     user_id = user["id"]

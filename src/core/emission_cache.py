@@ -22,7 +22,7 @@ def get_emission_factor_cached(factor_id: str, compute_func: Optional[Callable] 
     cache = get_emission_cache()
     
     # Try cache first
-    cached = cache.get("emission_factor", factor_id=factor_id)
+    cached = src.core.cache.get("emission_factor", factor_id=factor_id)
     if cached is not None:
         record_emission_cache_hit("factor")
         return cached
@@ -35,7 +35,7 @@ def get_emission_factor_cached(factor_id: str, compute_func: Optional[Callable] 
         value = compute_func()
         computation_time = (time.time() - start_time) * 1000
         
-        cache.set(value, "emission_factor", factor_id=factor_id)
+        src.core.cache.set(value, "emission_factor", factor_id=factor_id)
         record_emission_cache_set("factor", computation_time)
         return value
     
@@ -43,23 +43,23 @@ def get_emission_factor_cached(factor_id: str, compute_func: Optional[Callable] 
 
 
 def invalidate_emission_factor(factor_id: str) -> None:
-    """Invalidate a specific emission factor in cache."""
+    """Invalidate a specific emission factor in src.core.cache."""
     cache = get_emission_cache()
-    cache.invalidate("emission_factor", factor_id=factor_id)
+    src.core.cache.invalidate("emission_factor", factor_id=factor_id)
     logger.info(f"Invalidated emission factor: {factor_id}")
 
 
 def clear_emission_cache() -> None:
-    """Clear all emission factor cache."""
+    """Clear all emission factor src.core.cache."""
     cache = get_emission_cache()
-    cache.invalidate()
+    src.core.cache.invalidate()
     logger.info("Cleared all emission factor cache")
 
 
 def get_emission_cache_stats() -> Dict[str, Any]:
     """Get emission factor cache statistics."""
     cache = get_emission_cache()
-    return cache.get_stats()
+    return src.core.cache.get_stats()
 
 
 def warm_emission_cache(factors: List[Dict[str, Any]]) -> None:
@@ -70,7 +70,7 @@ def warm_emission_cache(factors: List[Dict[str, Any]]) -> None:
     for factor in factors:
         factor_id = factor.get("factor_id")
         if factor_id:
-            cache.set(factor, "emission_factor", factor_id=factor_id)
+            src.core.cache.set(factor, "emission_factor", factor_id=factor_id)
     
     logger.info("Cache warming complete")
 
@@ -93,7 +93,7 @@ def cached_emission_factor(ttl: Optional[int] = None):
             start_time = time.time()
             
             # Try cache
-            cached = cache.get(factor_type, **cache_kwargs)
+            cached = src.core.cache.get(factor_type, **cache_kwargs)
             if cached is not None:
                 record_emission_cache_hit("factor")
                 return cached
@@ -104,7 +104,7 @@ def cached_emission_factor(ttl: Optional[int] = None):
             value = func(*args, **kwargs)
             computation_time = (time.time() - start_time) * 1000
             
-            cache.set(value, factor_type, ttl, **cache_kwargs)
+            src.core.cache.set(value, factor_type, ttl, **cache_kwargs)
             record_emission_cache_set("factor", computation_time)
             
             return value
@@ -118,7 +118,7 @@ def calculate_emission_cached(factor_id: str, quantity: float) -> float:
     cache = get_emission_cache()
     
     # Try cache
-    cached = cache.get("emission_calculation", factor_id=factor_id, quantity=quantity)
+    cached = src.core.cache.get("emission_calculation", factor_id=factor_id, quantity=quantity)
     if cached is not None:
         record_emission_cache_hit("calculation")
         return cached
@@ -126,7 +126,7 @@ def calculate_emission_cached(factor_id: str, quantity: float) -> float:
     record_emission_cache_miss("calculation")
     
     # Get factor
-    factor = cache.get("emission_factor", factor_id=factor_id)
+    factor = src.core.cache.get("emission_factor", factor_id=factor_id)
     if factor is None:
         raise ValueError(f"Emission factor not found: {factor_id}")
     
@@ -134,7 +134,7 @@ def calculate_emission_cached(factor_id: str, quantity: float) -> float:
     emission = quantity * factor["value"] if isinstance(factor, dict) else quantity * factor.value
     
     # Cache result
-    cache.set(emission, "emission_calculation", factor_id=factor_id, quantity=quantity)
+    src.core.cache.set(emission, "emission_calculation", factor_id=factor_id, quantity=quantity)
     record_emission_cache_set("calculation", 0.0)
     
     return emission
@@ -145,7 +145,7 @@ def get_factors_by_category_cached(category: str) -> List[Dict[str, Any]]:
     cache = get_emission_cache()
     
     # Try cache
-    cached = cache.get("category_factors", category=category)
+    cached = src.core.cache.get("category_factors", category=category)
     if cached is not None:
         record_emission_cache_hit("category")
         return cached

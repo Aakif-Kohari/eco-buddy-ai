@@ -22,21 +22,21 @@ from typing import Generator, List, Dict, Any
 
 import pytest
 
-import database as db
-from database_connection import (
+import src.core.database as db
+from src.core.database_connection import (
     create_connection,
     database_connection,
     execute_with_retry,
 )
-from invalidation import invalidate_all_db_caches
-import api_auth
-from api_auth import (
+from src.core.invalidation import invalidate_all_db_caches
+import src.core.api_auth
+from src.core.api_auth import (
     generate_api_key,
     validate_api_key,
     revoke_api_key,
     init_api_keys_db,
 )
-from sustainability_api import (
+from src.business.sustainability_api import (
     process_api_request,
     API_VERSION_PREFIX,
 )
@@ -46,20 +46,20 @@ from sustainability_api import (
 def setup_isolated_db(tmp_path) -> Generator[str, None, None]:
     """Isolate SQLite database for every test to avoid state pollution."""
     db_file = str(tmp_path / f"test_race_conditions_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
+    original_db = src.notifications.db.DB_NAME
     original_api_db = getattr(api_auth, "DB_NAME", "eco_buddy.db")
-    db.DB_NAME = db_file
-    api_auth.DB_NAME = db_file
+    src.notifications.db.DB_NAME = db_file
+    src.core.api_auth.DB_NAME = db_file
     os.environ["ECO_BUDDY_DB"] = db_file
 
     try:
-        db.init_db()
+        src.notifications.db.init_db()
         init_api_keys_db()
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
-        api_auth.DB_NAME = original_api_db
+        src.notifications.db.DB_NAME = original_db
+        src.core.api_auth.DB_NAME = original_api_db
         os.environ["ECO_BUDDY_DB"] = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
@@ -82,7 +82,7 @@ def test_concurrent_user_creation_under_contention(setup_isolated_db: str):
         username = f"race_user_{index}_{uuid.uuid4().hex[:4]}"
         email = f"{username}@example.com"
         barrier.wait()
-        return db.create_user(username, email, "Password123!")
+        return src.notifications.db.create_user(username, email, "Password123!")
 
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         futures = [executor.submit(create_worker, i) for i in range(worker_count)]
@@ -129,7 +129,7 @@ def test_duplicate_submission_race_condition(setup_isolated_db: str):
 
     def attempt_registration():
         barrier.wait()
-        return db.create_user(target_username, target_email, target_password)
+        return src.notifications.db.create_user(target_username, target_email, target_password)
 
     with ThreadPoolExecutor(max_workers=thread_count) as executor:
         futures = [executor.submit(attempt_registration) for _ in range(thread_count)]
@@ -156,7 +156,7 @@ def test_simultaneous_goal_updates(setup_isolated_db: str):
 
     def update_goal_worker(index: int) -> int | None:
         barrier.wait()
-        return db.save_reduction_goal(
+        return src.notifications.db.save_reduction_goal(
             user_id=user_id,
             baseline_kg=5000.0,
             target_kg=4000.0 - (index * 50),
@@ -187,7 +187,7 @@ def test_simultaneous_goal_updates(setup_isolated_db: str):
 # ===========================================================================
 
 def test_concurrent_api_key_revocation_race(setup_isolated_db: str):
-    """Simultaneous revocation of the same key across 10 threads without sqlite locking errors."""
+    """Simultaneous revocation of the same key across 10 threads without sqlite locking src.core.errors."""
     key_data = generate_api_key("Contested Revocation App", user_id="user_race_rev")
     key_id = key_data["id"]
     thread_count = 10

@@ -17,7 +17,7 @@ import json
 import os
 import unittest
 from unittest.mock import patch
-from emissions import calculate_footprint, calculate_eco_score, fetch_emission_factors
+from src.carbon.emissions import calculate_footprint, calculate_eco_score, fetch_emission_factors
 
 
 class TestEmissionBenchmarks(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestEmissionBenchmarks(unittest.TestCase):
     def run_benchmark_test(self, dataset_name, test_case):
         """Helper method to run a benchmark test case."""
         # Mock environment to use static factors (no API key)
-        with patch("emissions.os.environ.get", return_value=None):
+        with patch("src.carbon.emissions.os.environ.get", return_value=None):
             inputs = test_case["inputs"]
             expected = test_case["expected_output"]
             

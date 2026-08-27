@@ -7,7 +7,7 @@ constant directly so they stay in sync if the prefix is ever updated.
 """
 
 import pytest
-from api_auth import (
+from src.core.api_auth import (
     generate_api_key,
     validate_api_key,
     revoke_api_key,
@@ -15,7 +15,7 @@ from api_auth import (
     authenticate_request,
     init_api_keys_db,
 )
-from sustainability_api import (
+from src.business.sustainability_api import (
     process_api_request,
     OPENAPI_SPEC,
     SWAGGER_UI_HTML,

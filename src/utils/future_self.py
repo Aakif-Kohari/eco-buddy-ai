@@ -117,15 +117,15 @@ def build_projection_timeline(
     report: FutureSelfReport,
 ) -> pd.DataFrame:
     rows = []
-    if report.history_df is not None:
-        for _, row in report.history_df.iterrows():
+    if src.reporting.report.history_df is not None:
+        for _, row in src.reporting.report.history_df.iterrows():
             rows.append({
                 "label": row["date"].strftime("%b %Y"),
                 "value": float(row["footprint"]),
                 "type": "Historical",
             })
     for year in (1, 5, 10):
-        scenario = report.scenarios[year]
+        scenario = src.reporting.report.scenarios[year]
         label = f"Year {year}"
         rows.append({
             "label": label,

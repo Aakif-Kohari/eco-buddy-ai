@@ -3,7 +3,7 @@ Unit tests for Local Biodiversity Explorer (#352).
 """
 
 import pytest
-from local_biodiversity import (
+from src.environment.local_biodiversity import (
     get_all_species,
     search_species,
     get_conservation_stats,

@@ -862,21 +862,21 @@ def build_quality_report(
         (),
     )
     return QualityReport(
-        generated_at=report.generated_at,
-        status=report.status,
-        score=report.score,
-        completeness_pct=report.completeness_pct,
-        assessments_checked=report.assessments_checked,
-        valid_assessments=report.valid_assessments,
-        assessments_with_errors=report.assessments_with_errors,
-        assessments_needing_review=report.assessments_needing_review,
-        missing_required_fields=report.missing_required_fields,
-        missing_optional_fields=report.missing_optional_fields,
-        issue_counts=report.issue_counts,
-        field_coverage=report.field_coverage,
-        assessments=report.assessments,
-        duplicate_assessment_ids=report.duplicate_assessment_ids,
-        stale_assessment_count=report.stale_assessment_count,
+        generated_at=src.reporting.report.generated_at,
+        status=src.reporting.report.status,
+        score=src.reporting.report.score,
+        completeness_pct=src.reporting.report.completeness_pct,
+        assessments_checked=src.reporting.report.assessments_checked,
+        valid_assessments=src.reporting.report.valid_assessments,
+        assessments_with_errors=src.reporting.report.assessments_with_errors,
+        assessments_needing_review=src.reporting.report.assessments_needing_review,
+        missing_required_fields=src.reporting.report.missing_required_fields,
+        missing_optional_fields=src.reporting.report.missing_optional_fields,
+        issue_counts=src.reporting.report.issue_counts,
+        field_coverage=src.reporting.report.field_coverage,
+        assessments=src.reporting.report.assessments,
+        duplicate_assessment_ids=src.reporting.report.duplicate_assessment_ids,
+        stale_assessment_count=src.reporting.report.stale_assessment_count,
         recommendations=quality_recommendations(report),
     )
 
@@ -899,7 +899,7 @@ def filter_issues(
 
 
 def all_report_issues(report: QualityReport) -> tuple[QualityIssue, ...]:
-    return tuple(issue for assessment in report.assessments for issue in assessment.issues)
+    return tuple(issue for assessment in src.reporting.report.assessments for issue in assessment.issues)
 
 
 def report_issue_summary(report: QualityReport) -> list[dict[str, Any]]:
@@ -912,7 +912,7 @@ def report_issue_summary(report: QualityReport) -> list[dict[str, Any]]:
 
 def missing_field_summary(report: QualityReport) -> list[dict[str, Any]]:
     values = []
-    for field, coverage in sorted(report.field_coverage.items(), key=lambda item: item[1]):
+    for field, coverage in sorted(src.reporting.report.field_coverage.items(), key=lambda item: item[1]):
         values.append({
             "field": field,
             "coverage_pct": coverage,
@@ -923,7 +923,7 @@ def missing_field_summary(report: QualityReport) -> list[dict[str, Any]]:
 
 def completeness_distribution(report: QualityReport) -> dict[str, int]:
     buckets = {"0-49": 0, "50-79": 0, "80-99": 0, "100": 0}
-    for assessment in report.assessments:
+    for assessment in src.reporting.report.assessments:
         value = assessment.completeness_pct
         if value >= 100:
             buckets["100"] += 1
@@ -938,7 +938,7 @@ def completeness_distribution(report: QualityReport) -> dict[str, int]:
 
 def status_counts(report: QualityReport) -> dict[str, int]:
     counts = {status.value: 0 for status in QualityStatus}
-    for assessment in report.assessments:
+    for assessment in src.reporting.report.assessments:
         counts[assessment.status.value] += 1
     return counts
 
@@ -956,7 +956,7 @@ def informational_issues(report: QualityReport) -> tuple[QualityIssue, ...]:
 
 
 def assessment_quality_by_id(report: QualityReport, assessment_id: str) -> AssessmentQuality | None:
-    for assessment in report.assessments:
+    for assessment in src.reporting.report.assessments:
         if assessment.assessment_id == str(assessment_id):
             return assessment
     return None
@@ -969,7 +969,7 @@ def field_quality(report: QualityReport, field: str) -> dict[str, Any]:
         "field": field,
         "label": definition.label if definition else field.replace("_", " ").title(),
         "required": definition.required if definition else False,
-        "coverage_pct": report.field_coverage.get(field, 0.0),
+        "coverage_pct": src.reporting.report.field_coverage.get(field, 0.0),
         "issue_count": len(issues),
         "errors": sum(x.severity == IssueSeverity.ERROR for x in issues),
         "warnings": sum(x.severity == IssueSeverity.WARNING for x in issues),
@@ -978,23 +978,23 @@ def field_quality(report: QualityReport, field: str) -> dict[str, Any]:
 
 def required_field_coverage(report: QualityReport) -> dict[str, float]:
     return {
-        field: report.field_coverage.get(field, 0.0)
+        field: src.reporting.report.field_coverage.get(field, 0.0)
         for field in REQUIRED_FIELD_NAMES
     }
 
 
 def overall_readiness(report: QualityReport) -> dict[str, Any]:
     return {
-        "ready_for_trends": report.status in {
+        "ready_for_trends": src.reporting.report.status in {
             QualityStatus.COMPLETE, QualityStatus.GOOD, QualityStatus.NEEDS_REVIEW
-        } and report.assessments_checked >= 2 and report.assessments_with_errors == 0,
-        "ready_for_benchmarking": report.status in {
+        } and src.reporting.report.assessments_checked >= 2 and src.reporting.report.assessments_with_errors == 0,
+        "ready_for_benchmarking": src.reporting.report.status in {
             QualityStatus.COMPLETE, QualityStatus.GOOD
         },
-        "ready_for_export": report.assessments_with_errors == 0,
+        "ready_for_export": src.reporting.report.assessments_with_errors == 0,
         "reason": (
             "The dataset has enough valid observations for trend analysis."
-            if report.assessments_checked >= 2 and report.assessments_with_errors == 0
+            if src.reporting.report.assessments_checked >= 2 and src.reporting.report.assessments_with_errors == 0
             else "Resolve required data-quality errors and/or add another valid assessment."
         ),
     }
@@ -1101,7 +1101,7 @@ def quality_trend(
 
 
 def serialize_report(report: QualityReport) -> str:
-    return json.dumps(report.to_dict(), indent=2, sort_keys=True, ensure_ascii=False)
+    return json.dumps(src.reporting.report.to_dict(), indent=2, sort_keys=True, ensure_ascii=False)
 
 
 def serialize_assessment_quality(quality: AssessmentQuality) -> str:
@@ -1110,7 +1110,7 @@ def serialize_assessment_quality(quality: AssessmentQuality) -> str:
 
 def export_quality_csv_rows(report: QualityReport) -> list[dict[str, Any]]:
     rows = []
-    for assessment in report.assessments:
+    for assessment in src.reporting.report.assessments:
         rows.append({
             "assessment_id": assessment.assessment_id,
             "status": assessment.status.value,
@@ -1129,35 +1129,35 @@ def report_markdown(report: QualityReport) -> str:
     lines = [
         "# Sustainability Data Quality Report",
         "",
-        f"**Status:** {status_label(report.status)}",
-        f"**Quality score:** {report.score:.1f}/100",
-        f"**Completeness:** {report.completeness_pct:.1f}%",
-        f"**Assessments checked:** {report.assessments_checked}",
+        f"**Status:** {status_label(src.reporting.report.status)}",
+        f"**Quality score:** {src.reporting.report.score:.1f}/100",
+        f"**Completeness:** {src.reporting.report.completeness_pct:.1f}%",
+        f"**Assessments checked:** {src.reporting.report.assessments_checked}",
         "",
         "## Field coverage",
         "",
         "| Field | Coverage |",
         "|---|---:|",
     ]
-    for field, coverage in report.field_coverage.items():
+    for field, coverage in src.reporting.report.field_coverage.items():
         lines.append(f"| {field} | {coverage:.1f}% |")
     lines.extend(["", "## Recommendations", ""])
-    for recommendation in report.recommendations:
+    for recommendation in src.reporting.report.recommendations:
         lines.append(f"- {recommendation}")
     return "\n".join(lines)
 
 
 def validate_report_integrity(report: QualityReport) -> tuple[str, ...]:
     problems: list[str] = []
-    if not 0 <= report.score <= 100:
+    if not 0 <= src.reporting.report.score <= 100:
         problems.append("Report score is outside 0-100.")
-    if not 0 <= report.completeness_pct <= 100:
+    if not 0 <= src.reporting.report.completeness_pct <= 100:
         problems.append("Report completeness is outside 0-100.")
-    if report.assessments_checked != len(report.assessments):
+    if src.reporting.report.assessments_checked != len(src.reporting.report.assessments):
         problems.append("Assessment count does not match report records.")
-    if report.valid_assessments > report.assessments_checked:
+    if src.reporting.report.valid_assessments > src.reporting.report.assessments_checked:
         problems.append("Valid assessment count exceeds checked count.")
-    for field, coverage in report.field_coverage.items():
+    for field, coverage in src.reporting.report.field_coverage.items():
         if not 0 <= coverage <= 100:
             problems.append(f"Field coverage for {field} is outside 0-100.")
     return tuple(problems)
@@ -1166,25 +1166,25 @@ def validate_report_integrity(report: QualityReport) -> tuple[str, ...]:
 def build_dashboard_payload(report: QualityReport) -> dict[str, Any]:
     return {
         "overview": {
-            "status": report.status.value,
-            "status_label": status_label(report.status),
-            "score": report.score,
-            "score_label": score_label(report.score),
-            "completeness_pct": report.completeness_pct,
+            "status": src.reporting.report.status.value,
+            "status_label": status_label(src.reporting.report.status),
+            "score": src.reporting.report.score,
+            "score_label": score_label(src.reporting.report.score),
+            "completeness_pct": src.reporting.report.completeness_pct,
         },
         "counts": {
-            "assessments_checked": report.assessments_checked,
-            "valid_assessments": report.valid_assessments,
-            "errors": report.assessments_with_errors,
-            "needs_review": report.assessments_needing_review,
-            "stale": report.stale_assessment_count,
+            "assessments_checked": src.reporting.report.assessments_checked,
+            "valid_assessments": src.reporting.report.valid_assessments,
+            "errors": src.reporting.report.assessments_with_errors,
+            "needs_review": src.reporting.report.assessments_needing_review,
+            "stale": src.reporting.report.stale_assessment_count,
         },
         "field_coverage": missing_field_summary(report),
         "issue_summary": report_issue_summary(report),
         "distribution": completeness_distribution(report),
         "status_counts": status_counts(report),
         "readiness": overall_readiness(report),
-        "recommendations": list(report.recommendations),
+        "recommendations": list(src.reporting.report.recommendations),
     }
 
 
@@ -1194,18 +1194,18 @@ def merge_quality_reports(reports: Sequence[QualityReport]) -> QualityReport:
     assessments: list[AssessmentQuality] = []
     seen: set[str] = set()
     for report in reports:
-        for assessment in report.assessments:
+        for assessment in src.reporting.report.assessments:
             if assessment.assessment_id not in seen:
                 assessments.append(assessment)
                 seen.add(assessment.assessment_id)
     fields = sorted({
         field
         for report in reports
-        for field in report.field_coverage
+        for field in src.reporting.report.field_coverage
     })
     coverage = {
         field: round(
-            sum(report.field_coverage.get(field, 0.0) for report in reports)
+            sum(src.reporting.report.field_coverage.get(field, 0.0) for report in reports)
             / len(reports),
             2,
         )
@@ -1272,15 +1272,15 @@ def explain_issue(issue: QualityIssue) -> str:
 
 
 def explain_report(report: QualityReport) -> str:
-    if report.status == QualityStatus.EMPTY:
+    if src.reporting.report.status == QualityStatus.EMPTY:
         return "No usable assessments were found."
-    if report.status == QualityStatus.INVALID:
+    if src.reporting.report.status == QualityStatus.INVALID:
         return "The dataset contains errors that should be corrected before analysis."
-    if report.status == QualityStatus.INCOMPLETE:
+    if src.reporting.report.status == QualityStatus.INCOMPLETE:
         return "The dataset is usable only after completing missing required fields."
-    if report.status == QualityStatus.NEEDS_REVIEW:
+    if src.reporting.report.status == QualityStatus.NEEDS_REVIEW:
         return "The dataset is mostly complete but contains warnings that should be reviewed."
-    if report.status == QualityStatus.GOOD:
+    if src.reporting.report.status == QualityStatus.GOOD:
         return "The dataset is in good shape for analysis."
     return "The dataset is complete and passes the configured quality checks."
 
@@ -1316,12 +1316,12 @@ def invalid_fields(record: Mapping[str, Any]) -> tuple[str, ...]:
 
 def quality_badges(report: QualityReport) -> tuple[dict[str, str], ...]:
     return (
-        {"label": "Status", "value": status_label(report.status)},
-        {"label": "Score", "value": f"{report.score:.1f}/100"},
-        {"label": "Completeness", "value": f"{report.completeness_pct:.1f}%"},
-        {"label": "Assessments", "value": str(report.assessments_checked)},
-        {"label": "Errors", "value": str(report.assessments_with_errors)},
-        {"label": "Needs review", "value": str(report.assessments_needing_review)},
+        {"label": "Status", "value": status_label(src.reporting.report.status)},
+        {"label": "Score", "value": f"{src.reporting.report.score:.1f}/100"},
+        {"label": "Completeness", "value": f"{src.reporting.report.completeness_pct:.1f}%"},
+        {"label": "Assessments", "value": str(src.reporting.report.assessments_checked)},
+        {"label": "Errors", "value": str(src.reporting.report.assessments_with_errors)},
+        {"label": "Needs review", "value": str(src.reporting.report.assessments_needing_review)},
     )
 
 
@@ -1329,8 +1329,8 @@ def quality_center_text(report: QualityReport) -> str:
     actions = top_quality_actions(report, limit=3)
     lines = [
         explain_report(report),
-        f"Quality score: {report.score:.1f}/100.",
-        f"Average completeness: {report.completeness_pct:.1f}%.",
+        f"Quality score: {src.reporting.report.score:.1f}/100.",
+        f"Average completeness: {src.reporting.report.completeness_pct:.1f}%.",
     ]
     if actions:
         lines.append("Priority actions: " + " ".join(actions))

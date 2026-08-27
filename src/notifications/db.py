@@ -2,7 +2,7 @@
 Notification Database Engine.
 
 Provides an isolated, robust interface for managing notifications, templates,
-and preferences within the SQLite database.
+and preferences within the SQLite src.core.database.
 """
 
 import sqlite3
@@ -11,7 +11,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from database import DB_NAME
+from src.core.database import DB_NAME
 import sqlite3
 def get_connection():
     return sqlite3.connect(DB_NAME)
@@ -141,7 +141,7 @@ class NotificationDB:
                 conn.close()
 
     def insert_notification(self, payload: NotificationPayload) -> bool:
-        """Inserts a new notification into the database."""
+        """Inserts a new notification into the src.core.database."""
         try:
             conn = self._get_conn()
             cursor = conn.cursor()

@@ -146,7 +146,7 @@ def cache_result(ttl: int = 3600) -> Callable:
             with lock:
                 cache[key] = (result, time.time())
                 current_time = time.time()
-                stale_keys = [k for k, (_, t) in cache.items() if current_time - t > ttl]
+                stale_keys = [k for k, (_, t) in src.core.cache.items() if current_time - t > ttl]
                 for k in stale_keys:
                     del cache[k]
             

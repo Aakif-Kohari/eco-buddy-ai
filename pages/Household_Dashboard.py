@@ -6,25 +6,25 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
-import household
-from household_activities import (
+import src.lifestyle.household
+from src.lifestyle.household_activities import (
     log_activity, get_activities, delete_activity, 
     VALID_CATEGORIES, init_activities_db
 )
-from household_goals import (
+from src.lifestyle.household_goals import (
     create_goal, get_goals, update_goal_progress, 
     update_goal_status, VALID_METRICS, init_goals_db, check_overdue_goals
 )
-from household_metrics import get_household_analytics_summary
-from household_budgeting import (
+from src.lifestyle.household_metrics import get_household_analytics_summary
+from src.lifestyle.household_budgeting import (
     init_budgeting_db, set_budget, get_budgets, evaluate_budgets, 
     deactivate_budget, check_and_generate_alerts, get_unread_alerts, mark_alerts_read, VALID_BUDGET_PERIODS
 )
-from household_gamification import (
+from src.lifestyle.household_gamification import (
     init_household_gamification_db, get_badges, get_challenges, 
     create_challenge, complete_challenge, _get_household_xp
 )
-from household_recommendations import generate_household_recommendations
+from src.lifestyle.household_recommendations import generate_household_recommendations
 
 def render_household_dashboard():
     st.set_page_config(page_title="Household Sustainability", page_icon="🏡", layout="wide")
@@ -34,7 +34,7 @@ def render_household_dashboard():
     
     # Initialize missing tables lazyly
     if 'hh_db_initialized' not in st.session_state:
-        household.init_household_db()
+        src.lifestyle.household.init_household_db()
         init_activities_db()
         init_goals_db()
         init_budgeting_db()
@@ -44,7 +44,7 @@ def render_household_dashboard():
     user_id = st.session_state.get("user_id", 1)  # Fallback to 1 for testing
     
     # Check if user has a household
-    user_households = household.get_households_for_user(user_id)
+    user_households = src.lifestyle.household.get_households_for_user(user_id)
     
     if not user_households:
         render_no_household_view(user_id)
@@ -110,12 +110,12 @@ def render_no_household_view(user_id: int):
             submit = st.form_submit_button("Create")
             if submit:
                 if name.strip():
-                    hh_id = household.create_household(name.strip(), user_id, region=region)
+                    hh_id = src.lifestyle.household.create_household(name.strip(), user_id, region=region)
                     if hh_id:
                         st.success("Household created successfully!")
                         st.rerun()
                     else:
-                        st.error("Error creating household.")
+                        st.error("Error creating src.lifestyle.household.")
                 else:
                     st.warning("Please enter a valid name.")
                     
@@ -127,7 +127,7 @@ def render_no_household_view(user_id: int):
             submit = st.form_submit_button("Join")
             if submit:
                 if code and display_name:
-                    success, msg = household.join_household(code, user_id, display_name)
+                    success, msg = src.lifestyle.household.join_household(code, user_id, display_name)
                     if success:
                         st.success(msg)
                         st.rerun()
@@ -209,7 +209,7 @@ def render_dashboard_overview(household_id: int):
 def render_log_activities(household_id: int):
     st.header("Activity Log")
     
-    members = household.get_members(household_id)
+    members = src.lifestyle.household.get_members(household_id)
     member_opts = {"Shared Household Activity (All Members)": None}
     for m in members:
         member_opts[f"{m['name']} (Individual)"] = m['id']
@@ -397,8 +397,8 @@ def render_gamification(household_id: int):
 def render_members_and_settings(household_id: int):
     st.header("Household Members")
     
-    hh = household.get_household(household_id)
-    members = household.get_members(household_id)
+    hh = src.lifestyle.household.get_household(household_id)
+    members = src.lifestyle.household.get_members(household_id)
     
     # Settings & Invite
     c1, c2 = st.columns(2)
@@ -421,14 +421,14 @@ def render_members_and_settings(household_id: int):
                 new_role = st.selectbox("Role", ["Adult", "Child", "Guest"], index=["Adult", "Child", "Guest"].index(m['role']), key=f"r_{m['id']}")
                 new_weight = st.number_input("Weight", value=float(m['weight']), step=0.1, key=f"w_{m['id']}")
                 if st.button("Save", key=f"s_{m['id']}"):
-                    household.update_member(m['id'], weight=new_weight, role=new_role)
+                    src.lifestyle.household.update_member(m['id'], weight=new_weight, role=new_role)
                     st.rerun()
                     
             if mc3.button("Remove", key=f"rm_{m['id']}"):
                 if len(members) <= 1:
-                    st.error("Cannot remove the last member of the household.")
+                    st.error("Cannot remove the last member of the src.lifestyle.household.")
                 else:
-                    household.remove_member(m['id'])
+                    src.lifestyle.household.remove_member(m['id'])
                     st.rerun()
         st.divider()
 

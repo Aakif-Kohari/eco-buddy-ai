@@ -1,13 +1,13 @@
 """Unit tests for Open Environmental Data Explorer functionality."""
 
 import json
-from database import (
+from src.core.database import (
     init_environmental_datasets_db,
     seed_environmental_datasets,
     get_environmental_datasets,
     add_environmental_dataset,
 )
-from environmental_data_explorer import _parse_data_json, _slugify
+from src.utils.environmental_data_explorer import _parse_data_json, _slugify
 
 
 def test_init_and_seed_datasets():

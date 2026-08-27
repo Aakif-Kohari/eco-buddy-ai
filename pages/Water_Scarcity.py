@@ -264,7 +264,7 @@ if diet["lines"]:
     )
     st.plotly_chart(split_figure, use_container_width=True)
     st.caption(
-        "Sorted by blue water. Note how different this order is from the "
+        "Sorted by blue src.environment.water. Note how different this order is from the "
         "order by total height."
     )
 

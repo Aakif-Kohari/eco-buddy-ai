@@ -1,6 +1,6 @@
 """What a household's consumption displaces, in species rather than in carbon.
 
-`local_biodiversity.py` says what lives near you. This page says what your
+`src.environment.local_biodiversity.py` says what lives near you. This page says what your
 consumption displaces elsewhere, through the land it occupies and the land it
 converts — the largest driver of terrestrial biodiversity loss, and the one the
 rest of the app has no representation of.

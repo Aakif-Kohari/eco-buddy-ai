@@ -77,7 +77,7 @@ class UrbanMiningCalculator:
     def get_recycling_recommendations(self) -> List[str]:
         """Provides actionable steps for responsible device end-of-life management."""
         if not self.logged_devices:
-            return ["Log some devices to see recycling recommendations."]
+            return ["Log some devices to see recycling src.ai.recommendations."]
 
         recs = [
             "♻️ **Certified Recyclers:** Look for e-Stewards or R2 certified recycling facilities to ensure safe, ethical processing.",

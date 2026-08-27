@@ -15,7 +15,7 @@ def render_notification_bell(user_id: int):
     Renders a bell icon in the sidebar or main content indicating unread counts.
     """
     db = NotificationDB()
-    unread = db.get_user_history(user_id, limit=100, unread_only=True)
+    unread = src.notifications.db.get_user_history(user_id, limit=100, unread_only=True)
     count = len(unread)
     
     if count > 0:
@@ -27,7 +27,7 @@ def render_notification_bell(user_id: int):
             if count > 3:
                 st.caption(f"+ {count - 3} more...")
             if st.button("Mark All Read", key="bell_mark_read"):
-                db.mark_all_read(user_id)
+                src.notifications.db.mark_all_read(user_id)
                 st.rerun()
     else:
         st.sidebar.markdown("### 🔕 No new notifications")
@@ -37,7 +37,7 @@ def render_preferences_form(user_id: int):
     Renders the form to edit notification preferences.
     """
     db = NotificationDB()
-    pref = db.get_preferences(user_id)
+    pref = src.notifications.db.get_preferences(user_id)
     
     st.subheader("Notification Preferences")
     
@@ -74,7 +74,7 @@ def render_preferences_form(user_id: int):
                 opted_out_categories=opt_outs,
                 weekly_digest_enabled=weekly_dig
             )
-            if db.save_preferences(new_pref):
+            if src.notifications.db.save_preferences(new_pref):
                 st.success("Preferences saved successfully!")
                 st.rerun()
             else:

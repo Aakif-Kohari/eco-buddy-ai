@@ -325,7 +325,7 @@ def savings_estimate(
 
 
 def co2_savings(litres_supplied: float, treatment_intensity: float = DEFAULT_TREATMENT_INTENSITY) -> dict[str, Any]:
-    """CO2 avoided by not treating and pumping the equivalent mains water."""
+    """CO2 avoided by not treating and pumping the equivalent mains src.environment.water."""
     litres = max(0.0, float(litres_supplied or 0.0))
     intensity = max(0.0, float(treatment_intensity or 0.0))
     annual_kg = litres * intensity
@@ -424,7 +424,7 @@ def get_harvesting_tips(plan: dict[str, Any], limit: int = 5) -> list[str]:
     elif payback:
         tips.append(
             f"Payback is {payback} years at current water prices - worth revisiting "
-            f"if water gets more expensive or you add uses for the water."
+            f"if water gets more expensive or you add uses for the src.environment.water."
         )
 
     tips.append(

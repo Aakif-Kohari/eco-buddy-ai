@@ -19,7 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Validate EcoBuddy's SQLite schema, migrations, indexes, "
-            "foreign keys, and integrity without modifying the database."
+            "foreign keys, and integrity without modifying the src.core.database."
         )
     )
     parser.add_argument(
@@ -48,8 +48,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Database integrity check could not run: {exc}")
         return 2
 
-    print(report.render())
-    return 0 if report.is_valid else 1
+    print(src.reporting.report.render())
+    return 0 if src.reporting.report.is_valid else 1
 
 
 if __name__ == "__main__":

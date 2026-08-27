@@ -1,6 +1,6 @@
 """Landfill methane by first order decay, and what diverting waste actually buys.
 
-``waste.py`` estimates landfill methane with one constant::
+``src.environment.waste.py`` estimates landfill methane with one constant::
 
     LANDFILL_METHANE_FACTOR = 0.5
     landfill_methane = biodegradable_kg * LANDFILL_METHANE_FACTOR
@@ -20,7 +20,7 @@ emitted in and takes it out of the twenty years it was.
 For a *stable* waste stream the annual total comes out similar, which is exactly
 why the error survives. It bites the moment behaviour changes: the flat model
 reports the full benefit of composting immediately, when the real benefit
-arrives over decades because the site is still emitting last decade's waste.
+arrives over decades because the site is still emitting last decade's src.environment.waste.
 Promising an instant benefit for an action whose benefit is slow is the specific
 failure that makes waste advice untrustworthy, and it is the reason for the
 decay model rather than a better constant.
@@ -530,7 +530,7 @@ def methane_series(
 ) -> list[float]:
     """Annual methane emitted, in kg, as a bare series.
 
-    For ``climate_metrics.py``: GWP* is built for a methane stream whose *rate*
+    For ``src.environment.climate_metrics.py``: GWP* is built for a methane stream whose *rate*
     changes over time, and until now there was no source in the repo producing
     one. A flat factor gives a constant, on which GWP* has nothing to say.
     """

@@ -1,5 +1,5 @@
 """
-Tests for ocr_utils.py - OCR and text parsing utilities.
+Tests for src.utils.ocr_utils.py - OCR and text parsing utilities.
 
 Tests:
 1. extract_text_from_file - PDF and image text extraction
@@ -10,7 +10,7 @@ Tests:
 import pytest
 from unittest.mock import patch, MagicMock
 import io
-from ocr_utils import extract_text_from_file, parse_energy_consumption
+from src.utils.ocr_utils import extract_text_from_file, parse_energy_consumption
 
 
 class TestExtractTextFromFile:
@@ -27,7 +27,7 @@ class TestExtractTextFromFile:
         mock_page = MagicMock()
         mock_page.extract_text.return_value = "Energy Consumption: 450 kWh\nTotal Usage: 400"
         
-        with patch('ocr_utils.pdfplumber.open') as mock_open:
+        with patch('src.utils.ocr_utils.pdfplumber.open') as mock_open:
             mock_pdf_obj = MagicMock()
             mock_pdf_obj.__enter__ = MagicMock(return_value=mock_pdf_obj)
             mock_pdf_obj.__exit__ = MagicMock(return_value=False)
@@ -47,11 +47,11 @@ class TestExtractTextFromFile:
         mock_image.type = "image/png"
         
         # Mock PIL behavior
-        with patch('ocr_utils.Image.open') as mock_open:
+        with patch('src.utils.ocr_utils.Image.open') as mock_open:
             mock_img = MagicMock()
             mock_open.return_value = mock_img
             
-            with patch('ocr_utils.pytesseract.image_to_string') as mock_ocr:
+            with patch('src.utils.ocr_utils.pytesseract.image_to_string') as mock_ocr:
                 mock_ocr.return_value = "Total Energy Usage: 350 kWh"
                 
                 result = extract_text_from_file(mock_image)
@@ -65,7 +65,7 @@ class TestExtractTextFromFile:
         mock_pdf = MagicMock()
         mock_pdf.type = "application/pdf"
         
-        with patch('ocr_utils.pdfplumber.open') as mock_open:
+        with patch('src.utils.ocr_utils.pdfplumber.open') as mock_open:
             mock_pdf_obj = MagicMock()
             mock_pdf_obj.__enter__ = MagicMock(return_value=mock_pdf_obj)
             mock_pdf_obj.__exit__ = MagicMock(return_value=False)
@@ -82,7 +82,7 @@ class TestExtractTextFromFile:
         mock_file = MagicMock()
         mock_file.type = "application/pdf"
         
-        with patch('ocr_utils.pdfplumber.open') as mock_open:
+        with patch('src.utils.ocr_utils.pdfplumber.open') as mock_open:
             mock_open.side_effect = Exception("PDF Error")
             
             result = extract_text_from_file(mock_file)
@@ -213,7 +213,7 @@ class TestEdgeCases:
         assert result == 100.0
 
     def test_parse_with_units(self):
-        """Test parsing with various energy units."""
+        """Test parsing with various energy src.utils.units."""
         text = "Energy: 450 KWH"
         result = parse_energy_consumption(text)
         
@@ -252,7 +252,7 @@ class TestMemoryOptimization:
         img.save(buf, format="PNG")
         img_bytes = buf.getvalue()
         
-        with patch('ocr_utils.pytesseract.image_to_string') as mock_ocr:
+        with patch('src.utils.ocr_utils.pytesseract.image_to_string') as mock_ocr:
             mock_ocr.return_value = "Total: 500 kWh"
             res = extract_text_from_bytes(img_bytes, "image/png")
             assert "500" in res
@@ -266,7 +266,7 @@ class TestMemoryOptimization:
         img.save(buf, format="PNG")
         img_bytes = buf.getvalue()
 
-        with patch('ocr_utils.pytesseract.image_to_string') as mock_ocr:
+        with patch('src.utils.ocr_utils.pytesseract.image_to_string') as mock_ocr:
             mock_ocr.return_value = "350 kWh"
             res = benchmark_ocr_memory(img_bytes)
             assert res["status"] == "success"
@@ -340,7 +340,7 @@ class TestMemoryLeakFixes:
             mp.extract_text.return_value = text
             mock_page_objs.append(mp)
 
-        with patch("ocr_utils.pdfplumber.open") as mock_open:
+        with patch("src.utils.ocr_utils.pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
             mock_pdf.__exit__ = MagicMock(return_value=False)
@@ -369,7 +369,7 @@ class TestMemoryLeakFixes:
         bad_page = MagicMock()
         bad_page.extract_text.side_effect = RuntimeError("corrupt page")
 
-        with patch("ocr_utils.pdfplumber.open") as mock_open:
+        with patch("src.utils.ocr_utils.pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
             mock_pdf.__exit__ = MagicMock(return_value=False)
@@ -398,7 +398,7 @@ class TestMemoryLeakFixes:
 
         page_texts = [f"page {i} content " * 50 for i in range(200)]
 
-        with patch("ocr_utils.pdfplumber.open") as mock_open:
+        with patch("src.utils.ocr_utils.pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
             mock_pdf.__exit__ = MagicMock(return_value=False)
@@ -448,7 +448,7 @@ class TestMemoryLeakFixes:
         mock_upload.type = "application/pdf"
         mock_upload.size = 1024  # well under the cap
 
-        with patch("ocr_utils.pdfplumber.open") as mock_open:
+        with patch("src.utils.ocr_utils.pdfplumber.open") as mock_open:
             mock_pdf = MagicMock()
             mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
             mock_pdf.__exit__ = MagicMock(return_value=False)

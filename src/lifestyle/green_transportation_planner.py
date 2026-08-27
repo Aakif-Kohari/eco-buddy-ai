@@ -584,7 +584,7 @@ def render_green_transport_hub():
             recommendations = []
 
             if len(car_trips) > len(log_df) * 0.3:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "icon": "🚗→🚲",
                     "title": "Try Active Transport",
                     "description": f"You drive {len(car_trips)} times. Switch short trips (<5km) to cycling or walking to save CO₂ and get exercise.",
@@ -593,7 +593,7 @@ def render_green_transport_hub():
                 })
 
             if len(active_trips) == 0:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "icon": "🚲",
                     "title": "Start Cycling",
                     "description": "No active transport logged. Try cycling for trips under 10km — it's free, healthy, and zero-emission.",
@@ -602,7 +602,7 @@ def render_green_transport_hub():
                 })
 
             if len(transit_trips) > 0:
-                recommendations.append({
+                src.ai.recommendations.append({
                     "icon": "🚇",
                     "title": "Great Transit Use!",
                     "description": f"You use public transit {len(transit_trips)} times. Keep it up!",
@@ -611,7 +611,7 @@ def render_green_transport_hub():
                 })
 
             # General recommendations
-            recommendations.extend([
+            src.ai.recommendations.extend([
                 {
                     "icon": "🚗",
                     "title": "Carpool When Possible",

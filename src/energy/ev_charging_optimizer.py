@@ -79,21 +79,21 @@ def generate_charging_recommendations(result: dict[str, Any]) -> list[str]:
     """Generates human-readable recommendations based on optimization results."""
     recommendations = []
     if result["carbon_savings_kg"] > 0:
-        recommendations.append(
+        src.ai.recommendations.append(
             f"🌱 Smart charging saves {result['carbon_savings_kg']} kg of CO2e compared to immediate charging."
         )
     if result["cost_savings_usd"] > 0:
-        recommendations.append(
+        src.ai.recommendations.append(
             f"💰 Shifting to off-peak hours saves ${result['cost_savings_usd']} per charging session."
         )
     if not result["optimal_hours"]:
-        recommendations.append(
+        src.ai.recommendations.append(
             "✅ Your battery is already at or above the target charge level."
         )
     else:
         start_hour = result["optimal_hours"][0]
         end_hour = result["optimal_hours"][-1] + 1
-        recommendations.append(
+        src.ai.recommendations.append(
             f"⏰ Schedule your charger to run between {start_hour}:00 and {end_hour}:00 for maximum efficiency."
         )
     return recommendations

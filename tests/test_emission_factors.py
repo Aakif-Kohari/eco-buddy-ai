@@ -1,7 +1,7 @@
 import pytest
 
-from config import DIET_EMISSION_FACTORS, TRANSPORT_EMISSION_FACTORS
-from emission_factors import (
+from src.core.config import DIET_EMISSION_FACTORS, TRANSPORT_EMISSION_FACTORS
+from src.carbon.emission_factors import (
     DEFAULT_VERSION,
     KIND_DYNAMIC,
     KIND_STATIC,
@@ -287,7 +287,7 @@ def test_implausible_api_payload_is_rejected():
 
 def test_resolve_falls_back_to_static_v1_without_api_data():
     """
-    The offline fallback in emissions.py still uses the original constants, so
+    The offline fallback in src.carbon.emissions.py still uses the original constants, so
     it must resolve to static-v1 — not merely to whichever set is newest.
     """
     assert resolve_factor_set(region="Global", api_factors=None) == "static-v1"

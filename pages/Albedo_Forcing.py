@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from albedo_forcing import (
+from src.carbon.albedo_forcing import (
     DEFAULT_HORIZON_YEARS,
     LATITUDE_BANDS,
     SURFACES,

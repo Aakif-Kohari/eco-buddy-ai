@@ -1,6 +1,6 @@
 """
 Streamlit Page: Eco-Food Waste & Smart Pantry Analyzer
-Multi-page section in EcoBuddy AI allowing users to track pantry inventory, prevent food spoilage, and reduce greenhouse gas emissions.
+Multi-page section in EcoBuddy AI allowing users to track pantry inventory, prevent food spoilage, and reduce greenhouse gas src.carbon.emissions.
 """
 
 import streamlit as st
@@ -21,7 +21,7 @@ st.set_page_config(
 st.title("🥗 Smart Pantry & Food Waste Analyzer")
 st.markdown(
     "Track perishable food inventory, receive early spoilage warnings, "
-    "prevent unnecessary food waste, and eliminate wasted household carbon emissions."
+    "prevent unnecessary food waste, and eliminate wasted household carbon src.carbon.emissions."
 )
 
 service = FoodWastePantryService()
@@ -54,7 +54,7 @@ with tab_inventory:
 
     def handle_consumed(item_id: int):
         if service.mark_consumed(item_id):
-            st.success("😋 Item marked as consumed! Great job preventing waste.")
+            st.success("😋 Item marked as consumed! Great job preventing src.environment.waste.")
             st.rerun()
 
     def handle_wasted(item_id: int):

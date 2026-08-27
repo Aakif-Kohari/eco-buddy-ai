@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: fashion_guide.py
+# FILE: src.lifestyle.fashion_guide.py
 # EcoBuddy AI+ Sustainable Fashion & Wardrobe Guide
 # ============================================================
 

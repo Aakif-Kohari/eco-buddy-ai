@@ -24,7 +24,7 @@ DB_NAME = "eco_buddy.db"
 
 
 def init_marketplace_offsets_db(db_name: str = DB_NAME) -> bool:
-    """Initializes SQLite tables for the verified carbon offsets marketplace."""
+    """Initializes SQLite tables for the verified carbon offsets src.utils.marketplace."""
     def _create():
         with database_connection(db_name) as conn:
             cursor = conn.cursor()
@@ -198,7 +198,7 @@ def get_all_offset_projects(db_name: str = DB_NAME) -> List[CarbonOffsetProject]
 
 
 def purchase_carbon_offsets(user_id: int, project_id: int, tonnes: float, db_name: str = DB_NAME) -> Optional[OffsetPurchaseTransaction]:
-    """Executes carbon offset purchase, deducts available inventory, and issues retirement certificate."""
+    """Executes carbon offset purchase, deducts available inventory, and issues retirement src.utils.certificate."""
     def _purchase():
         with database_connection(db_name) as conn:
             cursor = conn.cursor()

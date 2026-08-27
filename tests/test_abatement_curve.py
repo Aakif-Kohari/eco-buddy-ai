@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-import abatement_curve as ac
+import src.carbon.abatement_curve as ac
 
 
 BUDGETS = (0.0, 200.0, 500.0, 800.0, 1200.0, 2000.0, 3500.0, 5000.0,
@@ -358,7 +358,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a temporary src.core.database."""
 
     @classmethod
     def setUpClass(cls):

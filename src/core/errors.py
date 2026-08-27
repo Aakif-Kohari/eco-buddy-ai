@@ -20,7 +20,7 @@ This module defines:
 * :func:`to_error_dict` / :func:`success_dict`, which build a consistent
   ``{"success": ..., "error_code": ..., "error": ...}`` envelope for
   functions that return a result dictionary instead of raising (e.g.
-  ``location_parser.parse_and_segment_file_bytes``).
+  ``src.utils.location_parser.parse_and_segment_file_bytes``).
 
 How to use this in a processing function
 -----------------------------------------
@@ -37,7 +37,7 @@ How to use this in a processing function
   and show ``error.message`` to the user (see ``app.py``'s AI Quick Log
   handler for an example).
 * Callers that run the function through
-  ``background_tasks.submit_background_task`` don't need to catch
+  ``src.core.background_tasks.submit_background_task`` don't need to catch
   anything themselves: the background task runner already captures the
   exception and exposes it via ``task.error``, which
   ``render_task_progress`` displays automatically.
@@ -49,7 +49,7 @@ from typing import Any
 
 
 class AppError(Exception):
-    """Base class for all application-level, user-facing errors.
+    """Base class for all application-level, user-facing src.core.errors.
 
     Attributes:
         code: Short, stable, machine-readable identifier
@@ -72,7 +72,7 @@ class AppError(Exception):
 
     def __str__(self) -> str:
         # This is what shows up e.g. as BackgroundTask.error, since
-        # background_tasks.py stores str(exc).
+        # src.core.background_tasks.py stores str(exc).
         return self.message
 
     def to_log_context(self) -> dict[str, Any]:
@@ -151,7 +151,7 @@ def to_error_dict(error: AppError) -> dict:
 
     Used by processing functions that report success/failure through a
     return value instead of raising (e.g.
-    ``location_parser.parse_and_segment_file_bytes``), so that every such
+    ``src.utils.location_parser.parse_and_segment_file_bytes``), so that every such
     function produces the same shape:
     ``{"success": False, "error_code": ..., "error": ..., "details": ...}``.
     """

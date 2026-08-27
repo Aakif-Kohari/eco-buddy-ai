@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: community_dashboard.py
+# FILE: src.community.community_dashboard.py
 # EcoBuddy AI+ Community Dashboard & Analytics
 # ============================================================
 

@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: community_resilience.py
+# FILE: src.community.community_resilience.py
 # EcoBuddy AI+ Community Resilience & Disaster Preparedness
 # ============================================================
 

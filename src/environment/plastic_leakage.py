@@ -1,7 +1,7 @@
 """Where plastic actually goes, rather than which bin it went into.
 
-Plastic appears all over this app as a recycling category. ``waste_management.py``
-sorts it, ``ai_waste_sorter.py`` identifies it, ``textile_lca_engine.py`` tracks
+Plastic appears all over this app as a recycling category. ``src.environment.waste_management.py``
+sorts it, ``src.environment.ai_waste_sorter.py`` identifies it, ``src.utils.textile_lca_engine.py`` tracks
 microplastic shedding per wash. None of them answer the question people actually
 ask, which is where it ends up.
 
@@ -51,10 +51,10 @@ say so.
 
 Where this connects to code already merged
 -------------------------------------------
-*   ``waste_management.py`` sorts by category and stops at the bin.
-*   ``textile_lca_engine.py`` has shedding rates per wash but no fate model.
-*   ``circular_economy_engine.py`` argues for reuse without a leakage metric.
-*   ``contamination_simulator.py`` covers stream contamination, which is one of
+*   ``src.environment.waste_management.py`` sorts by category and stops at the bin.
+*   ``src.utils.textile_lca_engine.py`` has shedding rates per wash but no fate model.
+*   ``src.utils.circular_economy_engine.py`` argues for reuse without a leakage metric.
+*   ``src.utils.contamination_simulator.py`` covers stream contamination, which is one of
     the loss mechanisms modelled here.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
@@ -369,7 +369,7 @@ SUBSTITUTIONS = {
         "mass": 0.120, "plastic_mass": 0.0, "carbon": 1.700,
         "polymer": None, "reuses": 52,
         "note": "Fifty-odd uses to break even on carbon against the bag it "
-                "replaced, and considerably more on water. The tote is a "
+                "replaced, and considerably more on src.environment.water. The tote is a "
                 "plastic solution and a carbon problem, and pretending "
                 "otherwise is how this substitution became fashionable.",
     },
@@ -549,7 +549,7 @@ def household_leakage(
     """Everything a household leaks, from bins and from everything else.
 
     ``packaging`` maps polymer keys to kilograms per year; ``pathways`` maps
-    pathway keys to their own activity units. ``sorting_accuracy`` is the share
+    pathway keys to their own activity src.utils.units. ``sorting_accuracy`` is the share
     of recyclable packaging actually put in the right bin, which is the only
     lever in this whole calculation that a sorting guide addresses.
     """
@@ -856,7 +856,7 @@ def rank_interventions(household: dict) -> list:
             "note": "Included deliberately with a zero. Sorting changes "
                     "whether material is recycled or burned; it does not "
                     "change how much escapes, because leakage happens to "
-                    "uncollected waste rather than to badly sorted waste. This "
+                    "uncollected waste rather than to badly sorted src.environment.waste. This "
                     "is worth doing and it is not a leakage intervention.",
         })
 

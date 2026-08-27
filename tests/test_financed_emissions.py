@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import financed_emissions
-from financed_emissions import (
+import src.carbon.financed_emissions
+from src.carbon.financed_emissions import (
     COMPARISON_ACTIONS,
     DEFAULT_CURRENT_FUND,
     DEFAULT_DECARBONISATION_RATE,
@@ -44,10 +44,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = financed_emissions.DB_NAME
-    financed_emissions.DB_NAME = db_path
+    original = src.carbon.financed_emissions.DB_NAME
+    src.carbon.financed_emissions.DB_NAME = db_path
     yield db_path
-    financed_emissions.DB_NAME = original
+    src.carbon.financed_emissions.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:

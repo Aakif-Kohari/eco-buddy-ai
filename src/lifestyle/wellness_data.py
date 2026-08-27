@@ -140,7 +140,7 @@ def generate_mock_daily_scores(days: int = 30) -> List[DailyWellnessScore]:
 
 
 def generate_mock_goals(user_id: str) -> List[WellnessGoal]:
-    """Generate mock wellness goals."""
+    """Generate mock wellness src.utils.goals."""
     goals_data = [
         ("30-Day Walking Streak", HabitCategory.TRANSPORT, 30, 18, "days", "2026-09-30"),
         ("Save 1000 Liters Water", HabitCategory.WATER, 1000, 650, "liters", "2026-10-15"),
@@ -151,7 +151,7 @@ def generate_mock_goals(user_id: str) -> List[WellnessGoal]:
 
     goals = []
     for i, (title, cat, target, current, unit, deadline) in enumerate(goals_data):
-        goals.append(WellnessGoal(
+        src.utils.goals.append(WellnessGoal(
             goal_id=generate_id("goal", i),
             user_id=user_id,
             title=title,

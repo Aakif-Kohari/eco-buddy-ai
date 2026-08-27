@@ -1,8 +1,8 @@
 import pytest
 import pandas as pd
-from smart_building_iot_sim import SmartBuildingIoTSimulator
-from smart_building_logic import SmartBuildingLogic
-from smart_building_alerts import SmartBuildingAlerts
+from src.energy.smart_building_iot_sim import SmartBuildingIoTSimulator
+from src.energy.smart_building_logic import SmartBuildingLogic
+from src.energy.smart_building_alerts import SmartBuildingAlerts
 
 class TestSmartBuildingTracker:
 

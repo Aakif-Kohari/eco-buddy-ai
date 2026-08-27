@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: wellness_center.py
+# FILE: src.lifestyle.wellness_center.py
 # EcoBuddy AI+ Eco-Wellness & Mindful Living
 # ============================================================
 

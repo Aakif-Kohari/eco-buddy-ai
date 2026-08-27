@@ -1,7 +1,7 @@
 """Comprehensive database persistence and transaction tests.
 
 Verifies data integrity, transactional consistency, constraint enforcement,
-and failure recovery across CRUD operations on an isolated test database.
+and failure recovery across CRUD operations on an isolated test src.core.database.
 """
 
 from __future__ import annotations
@@ -12,30 +12,30 @@ import pytest
 import uuid
 from typing import Generator
 
-from database_connection import (
+from src.core.database_connection import (
     create_connection,
     database_connection,
     execute_with_retry,
 )
-import database as db
-from invalidation import invalidate_all_db_caches
+import src.core.database as db
+from src.core.invalidation import invalidate_all_db_caches
 
 
 @pytest.fixture
 def isolated_db(tmp_path) -> Generator[str, None, None]:
     """Provide an isolated, initialized database path for each test."""
     db_file = str(tmp_path / f"test_db_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
-    db.DB_NAME = db_file
+    original_db = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = db_file
 
     try:
         # Initialize schema and run migrations
-        success = db.init_db()
+        success = src.notifications.db.init_db()
         assert success is True, "Database initialization must succeed"
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
+        src.notifications.db.DB_NAME = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
             try:
@@ -50,16 +50,16 @@ def test_create_and_retrieve_entity(isolated_db: str):
     email = f"{username}@test.com"
     password = "SecurePassword123!"
 
-    created = db.create_user(username, email, password, anonymous_leaderboard=False)
+    created = src.notifications.db.create_user(username, email, password, anonymous_leaderboard=False)
     assert created is True
 
-    user = db.get_user_by_username(username)
+    user = src.notifications.db.get_user_by_username(username)
     assert user is not None
     assert user["username"] == username
     assert user["email"] == email
     assert user["anonymous_leaderboard"] is False
 
-    verified = db.verify_user(username, password)
+    verified = src.notifications.db.verify_user(username, password)
     assert verified is not None
     assert verified["id"] == user["id"]
     assert verified["username"] == username
@@ -71,16 +71,16 @@ def test_update_modifies_only_intended_fields(isolated_db: str):
     email = f"{username}@test.com"
     password = "SecurePassword123!"
 
-    db.create_user(username, email, password, anonymous_leaderboard=False)
-    user_before = db.get_user_by_username(username)
+    src.notifications.db.create_user(username, email, password, anonymous_leaderboard=False)
+    user_before = src.notifications.db.get_user_by_username(username)
     assert user_before is not None
     user_id = user_before["id"]
 
     # Update leaderboard preference
-    update_res = db.update_user_leaderboard_preference(user_id, True)
+    update_res = src.notifications.db.update_user_leaderboard_preference(user_id, True)
     assert update_res is True
 
-    user_after = db.get_user_by_username(username)
+    user_after = src.notifications.db.get_user_by_username(username)
     assert user_after is not None
     assert user_after["id"] == user_id
     assert user_after["username"] == username
@@ -93,13 +93,13 @@ def test_delete_and_undo_assessment_lifecycle(isolated_db: str):
     username = f"user_{uuid.uuid4().hex[:6]}"
     email = f"{username}@test.com"
     password = "SecurePassword123!"
-    db.create_user(username, email, password)
-    user = db.get_user_by_username(username)
+    src.notifications.db.create_user(username, email, password)
+    user = src.notifications.db.get_user_by_username(username)
     assert user is not None
     user_id = user["id"]
 
     # Save assessment
-    saved = db.save_assessment(
+    saved = src.notifications.db.save_assessment(
         user_id=user_id,
         transport="Electric Car",
         distance=50.0,
@@ -111,22 +111,22 @@ def test_delete_and_undo_assessment_lifecycle(isolated_db: str):
     )
     assert saved is True
 
-    assessments = db.get_assessments(user_id)
+    assessments = src.notifications.db.get_assessments(user_id)
     assert len(assessments) == 1
 
     # Undo / delete the assessment
-    undo_success, msg, undone_rec = db.undo_last_assessment(user_id)
+    undo_success, msg, undone_rec = src.notifications.db.undo_last_assessment(user_id)
     assert undo_success is True
     assert undone_rec is not None
 
     # Verify deleted record is no longer accessible via get_assessments
-    assessments_after_delete = db.get_assessments(user_id)
+    assessments_after_delete = src.notifications.db.get_assessments(user_id)
     assert len(assessments_after_delete) == 0
 
     # Verify restore brings it back
-    restore_success, restore_msg, restored_rec = db.restore_last_deleted_assessment(user_id)
+    restore_success, restore_msg, restored_rec = src.notifications.db.restore_last_deleted_assessment(user_id)
     assert restore_success is True
-    assert len(db.get_assessments(user_id)) == 1
+    assert len(src.notifications.db.get_assessments(user_id)) == 1
 
 
 def test_duplicate_entries_rejected_by_unique_constraints(isolated_db: str):
@@ -135,15 +135,15 @@ def test_duplicate_entries_rejected_by_unique_constraints(isolated_db: str):
     email = "duplicate@test.com"
     password = "Password123"
 
-    first_created = db.create_user(username, email, password)
+    first_created = src.notifications.db.create_user(username, email, password)
     assert first_created is True
 
     # Same username, different email
-    dup_username = db.create_user(username, "different@test.com", password)
+    dup_username = src.notifications.db.create_user(username, "different@test.com", password)
     assert dup_username is False
 
     # Different username, same email
-    dup_email = db.create_user("other_user", email, password)
+    dup_email = src.notifications.db.create_user("other_user", email, password)
     assert dup_email is False
 
 
@@ -167,16 +167,16 @@ def test_referential_integrity_and_foreign_key_constraints(isolated_db: str):
 
 def test_operations_against_non_existent_records(isolated_db: str):
     """Verify operations against non-existent records return predictable errors or None."""
-    non_existent_user = db.get_user_by_username("non_existent_user_xyz")
+    non_existent_user = src.notifications.db.get_user_by_username("non_existent_user_xyz")
     assert non_existent_user is None
 
-    verified = db.verify_user("non_existent_user_xyz", "password")
+    verified = src.notifications.db.verify_user("non_existent_user_xyz", "password")
     assert verified is None
 
-    budget = db.get_carbon_budget(999999)
+    budget = src.notifications.db.get_carbon_budget(999999)
     assert budget is None
 
-    undo_success, msg, undone_rec = db.undo_last_assessment(user_id=999999)
+    undo_success, msg, undone_rec = src.notifications.db.undo_last_assessment(user_id=999999)
     assert undo_success is False
     assert undone_rec is None
     assert "No assessment found" in msg

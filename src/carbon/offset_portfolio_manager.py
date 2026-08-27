@@ -8,7 +8,7 @@ import math
 
 
 class OffsetPortfolioManager:
-    """Manages a user's carbon offset portfolio and provides rebalancing recommendations."""
+    """Manages a user's carbon offset portfolio and provides rebalancing src.ai.recommendations."""
 
     # Target allocation percentages for a balanced, high-impact portfolio
     TARGET_ALLOCATION = {

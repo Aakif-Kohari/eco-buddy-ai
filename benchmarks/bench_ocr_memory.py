@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PIL import Image
 from unittest.mock import patch
-from ocr_utils import optimize_image_for_ocr, benchmark_ocr_memory
+from src.utils.ocr_utils import optimize_image_for_ocr, benchmark_ocr_memory
 
 
 def run_ocr_memory_benchmark():
@@ -28,7 +28,7 @@ def run_ocr_memory_benchmark():
     opt_img = optimize_image_for_ocr(img, max_dim=1800)
     print(f"Optimized Image Size: {opt_img.size[0]}x{opt_img.size[1]} pixels (Mode: {opt_img.mode})")
     
-    with patch("ocr_utils.pytesseract.image_to_string", return_value="Total Usage: 450 kWh"):
+    with patch("src.utils.ocr_utils.pytesseract.image_to_string", return_value="Total Usage: 450 kWh"):
         bench_result = benchmark_ocr_memory(image_bytes)
         print(f"Benchmark Result: Allocated ~{bench_result['allocated_kb']} KB RAM during OCR run.")
         

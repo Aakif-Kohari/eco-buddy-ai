@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: impact_dashboard.py
+# FILE: src.reporting.impact_dashboard.py
 # EcoBuddy AI+ Eco-Impact Dashboard & Visual Analytics
 # ============================================================
 

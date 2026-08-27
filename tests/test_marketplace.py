@@ -1,5 +1,5 @@
 import pytest
-from marketplace import (
+from src.utils.marketplace import (
     calculate_trip_emissions, calculate_recurring_trip_emissions, compare_transit_modes,
     calculate_offset_cost, validate_offset_transaction, calculate_net_emissions, calculate_net_zero_progress
 )

@@ -1,5 +1,5 @@
 import pytest
-from what_changed import (
+from src.utils.what_changed import (
     compute_assessment_diff,
     generate_what_changed_analysis,
     _fallback_analysis,
@@ -118,7 +118,7 @@ def test_generate_what_changed_analysis_no_change(previous_assessment):
     assert result["biggest_driver"] == "No change detected."
 
 from unittest.mock import patch, MagicMock
-from what_changed import _build_ai_prompt, _call_llm, _check_rate_limit
+from src.utils.what_changed import _build_ai_prompt, _call_llm, _check_rate_limit
 import os
 
 def test_build_ai_prompt(current_assessment, previous_assessment):
@@ -131,8 +131,8 @@ def test_build_ai_prompt(current_assessment, previous_assessment):
     assert "Input changes detected:" in prompt
     assert "Per-category CO₂ changes:" in prompt
 
-@patch("what_changed.time.time", return_value=100.0)
-@patch("what_changed.st.session_state", {})
+@patch("src.utils.what_changed.time.time", return_value=100.0)
+@patch("src.utils.what_changed.st.session_state", {})
 def test_check_rate_limit(mock_time):
     # First call should succeed
     assert _check_rate_limit("gemini") is True
@@ -140,8 +140,8 @@ def test_check_rate_limit(mock_time):
     assert _check_rate_limit("gemini") is False
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "fake_key", "GROQ_API_KEY": ""})
-@patch("what_changed._check_rate_limit", return_value=True)
-@patch("what_changed.requests.post")
+@patch("src.utils.what_changed._check_rate_limit", return_value=True)
+@patch("src.utils.what_changed.requests.post")
 def test_call_llm_gemini(mock_post, mock_rate_limit):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -155,8 +155,8 @@ def test_call_llm_gemini(mock_post, mock_rate_limit):
     assert result["summary"] == "gemini summary"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "", "GROQ_API_KEY": "fake_groq_key"})
-@patch("what_changed._check_rate_limit", return_value=True)
-@patch("what_changed.requests.post")
+@patch("src.utils.what_changed._check_rate_limit", return_value=True)
+@patch("src.utils.what_changed.requests.post")
 def test_call_llm_groq(mock_post, mock_rate_limit):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -169,7 +169,7 @@ def test_call_llm_groq(mock_post, mock_rate_limit):
     assert result is not None
     assert result["summary"] == "groq summary"
 
-@patch("what_changed._call_llm")
+@patch("src.utils.what_changed._call_llm")
 def test_generate_what_changed_analysis_with_llm(mock_call_llm, current_assessment, previous_assessment):
     mock_call_llm.return_value = {
         "summary": "AI summary",

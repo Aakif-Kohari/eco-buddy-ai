@@ -43,7 +43,7 @@ PRESET_ECO_PRODUCTS = {
         "default_daily_usage": 35.0, # km driven per day
         "usage_unit": "km driven/day",
         "savings_per_unit": 0.15,    # kg CO2 saved per km driven vs internal combustion car
-        "description": "Electric passenger vehicle displacing gasoline car emissions."
+        "description": "Electric passenger vehicle displacing gasoline car src.carbon.emissions."
     },
     "smart_thermostat": {
         "name": "Smart Programmable Thermostat",

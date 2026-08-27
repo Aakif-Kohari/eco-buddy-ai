@@ -2,7 +2,7 @@
 Tests for Python profiling tools (cProfile and tracemalloc integration).
 """
 import pytest
-from profiler import profile_cpu, profile_memory, profile_function
+from src.core.profiler import profile_cpu, profile_memory, profile_function
 
 def sample_expensive_function():
     total = sum(i * i for i in range(100000))

@@ -3,16 +3,16 @@ import sqlite3
 
 import pytest
 
-import database as db
-from dashboard_widgets import DEFAULT_WIDGETS, normalize_widget_preferences
+import src.core.database as db
+from src.reporting.dashboard_widgets import DEFAULT_WIDGETS, normalize_widget_preferences
 
 TEST_DB = "test_dashboard_widgets.db"
 
 
 @pytest.fixture(autouse=True)
 def isolated_database():
-    original = db.DB_NAME
-    db.DB_NAME = TEST_DB
+    original = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = TEST_DB
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
 
@@ -35,7 +35,7 @@ def isolated_database():
 
     yield
 
-    db.DB_NAME = original
+    src.notifications.db.DB_NAME = original
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
 
@@ -51,20 +51,20 @@ def test_normalize_preserves_canonical_dashboard_order():
 
 
 def test_preferences_are_saved_and_restored_for_user():
-    assert db.get_dashboard_widget_preferences(1) is None
+    assert src.notifications.db.get_dashboard_widget_preferences(1) is None
 
-    assert db.save_dashboard_widget_preferences(1, ["summary", "trend"]) is True
+    assert src.notifications.db.save_dashboard_widget_preferences(1, ["summary", "trend"]) is True
 
-    assert db.get_dashboard_widget_preferences(1) == ["summary", "trend"]
+    assert src.notifications.db.get_dashboard_widget_preferences(1) == ["summary", "trend"]
 
 
 def test_preferences_can_hide_all_widgets():
-    assert db.save_dashboard_widget_preferences(1, []) is True
-    assert db.get_dashboard_widget_preferences(1) == []
+    assert src.notifications.db.save_dashboard_widget_preferences(1, []) is True
+    assert src.notifications.db.get_dashboard_widget_preferences(1) == []
 
 
 def test_preferences_upsert_replaces_previous_layout():
-    assert db.save_dashboard_widget_preferences(1, ["summary"]) is True
-    assert db.save_dashboard_widget_preferences(1, ["eco_score", "quick_tips"]) is True
+    assert src.notifications.db.save_dashboard_widget_preferences(1, ["summary"]) is True
+    assert src.notifications.db.save_dashboard_widget_preferences(1, ["eco_score", "quick_tips"]) is True
 
-    assert db.get_dashboard_widget_preferences(1) == ["eco_score", "quick_tips"]
+    assert src.notifications.db.get_dashboard_widget_preferences(1) == ["eco_score", "quick_tips"]

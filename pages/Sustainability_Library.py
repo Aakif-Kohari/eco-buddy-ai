@@ -29,7 +29,7 @@ c1, c2 = st.columns([1, 2])
 with c1:
     category = st.selectbox("Category", CATEGORIES)
 with c2:
-    query = st.text_input("Search", placeholder="e.g., climate, fashion, energy, waste...")
+    query = st.text_input("Search", placeholder="e.g., climate, fashion, energy, src.environment.waste...")
 
 st.markdown("---")
 

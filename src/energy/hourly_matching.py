@@ -31,20 +31,20 @@ What this module computes
     midday is worth much less than one exported into a gas-fired evening, and
     annual netting cannot express that at all.
 *   **Both accounting frames**, location-based and market-based, using the same
-    vocabulary ``ghg_inventory.py`` already established rather than inventing a
+    vocabulary ``src.carbon.ghg_inventory.py`` already established rather than inventing a
     second one.
 *   **A certificate gap** in kg: the difference between what the tariff claims
     and what hourly matching supports. That number is the reason this exists.
 
 Where it connects to code already merged
 ----------------------------------------
-*   ``ghg_inventory.py`` implements dual scope 2 reporting. The dual report is
+*   ``src.carbon.ghg_inventory.py`` implements dual scope 2 reporting. The dual report is
     only informative if the market-based side can be wrong in a measurable way,
     and this module is what makes it measurable.
-*   ``grid_scheduler.py`` shifts flexible load to cleaner hours. Load shifting
+*   ``src.energy.grid_scheduler.py`` shifts flexible load to cleaner hours. Load shifting
     raises the hourly score, so this gives that module something physically
     real to optimise against.
-*   ``marginal_emissions.py`` models the intensity of an extra kilowatt-hour.
+*   ``src.carbon.marginal_emissions.py`` models the intensity of an extra kilowatt-hour.
     The unmatched hours here are exactly where that number belongs.
 
 A stated simplification
@@ -167,7 +167,7 @@ LOAD_PROFILES = {
     "flat": {
         "label": "Near-flat load",
         "shape": [4.0] * HOURS_IN_DAY,
-        "note": "A reference case rather than a real household. Useful "
+        "note": "A reference case rather than a real src.lifestyle.household. Useful "
                 "because it isolates the supply shape from the load shape.",
     },
 }
@@ -243,7 +243,7 @@ SUPPLY_PROFILES = {
         },
         "note": "Night-biased and seasonally opposite to solar, which makes "
                 "it a much better match for an overnight EV load and a much "
-                "worse one for a daytime household.",
+                "worse one for a daytime src.lifestyle.household.",
     },
     "contracted_solar_farm": {
         "label": "Contracted solar farm",

@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: green_mobility.py
+# FILE: src.lifestyle.green_mobility.py
 # EcoBuddy AI+ Green Mobility & Sustainable Transportation
 # ============================================================
 

@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: smart_home.py
+# FILE: src.energy.smart_home.py
 # EcoBuddy AI+ Smart Home Energy Optimization
 # ============================================================
 
@@ -87,7 +87,7 @@ class EnergyMonitor:
                 current_hour = datetime.now().hour
                 
                 if current_hour in peak_hours and a["hours_per_day"] > 2:
-                    recommendations.append({
+                    src.ai.recommendations.append({
                         "appliance": a["name"],
                         "suggestion": f"Run {a['name']} during off-peak hours (10 AM - 4 PM)",
                         "potential_saving": a["watts"] * 2 / 1000 * 0.15 * 0.3
@@ -189,19 +189,19 @@ class WeatherEnergyOptimizer:
         recommendations = []
         
         if temp > 28:
-            recommendations.append("☀️ High temperature - use fans instead of AC when possible")
-            recommendations.append("💡 Close blinds/curtains during peak sun hours")
+            src.ai.recommendations.append("☀️ High temperature - use fans instead of AC when possible")
+            src.ai.recommendations.append("💡 Close blinds/curtains during peak sun hours")
         elif temp < 10:
-            recommendations.append("❄️ Cold weather - wear warm clothes before turning up heat")
-            recommendations.append("🔧 Check door/window seals for drafts")
+            src.ai.recommendations.append("❄️ Cold weather - wear warm clothes before turning up heat")
+            src.ai.recommendations.append("🔧 Check door/window seals for drafts")
         
         if humidity > 70:
-            recommendations.append("💧 High humidity - use dehumidifier to improve AC efficiency")
+            src.ai.recommendations.append("💧 High humidity - use dehumidifier to improve AC efficiency")
         elif humidity < 30:
-            recommendations.append("💨 Low humidity - use humidifier to improve comfort at lower temps")
+            src.ai.recommendations.append("💨 Low humidity - use humidifier to improve comfort at lower temps")
         
         if wind_speed > 20:
-            recommendations.append("💨 Windy - use natural ventilation instead of AC")
+            src.ai.recommendations.append("💨 Windy - use natural ventilation instead of AC")
         
         return recommendations
 

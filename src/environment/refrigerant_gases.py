@@ -1,6 +1,6 @@
 """Fugitive refrigerant emissions, with TEWI and low-GWP retrofit comparison.
 
-``ghg_inventory.py`` carries ``refrigerant_leakage`` as a single line item:
+``src.carbon.ghg_inventory.py`` carries ``refrigerant_leakage`` as a single line item:
 enter a quantity, multiply by a factor. That is the right shape for a category
 where the user knows the number. Nobody knows how much refrigerant their fridge
 leaked last year, so the category reads zero, and a zero in the largest
@@ -15,7 +15,7 @@ a leak rate characteristic of the equipment class, which is a different
 calculation rather than a rearrangement of the same one.
 
 A domestic heat pump holds 1.5-3 kg of R-410A at a GWP of 2088. At a 3.5% annual
-leak rate that is 200 kg CO2e a year from a machine bought to reduce emissions.
+leak rate that is 200 kg CO2e a year from a machine bought to reduce src.carbon.emissions.
 
 Lifetime is not annual times lifetime
 -------------------------------------
@@ -86,7 +86,7 @@ class RefrigerantError(ValueError):
 #
 # GWPs are given per assessment report and per horizon because both change the
 # answer and neither is a detail. AR4 and AR6 disagree on R-410A by 21%, which
-# is larger than several of the differences this module is used to report.
+# is larger than several of the differences this module is used to src.reporting.report.
 #
 # The 20-year column matters more here than it does for CO2: this is a family of
 # gases whose lifetimes run from days to decades, so the horizon does not

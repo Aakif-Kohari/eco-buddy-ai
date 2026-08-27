@@ -1,4 +1,4 @@
-from achievement_showcase import (
+from src.utils.achievement_showcase import (
     ShowcaseStats,
     _challenge_progress,
     build_showcase_stats,

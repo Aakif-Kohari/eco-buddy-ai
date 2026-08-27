@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from sustainability_trends import (
+from src.utils.sustainability_trends import (
     AssessmentRecord,
     TrendValidationError,
     available_categories,

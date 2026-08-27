@@ -1,5 +1,5 @@
 import unittest
-from circular_economy_marketplace import CircularEconomyEngine
+from src.utils.circular_economy_marketplace import CircularEconomyEngine
 
 class TestCircularEconomyMarketplace(unittest.TestCase):
     def setUp(self):

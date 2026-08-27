@@ -1,7 +1,7 @@
 
 
 # ============================================================
-# FILE: event_calendar.py
+# FILE: src.utils.event_calendar.py
 # EcoBuddy AI+ Eco-Event Calendar & Action Planner
 # ============================================================
 

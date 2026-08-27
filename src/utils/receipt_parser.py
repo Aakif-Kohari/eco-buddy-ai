@@ -6,7 +6,7 @@ from typing import Any
 def mock_ocr_extraction(file_name: str) -> str:
     """
     Simulates OCR text extraction from an uploaded file.
-    In production, this would be replaced by a call to ocr_utils.extract_text_from_file().
+    In production, this would be replaced by a call to src.utils.ocr_utils.extract_text_from_file().
     """
     if "electric" in file_name.lower() or "bill" in file_name.lower():
         return """

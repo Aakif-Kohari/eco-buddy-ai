@@ -2,8 +2,8 @@
 
 This module does not talk to the database and does not recompute any
 emissions formulas itself. It only combines results already produced by
-existing utilities (``emissions.calculate_footprint``,
-``goals.evaluate_progress``, ``recommendations.generate_recommendations``)
+existing utilities (``src.carbon.emissions.calculate_footprint``,
+``src.utils.goals.evaluate_progress``, ``src.ai.recommendations.generate_recommendations``)
 into the single summary the overview page renders, so the calculation and
 persistence logic keeps living in exactly one place each.
 """
@@ -93,7 +93,7 @@ def compare_with_previous(records: list[dict[str, Any]]) -> dict[str, Any]:
 def category_breakdown(latest: dict[str, Any] | None, region: str = "Global") -> dict[str, float] | None:
     """Recompute the per-category CO2 split for the latest assessment.
 
-    Reuses emissions.calculate_footprint instead of re-deriving emission
+    Reuses src.carbon.emissions.calculate_footprint instead of re-deriving emission
     factors here. Returns None when the latest assessment is missing the
     inputs needed to recompute it (e.g. an incomplete row).
     """
@@ -166,7 +166,7 @@ def personalized_insights(latest: dict[str, Any] | None, contributors: dict[str,
 
 
 def goal_progress(active_goal: dict[str, Any] | None, records: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Reuse goals.evaluate_progress for the user's active reduction goal, if any."""
+    """Reuse src.utils.goals.evaluate_progress for the user's active reduction goal, if any."""
     if not active_goal:
         return None
     try:

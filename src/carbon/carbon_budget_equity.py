@@ -1,7 +1,7 @@
 """Remaining personal carbon budget, and the equity choice behind it.
 
-``goals.py`` builds a pathway from the user's own baseline: take what you emit,
-pick a percentage, draw a line. ``overshoot.py`` reports Earth Overshoot Day from
+``src.utils.goals.py`` builds a pathway from the user's own baseline: take what you emit,
+pick a percentage, draw a line. ``src.utils.overshoot.py`` reports Earth Overshoot Day from
 a lookup table. Neither answers the question that decides whether a target means
 anything - how much carbon this person can emit in total, ever, before their
 share of a temperature limit is spent.
@@ -313,7 +313,7 @@ def personal_budget(
         budget = per_capita_tonnes
 
     elif principle == GRANDFATHERING:
-        # Share proportional to current emissions. Someone emitting three times
+        # Share proportional to current src.carbon.emissions. Someone emitting three times
         # the world average gets three times the budget, which is the whole
         # objection to it.
         share = annual_tonnes / global_per_capita_now
@@ -600,7 +600,7 @@ def shortfall(
     At the fastest sustained rate anyone has managed, cumulative emissions come
     to ``e0 / ceiling``. If that exceeds the budget, the difference has to come
     from removals rather than reduction - and that is where
-    ``permanence_accounting.py`` becomes relevant, and where the honest answer
+    ``src.utils.permanence_accounting.py`` becomes relevant, and where the honest answer
     stops being a comfortable one.
     """
     if annual_tonnes <= 0:

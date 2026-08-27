@@ -22,10 +22,10 @@ def test_coverage_gate_passes_when_above_threshold():
             "num_branches": 100,
         },
         "files": {
-            "database_connection.py": {
+            "src.core.database_connection.py": {
                 "summary": {"percent_covered": 92.0}
             },
-            "database_integrity.py": {
+            "src.core.database_integrity.py": {
                 "summary": {"percent_covered": 89.0}
             },
         },
@@ -85,7 +85,7 @@ def test_coverage_gate_fails_when_critical_module_below_threshold():
             "num_branches": 100,
         },
         "files": {
-            "database_connection.py": {
+            "src.core.database_connection.py": {
                 "summary": {"percent_covered": 72.0}
             }
         },

@@ -804,7 +804,7 @@ def save_assessment(
     Persist an assessment.
 
     `factor_version` records which emission factor set produced the footprint
-    (see emission_factors.py). It is optional: rows written without it are read
+    (see src.carbon.emission_factors.py). It is optional: rows written without it are read
     back as 'static-v1', which is exactly the factor set the app used before
     versioning existed.
     """
@@ -867,7 +867,7 @@ def save_ev_charging_session(
     battery_capacity: float, current_soc: float, target_soc: float, 
     charging_rate: float, optimal_carbon: float, carbon_savings: float, cost_savings: float
 ) -> None:
-    """Saves an EV charging optimization session to the database."""
+    """Saves an EV charging optimization session to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -998,7 +998,7 @@ def get_assessments(user_id: int = 1) -> list[tuple[Any, ...]]:
 
 
 def save_waste_log(total_weight: float, efficiency_score: float) -> None:
-    """Saves a waste analytics log to the database."""
+    """Saves a waste analytics log to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -1125,7 +1125,7 @@ def update_carbon_budget(user_id: int, budget_type: str, budget_limit: float) ->
 
 
 def save_scanned_receipt(vendor: str, date: str, total_cost: float, energy_kwh: Optional[float], category: str) -> None:
-    """Saves a processed and confirmed scanned receipt/bill to the database."""
+    """Saves a processed and confirmed scanned receipt/bill to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -2762,7 +2762,7 @@ def init_goals_db() -> bool:
 
 
 def _goal_row_to_dict(row: Any) -> dict[str, Any] | None:
-    """Map a reduction_goals row onto the dict shape goals.py expects."""
+    """Map a reduction_goals row onto the dict shape src.utils.goals.py expects."""
     if not row:
         return None
     return {
@@ -3047,7 +3047,7 @@ def save_unit_preference(user_id: int, unit_system: str, currency: str) -> bool:
     """
     Persist a user's display preference.
 
-    The value is normalised through units.make_preference() first, so an
+    The value is normalised through src.utils.units.make_preference() first, so an
     unknown system or currency is stored as the default rather than as
     something no page can render.
     """
@@ -3665,7 +3665,7 @@ def seed_sustainable_brands() -> None:
                 "A",
                 88,
                 "Non-GMO Project Verified, Plant-Based Certified",
-                "Revolutionary plant-based meats designed to replace animal agriculture and cut carbon emissions.",
+                "Revolutionary plant-based meats designed to replace animal agriculture and cut carbon src.carbon.emissions.",
                 "https://www.beyondmeat.com",
             ),
             (
@@ -4878,7 +4878,7 @@ def save_assessment(
     Persist an assessment.
 
     `factor_version` records which emission factor set produced the footprint
-    (see emission_factors.py). It is optional: rows written without it are read
+    (see src.carbon.emission_factors.py). It is optional: rows written without it are read
     back as 'static-v1', which is exactly the factor set the app used before
     versioning existed.
     """
@@ -6667,7 +6667,7 @@ def init_goals_db() -> bool:
 
 
 def _goal_row_to_dict(row: Any) -> dict[str, Any] | None:
-    """Map a reduction_goals row onto the dict shape goals.py expects."""
+    """Map a reduction_goals row onto the dict shape src.utils.goals.py expects."""
     if not row:
         return None
     return {
@@ -6952,7 +6952,7 @@ def save_unit_preference(user_id: int, unit_system: str, currency: str) -> bool:
     """
     Persist a user's display preference.
 
-    The value is normalised through units.make_preference() first, so an
+    The value is normalised through src.utils.units.make_preference() first, so an
     unknown system or currency is stored as the default rather than as
     something no page can render.
     """
@@ -7562,7 +7562,7 @@ def save_food_scan(user_id: int, meal_name: str, food_items: dict, total_co2: fl
 
 def save_urban_health_profile(time_allocation: dict, weekly_park_visits: int, tree_canopy_pct: float, 
                               exposure_data: dict, mitigation_data: dict) -> None:
-    """Saves an urban health impact analysis session to the database."""
+    """Saves an urban health impact analysis session to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7595,7 +7595,7 @@ def get_food_scans(user_id: int) -> list[dict]:
         return []
 
 def save_pcf_label(product_name: str, label_data: dict, transparency_data: dict) -> None:
-    """Saves a generated PCF label and transparency score to the database."""
+    """Saves a generated PCF label and transparency score to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7629,7 +7629,7 @@ def init_energy_tracker_db() -> bool:
             conn.close()
 
 def save_textile_comparison(garments: list, results: list) -> None:
-    """Saves a textile comparison session to the database."""
+    """Saves a textile comparison session to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7678,7 +7678,7 @@ def get_pantry_inventory() -> list:
 
 def save_green_finance_profile(portfolio_value: float, deposit_amount: float, 
                                investment_results: dict, banking_results: dict) -> None:
-    """Saves a green finance analysis profile to the database."""
+    """Saves a green finance analysis profile to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7725,7 +7725,7 @@ def get_energy_records(user_id: int) -> list[dict]:
             conn.close()
 
 def save_water_energy_profile(household_size: int, grid_intensity: float, comparison_data: dict) -> None:
-    """Saves a water-energy nexus comparison profile to the database."""
+    """Saves a water-energy nexus comparison profile to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7754,7 +7754,7 @@ def get_pca_balance(user_id: str) -> float:
     return row[0] if row else 500.0
 
 def save_travel_itinerary(legs: list, report: dict) -> None:
-    """Saves a travel itinerary and its optimization report to the database."""
+    """Saves a travel itinerary and its optimization report to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7777,7 +7777,7 @@ def get_travel_itinerary_history() -> list:
 import json
 
 def save_urban_mining_inventory(device_list: list, result_data: dict) -> None:
-    """Saves an urban mining inventory calculation to the database."""
+    """Saves an urban mining inventory calculation to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7826,7 +7826,7 @@ def submit_neighborhood_score(zip_code: str, eco_score: float, carbon_saved_kg: 
     conn.close()
 
 def get_neighborhood_leaderboard() -> list:
-    """Retrieves aggregated leaderboard data from the database."""
+    """Retrieves aggregated leaderboard data from the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7844,7 +7844,7 @@ def get_neighborhood_leaderboard() -> list:
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_tonne: float, trade_type: str) -> None:
-    """Records a PCA trade in the database."""
+    """Records a PCA trade in the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7858,7 +7858,7 @@ def record_pca_trade(buyer_id: str, seller_id: str, amount_kg: float, price_per_
 import json
 
 def save_digital_twin_scenario(current_footprint: float, target_goal: float, report_data: dict) -> None:
-    """Saves a digital twin forecasting scenario to the database."""
+    """Saves a digital twin forecasting scenario to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7912,7 +7912,7 @@ def get_offset_portfolio_history(user_id: str) -> list:
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_avoided_emissions_log(activity_type: str, quantity: float, avoided_kg: float) -> None:
-    """Saves a logged avoided emissions activity to the database."""
+    """Saves a logged avoided emissions activity to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7932,7 +7932,7 @@ def get_avoided_emissions_history() -> list:
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_challenge_result(scenario_id: str, outcome: str, final_carbon: float, final_cost: float) -> None:
-    """Saves a scenario challenge result to the database."""
+    """Saves a scenario challenge result to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -7979,7 +7979,7 @@ def save_equivalence_preferences(user_id: int, top_metrics: str, region: str) ->
 import json
 
 def save_green_premium_analysis(product_key: str, utility_inflation: float, subsidy_usd: float, result_data: dict) -> None:
-    """Saves a green premium ROI analysis to the database."""
+    """Saves a green premium ROI analysis to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -8013,7 +8013,7 @@ def get_equivalence_preferences(user_id: int) -> dict | None:
 import json
 
 def save_relocation_analysis(current_city: str, target_city: str, result_data: dict) -> None:
-    """Saves a relocation impact analysis to the database."""
+    """Saves a relocation impact analysis to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -8130,7 +8130,7 @@ def get_user_civic_actions(user_id: int) -> list:
 import json
 
 def save_ej_impact_log(zip_code: str, activity: str, quantity: float, impact_data: dict) -> None:
-    """Saves an EJ impact analysis log to the database."""
+    """Saves an EJ impact analysis log to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -8175,7 +8175,7 @@ def init_travel_tracker_db() -> bool:
 import json
 
 def save_net_zero_roadmap(scope1: float, scope2: float, scope3: float, target_year: int, roadmap_data: dict) -> None:
-    """Saves a generated net-zero roadmap to the database."""
+    """Saves a generated net-zero roadmap to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -8211,7 +8211,7 @@ def add_travel_record(user_id: int, record_date: str, mode: str, distance_km: fl
 
 
 def save_grocery_optimization(budget_usd: float, categories: list, result_data: dict) -> None:
-    """Saves a grocery optimization session to the database."""
+    """Saves a grocery optimization session to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -8246,7 +8246,7 @@ def get_travel_records(user_id: int) -> list:
         return []
 
 def save_carbon_banking_action(user_id: str, action_type: str, amount: float, from_month: str, to_month: str) -> None:
-    """Saves a carbon banking action (rollover or borrow) to the database."""
+    """Saves a carbon banking action (rollover or borrow) to the src.core.database."""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""

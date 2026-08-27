@@ -334,7 +334,7 @@ def to_preferred(value: float, storage_unit: str, preference: dict[str, Any] | N
 
 def from_preferred(value: float, storage_unit: str, preference: dict[str, Any] | None = None) -> float:
     """
-    Convert a value the user typed in their own units back to storage units.
+    Convert a value the user typed in their own units back to storage src.utils.units.
 
     The inverse of `to_preferred()`. Form input must go through this before it
     reaches the database, or the stored data stops being canonical metric.

@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: community_marketplace.py
+# FILE: src.community.community_marketplace.py
 # EcoBuddy AI+ Community Marketplace & Sustainable Exchange
 # ============================================================
 

@@ -1,4 +1,4 @@
-"""Feedback, effectiveness, and deterministic personalization for EcoBuddy recommendations.
+"""Feedback, effectiveness, and deterministic personalization for EcoBuddy src.ai.recommendations.
 
 The module intentionally keeps ranking logic independent from Streamlit and the
 existing recommendation generator.  Feedback is persisted in a small SQLite

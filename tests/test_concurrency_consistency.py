@@ -15,29 +15,29 @@ from typing import Generator
 
 import pytest
 
-from database_connection import (
+from src.core.database_connection import (
     create_connection,
     database_connection,
     execute_with_retry,
 )
-import database as db
-from invalidation import invalidate_all_db_caches
+import src.core.database as db
+from src.core.invalidation import invalidate_all_db_caches
 
 
 @pytest.fixture
 def isolated_db(tmp_path) -> Generator[str, None, None]:
     """Provide an isolated, initialized database path for each test."""
     db_file = str(tmp_path / f"test_concurrency_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
-    db.DB_NAME = db_file
+    original_db = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = db_file
 
     try:
-        success = db.init_db()
+        success = src.notifications.db.init_db()
         assert success is True, "Database initialization must succeed"
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
+        src.notifications.db.DB_NAME = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
             try:
@@ -55,7 +55,7 @@ def test_concurrent_record_creation(isolated_db: str):
         uname = f"concurrent_user_{index}_{uuid.uuid4().hex[:4]}"
         email = f"{uname}@test.com"
         created_usernames.append(uname)
-        return db.create_user(uname, email, "Password123!")
+        return src.notifications.db.create_user(uname, email, "Password123!")
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(create_single_user, i) for i in range(num_workers)]
@@ -77,7 +77,7 @@ def test_concurrent_duplicate_submissions(isolated_db: str):
     num_threads = 8
 
     def try_create():
-        return db.create_user(target_username, target_email, "Password123!")
+        return src.notifications.db.create_user(target_username, target_email, "Password123!")
 
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [executor.submit(try_create) for _ in range(num_threads)]
@@ -99,8 +99,8 @@ def test_concurrent_conflicting_updates(isolated_db: str):
     """Verify concurrent updates to a shared user preference execute safely without state corruption."""
     uname = f"update_user_{uuid.uuid4().hex[:6]}"
     email = f"{uname}@test.com"
-    db.create_user(uname, email, "Password123!", anonymous_leaderboard=False)
-    user = db.get_user_by_username(uname)
+    src.notifications.db.create_user(uname, email, "Password123!", anonymous_leaderboard=False)
+    user = src.notifications.db.get_user_by_username(uname)
     assert user is not None
     user_id = user["id"]
 
@@ -108,14 +108,14 @@ def test_concurrent_conflicting_updates(isolated_db: str):
 
     def toggle_preference(idx: int) -> bool:
         new_val = (idx % 2 == 0)
-        return db.update_user_leaderboard_preference(user_id, new_val)
+        return src.notifications.db.update_user_leaderboard_preference(user_id, new_val)
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(toggle_preference, i) for i in range(num_threads)]
         results = [f.result() for f in as_completed(futures)]
 
     assert all(results)
-    final_user = db.get_user_by_username(uname)
+    final_user = src.notifications.db.get_user_by_username(uname)
     assert final_user is not None
     assert isinstance(final_user["anonymous_leaderboard"], bool)
 
@@ -124,15 +124,15 @@ def test_concurrent_assessments_creation_and_activity_logging(isolated_db: str):
     """Verify concurrent assessment creations log and persist accurately across multiple threads."""
     uname = f"assess_user_{uuid.uuid4().hex[:6]}"
     email = f"{uname}@test.com"
-    db.create_user(uname, email, "Password123!")
-    user = db.get_user_by_username(uname)
+    src.notifications.db.create_user(uname, email, "Password123!")
+    user = src.notifications.db.get_user_by_username(uname)
     assert user is not None
     user_id = user["id"]
 
     num_assessments = 8
 
     def insert_task(idx: int) -> bool:
-        return db.save_assessment(
+        return src.notifications.db.save_assessment(
             user_id=user_id,
             transport="Train",
             distance=15.0 + idx,
@@ -151,7 +151,7 @@ def test_concurrent_assessments_creation_and_activity_logging(isolated_db: str):
 
     # Invalidate cache to read fresh state from isolated DB
     invalidate_all_db_caches()
-    assessments = db.get_assessments(user_id)
+    assessments = src.notifications.db.get_assessments(user_id)
     assert len(assessments) == num_assessments
 
 

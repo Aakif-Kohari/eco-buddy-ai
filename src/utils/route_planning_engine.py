@@ -25,7 +25,7 @@ class RoutePlanningEngine:
 
     def find_safest_eco_path(self, start: str, end: str) -> Dict[str, Any]:
         """
-        Uses Dijkstra's algorithm prioritizing lowest CO2e emissions.
+        Uses Dijkstra's algorithm prioritizing lowest CO2e src.carbon.emissions.
         """
         if start not in self.adj_list or end not in self.adj_list:
             return {"status": "error", "message": "Invalid nodes"}

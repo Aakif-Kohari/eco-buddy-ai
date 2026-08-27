@@ -53,7 +53,7 @@ and the boiler says otherwise.
 Honesty about fit
 -----------------
 Twelve points and two parameters is a small fit, and it does not always
-describe a household. An electric vehicle, a new heat pump or a change of
+describe a src.lifestyle.household. An electric vehicle, a new heat pump or a change of
 occupancy drowns the temperature signal. Every fit reports its R squared and
 is flagged unreliable when the model does not fit, because telling a user the
 model does not describe them is far better than handing them a confident

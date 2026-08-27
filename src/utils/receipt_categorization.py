@@ -17,7 +17,7 @@ EMISSION_CATEGORIES: Dict[str, Dict[str, Any]] = {
     "Dairy & Meat": {"factor": 1.20, "icon": "🥩", "tip": "High impact item. Replacing meat/dairy days reduces emissions significantly."},
     "Apparel & Clothing": {"factor": 0.85, "icon": "👕", "tip": "Fast fashion impacts. Look for sustainable or thrift alternatives."},
     "Electronics & Gadgets": {"factor": 1.50, "icon": "📱", "tip": "High embodied carbon. Consider refurbished devices when possible."},
-    "Transport & Fuel": {"factor": 2.30, "icon": "⛽", "tip": "Fuel usage creates direct emissions. Try carpooling or public transport."},
+    "Transport & Fuel": {"factor": 2.30, "icon": "⛽", "tip": "Fuel usage creates direct src.carbon.emissions. Try carpooling or public transport."},
     "Home & Utilities": {"factor": 0.60, "icon": "🏡", "tip": "Home goods. Opt for energy-efficient or durable products."},
     "Services & Others": {"factor": 0.15, "icon": "🏷️", "tip": "Low carbon intensity service item."},
 }
@@ -134,7 +134,7 @@ def update_manual_corrections(
     items: List[Dict[str, Any]], index: int, new_category: str, new_price: float, new_qty: int = 1
 ) -> List[Dict[str, Any]]:
     """
-    Apply user manual corrections to an item and recalculate its emissions.
+    Apply user manual corrections to an item and recalculate its src.carbon.emissions.
     """
     updated = [dict(it) for it in items]
     if 0 <= index < len(updated):

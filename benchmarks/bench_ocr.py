@@ -1,4 +1,4 @@
-"""Benchmarks for ocr_utils.py – text parsing and file extraction."""
+"""Benchmarks for src.utils.ocr_utils.py – text parsing and file extraction."""
 import os, sys
 from unittest.mock import MagicMock, patch
 

@@ -12,7 +12,7 @@ Roughly 1% of applied nitrogen leaves as nitrous oxide. That 1% is a greenhouse
 gas with a GWP100 of 273, so it is large enough to matter and it *is* already
 inside the CO2e figure elsewhere in this app. The other 99% is ammonia, nitrate
 and inert N2 - and of those, the ammonia and the nitrate are the ones doing the
-damage to air quality and to water. Carbon accounting sees the 1% and is blind
+damage to air quality and to src.environment.water. Carbon accounting sees the 1% and is blind
 to the part that dominates.
 
 The consequence is a specific piece of bad advice this app can currently give.
@@ -42,12 +42,12 @@ Two waters, two limiting nutrients
 Freshwater eutrophication is phosphorus-limited. Marine eutrophication is
 nitrogen-limited. They are different receiving systems responding to different
 inputs, and a single "eutrophication score" tells a user nothing about which one
-they are loading. Both are reported, in their own conventional units.
+they are loading. Both are reported, in their own conventional src.utils.units.
 
 The overlap is stated, never netted
 ------------------------------------
 The N2O share of the nitrogen loss is already inside the CO2e total reported by
-``emissions.py``. This module computes it and labels it as overlapping. Adding
+``src.carbon.emissions.py``. This module computes it and labels it as overlapping. Adding
 this module's climate figure to the app's carbon figure would double-count, and
 the only reliable defence against that is to say so wherever the number appears.
 
@@ -61,12 +61,12 @@ rather than left for a user to infer from a bar that is off the end of a chart.
 
 Where this connects to code already merged
 -------------------------------------------
-*   ``meal_planner.py`` ranks diets on carbon alone.
-*   ``garden_Assistant.py`` has no representation of fertiliser at all, though
+*   ``src.lifestyle.meal_planner.py`` ranks diets on carbon alone.
+*   ``src.utils.garden_Assistant.py`` has no representation of fertiliser at all, though
     domestic over-application at three to four times crop requirement is common.
-*   ``climate_metrics.py`` holds the GWP values this module reuses for the N2O
+*   ``src.environment.climate_metrics.py`` holds the GWP values this module reuses for the N2O
     overlap.
-*   ``water_scarcity.py`` handles the quantity of water; this handles what is
+*   ``src.environment.water_scarcity.py`` handles the quantity of water; this handles what is
     dissolved in it.
 
 Self-contained: standard library only, SQLite tables created lazily, no shared
@@ -92,7 +92,7 @@ class NutrientError(ValueError):
 #
 # GWP100 for N2O on the AR6 basis. Held here rather than imported so the engine
 # stays importable without the rest of the app, but deliberately the same number
-# ``climate_metrics.py`` uses - a disagreement between the two would show up as
+# ``src.environment.climate_metrics.py`` uses - a disagreement between the two would show up as
 # an unexplained gap between this module's climate figure and the app's.
 # ---------------------------------------------------------------------------
 N2O_GWP100 = 273.0
@@ -180,7 +180,7 @@ FOOD_NUTRIENT_FACTORS = {
         "label": "Milk",
         "category": "animal_product",
         "n_applied": 0.021, "p_applied": 0.0035, "protein_g": 33.0,
-        "note": "Low per kilogram because milk is mostly water. Per gram of "
+        "note": "Low per kilogram because milk is mostly src.environment.water. Per gram of "
                 "protein it is comparable to chicken.",
     },
     "cheese": {
@@ -428,7 +428,7 @@ FERTILISERS = {
         "label": "Cattle slurry",
         "n_fraction": 0.0035, "p_fraction": 0.0007, "organic": True,
         "default_method": "surface_slurry",
-        "note": "Mostly water. The ammonia loss on surface spreading is the "
+        "note": "Mostly src.environment.water. The ammonia loss on surface spreading is the "
                 "dominant term.",
     },
     "bone_meal": {
@@ -615,7 +615,7 @@ def eutrophication_potential(
     delivery_n: float = DEFAULT_DELIVERY_RATIO_N,
     delivery_p: float = DEFAULT_DELIVERY_RATIO_P,
 ) -> dict:
-    """Freshwater and marine eutrophication, kept in separate units.
+    """Freshwater and marine eutrophication, kept in separate src.utils.units.
 
     They are not summed, and there is no combined score, because freshwater is
     phosphorus-limited and marine is nitrogen-limited. A single number would
@@ -662,7 +662,7 @@ def food_footprint(
     overlap, and a protein-normalised view.
     """
     if not items:
-        raise NutrientError("An empty basket has no footprint to report.")
+        raise NutrientError("An empty basket has no footprint to src.reporting.report.")
 
     total_n_applied = 0.0
     total_p_applied = 0.0
@@ -818,7 +818,7 @@ def _over_application_verdict(ratio: float) -> str:
     if ratio <= 1.05:
         return (
             "Matched to what the crop can use. Almost all of the loss here is "
-            "unavoidable background rather than waste."
+            "unavoidable background rather than src.environment.waste."
         )
     if ratio <= 1.5:
         return (

@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: weather_alerts.py
+# FILE: src.utils.weather_alerts.py
 # EcoBuddy AI+ Weather & Sustainability Alerts System
 # ============================================================
 

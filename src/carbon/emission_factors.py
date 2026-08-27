@@ -1,7 +1,7 @@
 """
 Emission Factor Provenance & Versioning Registry.
 
-Every footprint EcoBuddy AI stores is currently unreproducible: `emissions.py`
+Every footprint EcoBuddy AI stores is currently unreproducible: `src.carbon.emissions.py`
 uses live Climatiq factors when an API key is present and hardcoded constants
 when it is not, but `save_assessment()` records only the final number. Two
 assessments computed under different factors end up on the same trend line, so
@@ -283,8 +283,8 @@ def find_by_fingerprint(fingerprint: str) -> str | None:
 
 # --- Built-in sets ----------------------------------------------------------
 
-# static-v1 mirrors the constants currently hardcoded in config.py and
-# emissions.py. It exists so every pre-existing assessment has a real, citable
+# static-v1 mirrors the constants currently hardcoded in src.core.config.py and
+# src.carbon.emissions.py. It exists so every pre-existing assessment has a real, citable
 # version rather than an unknown one, and so this change stays byte-compatible.
 register_factor_set(make_factor_set(
     version="static-v1",
@@ -390,14 +390,14 @@ def resolve_factor_set(region: str = "Global",
     Identify the factor set a calculation is actually using.
 
     Resolution is by fingerprint, not by recency. That distinction matters: the
-    offline fallback in emissions.py still uses the original 0.82 kg/kWh and
+    offline fallback in src.carbon.emissions.py still uses the original 0.82 kg/kWh and
     250 kg/flight constants, so it must resolve to static-v1 even though
     static-v2 is newer. Returning "the latest set" here would stamp results
     with factors that did not produce them, which is precisely the mislabelling
     this module exists to prevent.
 
     Adopting a newer static set is therefore a deliberate change to the
-    fallback constants in config.py / emissions.py, not a silent side effect of
+    fallback constants in src.core.config.py / src.carbon.emissions.py, not a silent side effect of
     registering one.
     """
     if region not in VALID_REGIONS:
@@ -493,7 +493,7 @@ def recalculate_with_factor_set(inputs: dict[str, Any], version: str) -> dict[st
     `inputs` mirrors the arguments `calculate_footprint()` takes:
     transport, distance (km/day), electricity (kWh/month), diet, flights (per year).
 
-    Deliberately kept independent of `emissions.py` so a historical result can
+    Deliberately kept independent of `src.carbon.emissions.py` so a historical result can
     be reproduced without dragging in the live API path.
     """
     factor_set = get_factor_set(version)
@@ -587,7 +587,7 @@ def explain_footprint_change(inputs_before: dict[str, Any], inputs_after: dict[s
 # --- Provenance presentation ------------------------------------------------
 
 def describe_provenance(version: str) -> str:
-    """Human-readable citation for the UI, the audit log and the PDF report."""
+    """Human-readable citation for the UI, the audit log and the PDF src.reporting.report."""
     factor_set = get_factor_set(version)
     source = factor_set["source"]
     return (

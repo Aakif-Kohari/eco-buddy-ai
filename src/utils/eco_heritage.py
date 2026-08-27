@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: eco_heritage.py
+# FILE: src.utils.eco_heritage.py
 # EcoBuddy AI+ Eco-Heritage & Cultural Sustainability
 # ============================================================
 

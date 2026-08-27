@@ -308,7 +308,7 @@ def find_best_window(curve: list[float], duration_hours: float | int, candidate_
 
 
 def find_worst_window(curve: list[float], duration_hours: float | int, candidate_hours: list[int] | None = None) -> dict[str, Any]:
-    """Highest-average-intensity window - used to size avoidable emissions."""
+    """Highest-average-intensity window - used to size avoidable src.carbon.emissions."""
     return _search_window(curve, duration_hours, candidate_hours, best=False)
 
 

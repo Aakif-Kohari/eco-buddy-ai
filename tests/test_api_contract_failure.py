@@ -673,7 +673,7 @@ class TestRetryAndRecovery:
             assert client_with_retry.retry_count['/data'] == 2
     
     def test_retry_on_server_error(self, client_with_retry):
-        """Test retry on 5xx server errors."""
+        """Test retry on 5xx server src.core.errors."""
         with patch('requests.Session.get') as mock_get:
             # Fail twice with 500 then succeed
             mock_get.side_effect = [

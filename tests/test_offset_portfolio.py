@@ -3,8 +3,8 @@ Unit tests for Offset Portfolio Manager and Carbon Risk Analyzer.
 """
 
 import pytest
-from offset_portfolio_manager import OffsetPortfolioManager
-from carbon_risk_analyzer import CarbonRiskAnalyzer
+from src.carbon.offset_portfolio_manager import OffsetPortfolioManager
+from src.carbon.carbon_risk_analyzer import CarbonRiskAnalyzer
 
 
 def test_portfolio_manager_add_and_summary():

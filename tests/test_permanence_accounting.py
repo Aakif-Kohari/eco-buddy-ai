@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-import permanence_accounting as pa
+import src.utils.permanence_accounting as pa
 
 
 class TestDurabilityClasses(unittest.TestCase):
@@ -358,7 +358,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a temporary src.core.database."""
 
     @classmethod
     def setUpClass(cls):

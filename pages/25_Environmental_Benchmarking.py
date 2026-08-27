@@ -8,9 +8,9 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 
-from environmental_benchmarking.engine import BenchmarkEngine
-from environmental_benchmarking.history import HistoryAnalyzer
-from environmental_benchmarking.models import UserAssessment, ReferenceProfile, CategoryComparison
+from src.environmental_benchmarking.engine import BenchmarkEngine
+from src.environmental_benchmarking.history import HistoryAnalyzer
+from src.environmental_benchmarking.models import UserAssessment, ReferenceProfile, CategoryComparison
 
 def create_radar_chart(comparisons: dict, profile_name: str) -> go.Figure:
     """Create a radar chart comparing user vs profile for all categories."""

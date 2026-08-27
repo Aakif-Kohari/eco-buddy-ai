@@ -5,7 +5,7 @@ Provides detailed lifecycle carbon and water footprint analysis across dietary c
 
 from typing import Dict, Any, List
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from meal_planner import INGREDIENTS, impact_tier
+from src.lifestyle.meal_planner import INGREDIENTS, impact_tier
 
 
 # Diet type consumption defaults (servings / grams per day approximations)
@@ -197,7 +197,7 @@ class FoodFootprintPlugin(CalculatorPlugin):
         if contributors.get("Red Meat", 0) > 400.0:
             recs.append("🥩 Swap 2 red meat meals per week for lentils, beans, or tofu to cut ~400 kg CO2/year.")
         if contributors.get("Food Waste Burden", 0) > 100.0:
-            recs.append("🗑️ Plan weekly meals and freeze leftovers to eliminate food waste emissions.")
+            recs.append("🗑️ Plan weekly meals and freeze leftovers to eliminate food waste src.carbon.emissions.")
         if contributors.get("Dairy & Eggs", 0) > 300.0:
             recs.append("🥛 Explore oat, soy, or almond milk alternatives for daily coffee or cooking.")
         if metadata.get("annual_water_liters", 0) > 1200000.0:

@@ -2,7 +2,7 @@
 
 The point of this module is not that savings are smaller than claimed. It is
 that they are smaller by *different amounts* depending on the action, which
-changes the order of the recommendations. The tests are written around that:
+changes the order of the src.ai.recommendations. The tests are written around that:
 the direction of the correction, the cases where it flips a ranking, and the
 one case where the take-back is a benefit rather than a loss.
 """
@@ -11,7 +11,7 @@ import os
 import tempfile
 import unittest
 
-import rebound_effect as rb
+import src.utils.rebound_effect as rb
 
 
 class TestActionTypes(unittest.TestCase):
@@ -245,7 +245,7 @@ class TestSensitivity(unittest.TestCase):
 
 
 class TestCorrectedPayback(unittest.TestCase):
-    """What carbon_payback.py would say, and what it should say."""
+    """What src.carbon.carbon_payback.py would say, and what it should say."""
 
     def test_net_payback_is_longer_than_gross(self):
         result = rb.corrected_payback_years(2400, 800, "heat_pump", 300)
@@ -369,7 +369,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database.
+    """Persistence, against a throwaway src.core.database.
 
     The module is pointed at its own file rather than sharing the suite's,
     which several other test modules delete and recreate as they go. Sharing

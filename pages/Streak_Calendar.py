@@ -14,10 +14,10 @@ user_id = st.session_state.get("user_id", 1)
 current_year = date.today().year
 
 # Fetch data
-activity_data = streak_calendar.get_daily_activity_counts(user_id, current_year)
+activity_data = src.community.streak_calendar.get_daily_activity_counts(user_id, current_year)
 
 # Compute stats
-current_streak, longest_streak, active_days = streak_calendar.compute_streak_stats(activity_data)
+current_streak, longest_streak, active_days = src.community.streak_calendar.compute_streak_stats(activity_data)
 
 # Layout Stats
 st.subheader("Your Consistency")

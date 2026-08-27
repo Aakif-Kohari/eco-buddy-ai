@@ -3,7 +3,7 @@ Unit tests for Carbon Calculation Replay (#443).
 """
 
 import pytest
-from calculation_replay import (
+from src.utils.calculation_replay import (
     compare_revisions,
     get_change_highlights,
     build_replay_timeline,

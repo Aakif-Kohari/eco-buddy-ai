@@ -14,7 +14,7 @@ apply_theme()
 render_theme_selector()
 
 st.markdown("<div class='section-header'>📊 Admin Dashboard — Platform Statistics</div>", unsafe_allow_html=True)
-st.markdown("Anonymized, aggregate insights into platform usage, carbon score benchmarks, and popular recommendations.")
+st.markdown("Anonymized, aggregate insights into platform usage, carbon score benchmarks, and popular src.ai.recommendations.")
 
 # Fetch anonymized stats
 stats = get_admin_platform_stats()

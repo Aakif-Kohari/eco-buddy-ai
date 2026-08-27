@@ -389,10 +389,10 @@ def apply_preset(
     return create_scenario(
         baseline,
         name or preset_name,
-        transport=config.get("transport"),
+        transport=src.core.config.get("transport"),
         distance=distance,
         electricity=electricity,
-        diet=config.get("diet"),
+        diet=src.core.config.get("diet"),
         flights=flights,
     )
 

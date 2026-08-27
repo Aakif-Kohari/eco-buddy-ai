@@ -15,7 +15,7 @@ import os
 import tempfile
 import unittest
 
-import refrigerant_gases as rg
+import src.environment.refrigerant_gases as rg
 
 
 class TestRefrigerantTable(unittest.TestCase):
@@ -406,7 +406,7 @@ class TestRetrofit(unittest.TestCase):
 
 
 class TestRegister(unittest.TestCase):
-    """A whole household."""
+    """A whole src.lifestyle.household."""
 
     def setUp(self):
         self.items = [
@@ -502,7 +502,7 @@ class TestSensitivity(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database."""
+    """Persistence, against a throwaway src.core.database."""
 
     def setUp(self):
         handle, self.path = tempfile.mkstemp(suffix=".db")

@@ -57,9 +57,9 @@ rather than leaving it to a footnote.
 
 Where this connects to code already merged
 ------------------------------------------
-*   ``carbon_marketplace.py`` nets credits at face value against a footprint.
-*   ``goals.py`` counts offsets towards reduction targets.
-*   ``climate_metrics.py`` implements GWP*, which exists precisely because the
+*   ``src.carbon.carbon_marketplace.py`` nets credits at face value against a footprint.
+*   ``src.utils.goals.py`` counts offsets towards reduction targets.
+*   ``src.environment.climate_metrics.py`` implements GWP*, which exists precisely because the
     timing and persistence of a forcing matter. Netting a temporary removal
     against a permanent emission at 1:1 contradicts the reasoning that module
     is built on.

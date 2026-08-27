@@ -28,7 +28,7 @@ HARDWARE_POWER_SPECS = {
 
 
 class GreenCloudOptimizer:
-    """Calculates IT compute workload carbon footprint and provides clean region migration recommendations."""
+    """Calculates IT compute workload carbon footprint and provides clean region migration src.ai.recommendations."""
 
     def __init__(self, region_factors: Optional[Dict[str, Dict[str, Any]]] = None):
         self.regions = region_factors or CLOUD_REGION_CARBON_INTENSITY
@@ -103,7 +103,7 @@ class GreenCloudOptimizer:
             "database_backups": {"best_window": "02:30 - 04:30 UTC", "curtailment_discount_pct": 30.0}
         }
         fallback = {"best_window": "Late night green grid hours (00:00 - 06:00 UTC)", "curtailment_discount_pct": 25.0}
-        plan = recommendations.get(workload_type.lower().strip(), fallback)
+        plan = src.ai.recommendations.get(workload_type.lower().strip(), fallback)
 
         return {
             "workload_type": workload_type,

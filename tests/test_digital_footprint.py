@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import digital_footprint
-from digital_footprint import (
+import src.utils.digital_footprint
+from src.utils.digital_footprint import (
     DAYS_PER_YEAR,
     DEFAULT_GRID_INTENSITY,
     DEFAULT_STREAMING_QUALITY,
@@ -40,10 +40,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = digital_footprint.DB_NAME
-    digital_footprint.DB_NAME = db_path
+    original = src.utils.digital_footprint.DB_NAME
+    src.utils.digital_footprint.DB_NAME = db_path
     yield db_path
-    digital_footprint.DB_NAME = original
+    src.utils.digital_footprint.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:

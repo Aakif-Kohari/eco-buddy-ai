@@ -53,7 +53,7 @@ def init_scenario_simulator_db(db_name: str = DB_NAME) -> bool:
 
 
 def save_footprint_scenario(scenario: FootprintScenario, db_name: str = DB_NAME) -> Optional[FootprintScenario]:
-    """Saves a user scenario configuration to database."""
+    """Saves a user scenario configuration to src.core.database."""
     def _insert():
         with database_connection(db_name) as conn:
             cursor = conn.cursor()

@@ -1,6 +1,6 @@
 import pytest
 
-from units import (
+from src.utils.units import (
     CURRENCIES,
     DEFAULT_CURRENCY,
     DEFAULT_PREFERENCE,

@@ -10,12 +10,12 @@ import math
 from datetime import datetime, timedelta
 import random
 
-from environmental_benchmarking.history import HistoryAnalyzer
-from environmental_benchmarking.engine import BenchmarkEngine
-from environmental_benchmarking.recommendations import RecommendationEngine
-from environmental_benchmarking.models import UserAssessment
-from environmental_benchmarking.advanced_math import DataNormalizer, TrendForecaster
-from environmental_benchmarking.profiles_extended import get_default_profiles_extended
+from src.environmental_benchmarking.history import HistoryAnalyzer
+from src.environmental_benchmarking.engine import BenchmarkEngine
+from src.environmental_benchmarking.recommendations import RecommendationEngine
+from src.environmental_benchmarking.models import UserAssessment
+from src.environmental_benchmarking.advanced_math import DataNormalizer, TrendForecaster
+from src.environmental_benchmarking.profiles_extended import get_default_profiles_extended
 
 class TestEnvironmentalBenchmarkingIntegration(unittest.TestCase):
     

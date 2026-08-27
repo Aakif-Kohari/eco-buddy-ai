@@ -1,6 +1,6 @@
 """Co-product allocation and system expansion, with the choice made visible.
 
-``emission_factors.py`` gives one number per product. A litre of milk has a
+``src.carbon.emission_factors.py`` gives one number per product. A litre of milk has a
 footprint; a kilogram of beef has a footprint. Both come out of a system that
 produced milk *and* beef from the same herd, and the split between them was a
 methodological choice made by whoever built the factor - not a measurement.
@@ -673,7 +673,7 @@ def spread_report(process: str) -> dict[str, Any]:
     """The between-basis ratio for each output.
 
     This is the honest confidence interval on a co-product footprint, and it is
-    not the interval ``footprint_uncertainty.py`` produces - that one propagates
+    not the interval ``src.utils.footprint_uncertainty.py`` produces - that one propagates
     parameter uncertainty, where this is methodological choice, and here the
     methodological term is usually the larger of the two.
     """

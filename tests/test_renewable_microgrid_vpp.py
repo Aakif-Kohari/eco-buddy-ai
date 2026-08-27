@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from renewable_microgrid_vpp import MicrogridVPPEngine, MicrogridAsset
+from src.energy.renewable_microgrid_vpp import MicrogridVPPEngine, MicrogridAsset
 
 class TestRenewableMicrogridVPP(unittest.TestCase):
     def setUp(self):

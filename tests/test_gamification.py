@@ -4,21 +4,21 @@ import pytest
 import datetime
 from PIL import Image
 
-import database as db
-import gamification as gf
+import src.core.database as db
+import src.community.gamification as gf
 
 # Use a test database
 TEST_DB = "test_eco_buddy.db"
 
 @pytest.fixture(autouse=True)
 def setup_teardown():
-    original_db_name = db.DB_NAME
-    db.DB_NAME = TEST_DB
-    db.init_db()
-    db.init_gamification_db()
-    db.init_freeze_tokens_db()
+    original_db_name = src.notifications.db.DB_NAME
+    src.notifications.db.DB_NAME = TEST_DB
+    src.notifications.db.init_db()
+    src.notifications.db.init_gamification_db()
+    src.notifications.db.init_freeze_tokens_db()
     yield
-    db.DB_NAME = original_db_name
+    src.notifications.db.DB_NAME = original_db_name
     if os.path.exists(TEST_DB):
         os.remove(TEST_DB)
 
@@ -28,13 +28,13 @@ def test_xp_and_levels():
     assert gf.calculate_level(0) == 1
     
     # Award some XP
-    success = db.award_xp(1, 'manual', 'test1', 150, "Test XP")
+    success = src.notifications.db.award_xp(1, 'manual', 'test1', 150, "Test XP")
     assert success is True
     assert gf.get_total_xp(1) == 150
     assert gf.calculate_level(150) == 2
     
     # Prevent duplicate XP
-    success_duplicate = db.award_xp(1, 'manual', 'test1', 50, "Test XP duplicate")
+    success_duplicate = src.notifications.db.award_xp(1, 'manual', 'test1', 50, "Test XP duplicate")
     assert success_duplicate is False
     assert gf.get_total_xp(1) == 150
 
@@ -63,16 +63,16 @@ def test_streak_calculation():
 
 def test_challenges():
     # Enroll
-    success = db.enroll_challenge(1, 'c1')
+    success = src.notifications.db.enroll_challenge(1, 'c1')
     assert success is True
     
     # Try enrolling again
-    success2 = db.enroll_challenge(1, 'c1')
+    success2 = src.notifications.db.enroll_challenge(1, 'c1')
     assert success2 is False
     
     # Update progress
-    db.update_challenge_progress(1, 'c1', progress_increment=10.0)
-    challenges = db.get_user_challenges(1)
+    src.notifications.db.update_challenge_progress(1, 'c1', progress_increment=10.0)
+    challenges = src.notifications.db.get_user_challenges(1)
     assert len(challenges) == 1
     assert challenges[0]['progress_value'] == 10.0
     
@@ -81,7 +81,7 @@ def test_challenges():
     assert is_complete is False
     
     # Complete
-    db.update_challenge_progress(1, 'c1', progress_increment=15.0)
+    src.notifications.db.update_challenge_progress(1, 'c1', progress_increment=15.0)
     is_complete = gf.validate_challenge_progress(1, 'c1')
     assert is_complete is True
     
@@ -91,7 +91,7 @@ def test_challenges():
 def test_badges_and_card_generation():
     # Force unlock a badge
     gf.unlock_badge(1, 'b1')
-    unlocked = db.get_unlocked_badges(1)
+    unlocked = src.notifications.db.get_unlocked_badges(1)
     assert len(unlocked) == 1
     assert unlocked[0]['badge_id'] == 'b1'
     
@@ -123,7 +123,7 @@ def test_trading_cards():
     assert success_dup is False
 
     # Verify unlocked
-    unlocked = db.get_unlocked_cards(1)
+    unlocked = src.notifications.db.get_unlocked_cards(1)
     assert len(unlocked) == 1
     assert unlocked[0]['card_id'] == 'crd_1'
 
@@ -187,34 +187,34 @@ def test_trading_card_generation_all_rarities():
 
 
 def test_freeze_token_balance_initial():
-    assert db.get_freeze_token_balance(1) == 0
+    assert src.notifications.db.get_freeze_token_balance(1) == 0
 
 
 def test_award_freeze_tokens():
-    success = db.award_freeze_tokens(1, 3, "test award")
+    success = src.notifications.db.award_freeze_tokens(1, 3, "test award")
     assert success is True
-    assert db.get_freeze_token_balance(1) == 3
-    assert db.get_total_freeze_tokens_earned(1) == 3
+    assert src.notifications.db.get_freeze_token_balance(1) == 3
+    assert src.notifications.db.get_total_freeze_tokens_earned(1) == 3
 
 
 def test_redeem_freeze_token():
-    db.award_freeze_tokens(1, 2, "test award")
-    success = db.redeem_freeze_token(1)
+    src.notifications.db.award_freeze_tokens(1, 2, "test award")
+    success = src.notifications.db.redeem_freeze_token(1)
     assert success is True
-    assert db.get_freeze_token_balance(1) == 1
-    db.redeem_freeze_token(1)
-    assert db.redeem_freeze_token(1) is False
-    assert db.get_freeze_token_balance(1) == 0
+    assert src.notifications.db.get_freeze_token_balance(1) == 1
+    src.notifications.db.redeem_freeze_token(1)
+    assert src.notifications.db.redeem_freeze_token(1) is False
+    assert src.notifications.db.get_freeze_token_balance(1) == 0
 
 
 def test_streak_freeze_dates():
-    db.use_streak_freeze(1, "2026-07-28")
-    db.use_streak_freeze(1, "2026-07-27")
-    dates = db.get_streak_freeze_dates(1)
+    src.notifications.db.use_streak_freeze(1, "2026-07-28")
+    src.notifications.db.use_streak_freeze(1, "2026-07-27")
+    dates = src.notifications.db.get_streak_freeze_dates(1)
     assert "2026-07-28" in dates
     assert "2026-07-27" in dates
-    db.use_streak_freeze(1, "2026-07-28")
-    assert len(db.get_streak_freeze_dates(1)) == 2
+    src.notifications.db.use_streak_freeze(1, "2026-07-28")
+    assert len(src.notifications.db.get_streak_freeze_dates(1)) == 2
 
 
 def test_calculate_streak_with_freeze_dates():
@@ -234,18 +234,18 @@ def test_award_freeze_tokens_for_milestones():
     today = datetime.date.today()
     d1 = today - datetime.timedelta(days=2)
     d2 = today - datetime.timedelta(days=1)
-    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d1))
-    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d2))
-    db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(today))
+    src.notifications.db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d1))
+    src.notifications.db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(d2))
+    src.notifications.db.save_assessment(1, "car", 10, 100, "omnivore", 0, 100, 50, date=str(today))
     awarded = gf.award_freeze_tokens_for_streak_milestones(1)
     assert awarded == 0
 
 
 def test_freeze_token_transactions():
-    db.award_freeze_tokens(1, 5, "earn")
-    db.redeem_freeze_token(1)
-    db.award_freeze_tokens(1, 2, "bonus")
-    txs = db.get_freeze_token_transactions(1)
+    src.notifications.db.award_freeze_tokens(1, 5, "earn")
+    src.notifications.db.redeem_freeze_token(1)
+    src.notifications.db.award_freeze_tokens(1, 2, "bonus")
+    txs = src.notifications.db.get_freeze_token_transactions(1)
     assert len(txs) == 3
     assert txs[0]['amount'] == 2
     assert txs[1]['amount'] == -1

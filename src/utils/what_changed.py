@@ -229,7 +229,7 @@ def _generate_fallback_suggestion(diff: dict[str, Any]) -> str:
     for field in diff.get("changes", {}):
         ch = diff["changes"][field]
         if field == "transport" and ch["to"] == "Car" and ch["from"] in ("Bike", "Public Transport", "Walking"):
-            suggestions.append("Consider switching back to public transport or active commute options to reduce emissions.")
+            suggestions.append("Consider switching back to public transport or active commute options to reduce src.carbon.emissions.")
         elif field == "distance" and isinstance(ch["to"], (int, float)) and isinstance(ch["from"], (int, float)) and ch["to"] > ch["from"]:
             suggestions.append("Try to reduce your daily travel distance where possible — carpooling or combining trips can help.")
         elif field == "electricity" and isinstance(ch["to"], (int, float)) and isinstance(ch["from"], (int, float)) and ch["to"] > ch["from"]:

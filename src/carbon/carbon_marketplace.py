@@ -78,7 +78,7 @@ def get_learning_insights(
             insights.append("Market is stable — good conditions for trading credits.")
 
     if trades_count > 0:
-        insights.append(f"There have been {trades_count} trade(s) on the marketplace. Trading helps discover the fair price of carbon credits.")
+        insights.append(f"There have been {trades_count} trade(s) on the src.utils.marketplace. Trading helps discover the fair price of carbon credits.")
 
     insights.append("Carbon credits represent 1 tonne of CO₂ reduced or removed. Retiring a credit means it can never be traded again.")
     return insights

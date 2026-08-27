@@ -432,7 +432,7 @@ with tab_critical:
 with tab_life:
     st.markdown("### The size of the prize for using things longer")
     st.caption(
-        "circular_economy_engine.py argues for repair and reuse without a "
+        "src.utils.circular_economy_engine.py argues for repair and reuse without a "
         "metric that shows how much it is worth. Material footprint is that "
         "metric, and it is a far more striking number than the carbon saving."
     )

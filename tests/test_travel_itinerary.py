@@ -3,8 +3,8 @@ Unit tests for Travel Itinerary Optimizer and Multi-Modal Router.
 """
 
 import pytest
-from travel_itinerary_optimizer import TravelItineraryOptimizer
-from multimodal_router import MultimodalRouter
+from src.lifestyle.travel_itinerary_optimizer import TravelItineraryOptimizer
+from src.utils.multimodal_router import MultimodalRouter
 
 
 def test_calculate_leg_metrics():

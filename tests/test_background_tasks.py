@@ -1,8 +1,8 @@
 import time
 import pytest
 import streamlit as st
-from cache import cached
-from background_tasks import (
+from src.core.cache import cached
+from src.core.background_tasks import (
     submit_background_task,
     get_task,
     clear_background_task,

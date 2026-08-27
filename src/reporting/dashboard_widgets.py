@@ -277,10 +277,10 @@ def render_customizable_dashboard(user_id: int, selected_widgets: Iterable[str])
             tips = [
                 "Walk, cycle, or use public transport for short journeys.",
                 "Turn off standby appliances and unnecessary lights.",
-                "Plan meals to reduce food waste.",
+                "Plan meals to reduce food src.environment.waste.",
             ]
             if latest and str(latest.get("transport", "")) == "Car":
-                tips.insert(0, "Combine car trips or car-share to reduce transport emissions.")
+                tips.insert(0, "Combine car trips or car-share to reduce transport src.carbon.emissions.")
             for tip in tips[:3]:
                 st.markdown(f"- {tip}")
 

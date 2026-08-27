@@ -216,7 +216,7 @@ class LifestyleTracker:
 def render_lifestyle_tracker():
     apply_theme()
     st.title("🌱 Sustainable Lifestyle Progress")
-    st.markdown("Track your eco-habits, monitor your sustainability score, and achieve your personal lifestyle goals.")
+    st.markdown("Track your eco-habits, monitor your sustainability score, and achieve your personal lifestyle src.utils.goals.")
     
     user_id = st.session_state.get('user_id', 1)
     tracker = LifestyleTracker(user_id)

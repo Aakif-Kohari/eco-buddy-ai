@@ -15,7 +15,7 @@ class SmartGridForecaster:
     """
     Simulates ML-based time-series forecasting for grid parameters.
     In a production system, this would interface with WattTime, ElectricityMaps, 
-    or run local ARIMA/LSTM models. For the simulation, we use deterministic 
+    or run local ARIMA/LSTM src.notifications.models. For the simulation, we use deterministic 
     harmonic oscillations combined with Perlin noise approximations.
     """
     

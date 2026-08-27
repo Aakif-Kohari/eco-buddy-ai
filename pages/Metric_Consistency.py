@@ -13,7 +13,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 import streamlit as st
-from metric_consistency import (
+from src.utils.metric_consistency import (
  DB_NAME,MODULES,build_health_summary,export_report,findings_by_severity,
  persist_report,validate_all_modules
 )
@@ -113,7 +113,7 @@ if st.button("Run consistency validation",type="primary",use_container_width=Tru
 
 report=st.session_state.get("metric_consistency_report")
 if report is None:
- st.info("Click **Run consistency validation** to generate the first report.")
+ st.info("Click **Run consistency validation** to generate the first src.reporting.report.")
  st.stop()
 
 health=build_health_summary(report)
@@ -133,10 +133,10 @@ st.subheader("Module health")
 st.dataframe([{
  "Module":m.replace("_"," ").title(),"Status":r.status,"Records":r.record_count,
  "Valid metrics":r.valid_metric_count,"Invalid metrics":r.invalid_metric_count,"Findings":len(r.findings)
-} for m,r in report.module_results.items()],use_container_width=True,hide_index=True)
+} for m,r in src.reporting.report.module_results.items()],use_container_width=True,hide_index=True)
 
 st.subheader("Category coverage")
-if report.category_summary:st.dataframe(report.category_summary,use_container_width=True,hide_index=True)
+if src.reporting.report.category_summary:st.dataframe(src.reporting.report.category_summary,use_container_width=True,hide_index=True)
 else:st.info("No categorized metrics found.")
 
 st.subheader("Findings")
@@ -145,7 +145,7 @@ with fc[0]:severity=st.selectbox("Severity",["ALL","CRITICAL","ERROR","WARNING",
 with fc[1]:module=st.selectbox("Module",["ALL",*MODULES,"cross_module","definition"])
 with fc[2]:category=st.text_input("Category contains")
 with fc[3]:code=st.text_input("Code contains")
-findings=report.findings
+findings=src.reporting.report.findings
 if severity!="ALL":findings=findings_by_severity(findings,severity)
 if module!="ALL":findings=[x for x in findings if x.module==module]
 if category.strip():
@@ -165,9 +165,9 @@ for i,item in enumerate(findings):
   if item.suggested_action:st.write("**Suggested action:**",item.suggested_action)
 
 st.subheader("Cross-module metric matrix")
-if report.metric_matrix:
+if src.reporting.report.metric_matrix:
  st.dataframe([{"Category":x["category"],"Metric":x["metric"],"Modules":", ".join(x["modules"]),"Module count":x["module_count"]}
-               for x in report.metric_matrix],use_container_width=True,hide_index=True)
+               for x in src.reporting.report.metric_matrix],use_container_width=True,hide_index=True)
 else:st.info("No metric identities were found.")
 
 st.download_button("Download validation report (JSON)",export_report(report),

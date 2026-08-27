@@ -1,7 +1,7 @@
 """Unit tests for water footprint calculations, daily activities, categories, and savings."""
 
 import pytest
-from water import (
+from src.environment.water import (
     calculate_water_footprint,
     validate_water_inputs,
     get_activity_categories,

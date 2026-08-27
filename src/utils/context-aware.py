@@ -1072,7 +1072,7 @@ class ContextAwareDecisionEngine:
     
     def _calculate_goal_alignment(self, option: DecisionOption, 
                                  context: DecisionContext) -> float:
-        """Calculate how well the option aligns with user's sustainability goals."""
+        """Calculate how well the option aligns with user's sustainability src.utils.goals."""
         if not context.personal.personal_goals:
             return 0.5
         
@@ -1323,7 +1323,7 @@ class ContextAwareDecisionEngine:
 # ============================================================================
 
 class DecisionLearningModel:
-    """Machine learning model for improving decision recommendations."""
+    """Machine learning model for improving decision src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the learning model."""
@@ -1396,7 +1396,7 @@ class DecisionLearningModel:
         return statistics.mean(preferences) if preferences else 0.5
     
     def get_optimization_suggestions(self) -> List[Dict[str, Any]]:
-        """Get suggestions for optimizing recommendations."""
+        """Get suggestions for optimizing src.ai.recommendations."""
         suggestions = []
         
         # Analyze option performance
@@ -1416,7 +1416,7 @@ class DecisionLearningModel:
 
 
 class BehavioralPatternRecognizer:
-    """Recognize patterns in user behavior for better recommendations."""
+    """Recognize patterns in user behavior for better src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the pattern recognizer."""
@@ -1518,7 +1518,7 @@ class BehavioralPatternRecognizer:
 
 
 class RecommendationGenerator:
-    """Generate personalized recommendations."""
+    """Generate personalized src.ai.recommendations."""
     
     def __init__(self):
         """Initialize the recommendation generator."""
@@ -1711,7 +1711,7 @@ class SmartDecisionOrchestrator:
                                 context: DecisionContext,
                                 category: Optional[str] = None) -> DecisionResult:
         """
-        Process a decision request and return recommendations.
+        Process a decision request and return src.ai.recommendations.
         """
         self.logger.info(f"Processing decision request for user: {user_id}")
         

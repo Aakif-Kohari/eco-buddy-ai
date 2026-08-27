@@ -115,7 +115,7 @@ TIER_ICONS = {
 # A meal above this many kg CO2e is worth suggesting swaps for.
 SWAP_TRIGGER_KG = 1.0
 
-# Average daily food footprints in kg CO2e for each diet type in config.py,
+# Average daily food footprints in kg CO2e for each diet type in src.core.config.py,
 # used to give a plan context rather than an absolute verdict.
 DIET_DAILY_BASELINE_KG = {
     "Vegan": 2.9,
@@ -493,7 +493,7 @@ def plan_insights(weekly: dict[str, Any], limit: int = 4) -> list[str]:
     water_bathtubs = weekly.get("total_water_l", 0) / 150
     if water_bathtubs >= 1:
         insights.append(
-            f"Your week's meals carry about {water_bathtubs:.0f} bathtubs of virtual water."
+            f"Your week's meals carry about {water_bathtubs:.0f} bathtubs of virtual src.environment.water."
         )
 
     return insights[: max(0, int(limit))]

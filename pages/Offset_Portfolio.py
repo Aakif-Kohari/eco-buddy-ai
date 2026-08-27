@@ -1,6 +1,6 @@
 """
 Offset Portfolio Dashboard.
-Streamlit page featuring a portfolio dashboard, risk heatmaps, and rebalancing recommendations.
+Streamlit page featuring a portfolio dashboard, risk heatmaps, and rebalancing src.ai.recommendations.
 """
 
 import streamlit as st

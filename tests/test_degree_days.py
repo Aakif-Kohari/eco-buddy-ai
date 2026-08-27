@@ -7,8 +7,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import degree_days
-from degree_days import (
+import src.energy.degree_days
+from src.energy.degree_days import (
     CLIMATE_ZONES,
     DAYS_IN_MONTH,
     DEFAULT_BASE_TEMPERATURE,
@@ -49,10 +49,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = degree_days.DB_NAME
-    degree_days.DB_NAME = db_path
+    original = src.energy.degree_days.DB_NAME
+    src.energy.degree_days.DB_NAME = db_path
     yield db_path
-    degree_days.DB_NAME = original
+    src.energy.degree_days.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:
@@ -124,8 +124,8 @@ def test_unknown_zone_falls_back_to_the_default():
 
 
 def test_base_temperature_is_clamped_to_a_physical_range():
-    assert clean_base_temperature(1000) == degree_days.MAX_BASE_TEMPERATURE
-    assert clean_base_temperature(-40) == degree_days.MIN_BASE_TEMPERATURE
+    assert clean_base_temperature(1000) == src.energy.degree_days.MAX_BASE_TEMPERATURE
+    assert clean_base_temperature(-40) == src.energy.degree_days.MIN_BASE_TEMPERATURE
     assert clean_base_temperature("warm") == DEFAULT_BASE_TEMPERATURE
     assert clean_base_temperature(float("nan")) == DEFAULT_BASE_TEMPERATURE
     assert clean_base_temperature(18.3) == 18.3

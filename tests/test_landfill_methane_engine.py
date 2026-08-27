@@ -3,7 +3,7 @@ Unit Tests for Landfill Methane Engine
 """
 
 import pytest
-from landfill_methane_engine import LandfillMethaneEngine, GasWellheadSensor
+from src.environment.landfill_methane_engine import LandfillMethaneEngine, GasWellheadSensor
 
 def test_calculate_ch4_flow():
     engine = LandfillMethaneEngine()

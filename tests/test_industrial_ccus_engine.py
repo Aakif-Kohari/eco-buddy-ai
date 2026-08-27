@@ -3,7 +3,7 @@ Unit Tests for Industrial CCUS Engine
 """
 
 import pytest
-from industrial_ccus_engine import IndustrialCcusEngine, CcusCaptureUnit
+from src.utils.industrial_ccus_engine import IndustrialCcusEngine, CcusCaptureUnit
 
 def test_ccus_total_capture():
     engine = IndustrialCcusEngine()

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from src.notifications.scheduler import NotificationScheduler
 from src.notifications.dispatcher import NotificationDispatcher
 from src.notifications.db import NotificationDB
-from database import DB_NAME
+from src.core.database import DB_NAME
 
 @pytest.fixture
 def test_setup():
@@ -66,10 +66,10 @@ def test_generate_weekly_digests(test_setup):
     dispatcher = NotificationDispatcher(db=db)
     scheduler = NotificationScheduler(dispatcher=dispatcher)
     
-    scheduler.generate_weekly_digests()
+    src.notifications.scheduler.generate_weekly_digests()
     
     # Check if a notification was inserted
-    pending = db.get_pending_notifications()
+    pending = src.notifications.db.get_pending_notifications()
     # Filter for our test user
     test_notifs = [n for n in pending if n.user_id == 999 and n.category == "digest"]
     assert len(test_notifs) == 1
@@ -80,9 +80,9 @@ def test_check_goal_reminders(test_setup):
     dispatcher = NotificationDispatcher(db=db)
     scheduler = NotificationScheduler(dispatcher=dispatcher)
     
-    scheduler.check_goal_reminders()
+    src.notifications.scheduler.check_goal_reminders()
     
-    pending = db.get_pending_notifications()
+    pending = src.notifications.db.get_pending_notifications()
     test_notifs = [n for n in pending if n.user_id == 999 and n.category == "goals"]
     assert len(test_notifs) == 1
     assert "Test Goal" in test_notifs[0].message

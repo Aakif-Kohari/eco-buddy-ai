@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import meal_planner
-from meal_planner import (
+import src.lifestyle.meal_planner
+from src.lifestyle.meal_planner import (
     DAYS_OF_WEEK,
     DIET_DAILY_BASELINE_KG,
     HIGHEST_TIER,
@@ -42,10 +42,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = meal_planner.DB_NAME
-    meal_planner.DB_NAME = db_path
+    original = src.lifestyle.meal_planner.DB_NAME
+    src.lifestyle.meal_planner.DB_NAME = db_path
     yield db_path
-    meal_planner.DB_NAME = original
+    src.lifestyle.meal_planner.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:

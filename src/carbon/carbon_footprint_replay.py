@@ -307,6 +307,6 @@ def render_carbon_footprint_replay(user_id: int = 1) -> None:
     st.download_button(
         label="🎥 Download Replay as GIF",
         data=gif_bytes,
-        file_name="carbon_footprint_replay.gif",
+        file_name="src.carbon.carbon_footprint_replay.gif",
         mime="image/gif"
     )

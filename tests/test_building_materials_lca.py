@@ -20,7 +20,7 @@ import os
 import tempfile
 import unittest
 
-import building_materials_lca as lca
+import src.environment.building_materials_lca as lca
 
 
 class TestMaterialTable(unittest.TestCase):

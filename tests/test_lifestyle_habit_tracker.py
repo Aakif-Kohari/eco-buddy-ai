@@ -5,7 +5,7 @@ import sqlite3
 import os
 
 from pages.Lifestyle_Habit_Tracker import LifestyleTracker
-from habit_tracker import DB_NAME, init_habit_db
+from src.lifestyle.habit_tracker import DB_NAME, init_habit_db
 
 @pytest.fixture
 def temp_tracker():

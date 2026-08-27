@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-from cache import cached
-from cache_metrics import get_cache_stats, reset_metrics
+from src.core.cache import cached
+from src.core.cache_metrics import get_cache_stats, reset_metrics
 
 
 class FakeClock:

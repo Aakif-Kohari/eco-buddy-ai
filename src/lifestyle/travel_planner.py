@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: travel_planner.py
+# FILE: src.lifestyle.travel_planner.py
 # EcoBuddy AI+ Sustainable Travel & Tourism Planner
 # ============================================================
 

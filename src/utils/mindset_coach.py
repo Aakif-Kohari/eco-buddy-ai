@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: mindset_coach.py
+# FILE: src.utils.mindset_coach.py
 # EcoBuddy AI+ Eco-Mindset & Behavioral Change Coach
 # ============================================================
 

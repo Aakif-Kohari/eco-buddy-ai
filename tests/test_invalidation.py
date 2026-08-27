@@ -1,5 +1,5 @@
 """
-Tests for invalidation.py - Cache invalidation utilities.
+Tests for src.core.invalidation.py - Cache invalidation utilities.
 
 Tests:
 1. Function registration in cached function registry
@@ -11,7 +11,7 @@ Tests:
 
 import pytest
 from unittest.mock import patch, MagicMock, call
-from invalidation import (
+from src.core.invalidation import (
     _CACHED_FUNCTION_REGISTRY,
     get_cached_functions_for_category,
     get_all_cached_functions,
@@ -93,7 +93,7 @@ class TestFunctionRegistration:
 
 
 class TestCategoryInvalidation:
-    """Tests for category-based cache invalidation."""
+    """Tests for category-based cache src.core.invalidation."""
 
     def test_get_all_cached_functions_empty_registry(self):
         """Test getting all functions when registry is empty."""
@@ -109,7 +109,7 @@ class TestInvalidateOnAssessmentSave:
 
     def test_invalidate_assessment_save_clears_correct_caches(self):
         """Test that assessment save invalidates dependent caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_assessment_save()
             
             mock_clear.assert_called_once()
@@ -124,7 +124,7 @@ class TestInvalidateOnApplianceChange:
 
     def test_invalidate_appliance_change(self):
         """Test appliance change invalidates appliance caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_appliance_change()
             
             mock_clear.assert_called_once()
@@ -136,8 +136,8 @@ class TestInvalidateOnSolarConfigSave:
     """Tests for invalidate_on_solar_config_save."""
 
     def test_invalidate_solar_config_save(self):
-        """Test solar config save invalidates solar config cache."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        """Test solar config save invalidates solar config src.core.cache."""
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_solar_config_save()
             
             mock_clear.assert_called_once()
@@ -150,7 +150,7 @@ class TestInvalidateOnChallengeEnroll:
 
     def test_invalidate_challenge_enroll(self):
         """Test challenge enrollment invalidates challenge caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_challenge_enroll()
             
             mock_clear.assert_called_once()
@@ -163,7 +163,7 @@ class TestInvalidateOnChallengeProgress:
 
     def test_invalidate_challenge_progress(self):
         """Test challenge progress update invalidates caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_challenge_progress()
             
             mock_clear.assert_called_once()
@@ -176,7 +176,7 @@ class TestInvalidateOnChallengeComplete:
 
     def test_invalidate_challenge_complete(self):
         """Test challenge completion invalidates caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_challenge_complete()
             
             mock_clear.assert_called_once()
@@ -188,8 +188,8 @@ class TestInvalidateOnXpAward:
     """Tests for invalidate_on_xp_award."""
 
     def test_invalidate_xp_award_clears_total_xp(self):
-        """Test XP award invalidates total XP cache."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        """Test XP award invalidates total XP src.core.cache."""
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_xp_award()
             
             mock_clear.assert_called_once()
@@ -198,7 +198,7 @@ class TestInvalidateOnXpAward:
 
     def test_invalidate_xp_award_challenge_source(self):
         """Test XP award with challenge source invalidates challenge caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_xp_award(source_type='challenge')
             
             mock_clear.assert_called_once()
@@ -208,7 +208,7 @@ class TestInvalidateOnXpAward:
 
     def test_invalidate_xp_award_badge_source(self):
         """Test XP award with badge source invalidates badge caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_xp_award(source_type='badge')
             
             mock_clear.assert_called_once()
@@ -222,7 +222,7 @@ class TestInvalidateOnBadgeUnlock:
 
     def test_invalidate_badge_unlock(self):
         """Test badge unlock invalidates badge and XP caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_badge_unlock()
             
             mock_clear.assert_called_once()
@@ -235,8 +235,8 @@ class TestInvalidateOnSkillTreeUpdate:
     """Tests for invalidate_on_skill_tree_update."""
 
     def test_invalidate_skill_tree_update(self):
-        """Test skill tree update invalidates progress cache."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        """Test skill tree update invalidates progress src.core.cache."""
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_skill_tree_update()
             
             mock_clear.assert_called_once()
@@ -249,7 +249,7 @@ class TestInvalidateOnJourneySave:
 
     def test_invalidate_journey_save(self):
         """Test journey save invalidates journey caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_journey_save()
             
             mock_clear.assert_called_once()
@@ -262,7 +262,7 @@ class TestInvalidateOnJourneyDelete:
 
     def test_invalidate_journey_delete(self):
         """Test journey delete invalidates journey caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_journey_delete()
             
             mock_clear.assert_called_once()
@@ -275,7 +275,7 @@ class TestInvalidateOnOffsetSave:
 
     def test_invalidate_offset_save(self):
         """Test offset save invalidates offset caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_offset_save()
             
             mock_clear.assert_called_once()
@@ -290,7 +290,7 @@ class TestInvalidateOnOffsetDelete:
 
     def test_invalidate_offset_delete(self):
         """Test offset delete invalidates offset caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_offset_delete()
             
             mock_clear.assert_called_once()
@@ -305,7 +305,7 @@ class TestInvalidateOnOffsetClear:
 
     def test_invalidate_offset_clear(self):
         """Test offset clear invalidates offset caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_offset_clear()
             
             mock_clear.assert_called_once()
@@ -320,7 +320,7 @@ class TestInvalidateOnWaterAssessmentSave:
 
     def test_invalidate_water_assessment_save(self):
         """Test water assessment save invalidates water caches."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_on_water_assessment_save()
             
             mock_clear.assert_called_once()
@@ -333,7 +333,7 @@ class TestInvalidateAllDbCaches:
 
     def test_invalidate_all_db_caches_clears_all_db_caches(self):
         """Test that all database read caches are invalidated."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_all_db_caches()
             
             mock_clear.assert_called_once()
@@ -356,8 +356,8 @@ class TestInvalidateExportCaches:
     """Tests for invalidate_export_caches."""
 
     def test_invalidate_export_caches(self):
-        """Test export cache invalidation."""
-        with patch('invalidation._clear_by_name') as mock_clear:
+        """Test export cache src.core.invalidation."""
+        with patch('src.core.invalidation._clear_by_name') as mock_clear:
             invalidate_export_caches()
             
             mock_clear.assert_called_once()

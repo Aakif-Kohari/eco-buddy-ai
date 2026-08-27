@@ -1,6 +1,6 @@
 
 # ============================================================
-# FILE: certification_system.py
+# FILE: src.business.certification_system.py
 # EcoBuddy AI+ Eco-Certification & Achievement System
 # ============================================================
 

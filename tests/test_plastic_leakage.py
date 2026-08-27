@@ -21,7 +21,7 @@ import os
 import tempfile
 import unittest
 
-import plastic_leakage as pl
+import src.environment.plastic_leakage as pl
 
 
 class TestPolymerTable(unittest.TestCase):
@@ -113,7 +113,7 @@ class TestFateModel(unittest.TestCase):
         self.assertGreater(poor["leaked"], good["leaked"] * 10)
 
     def test_sorting_correctly_does_not_change_how_much_leaks(self):
-        """Leakage happens to uncollected waste, not to badly sorted waste. If
+        """Leakage happens to uncollected waste, not to badly sorted src.environment.waste. If
         this ever changes, the intervention ranking becomes wrong."""
         sorted_well = pl.fate("pet", 10.0, "high_income_eu", True)
         sorted_badly = pl.fate("pet", 10.0, "high_income_eu", False)

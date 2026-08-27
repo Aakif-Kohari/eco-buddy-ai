@@ -3,7 +3,7 @@ Comprehensive Unit Test Suite for Enterprise Circular Economy Lifecycle Studio
 """
 
 import pytest
-from circular_economy_engine import CircularEconomyEngine, CircularMaterialComponent
+from src.utils.circular_economy_engine import CircularEconomyEngine, CircularMaterialComponent
 
 def test_material_circularity_index_calculation():
     engine = CircularEconomyEngine()

@@ -251,7 +251,7 @@ with tab_badges:
                         assessments = get_assessments(user_id)
                         latest_score = float(assessments[0][8]) if assessments and len(assessments) > 0 and assessments[0][8] is not None else None
                         
-                        with st.spinner("Generating your certificate..."):
+                        with st.spinner("Generating your src.utils.certificate..."):
                             cert_path = generate_certificate(
                                 username=st.session_state.get('username', f'User {user_id}'),
                                 achievement_title=b_data['name'],

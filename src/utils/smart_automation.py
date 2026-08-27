@@ -300,7 +300,7 @@ class EnergySchedulingOptimizer:
             is_off_peak = optimal_start.hour in self.off_peak_hours
             energy_saving = power_kw * hours * (0.3 if is_off_peak else 0.1)
             
-            recommendations.append(ScheduleRecommendation(
+            src.ai.recommendations.append(ScheduleRecommendation(
                 appliance_id=appliance['id'],
                 appliance_name=appliance['name'],
                 recommended_start=optimal_start,

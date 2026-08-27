@@ -20,7 +20,7 @@ market, gamification, wallet = get_services()
 USER = "USR_DEMO_01"
 
 # Automatically update streak & award base XP on load
-gamification.update_streak(USER)
+src.community.gamification.update_streak(USER)
 
 st.markdown("""
 <style>
@@ -47,7 +47,7 @@ st.markdown("""
 st.title("🛍️ Carbon Marketplace & Eco Rewards")
 st.markdown("Neutralize your carbon footprint by purchasing verified offsets, and earn EcoCoins for sustainable actions!")
 
-profile = gamification.get_profile(USER)
+profile = src.community.gamification.get_profile(USER)
 balance = wallet.get_balance(USER)
 impact = market.get_user_impact(USER)
 
@@ -87,7 +87,7 @@ with t1:
                     if res["status"] == "success":
                         st.success(f"Success! {tons_to_buy} tons offset.")
                         # Award a badge and XP for buying an offset!
-                        gamification.award_badge(USER, "B02")
+                        src.community.gamification.award_badge(USER, "B02")
                         st.snow()
                     else:
                         st.error(res["message"])
@@ -102,7 +102,7 @@ with t2:
     else:
         bc1, bc2, bc3 = st.columns(3)
         for idx, b_id in enumerate(badges):
-            b_info = next((bx for bx in gamification.BADGES if bx["id"] == b_id), None)
+            b_info = next((bx for bx in src.community.gamification.BADGES if bx["id"] == b_id), None)
             if b_info:
                 target_col = [bc1, bc2, bc3][idx % 3]
                 with target_col:
@@ -112,11 +112,11 @@ with t2:
     st.markdown("---")
     st.subheader("Daily Actions (Demo)")
     if st.button("Log public transit commute (+30 XP, +10 EcoCoins)"):
-        gamification.award_xp(USER, 30, "Public Transit")
+        src.community.gamification.award_xp(USER, 30, "Public Transit")
         wallet.mint_coins(USER, 10, "Transit Reward")
         st.toast("Commute Logged!", icon="🚍")
     
     if st.button("Log vegan meal (+15 XP, +5 EcoCoins)"):
-        gamification.award_xp(USER, 15, "Vegan Meal")
+        src.community.gamification.award_xp(USER, 15, "Vegan Meal")
         wallet.mint_coins(USER, 5, "Diet Reward")
         st.toast("Meal Logged!", icon="🥗")

@@ -81,7 +81,7 @@ def export_data_csv_zip() -> bytes:
 
 
 def import_data_json(json_str: str, strategy: str = 'merge') -> tuple[bool, str]:
-    """Imports JSON data back into the database. Strategy can be 'merge' or 'replace'."""
+    """Imports JSON data back into the src.core.database. Strategy can be 'merge' or 'replace'."""
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError:
@@ -221,7 +221,7 @@ def import_assessments_bulk(
             summary["duplicates"] += 1
             continue
 
-        if database.save_assessment(user_id, transport, distance, electricity, diet, flights, footprint, eco_score):
+        if src.core.database.save_assessment(user_id, transport, distance, electricity, diet, flights, footprint, eco_score):
             summary["imported"] += 1
         else:
             summary["invalid"] += 1

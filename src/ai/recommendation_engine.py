@@ -80,7 +80,7 @@ class Recommendation:
 
 
 class RecommendationCache:
-    """Thread-safe cache for recommendations."""
+    """Thread-safe cache for src.ai.recommendations."""
     
     def __init__(self, max_size: int = 500, default_ttl: int = 3600):
         self.max_size = max_size
@@ -105,7 +105,7 @@ class RecommendationCache:
         return hashlib.md5(key_str.encode()).hexdigest()
     
     def get(self, footprint_data: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
-        """Get cached recommendations."""
+        """Get cached src.ai.recommendations."""
         key = self._generate_key(footprint_data)
         
         with self._lock:
@@ -124,7 +124,7 @@ class RecommendationCache:
     
     def set(self, footprint_data: Dict[str, Any], recommendations: List[Dict[str, Any]], 
             ttl: Optional[int] = None) -> None:
-        """Cache recommendations."""
+        """Cache src.ai.recommendations."""
         key = self._generate_key(footprint_data)
         ttl = ttl or self.default_ttl
         
@@ -178,7 +178,7 @@ class RecommendationEngine:
         self._lock = threading.RLock()
         
     def _load_default_recommendations(self):
-        """Load default recommendations."""
+        """Load default src.ai.recommendations."""
         defaults = [
             Recommendation(
                 id="rec_001",

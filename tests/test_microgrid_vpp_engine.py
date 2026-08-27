@@ -3,7 +3,7 @@ Unit Test Suite for Microgrid & Virtual Power Plant Engine
 """
 
 import pytest
-from microgrid_vpp_engine import MicrogridVppEngine, DistributedEnergyResource
+from src.energy.microgrid_vpp_engine import MicrogridVppEngine, DistributedEnergyResource
 
 def test_vpp_efficiency_calculation():
     engine = MicrogridVppEngine()

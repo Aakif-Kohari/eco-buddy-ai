@@ -56,7 +56,7 @@ reprocessor and a market, and can be rejected at any of them. This page reports 
 fate split — recycled, incinerated, landfilled, leaked — rather than a yes or no
 on recyclability.
 
-**Leakage happens to uncollected waste, not to badly sorted waste.** Sorting
+**Leakage happens to uncollected waste, not to badly sorted src.environment.waste.** Sorting
 better changes whether material is recycled or burned. It does not change how
 much escapes. That is worth doing and it is not a leakage intervention, and the
 intervention ranking lists it with a zero rather than quietly omitting it.

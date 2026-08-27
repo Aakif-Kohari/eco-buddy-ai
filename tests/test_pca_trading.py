@@ -3,8 +3,8 @@ Unit tests for PCA Trading Engine and Local Exchange Market.
 """
 
 import pytest
-from pca_trading_engine import PCATradingEngine
-from local_exchange_market import LocalExchangeMarket
+from src.utils.pca_trading_engine import PCATradingEngine
+from src.utils.local_exchange_market import LocalExchangeMarket
 
 
 def test_pca_engine_initialization():

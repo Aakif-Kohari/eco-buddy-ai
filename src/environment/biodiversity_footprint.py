@@ -1,12 +1,12 @@
 """What a household's consumption displaces, in species rather than in carbon.
 
-``local_biodiversity.py`` is a catalogue: it tells a user which birds and
+``src.environment.local_biodiversity.py`` is a catalogue: it tells a user which birds and
 pollinators live near them. Nothing a user does anywhere else in this app
 changes a number in it. Meanwhile the driver that actually decides biodiversity
 outcomes - land use, and specifically the land converted and occupied to produce
 what a household consumes - is unmeasured.
 
-``land_opportunity_cost.py`` does measure land, but through its carbon
+``src.environment.land_opportunity_cost.py`` does measure land, but through its carbon
 opportunity cost. That is a real improvement over ignoring land entirely, and it
 implicitly says that land matters only as a carbon store. A hectare of
 species-rich grassland and a hectare of fast-growing plantation can score
@@ -723,7 +723,7 @@ def basket_footprint(
     the cases where a user actually knows where something came from.
     """
     if not items:
-        raise BiodiversityError("An empty basket has no footprint to report.")
+        raise BiodiversityError("An empty basket has no footprint to src.reporting.report.")
 
     overrides = overrides or {}
     rows = []

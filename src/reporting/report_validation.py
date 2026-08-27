@@ -44,7 +44,7 @@ def validate_report_data(
     eco_score: Any,
     insight: Any,
 ) -> ReportValidationResult:
-    """Validate and normalise the values required by the PDF report."""
+    """Validate and normalise the values required by the PDF src.reporting.report."""
     errors: list[str] = []
     cleaned: dict[str, Any] = {}
 
@@ -53,12 +53,12 @@ def validate_report_data(
         "Carbon footprint",
     )
     if footprint_error:
-        errors.append(footprint_error)
+        src.core.errors.append(footprint_error)
     elif footprint is not None:
         if footprint < 0:
-            errors.append("Carbon footprint cannot be negative.")
+            src.core.errors.append("Carbon footprint cannot be negative.")
         elif footprint > MAX_REASONABLE_FOOTPRINT_KG:
-            errors.append(
+            src.core.errors.append(
                 "Carbon footprint is outside the supported reporting range."
             )
         else:
@@ -69,23 +69,23 @@ def validate_report_data(
         "Eco score",
     )
     if score_error:
-        errors.append(score_error)
+        src.core.errors.append(score_error)
     elif score is not None:
         if score < 0 or score > 100:
-            errors.append("Eco score must be between 0 and 100.")
+            src.core.errors.append("Eco score must be between 0 and 100.")
         else:
             cleaned["eco_score"] = round(score, 2)
 
     if insight is None:
-        errors.append("Key insight is required.")
+        src.core.errors.append("Key insight is required.")
     elif not isinstance(insight, str):
-        errors.append("Key insight must be text.")
+        src.core.errors.append("Key insight must be text.")
     else:
         cleaned_insight = " ".join(insight.split())
         if not cleaned_insight:
-            errors.append("Key insight cannot be empty.")
+            src.core.errors.append("Key insight cannot be empty.")
         elif len(cleaned_insight) > MAX_INSIGHT_LENGTH:
-            errors.append(
+            src.core.errors.append(
                 f"Key insight must be {MAX_INSIGHT_LENGTH:,} characters or fewer."
             )
         else:

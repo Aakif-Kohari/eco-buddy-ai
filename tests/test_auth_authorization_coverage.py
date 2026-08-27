@@ -7,7 +7,7 @@ Covers:
 - Malformed, corrupted, revoked, and expired tokens / API keys.
 - Unauthorized endpoint access across all protected resources.
 - Role-based permissions, rate limits, and key metadata.
-- Session lifecycle, TTL expiration, and session cache invalidation.
+- Session lifecycle, TTL expiration, and session cache src.core.invalidation.
 - Authentication state after logout / key revocation.
 """
 
@@ -21,11 +21,11 @@ from typing import Generator, Dict, Any
 
 import pytest
 
-import database as db
-from database_connection import database_connection
-from invalidation import invalidate_all_db_caches
-import api_auth
-from api_auth import (
+import src.core.database as db
+from src.core.database_connection import database_connection
+from src.core.invalidation import invalidate_all_db_caches
+import src.core.api_auth
+from src.core.api_auth import (
     generate_api_key,
     validate_api_key,
     revoke_api_key,
@@ -34,31 +34,31 @@ from api_auth import (
     init_api_keys_db,
     hash_key,
 )
-from sustainability_api import (
+from src.business.sustainability_api import (
     process_api_request,
     API_VERSION_PREFIX,
 )
-from session_manager import SessionData, OptimizedSessionManager
+from src.core.session_manager import SessionData, OptimizedSessionManager
 
 
 @pytest.fixture(autouse=True)
 def setup_isolated_db(tmp_path) -> Generator[str, None, None]:
     """Isolate SQLite database for every test to avoid state pollution."""
     db_file = str(tmp_path / f"test_auth_coverage_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
+    original_db = src.notifications.db.DB_NAME
     original_api_db = getattr(api_auth, "DB_NAME", "eco_buddy.db")
-    db.DB_NAME = db_file
-    api_auth.DB_NAME = db_file
+    src.notifications.db.DB_NAME = db_file
+    src.core.api_auth.DB_NAME = db_file
     os.environ["ECO_BUDDY_DB"] = db_file
 
     try:
-        db.init_db()
+        src.notifications.db.init_db()
         init_api_keys_db()
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
-        api_auth.DB_NAME = original_api_db
+        src.notifications.db.DB_NAME = original_db
+        src.core.api_auth.DB_NAME = original_api_db
         os.environ["ECO_BUDDY_DB"] = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
@@ -78,10 +78,10 @@ def test_user_authentication_success_with_valid_credentials():
     email = f"{username}@example.com"
     password = "CorrectHorseBatteryStaple123!"
 
-    created = db.create_user(username, email, password)
+    created = src.notifications.db.create_user(username, email, password)
     assert created is True
 
-    user = db.verify_user(username, password)
+    user = src.notifications.db.verify_user(username, password)
     assert user is not None
     assert user["username"] == username
     assert "id" in user
@@ -92,20 +92,20 @@ def test_user_authentication_failure_invalid_credentials():
     username = f"user_cred_{uuid.uuid4().hex[:6]}"
     email = f"{username}@test.com"
     password = "SuperSecretPassword123!"
-    db.create_user(username, email, password)
+    src.notifications.db.create_user(username, email, password)
 
     # Wrong password
-    assert db.verify_user(username, "WrongPassword456!") is None
+    assert src.notifications.db.verify_user(username, "WrongPassword456!") is None
 
     # Non-existent user
-    assert db.verify_user("non_existent_user_999", password) is None
+    assert src.notifications.db.verify_user("non_existent_user_999", password) is None
 
     # Empty username and password
-    assert db.verify_user("", password) is None
-    assert db.verify_user(username, "") is None
+    assert src.notifications.db.verify_user("", password) is None
+    assert src.notifications.db.verify_user(username, "") is None
 
     # Case mismatch or SQL injection attempt in password/username
-    assert db.verify_user(f"{username}' OR '1'='1", "' OR '1'='1") is None
+    assert src.notifications.db.verify_user(f"{username}' OR '1'='1", "' OR '1'='1") is None
 
 
 # ===========================================================================

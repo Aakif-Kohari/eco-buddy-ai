@@ -1,22 +1,22 @@
 import os
 import uuid
 import pytest
-import database as db
-from admin_analytics import calculate_platform_stats, get_admin_platform_stats
+import src.core.database as db
+from src.business.admin_analytics import calculate_platform_stats, get_admin_platform_stats
 
 
 @pytest.fixture(autouse=True)
 def setup_teardown_db():
     """Setup clean isolated test database for admin analytics tests."""
-    original_db_name = db.DB_NAME
+    original_db_name = src.notifications.db.DB_NAME
     test_db_name = f"test_admin_{uuid.uuid4().hex[:8]}.db"
-    db.DB_NAME = test_db_name
+    src.notifications.db.DB_NAME = test_db_name
 
-    db.init_db()
+    src.notifications.db.init_db()
 
     yield
 
-    db.DB_NAME = original_db_name
+    src.notifications.db.DB_NAME = original_db_name
     if os.path.exists(test_db_name):
         try:
             os.remove(test_db_name)
@@ -120,8 +120,8 @@ def test_anonymization_no_pii():
 
 def test_get_admin_platform_stats_with_db():
     """Integration test checking get_admin_platform_stats with saved database records."""
-    db.save_assessment(1, "Car", 20.0, 300.0, "Non-Vegetarian", 2, 6000.0, 40)
-    db.save_assessment(2, "Bike", 10.0, 120.0, "Vegetarian", 0, 1800.0, 80)
+    src.notifications.db.save_assessment(1, "Car", 20.0, 300.0, "Non-Vegetarian", 2, 6000.0, 40)
+    src.notifications.db.save_assessment(2, "Bike", 10.0, 120.0, "Vegetarian", 0, 1800.0, 80)
 
     stats = get_admin_platform_stats()
     assert stats["total_assessments"] == 2

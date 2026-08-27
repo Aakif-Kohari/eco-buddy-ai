@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 # Import models and core functions
-from sustainability_roadmap import (
+from src.utils.sustainability_roadmap import (
     init_roadmap_db,
     SustainabilityRoadmap,
     RoadmapMilestone,
@@ -37,9 +37,9 @@ from sustainability_roadmap import (
     DEP_SOFT
 )
 
-# For testing, we mock DB_NAME or set an environment variable. We'll patch database_connection.
+# For testing, we mock DB_NAME or set an environment variable. We'll patch src.core.database_connection.
 from unittest.mock import patch
-import sustainability_roadmap
+import src.utils.sustainability_roadmap
 
 TEST_DB = "test_roadmap.db"
 
@@ -48,7 +48,7 @@ class TestSustainabilityRoadmap(unittest.TestCase):
     def setUp(self):
         import uuid
         self.db_name = f"test_roadmap_{uuid.uuid4().hex}.db"
-        sustainability_roadmap.DB_NAME = self.db_name
+        src.utils.sustainability_roadmap.DB_NAME = self.db_name
         
         init_roadmap_db(self.db_name)
         

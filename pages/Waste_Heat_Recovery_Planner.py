@@ -23,7 +23,7 @@ st.title("🏭 Industrial Waste Heat Recovery & Exergy Optimization Engine")
 st.markdown(
     """
     Model thermodynamic First & Second Law exergy efficiency, Organic Rankine Cycle (ORC) power generation,
-    heat exchanger pinch-point constraints, and avoided Scope 1 & 2 carbon emissions.
+    heat exchanger pinch-point constraints, and avoided Scope 1 & 2 carbon src.carbon.emissions.
     """
 )
 

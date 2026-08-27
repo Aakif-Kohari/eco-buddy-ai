@@ -18,42 +18,42 @@ from typing import Generator
 
 import pytest
 
-import database as db
-from database_connection import database_connection
-from invalidation import invalidate_all_db_caches
-import api_auth
-from api_auth import (
+import src.core.database as db
+from src.core.database_connection import database_connection
+from src.core.invalidation import invalidate_all_db_caches
+import src.core.api_auth
+from src.core.api_auth import (
     generate_api_key,
     validate_api_key,
     revoke_api_key,
     init_api_keys_db,
     authenticate_request,
 )
-from sustainability_api import (
+from src.business.sustainability_api import (
     process_api_request,
     API_VERSION_PREFIX,
 )
-from goals import evaluate_progress
+from src.utils.goals import evaluate_progress
 
 
 @pytest.fixture(autouse=True)
 def setup_isolated_db(tmp_path) -> Generator[str, None, None]:
     """Isolate SQLite database for every test to avoid cross-test contamination."""
     db_file = str(tmp_path / f"test_idempotency_{uuid.uuid4().hex[:8]}.db")
-    original_db = db.DB_NAME
+    original_db = src.notifications.db.DB_NAME
     original_api_db = getattr(api_auth, "DB_NAME", "eco_buddy.db")
-    db.DB_NAME = db_file
-    api_auth.DB_NAME = db_file
+    src.notifications.db.DB_NAME = db_file
+    src.core.api_auth.DB_NAME = db_file
     os.environ["ECO_BUDDY_DB"] = db_file
 
     try:
-        db.init_db()
+        src.notifications.db.init_db()
         init_api_keys_db()
         invalidate_all_db_caches()
         yield db_file
     finally:
-        db.DB_NAME = original_db
-        api_auth.DB_NAME = original_api_db
+        src.notifications.db.DB_NAME = original_db
+        src.core.api_auth.DB_NAME = original_api_db
         os.environ["ECO_BUDDY_DB"] = original_db
         invalidate_all_db_caches()
         if os.path.exists(db_file):
@@ -197,7 +197,7 @@ def test_goal_setting_and_duplicate_update_idempotency(setup_isolated_db: str):
     user_id = 999
     
     # Set active goal
-    goal_id_1 = db.save_reduction_goal(
+    goal_id_1 = src.notifications.db.save_reduction_goal(
         user_id=user_id,
         baseline_kg=5000.0,
         target_kg=4000.0,
@@ -206,13 +206,13 @@ def test_goal_setting_and_duplicate_update_idempotency(setup_isolated_db: str):
     )
     assert goal_id_1 is not None
     
-    goal_1 = db.get_active_goal(user_id)
+    goal_1 = src.notifications.db.get_active_goal(user_id)
     assert goal_1 is not None
     assert goal_1["target_kg"] == 4000.0
 
     # Overwrite / update goal with identical values multiple times
     for _ in range(3):
-        db.save_reduction_goal(
+        src.notifications.db.save_reduction_goal(
             user_id=user_id,
             baseline_kg=5000.0,
             target_kg=4000.0,
@@ -220,7 +220,7 @@ def test_goal_setting_and_duplicate_update_idempotency(setup_isolated_db: str):
             target_date="2027-01-01",
         )
 
-    goal_after = db.get_active_goal(user_id)
+    goal_after = src.notifications.db.get_active_goal(user_id)
     assert goal_after["target_kg"] == 4000.0
 
     # Check goal evaluation is deterministic and idempotent
@@ -243,12 +243,12 @@ def test_user_registration_duplicate_rejection_idempotency(setup_isolated_db: st
     email = f"{username}@example.com"
     password = "SecurePassword123!"
 
-    first_res = db.create_user(username, email, password)
+    first_res = src.notifications.db.create_user(username, email, password)
     assert first_res is True
 
     # Repeated identical registration calls
     for _ in range(4):
-        retry_res = db.create_user(username, email, password)
+        retry_res = src.notifications.db.create_user(username, email, password)
         assert retry_res is False
 
     # Check final database state: exactly 1 user record exists
@@ -317,7 +317,7 @@ def test_concurrent_duplicate_requests_idempotency(setup_isolated_db: str):
 
     def submit_request():
         barrier.wait()
-        return db.create_user(username, email, password)
+        return src.notifications.db.create_user(username, email, password)
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = [executor.submit(submit_request) for _ in range(10)]
