@@ -3,9 +3,9 @@
 import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
-from database import get_assessments
-from assessment_history_utils import filter_assessments
-from session_state_utils import ensure_session_state
+from src.core.database import get_assessments
+from src.utils.assessment_history_utils import filter_assessments
+from src.core.session_state_utils import ensure_session_state
 from styles.theme import apply_theme
 
 # --- Authentication & Setup ---
@@ -145,6 +145,6 @@ else:
     st.info("Please select a complete date range (start and end date).")
 
 st.divider()
-from assessment_undo import render_assessment_undo_ui
+from src.utils.assessment_undo import render_assessment_undo_ui
 render_assessment_undo_ui(user_id=user_id)
 

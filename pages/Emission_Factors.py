@@ -1,8 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments_with_factors
-from emission_factors import (
+from src.core.database import get_assessments_with_factors
+from src.carbon.emission_factors import (
     KIND_STATIC,
     compare_assessment_across_versions,
     describe_provenance,

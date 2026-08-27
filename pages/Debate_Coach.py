@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from debate_coach import (
+from src.utils.debate_coach import (
     DEBATE_TOPICS, generate_counterargument, score_argument,
     save_debate, get_debate_history,
 )

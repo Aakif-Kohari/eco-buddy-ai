@@ -3,12 +3,12 @@ import json
 import sqlite3
 from unittest.mock import patch
 
-from carbon_equivalence import (
+from src.carbon.carbon_equivalence import (
     translate_footprint,
     get_category_equivalences,
     EQUIVALENCE_FACTORS
 )
-from database import save_equivalence_preferences, get_equivalence_preferences
+from src.core.database import save_equivalence_preferences, get_equivalence_preferences
 
 def test_translate_footprint_positive():
     # 10 kg CO2
@@ -50,7 +50,7 @@ def test_get_category_equivalences_negative():
 
 @pytest.fixture
 def temp_db():
-    import database
+    from src.core import database
     import os
     import sqlite3
     import uuid

@@ -7,7 +7,7 @@ import pytest
 import json
 from datetime import datetime, timedelta
 
-from household import init_household_db, create_household, delete_household
+from src.lifestyle.household import init_household_db, create_household, delete_household
 
 from data_import_history import (
     init_import_db, log_import_job, save_imported_records, 

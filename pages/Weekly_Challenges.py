@@ -9,8 +9,8 @@ of its own and the session context it needs.
 
 import streamlit as st
 
-from challenge_generator import generate_weekly_challenges
-from database import (
+from src.community.challenge_generator import generate_weekly_challenges
+from src.core.database import (
     complete_weekly_challenge,
     get_completed_challenges,
     get_weekly_challenges,

@@ -10,7 +10,7 @@ import json
 import csv
 from datetime import datetime
 
-from household import init_household_db, create_household, delete_household
+from src.lifestyle.household import init_household_db, create_household, delete_household
 from data_import_history import init_import_db, log_import_job, save_imported_records, get_import_history, get_imported_records
 from data_import_schema import detect_schema_mapping, apply_mapping, validate_mapping
 from data_import_cleaner import DataCleaner

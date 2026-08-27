@@ -4,7 +4,7 @@ import csv
 import io
 import streamlit as st
 
-from sustainability_data_quality import (
+from src.data.sustainability_data_quality import (
     build_dashboard_payload,
     build_quality_report,
     critical_issues,
@@ -33,7 +33,7 @@ st.caption(
 user_id = st.session_state.get("user_id", 1)
 
 try:
-    from database import get_assessments
+    from src.core.database import get_assessments
 except Exception as exc:
     st.error(f"Unable to import the database layer: {exc}")
     st.stop()

@@ -1,19 +1,19 @@
 import streamlit as st
 import pandas as pd
 import time
-from database import *
-from emissions import *
-from recommendations import *
-from ocr_utils import *
+from src.core.database import *
+from src.carbon.emissions import *
+from src.ai.recommendations import *
+from src.utils.ocr_utils import *
 import os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
-from report import generate_pdf
-import gamification as gf
-from marketplace import *
-import energy_audit as ea
+from src.reporting.report import generate_pdf
+from src.community import gamification as gf
+from src.utils.marketplace import *
+from src.energy import energy_audit as ea
 
 from styles.theme import apply_theme
 
@@ -246,7 +246,7 @@ with tab_badges:
                         st.session_state[f"cert_{b_id}"] = True
                         
                     if st.session_state.get(f"cert_{b_id}"):
-                        from certificate import generate_certificate
+                        from src.utils.certificate import generate_certificate
                         import datetime
                         assessments = get_assessments(user_id)
                         latest_score = float(assessments[0][8]) if assessments and len(assessments) > 0 and assessments[0][8] is not None else None

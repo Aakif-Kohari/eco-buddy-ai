@@ -7,9 +7,9 @@ import plotly.graph_objects as go
 import streamlit as st
 from dataclasses import replace
 
-from database import get_assessments_with_factors, save_assessment
-from emissions import get_factor_version
-from scenario_lab import (
+from src.core.database import get_assessments_with_factors, save_assessment
+from src.carbon.emissions import get_factor_version
+from src.utils.scenario_lab import (
     SCENARIO_PRESETS,
     ScenarioResult,
     ScenarioValidationError,
@@ -20,7 +20,7 @@ from scenario_lab import (
     create_scenario,
     summarize_scenario,
 )
-from session_state_utils import ensure_session_state
+from src.core.session_state_utils import ensure_session_state
 from styles.theme import apply_theme
 
 

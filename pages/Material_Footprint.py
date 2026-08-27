@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from material_footprint import (
+from src.environment.material_footprint import (
     CATEGORIES,
     CATEGORY_LABELS,
     MATERIALS,

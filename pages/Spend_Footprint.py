@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from eeio_spend import (
+from src.business.eeio_spend import (
     BASE_PRICE_YEAR,
     DEFLATORS,
     DIRECT_INTENSITY,

@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from financed_emissions import (
+from src.carbon.financed_emissions import (
     DEFAULT_CURRENT_FUND,
     DEFAULT_DECARBONISATION_RATE,
     DEFAULT_GROWTH_RATE,

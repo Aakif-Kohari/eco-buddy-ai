@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from food_scanner import FOOD_EMISSION_FACTORS, CATEGORIES, calculate_food_footprint, get_comparison_context
-from database import save_food_scan, get_food_scans
+from src.lifestyle.food_scanner import FOOD_EMISSION_FACTORS, CATEGORIES, calculate_food_footprint, get_comparison_context
+from src.core.database import save_food_scan, get_food_scans
 from styles.theme import apply_theme
 
 apply_theme()

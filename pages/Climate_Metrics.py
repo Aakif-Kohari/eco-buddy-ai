@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from climate_metrics import (
+from src.environment.climate_metrics import (
     GAS_LABELS,
     GAS_LIFETIMES,
     GAS_NOTES,

@@ -3,12 +3,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
-from overshoot import (
+from src.utils.overshoot import (
     get_current_overshoot_day, get_next_overshoot_day,
     calculate_personal_overshoot_day, calculate_countdown,
     OVERSHOOT_HISTORY, GLOBAL_CO2_PER_PERSON_YEAR
 )
-from database import get_assessments
+from src.core.database import get_assessments
 from styles.theme import apply_theme
 
 apply_theme()

@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from marginal_emissions import (
+from src.carbon.marginal_emissions import (
     DECARBONISATION_RATES,
     DEFAULT_DECARBONISATION,
     DEFAULT_STACK,

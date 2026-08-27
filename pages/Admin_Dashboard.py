@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from admin_analytics import get_admin_platform_stats
+from src.business.admin_analytics import get_admin_platform_stats
 from styles.theme import apply_theme, render_theme_selector
 
 user_id = st.session_state.get('user_id')

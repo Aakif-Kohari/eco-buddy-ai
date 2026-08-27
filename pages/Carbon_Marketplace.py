@@ -5,9 +5,9 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from carbon_credits_market import CarbonCreditsMarketplace
-from gamification_engine import GamificationEngine
-from user_wallet_service import UserWalletService
+from src.carbon.carbon_credits_market import CarbonCreditsMarketplace
+from src.community.gamification_engine import GamificationEngine
+from src.utils.user_wallet_service import UserWalletService
 
 st.set_page_config(page_title="Carbon Marketplace & Rewards", layout="wide", page_icon="🛍️")
 

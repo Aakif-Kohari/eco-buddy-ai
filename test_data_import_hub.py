@@ -11,7 +11,7 @@ import csv
 import io
 from datetime import datetime
 
-from household import init_household_db, create_household, delete_household
+from src.lifestyle.household import init_household_db, create_household, delete_household
 from data_import_schema import (
     STANDARD_SCHEMA, detect_schema_mapping, validate_mapping, apply_mapping, normalize_column_name
 )

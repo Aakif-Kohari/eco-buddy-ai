@@ -1,6 +1,6 @@
 import streamlit as st
 from styles.theme import apply_theme
-from eco_persona import (
+from src.utils.eco_persona import (
     generate_persona_profile, get_strengths, get_improvement_opportunities,
     get_achievements, get_persona_next_steps, generate_persona_card_png,
 )

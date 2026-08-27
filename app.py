@@ -58,11 +58,19 @@ from travel_planner import render_travel_hub
 from weather_alerts import render_weather_hub
 from eco_social import render_eco_social, render_eco_tip
 from volunteer_platform import render_volunteer_hub
+import travel_tracker
 load_dotenv()
+import energy_tracker
 from shopping_assistant import render_shopping_hub
+from components.chat import render_chat_ui
+from components.email_digest_ui import render_email_digest_ui
+import energy_tracker
+import travel_tracker
 from impact_dashboard import render_impact_dashboard
-from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
+from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_marketplace_db, init_energy_tracker_db
 import gamification as gf
+import energy_tracker
+import travel_tracker
 from emissions import calculate_footprint, calculate_eco_score
 
 from recommendations import generate_recommendations
@@ -71,6 +79,8 @@ from what_changed import generate_what_changed_analysis, render_what_changed_ui
 from datetime import datetime
 from src.lib.db_optimizer import get_query_optimizer, close_db_connections
 import time
+from src.lib.digest_scheduler import start_digest_scheduler
+from report import generate_pdf
 
 
 # Start the digest scheduler on app load
@@ -187,7 +197,7 @@ def render_top_auth():
         st.sidebar.page_link("pages/Sustainability_Roadmap.py", label="🗺️ Roadmap")
         st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
         st.sidebar.page_link("pages/Eco_Data_Import_Hub.py", label="📥 Data Import Hub")
-        
+        st.sidebar.page_link("pages/26_Health_Environment.py", label="🏃 Health & Environment")
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
             st.divider()
@@ -388,7 +398,7 @@ with form:
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
-        init_energy_tracker_db()
+        # init_energy_tracker_db()
 
     run_db_initializations()
     if user_id is None:
@@ -1184,7 +1194,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 # -------------------------
 from green_mobility import render_mobility_hub
-tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33 = st.tabs([
+tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33, tab39, tab40, tab41 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1209,7 +1219,7 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "🤝 Volunteer",
     "👗 Fashion",
     "🏅 Certification",
-    "🛒 Shopping" ,
+    "🛒 Shopping",
     "Eco-Impact",
     "Habit-Tracker",
     "Event-Planner",
@@ -1220,28 +1230,28 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "Eco-Heritage",
     "Eco-Parenting",
     "Eco-Resillence",
-    "green_business.py"
-    "📧 Email Digest"
+    "green_business.py",
+    "📧 Email Digest",
     "💬 Eco Chat",
+    "🎨 Eco-Art",
+    "🛒 Ethical Shopping",
+    "🌾 Urban Farming"
 ])
 # Import
-from urban_farming import render_urban_hub
-
-# Add as a new tab
-with tab41:
-    render_urban_hub()
-# Import
-from ethical_shopping import render_consumer_hub
-
-# Add as a new tab
-with tab40:
-    render_consumer_hub()
-# Import
-from eco_art import render_art_hub
-
-# Add as a new tab
-with tab39:
-    render_art_hub()
+# from urban_farming import render_urban_hub
+# # Add as a new tab
+# with tab41:
+#     render_urban_hub()
+# # Import
+# from ethical_shopping import render_consumer_hub
+# # Add as a new tab
+# with tab40:
+#     render_consumer_hub()
+# # Import
+# from eco_art import render_art_hub
+# # Add as a new tab
+# with tab39:
+#     render_art_hub()
 with tab38:
     render_mobility_hub()
 with tab37:
@@ -1313,10 +1323,10 @@ with tab14:
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
-with tab32:
-    render_chat_ui()
-with tab_email:
-    render_email_digest_ui(user_id)
+# with tab32:
+#     render_chat_ui()
+# with tab_email:
+#     render_email_digest_ui(user_id)
 # Existing analysis code here
 
 placeholder.empty()
@@ -2280,7 +2290,7 @@ with tab1:
                     col_exp1, col_exp2 = st.columns(2)
         
                     # Export PNG (High Quality Scale = 3)
-                    png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+                    png_bytes = fig.to_image(format="png", width=1200, height=700, scale=3)
                     col_exp1.download_button(
                         label="📥 Export Chart as PNG",
                         data=png_bytes,
@@ -2290,7 +2300,7 @@ with tab1:
                     )
         
                     # Export SVG (Vector Quality)
-                    svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+                    svg_bytes = fig.to_image(format="svg", width=1200, height=700)
                     col_exp2.download_button(
                         label="📥 Export Chart as SVG",
                         data=svg_bytes,
@@ -4551,6 +4561,7 @@ with tab2:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
+    import energy_tracker
     energy_tracker.render_energy_tracker(user_id)
 
 with tab3:
@@ -4861,6 +4872,7 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
     
+    import travel_tracker
     travel_tracker.render_travel_tracker(user_id)
 
 with tab6:

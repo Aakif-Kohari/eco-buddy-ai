@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from styles.theme import apply_theme
-from water_scarcity import (
+from src.environment.water_scarcity import (
     DEFAULT_REGION,
     MONTHS,
     WaterScarcityError,

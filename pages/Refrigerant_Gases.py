@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from refrigerant_gases import (
+from src.environment.refrigerant_gases import (
     DEFAULT_GRID_INTENSITY,
     DEFAULT_RECOVERY,
     EQUIPMENT_CLASSES,

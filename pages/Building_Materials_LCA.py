@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from building_materials_lca import (
+from src.environment.building_materials_lca import (
     ASSESSMENT_PERIODS,
     DEFAULT_ASSESSMENT_PERIOD,
     DEFAULT_HEATING_DEGREE_DAYS,

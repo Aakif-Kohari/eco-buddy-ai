@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from household import _get_conn
+from src.lifestyle.household import _get_conn
 
 logger = logging.getLogger(__name__)
 

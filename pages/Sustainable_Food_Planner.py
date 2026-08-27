@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from database import get_assessments
+from src.core.database import get_assessments
 from styles.theme import apply_theme
 
 # Food Database with detailed environmental impact

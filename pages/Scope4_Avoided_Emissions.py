@@ -6,9 +6,9 @@ Streamlit page featuring a "Net-Positive Impact" dashboard, showcasing total emi
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from remote_work_calculator import RemoteWorkCalculator
-from avoided_emissions_tracker import AvoidedEmissionsTracker
-from database import save_avoided_emissions_log, get_avoided_emissions_history
+from src.utils.remote_work_calculator import RemoteWorkCalculator
+from src.carbon.avoided_emissions_tracker import AvoidedEmissionsTracker
+from src.core.database import save_avoided_emissions_log, get_avoided_emissions_history
 
 st.set_page_config(
     page_title="Scope 4 Avoided Emissions", page_icon="🌱", layout="wide"

@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from carbon_budget_equity import (
+from src.carbon.carbon_budget_equity import (
     BUDGET_BASE_YEAR,
     DEFAULT_CONVERGENCE_YEAR,
     DEFAULT_LIKELIHOOD,

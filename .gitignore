@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
-eco_buddy.db
+*.db
+coverage*.json
 *.pdf
 
 .env
@@ -15,3 +16,4 @@ benchmark_results/
 
 .coverage
 .pytest_cache/
+scratch/

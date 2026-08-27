@@ -3,7 +3,7 @@ Streamlit Interface for Enterprise Microgrid & Virtual Power Plant (VPP) Dispatc
 """
 
 import streamlit as st
-from microgrid_vpp_engine import MicrogridVppEngine, DistributedEnergyResource
+from src.energy.microgrid_vpp_engine import MicrogridVppEngine, DistributedEnergyResource
 
 st.set_page_config(
     page_title="Microgrid & VPP Dispatch Studio",

@@ -10,7 +10,7 @@ import json
 import io
 import csv
 
-from household import get_households_for_user
+from src.lifestyle.household import get_households_for_user
 from data_import_schema import STANDARD_SCHEMA, detect_schema_mapping, validate_mapping, apply_mapping
 from data_import_cleaner import DataCleaner
 from data_import_normalizer import normalize_units, estimate_missing_emissions

@@ -4,15 +4,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-from database import (
+from src.core.database import (
     get_assessments,
     get_appliances,
     get_water_assessments,
     get_waste_assessments,
     get_active_goal
 )
-from recommendations import generate_recommendations
-from emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.carbon.emissions import calculate_footprint
 
 st.set_page_config(page_title="Sustainability Dashboard", page_icon="📊", layout="wide")
 
