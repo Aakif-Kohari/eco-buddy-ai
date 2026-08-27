@@ -1007,5 +1007,7 @@ class ShoppingChoiceOptimizer:
         
         if alternative.is_recyclable and not original.is_recyclable:
             explanations.append("Recyclable packaging")
-        
-        if alternative
+        if not explanations:
+            explanations.append("A more sustainable shopping choice")
+            
+        return ". ".join(explanations) + "."

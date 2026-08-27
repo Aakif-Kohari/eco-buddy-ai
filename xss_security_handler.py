@@ -205,12 +205,12 @@ class XSSDetectionEngine:
                 "description": "CSS expression detected"
             },
             
-            # Dynamic attributes
-            {
-                "pattern": r"dynamic\s*=\s*["']",
-                "risk": XSSRiskLevel.MEDIUM,
-                "description": "Dynamic attribute detected"
-            },
+             # Dynamic attributes
+             {
+                 "pattern": r'dynamic\s*=\s*["\']',
+                 "risk": XSSRiskLevel.MEDIUM,
+                 "description": "Dynamic attribute detected"
+             },
             
             # Meta refresh
             {

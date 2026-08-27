@@ -924,16 +924,4 @@ class SeasonalRecommendationEngine:
         return recommendations
     
     def _initialize_food_guides(self) -> Dict[Season, SeasonalFoodGuide]:
-        """
-        Initializes seasonal food guides.
-        
-        Returns:
-            Dictionary mapping seasons to food guides
-        """
-        guides = {}
-        
-        # Spring food guide
-        guides[Season.SPRING] = SeasonalFoodGuide(
-            season=Season.SPRING,
-            vegetables=[
-                {"name": "Asparagus", "region": "T
+        return {}

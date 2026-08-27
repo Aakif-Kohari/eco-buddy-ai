@@ -981,4 +981,16 @@ class LifestyleInputValidator:
         if is_extreme:
             return ValidationResult(
                 is_valid=False,
-                field_name
+                field_name=rule.field_name,
+                value=value,
+                severity=ValidationSeverity.WARNING,
+                message=extreme_msg,
+                suggestions=["Review the entered value for accuracy"]
+            )
+            
+        return ValidationResult(
+            is_valid=True,
+            field_name=rule.field_name,
+            value=value,
+            severity=ValidationSeverity.INFO
+        )

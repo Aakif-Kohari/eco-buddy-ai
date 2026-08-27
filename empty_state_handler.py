@@ -917,15 +917,12 @@ class EnhancedEmptyStateHandler:
     
     def _enrich_no_recommendations(self, rendered: Dict[str, Any], 
                                   user_id: Optional[str]) -> Dict[str, Any]:
-        """
-        Enriches no recommendations state with additional content.
+        return rendered
+    
+    def _enrich_no_alternatives(self, rendered: Dict[str, Any], 
+                               user_id: Optional[str]) -> Dict[str, Any]:
+        return rendered
         
-        Args:
-            rendered: Rendered empty state
-            user_id: User identifier
-            
-        Returns:
-            Enriched dictionary
-        """
-        # Add personalized suggestions
-        rendered['personalized_suggestions
+    def _enrich_error_state(self, rendered: Dict[str, Any], 
+                           user_id: Optional[str]) -> Dict[str, Any]:
+        return rendered
