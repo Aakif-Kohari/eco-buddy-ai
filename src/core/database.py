@@ -102,6 +102,18 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS anomaly_alerts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        alert_date TEXT,
+                        carbon_kg REAL,
+                        severity TEXT,
+                        resolved BOOLEAN DEFAULT 0,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS carbon_banking_actions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8269,4 +8281,34 @@ def get_carbon_banking_history(user_id: str) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+
+import json
+
+def get_assessments_for_anomaly_detection(user_id: str) -> list:
+    """Retrieves historical assessment data formatted for anomaly detection."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Assuming a standard 'assessments' table exists with date and total_carbon columns
+    cursor.execute("""
+        SELECT strftime('%Y-%m', timestamp) as date, SUM(total_carbon) as carbon_kg
+        FROM assessments
+        WHERE user_id = ?
+        GROUP BY strftime('%Y-%m', timestamp)
+        ORDER BY date ASC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"date": row[0], "carbon_kg": row[1]} for row in rows if row[1] is not None]
+
+def save_alert_resolution(user_id: str, alert_date: str, carbon_kg: float) -> None:
+    """Logs the resolution of a carbon anomaly alert."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO anomaly_alerts (user_id, alert_date, carbon_kg, severity, resolved)
+        VALUES (?, ?, ?, 'medium', 1)
+    """, (user_id, alert_date, carbon_kg))
+    conn.commit()
+    conn.close()
 
