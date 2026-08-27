@@ -186,7 +186,8 @@ def render_top_auth():
         st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
         st.sidebar.page_link("pages/Sustainability_Roadmap.py", label="🗺️ Roadmap")
         st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
-
+        st.sidebar.page_link("pages/Eco_Data_Import_Hub.py", label="📥 Data Import Hub")
+        
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
             st.divider()
