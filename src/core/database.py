@@ -130,6 +130,19 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS commute_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT,
+                        log_date TEXT,
+                        distance_km REAL,
+                        chosen_mode TEXT,
+                        baseline_mode TEXT,
+                        carbon_saved_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS eco_ledger_transactions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         sender_id TEXT,
@@ -8324,6 +8337,31 @@ def save_carbon_banking_action(user_id: str, action_type: str, amount: float, fr
     """, (user_id, action_type, amount, from_month, to_month))
     conn.commit()
     conn.close()
+
+def save_commute_log(user_id: str, log_date: str, distance_km: float, chosen_mode: str, baseline_mode: str, carbon_saved_kg: float) -> None:
+    """Saves a daily commute log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO commute_logs (user_id, log_date, distance_km, chosen_mode, baseline_mode, carbon_saved_kg)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user_id, log_date, distance_km, chosen_mode, baseline_mode, carbon_saved_kg))
+    conn.commit()
+    conn.close()
+
+def get_commute_history(user_id: str) -> list:
+    """Retrieves historical commute logs for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT log_date, distance_km, chosen_mode, baseline_mode, carbon_saved_kg, timestamp 
+        FROM commute_logs 
+        WHERE user_id = ? 
+        ORDER BY log_date DESC
+    """, (user_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def get_carbon_banking_history(user_id: str) -> list:
     """Retrieves the carbon banking history for a specific user."""
