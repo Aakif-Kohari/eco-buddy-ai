@@ -556,8 +556,8 @@ with tab_assess:
         with st.spinner("🌍 Analyzing your carbon footprint..."):
             total, contributors, footprint_audit = calculate_footprint(transport, distance, electricity, diet, flights, region, return_audit=True)
         eco_score = calculate_eco_score(total, contributors)
-        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
-        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
+        footprint_range = calculate_footprint_range(transport, distance, electricity, diet, flights, region)
+        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
         # Stamp the assessment with the factor set that produced it, so the
         # result stays reproducible and comparable after factors change.
         save_assessment(
@@ -571,9 +571,8 @@ with tab_assess:
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
             "contributors": contributors, "insight": insight, "recommendations": recommendations,
-            "audit_log": audit_log,
+            "audit_log": audit_log, "footprint_range": footprint_range,
         }
-
 if "analysis" in st.session_state:
     data = st.session_state.analysis
 
@@ -601,8 +600,24 @@ if "analysis" in st.session_state:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
-
+        fr = data.get("footprint_range")
+        if fr:
+            st.metric(
+                "🌍 Total Footprint (estimated)",
+                f"{fr['central_kg']:.2f} kg CO₂",
+                help=(
+                    f"Estimated range: {fr['low_kg']:.2f}–{fr['high_kg']:.2f} kg CO₂ "
+                    f"(±{fr['uncertainty_percent']:.0f}%, factor set {fr['factor_version']})"
+                ),
+            )
+            st.caption(f"📊 Estimated range: {fr['low_kg']:.2f}–{fr['high_kg']:.2f} kg CO₂")
+            top = fr["top_uncertainty_contributors"][0]
+            st.caption(
+                f"🔍 Biggest uncertainty driver: {top['category'].title()} "
+                f"({top['share_percent']:.0f}% of the range)"
+            )
+        else:
+            st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
     with col2:
         st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
 
