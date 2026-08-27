@@ -1,5 +1,5 @@
 import streamlit as st
-from carbon_consultant import (
+from src.carbon.carbon_consultant import (
     QUICK_QUESTIONS, build_user_context, ask_consultant,
     save_message, get_conversation, clear_conversation,
 )

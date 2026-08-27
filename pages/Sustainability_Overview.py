@@ -3,10 +3,10 @@
 import pandas as pd
 import streamlit as st
 
-from database import get_active_goal, get_assessments, get_waste_assessments, get_water_assessments, migrate
-from goals import summarize_goal
+from src.core.database import get_active_goal, get_assessments, get_waste_assessments, get_water_assessments, migrate
+from src.utils.goals import summarize_goal
 from styles.theme import apply_theme
-from sustainability_overview import build_overview
+from src.utils.sustainability_overview import build_overview
 
 
 # ---------------------------------------------------------

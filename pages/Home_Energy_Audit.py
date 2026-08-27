@@ -3,19 +3,19 @@ h = html.escape
 import streamlit as st
 import pandas as pd
 import time
-from database import *
-from emissions import *
-from recommendations import *
-from ocr_utils import *
+from src.core.database import *
+from src.carbon.emissions import *
+from src.ai.recommendations import *
+from src.utils.ocr_utils import *
 import os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
-from report import generate_pdf
-import gamification as gf
-from marketplace import *
-import energy_audit as ea
+from src.reporting.report import generate_pdf
+from src.community import gamification as gf
+from src.utils.marketplace import *
+from src.energy import energy_audit as ea
 
 from styles.theme import (
     apply_theme,
@@ -26,8 +26,8 @@ from styles.theme import (
 
 apply_theme()
 
-import database as db
-import energy_audit as ea
+from src.core import database as db
+from src.energy import energy_audit as ea
 import plotly.graph_objects as go
 
 user_id = st.session_state.get('user_id')

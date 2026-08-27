@@ -3,15 +3,15 @@
 
 import streamlit as st
 import pandas as pd
-from v2g_orchestrator_types import (
+from src.utils.v2g_orchestrator_types import (
     FleetVehicleConfig,
     BatteryChemistry,
     ChargingTariffScheme,
     GridServiceMode,
 )
-from v2g_orchestrator_engine import V2GOrchestratorEngine
-from v2g_orchestrator_cards import render_v2g_kpi_cards
-from v2g_orchestrator_charts import create_v2g_dispatch_chart, create_fleet_soc_curve
+from src.utils.v2g_orchestrator_engine import V2GOrchestratorEngine
+from src.reporting.v2g_orchestrator_cards import render_v2g_kpi_cards
+from src.reporting.v2g_orchestrator_charts import create_v2g_dispatch_chart, create_fleet_soc_curve
 
 st.set_page_config(
     page_title="V2G Energy Orchestrator",

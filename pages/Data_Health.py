@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import streamlit as st
 
-from data_quality import (
+from src.data.data_quality import (
     SEVERITY_CRITICAL,
     SEVERITY_INFO,
     SEVERITY_ORDER,
@@ -13,7 +13,7 @@ from data_quality import (
     summarize_report,
     to_dict,
 )
-from database import get_assessments
+from src.core.database import get_assessments
 from styles.theme import apply_theme
 
 user_id = st.session_state.get('user_id')

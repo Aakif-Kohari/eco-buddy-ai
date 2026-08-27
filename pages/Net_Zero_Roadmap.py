@@ -6,9 +6,9 @@ Streamlit page displaying a Gantt-style roadmap chart, gap analysis metrics, and
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from emissions_gap_analyzer import EmissionsGapAnalyzer
-from net_zero_roadmap_generator import NetZeroRoadmapGenerator
-from database import save_net_zero_roadmap, get_roadmap_history
+from src.carbon.emissions_gap_analyzer import EmissionsGapAnalyzer
+from src.utils.net_zero_roadmap_generator import NetZeroRoadmapGenerator
+from src.core.database import save_net_zero_roadmap, get_roadmap_history
 
 st.set_page_config(page_title="Net-Zero Roadmap", page_icon="🗺️", layout="wide")
 

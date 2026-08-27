@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 
-from water import (
+from src.environment.water import (
     calculate_water_footprint,
     validate_water_inputs,
     get_activity_categories,
@@ -16,8 +16,8 @@ from water import (
     liters_to_gallons,
     GLOBAL_WATER_AVERAGE_LITERS,
 )
-from recommendations import generate_water_recommendations
-from database import save_water_assessment, get_water_assessments
+from src.ai.recommendations import generate_water_recommendations
+from src.core.database import save_water_assessment, get_water_assessments
 from styles.theme import apply_theme
 
 user_id = st.session_state.get("user_id")
@@ -467,7 +467,7 @@ st.markdown("---")
 st.markdown("### 🎯 Water Conservation Goals")
 
 import sqlite3
-from database import DB_NAME
+from src.core.database import DB_NAME
 
 def init_water_goals_db():
     conn = sqlite3.connect(DB_NAME)
@@ -536,7 +536,7 @@ with col_g2:
             else:
                 st.warning(f"You are {current_liters - target_liters:.0f} L above your target.")
                 # Calculate progress from global avg to target
-                from water import GLOBAL_WATER_AVERAGE_LITERS
+                from src.environment.water import GLOBAL_WATER_AVERAGE_LITERS
                 if current_liters < GLOBAL_WATER_AVERAGE_LITERS:
                     progress = (GLOBAL_WATER_AVERAGE_LITERS - current_liters) / (GLOBAL_WATER_AVERAGE_LITERS - target_liters)
                     st.progress(min(max(progress, 0.0), 1.0))

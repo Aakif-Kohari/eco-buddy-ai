@@ -1,5 +1,5 @@
 import pytest
-from virtual_city_engine import VirtualCityEngine
+from src.utils.virtual_city_engine import VirtualCityEngine
 
 def test_unlocked_assets_thresholds():
     engine = VirtualCityEngine(user_id=1)

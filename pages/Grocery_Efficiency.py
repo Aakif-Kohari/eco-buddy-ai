@@ -6,9 +6,9 @@ Streamlit page featuring an interactive shopping list builder, price-vs-carbon s
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-from price_carbon_analyzer import PriceCarbonAnalyzer
-from smart_shopping_list import SmartShoppingList
-from database import save_grocery_optimization, get_grocery_history
+from src.carbon.price_carbon_analyzer import PriceCarbonAnalyzer
+from src.lifestyle.smart_shopping_list import SmartShoppingList
+from src.core.database import save_grocery_optimization, get_grocery_history
 
 st.set_page_config(page_title="Grocery Efficiency", page_icon="🛒", layout="wide")
 

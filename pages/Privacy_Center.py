@@ -5,8 +5,8 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data_portability_engine import DataPortabilityEngine
-from data_deletion_service import DataDeletionService
+from src.data.data_portability_engine import DataPortabilityEngine
+from src.data.data_deletion_service import DataDeletionService
 
 st.set_page_config(page_title="Privacy & Data Control Center", layout="centered", page_icon="🔒")
 

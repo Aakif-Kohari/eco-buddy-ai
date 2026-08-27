@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from device_lifecycle import (
+from src.utils.device_lifecycle import (
     DEVICE_CONDITIONS,
     DEVICE_TYPES,
     DEFAULT_EFFICIENCY_GAIN,

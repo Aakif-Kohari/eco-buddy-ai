@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from landfill_methane import (
+from src.environment.landfill_methane import (
     CLIMATE_ZONES,
     DEFAULT_GRID_INTENSITY,
     DEFAULT_HEAT_INTENSITY,

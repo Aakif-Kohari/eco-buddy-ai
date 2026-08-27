@@ -5,9 +5,9 @@ Streamlit page for inputting product data and viewing a visual PCF label and sup
 
 import streamlit as st
 import plotly.graph_objects as go
-from pcf_label_generator import PCFLabelGenerator
-from supply_chain_transparency import SupplyChainTransparency
-from database import save_pcf_label
+from src.utils.pcf_label_generator import PCFLabelGenerator
+from src.business.supply_chain_transparency import SupplyChainTransparency
+from src.core.database import save_pcf_label
 
 st.set_page_config(page_title="Product Carbon Label", page_icon="🏷️", layout="wide")
 

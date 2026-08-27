@@ -1,5 +1,5 @@
 import pytest
-from neighborhood_canopy_engine import NeighborhoodCanopyEngine
+from src.environment.neighborhood_canopy_engine import NeighborhoodCanopyEngine
 
 @pytest.fixture
 def engine():

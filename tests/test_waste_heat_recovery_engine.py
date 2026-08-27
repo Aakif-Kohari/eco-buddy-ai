@@ -2,13 +2,13 @@
 """
 
 import pytest
-from waste_heat_recovery_types import (
+from src.environment.waste_heat_recovery_types import (
     IndustrialPlantParameters,
     HeatSourceIndustry,
     WorkingFluid,
     RecoveryApplication,
 )
-from waste_heat_recovery_engine import WasteHeatRecoveryEngine
+from src.environment.waste_heat_recovery_engine import WasteHeatRecoveryEngine
 
 
 @pytest.fixture

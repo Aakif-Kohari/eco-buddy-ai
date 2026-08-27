@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from waste import calculate_waste_footprint, WASTE_CATEGORIES, WASTE_REDUCTION_TIPS
-from database import save_waste_assessment, get_waste_assessments
+from src.environment.waste import calculate_waste_footprint, WASTE_CATEGORIES, WASTE_REDUCTION_TIPS
+from src.core.database import save_waste_assessment, get_waste_assessments
 from styles.theme import apply_theme
 
 apply_theme()

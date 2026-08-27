@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from typing import List, Dict, Any, Tuple
-from database import get_appliances
-from energy_audit import calculate_appliance_energy
+from src.core.database import get_appliances
+from src.energy.energy_audit import calculate_appliance_energy
 from styles.theme import apply_theme
 
 # Constants

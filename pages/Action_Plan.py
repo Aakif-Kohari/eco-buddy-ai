@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import streamlit as st
 
-from action_plan import (
+from src.utils.action_plan import (
     Action, build_action_plan, calculate_plan_cost, calculate_plan_impact,
     estimate_time_to_complete, load_plan_progress, mark_action_complete,
     save_action_plan,
 )
-from recommendations import generate_recommendations
-from database import get_assessments
-from emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
 
 
 def _assessment(row):

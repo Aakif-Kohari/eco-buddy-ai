@@ -1,10 +1,10 @@
 """Streamlit dashboard for Sustainability Insights."""
 from datetime import datetime,timezone
 import streamlit as st
-from database import get_assessments
-from sustainability_insights import *
+from src.core.database import get_assessments
+from src.utils.sustainability_insights import *
 try:
- from recommendations import generate_recommendations
+ from src.ai.recommendations import generate_recommendations
 except Exception:generate_recommendations=None
 st.set_page_config(page_title="Sustainability Insights",page_icon="💡",layout="wide")
 st.title("💡 Sustainability Insights")

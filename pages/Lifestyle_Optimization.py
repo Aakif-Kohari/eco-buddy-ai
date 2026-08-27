@@ -2,8 +2,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import json
 from styles.theme import apply_theme
-from lifestyle_optimizer import generate_optimized_lifestyle_plan, LIFESTYLE_ACTIONS_CATALOG
-from database import get_assessments
+from src.lifestyle.lifestyle_optimizer import generate_optimized_lifestyle_plan, LIFESTYLE_ACTIONS_CATALOG
+from src.core.database import get_assessments
 
 apply_theme()
 

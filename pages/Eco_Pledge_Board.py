@@ -1,5 +1,5 @@
 import streamlit as st
-from eco_pledge import (
+from src.community.eco_pledge import (
     PLEDGE_TEMPLATES,
     create_pledge,
     get_public_pledges,

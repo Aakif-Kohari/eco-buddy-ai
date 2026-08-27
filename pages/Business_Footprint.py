@@ -2,13 +2,13 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from business_footprint import (
+from src.business.business_footprint import (
     calculate_business_footprint,
     generate_b2b_recommendations,
 )
-from database import get_business_footprint_history, save_business_footprint
-from scope3_screener import SCOPE3_CATEGORIES
-from units import format_co2
+from src.core.database import get_business_footprint_history, save_business_footprint
+from src.carbon.scope3_screener import SCOPE3_CATEGORIES
+from src.utils.units import format_co2
 
 st.set_page_config(page_title="Business Footprint", page_icon="🏢", layout="wide")
 

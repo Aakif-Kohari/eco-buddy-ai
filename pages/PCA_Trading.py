@@ -6,9 +6,9 @@ Streamlit page featuring a trading dashboard, price charts, and simulated P2P tr
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from pca_trading_engine import PCATradingEngine
-from local_exchange_market import LocalExchangeMarket
-from database import get_pca_balance, update_pca_balance, record_pca_trade
+from src.utils.pca_trading_engine import PCATradingEngine
+from src.utils.local_exchange_market import LocalExchangeMarket
+from src.core.database import get_pca_balance, update_pca_balance, record_pca_trade
 
 st.set_page_config(page_title="PCA Trading", page_icon="📈", layout="wide")
 

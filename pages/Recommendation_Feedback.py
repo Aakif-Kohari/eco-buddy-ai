@@ -11,10 +11,10 @@ import hashlib
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments
-from emissions import calculate_footprint
-from recommendations import generate_recommendations
-from recommendation_feedback import (
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.ai.recommendation_feedback import (
     FEEDBACK_TYPES,
     DIFFICULTIES,
     RecommendationFeedbackStore,

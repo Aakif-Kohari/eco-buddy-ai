@@ -7,8 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from database import get_active_goal, get_assessments
-from goal_pathway import (
+from src.core.database import get_active_goal, get_assessments
+from src.utils.goal_pathway import (
     STATUS_ACHIEVED,
     STATUS_INSUFFICIENT_DATA,
     analyze_goal_pathway,

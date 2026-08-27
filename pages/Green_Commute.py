@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
-from carpooling import (
+from src.lifestyle.carpooling import (
     SAFETY_PREFERENCES,
     match_commuters,
     save_commute_profile,

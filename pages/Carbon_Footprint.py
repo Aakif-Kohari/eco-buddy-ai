@@ -2,38 +2,38 @@ import streamlit as st
 import pandas as pd
 import random
 import time
-from database import save_carbon_budget,get_carbon_budget
-from database import *
-from emissions import *
-from emissions import (
+from src.core.database import save_carbon_budget,get_carbon_budget
+from src.core.database import *
+from src.carbon.emissions import *
+from src.carbon.emissions import (
     calculate_remaining_budget,
     calculate_budget_progress,
     forecast_monthly_emission,
     budget_status,
 )
-from recommendations import *
-from impact_analyzer import analyze_minimal_change
+from src.ai.recommendations import *
+from src.utils.impact_analyzer import analyze_minimal_change
 import os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
-from report import generate_pdf
-from treemap_chart import create_emission_treemap
-from sankey_chart import create_emission_sankey
-import gamification as gf
-from marketplace import *
-from llm_parser import parse_quick_log
-from ocr_utils import extract_text_from_bytes, parse_energy_consumption
-from background_tasks import submit_background_task, render_task_progress, clear_background_task
-import energy_audit as ea
+from src.reporting.report import generate_pdf
+from src.reporting.treemap_chart import create_emission_treemap
+from src.reporting.sankey_chart import create_emission_sankey
+from src.community import gamification as gf
+from src.utils.marketplace import *
+from src.ai.llm_parser import parse_quick_log
+from src.utils.ocr_utils import extract_text_from_bytes, parse_energy_consumption
+from src.core.background_tasks import submit_background_task, render_task_progress, clear_background_task
+from src.energy import energy_audit as ea
 
 from styles.theme import apply_theme
 apply_theme()
 
 
-from cache import cached
-from cache_config import TTL_LLM_RESPONSE
+from src.core.cache import cached
+from src.core.cache_config import TTL_LLM_RESPONSE
 GLOBAL_POPULATION = 8_200_000_000
 
 CURRENT_GLOBAL_EMISSIONS = 37_400_000_000
@@ -324,8 +324,8 @@ if not user_id:
 # -------------------------
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
-from session_state_utils import ensure_session_state
+from src.core.database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+from src.core.session_state_utils import ensure_session_state
 
 DEFAULT_VALUES = {
     "region": "Global",

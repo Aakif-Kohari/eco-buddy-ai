@@ -3,15 +3,15 @@
 
 import streamlit as st
 import pandas as pd
-from datacenter_carbon_types import (
+from src.carbon.datacenter_carbon_types import (
     AIWorkloadParameters,
     GPUModel,
     CloudRegion,
     CoolingTechnology,
 )
-from datacenter_carbon_engine import DataCenterCarbonEngine
-from datacenter_carbon_cards import render_datacenter_carbon_kpis, render_pue_efficiency_badge
-from datacenter_carbon_charts import create_scope_breakdown_waterfall, create_regional_comparison_bar
+from src.carbon.datacenter_carbon_engine import DataCenterCarbonEngine
+from src.carbon.datacenter_carbon_cards import render_datacenter_carbon_kpis, render_pue_efficiency_badge
+from src.carbon.datacenter_carbon_charts import create_scope_breakdown_waterfall, create_regional_comparison_bar
 
 st.set_page_config(
     page_title="AI & Cloud Carbon Profiler",

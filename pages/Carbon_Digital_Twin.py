@@ -6,8 +6,8 @@ Streamlit page featuring an interactive forecasting chart, scenario sliders, and
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from predictive_forecaster import PredictiveForecaster
-from database import save_digital_twin_scenario, get_digital_twin_history
+from src.ai.predictive_forecaster import PredictiveForecaster
+from src.core.database import save_digital_twin_scenario, get_digital_twin_history
 
 st.set_page_config(page_title="Carbon Digital Twin", page_icon="🔮", layout="wide")
 

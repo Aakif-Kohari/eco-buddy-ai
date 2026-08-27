@@ -8,9 +8,9 @@ import sys
 # Ensure parent directory is in path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from supply_chain_data import SupplyChainDataGenerator
-from supply_chain_logic import SupplyChainLogic
-from supply_chain_report import SupplyChainReportGenerator
+from src.business.supply_chain_data import SupplyChainDataGenerator
+from src.business.supply_chain_logic import SupplyChainLogic
+from src.business.supply_chain_report import SupplyChainReportGenerator
 
 st.set_page_config(
     page_title="Supply Chain ESG Tracker",

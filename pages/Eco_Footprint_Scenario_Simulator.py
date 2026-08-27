@@ -6,10 +6,10 @@ Multi-page section in EcoBuddy AI allowing users to simulate interactive lifesty
 import streamlit as st
 import pandas as pd
 
-from eco_scenario_simulator_service import FootprintScenarioSimulatorService
-from eco_scenario_simulator_types import FootprintScenario, ScenarioLever, ScenarioLeverCategory
-from eco_scenario_simulator_cards import render_scenario_summary_header, render_lever_slider_card
-from eco_scenario_simulator_charts import build_trajectory_forecast_chart, build_lever_waterfall_chart
+from src.utils.eco_scenario_simulator_service import FootprintScenarioSimulatorService
+from src.utils.eco_scenario_simulator_types import FootprintScenario, ScenarioLever, ScenarioLeverCategory
+from src.reporting.eco_scenario_simulator_cards import render_scenario_summary_header, render_lever_slider_card
+from src.reporting.eco_scenario_simulator_charts import build_trajectory_forecast_chart, build_lever_waterfall_chart
 
 st.set_page_config(
     page_title="Scenario Simulator - EcoBuddy AI",

@@ -3,7 +3,7 @@ Streamlit Page for Enterprise Smart Grid EV V2G Optimization Studio
 """
 
 import streamlit as st
-from smart_grid_ev_v2g_engine import SmartGridEvV2gEngine, EvChargerAsset
+from src.energy.smart_grid_ev_v2g_engine import SmartGridEvV2gEngine, EvChargerAsset
 
 st.set_page_config(
     page_title="Smart Grid EV V2G Studio",

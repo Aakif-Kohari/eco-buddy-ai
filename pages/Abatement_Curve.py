@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from abatement_curve import (
+from src.carbon.abatement_curve import (
     ADOPTION_GAP_NOTE,
     DEFAULT_BUDGET,
     DEFAULT_DISCOUNT_RATE,

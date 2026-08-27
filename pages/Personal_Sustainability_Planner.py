@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, date
 
-from database import DB_NAME, get_assessments
+from src.core.database import DB_NAME, get_assessments
 
 st.set_page_config(page_title="Sustainability Planner", page_icon="🗺️", layout="wide")
 

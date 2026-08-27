@@ -5,8 +5,8 @@ import os
 # Ensure the components path is accessible
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import get_total_xp, get_assessments
-from virtual_city_engine import VirtualCityEngine
+from src.core.database import get_total_xp, get_assessments
+from src.utils.virtual_city_engine import VirtualCityEngine
 from components.virtual_city import virtual_city
 
 st.set_page_config(page_title="Virtual Eco-City", page_icon="🏙️", layout="wide")

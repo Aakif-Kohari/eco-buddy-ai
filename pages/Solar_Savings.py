@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from energy_audit import (
+from src.energy.energy_audit import (
     calculate_solar_system_size, calculate_annual_solar_generation,
     calculate_solar_installation_cost, calculate_solar_payback_period,
     calculate_long_term_solar_savings, calculate_solar_carbon_offset,
 )
-from database import save_solar_config, get_solar_config
+from src.core.database import save_solar_config, get_solar_config
 from styles.theme import apply_theme
 
 apply_theme()
