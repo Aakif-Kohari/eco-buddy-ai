@@ -16,6 +16,10 @@ def test_calculate_route():
     impact_bike = calculate_route("bicycle", 10.0)
     assert impact_bike["co2_kg"] == 0.0
 
+    # Bicycle, 10km, rainy weather -> 15 * 0.6 = 9.0 speed_kmh
+    res_rainy_bike = calculate_route("bicycle", 10.0, weather="rainy")
+    assert res_rainy_bike["speed_kmh"] == 9.0
+
 def test_get_carbon_rating():
     icon, label, color = get_carbon_rating(0.0, 10.0)
     assert label == "Zero Carbon"

@@ -30,7 +30,7 @@ jobs:
 
       - name: Run test coverage analysis
         run: |
-          python -m pytest test_database_integrity.py test_database_connection.py test_coverage_quality_gates.py --cov=. --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=json:coverage.json
+          python -m pytest tests/test_database_integrity.py tests/test_database_connection.py tests/test_coverage_quality_gates.py --cov=. --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml:coverage.xml --cov-report=json:coverage.json
 
       - name: Enforce Coverage Quality Gates
         run: |

@@ -79,6 +79,8 @@ class APIClient:
             return self._handle_response(response)
         except requests.exceptions.Timeout:
             raise TimeoutError(f'Request timed out after {timeout} seconds')
+        except requests.exceptions.SSLError as e:
+            raise e
         except requests.exceptions.ConnectionError:
             raise ConnectionError('Failed to connect to the server')
         except requests.exceptions.RequestException as e:
@@ -97,6 +99,8 @@ class APIClient:
             return self._handle_response(response)
         except requests.exceptions.Timeout:
             raise TimeoutError(f'Request timed out after {timeout} seconds')
+        except requests.exceptions.SSLError as e:
+            raise e
         except requests.exceptions.ConnectionError:
             raise ConnectionError('Failed to connect to the server')
         except requests.exceptions.RequestException as e:

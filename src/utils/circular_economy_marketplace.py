@@ -12,8 +12,8 @@ class SecondaryMaterialListing:
     category: str  # 'Recycled Polymer Plastic', 'Scrap Aluminum Alloy', 'E-Waste Precious Metal Slag', 'Repurposed Textile Fiber'
     purity_grade_pct: float
     quantity_metric_tons: float
-    unit_price_usd_ton= float
-    embodied_co2_avoided_kg_per_kg= float
+    unit_price_usd_ton: float
+    embodied_co2_avoided_kg_per_kg: float
     seller_facility_name: str
     certification_status: str  # 'Verified Circular Grade A', 'Grade B Recycled', 'Raw Industrial Byproduct'
 
@@ -63,8 +63,8 @@ class CircularEconomyEngine:
                 category="E-Waste Precious Metal Slag",
                 purity_grade_pct=88.0,
                 quantity_metric_tons=35.0,
-                unit_price_usd_ton= 5400.0,
-                embodied_co2_avoided_kg_per_kg= 14.20,
+                unit_price_usd_ton=5400.0,
+                embodied_co2_avoided_kg_per_kg=14.20,
                 seller_facility_name="Nordic Urban Mining Hub",
                 certification_status="Grade B Recycled"
             )

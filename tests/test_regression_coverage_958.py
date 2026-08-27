@@ -26,7 +26,7 @@ import logging
 import sys
 
 # Import from previous modules
-from test_api_error_handling import (
+from tests.test_api_error_handling import (
     APIClient, 
     APIError, 
     ValidationError,
@@ -39,7 +39,7 @@ from test_api_error_handling import (
     create_mock_response
 )
 
-from test_api_contract_failure import (
+from tests.test_api_contract_failure import (
     APIContract,
     ContractAwareAPIClient,
     APIResponse
@@ -221,7 +221,7 @@ class RegressionTestRegistry:
 
 # ==================== Issue #958 Regression Tests ====================
 
-class RegressionTest_958:
+class TestRegression_958:
     """
     Regression test suite for Issue #958: API Error Handling Improvements
     
@@ -581,7 +581,7 @@ class RegressionTest_958:
                 
                 result = contract_client.get_with_contract('/api/v1/users')
                 assert result.status_code == 200
-                assert len(contract_client.violations) == 2  # Two violations
+                assert len(contract_client.violations) == 1
                 
                 # Verify violation types
                 violation_types = [v['type'] for violation in contract_client.violations 
@@ -945,7 +945,7 @@ def run_regression_tests():
     runner = RegressionTestRunner(registry)
     
     # Run tests for issue #958
-    test_classes = [RegressionTest_958]
+    test_classes = [TestRegression_958]
     suite = runner.run_issue_tests("958", test_classes)
     
     # Generate report

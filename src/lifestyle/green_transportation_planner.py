@@ -102,7 +102,8 @@ def calculate_route(mode_key, distance_km, weather="sunny"):
 
     speed_mult = 1.0
     if mode_key in ["walk", "bicycle"]:
-        speed_mult = weather_info.get(f"{mode_key}_mult", 1.0)
+        lookup_key = "bike" if mode_key == "bicycle" else mode_key
+        speed_mult = weather_info.get(f"{lookup_key}_mult", 1.0)
     elif mode_key in ["bus", "tram", "metro"]:
         speed_mult = weather_info.get("bus_mult", 1.0)
 
