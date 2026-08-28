@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments, get_unit_preference, save_unit_preference
+from src.core.database import get_assessments, get_unit_preference, save_unit_preference
 from styles.theme import apply_theme, render_unit_selector
-from units import (
+from src.utils.units import (
     DIM_AREA,
     DIM_DISTANCE,
     DIM_ENERGY,

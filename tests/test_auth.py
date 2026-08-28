@@ -2,7 +2,7 @@ import pytest
 import sqlite3
 import uuid
 import os
-from database import init_db, create_user, verify_user, get_user_by_username, DB_NAME
+from src.core.database import init_db, create_user, verify_user, get_user_by_username, DB_NAME
 
 @pytest.fixture(autouse=True)
 def setup_teardown():

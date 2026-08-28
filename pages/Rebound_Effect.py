@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from rebound_effect import (
+from src.utils.rebound_effect import (
     DEFAULT_RESPENDING,
     DEFAULT_SATIATION,
     ReboundError,

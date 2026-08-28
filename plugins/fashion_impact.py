@@ -111,18 +111,18 @@ class FashionImpactCalculator:
         recommendations = []
         
         if impact_report['contains_microplastics']:
-            recommendations.append(
+            src.ai.recommendations.append(
                 "Your garment contains synthetics (Polyester/Nylon). Wash it in cold water and consider using a Guppyfriend washing bag to prevent microplastic shedding into oceans."
             )
             
         if impact_report['total_water_liters'] > 2000:
-            recommendations.append(
+            src.ai.recommendations.append(
                 "This item has a massive water footprint (over 2,000 Liters). In the future, try opting for Organic Cotton, Linen, or recycled materials."
             )
             
         if not impact_report['is_second_hand']:
-            recommendations.append(
-                "Buying this item brand new generated its full manufacturing emissions. Buying second-hand or from thrift stores reduces this impact by up to 90%."
+            src.ai.recommendations.append(
+                "Buying this item brand new generated its full manufacturing src.carbon.emissions. Buying second-hand or from thrift stores reduces this impact by up to 90%."
             )
             
         return recommendations

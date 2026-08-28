@@ -3,15 +3,15 @@
 
 import streamlit as st
 import pandas as pd
-from waste_heat_recovery_types import (
+from src.environment.waste_heat_recovery_types import (
     IndustrialPlantParameters,
     HeatSourceIndustry,
     WorkingFluid,
     RecoveryApplication,
 )
-from waste_heat_recovery_engine import WasteHeatRecoveryEngine
-from waste_heat_recovery_cards import render_waste_heat_kpi_cards
-from waste_heat_recovery_charts import create_pinch_point_chart, create_cashflow_waterfall
+from src.environment.waste_heat_recovery_engine import WasteHeatRecoveryEngine
+from src.environment.waste_heat_recovery_cards import render_waste_heat_kpi_cards
+from src.environment.waste_heat_recovery_charts import create_pinch_point_chart, create_cashflow_waterfall
 
 st.set_page_config(
     page_title="Industrial Waste Heat Recovery Planner",
@@ -23,7 +23,7 @@ st.title("🏭 Industrial Waste Heat Recovery & Exergy Optimization Engine")
 st.markdown(
     """
     Model thermodynamic First & Second Law exergy efficiency, Organic Rankine Cycle (ORC) power generation,
-    heat exchanger pinch-point constraints, and avoided Scope 1 & 2 carbon emissions.
+    heat exchanger pinch-point constraints, and avoided Scope 1 & 2 carbon src.carbon.emissions.
     """
 )
 

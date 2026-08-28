@@ -10,7 +10,7 @@ import os
 import tempfile
 import unittest
 
-import water_scarcity as ws
+import src.environment.water_scarcity as ws
 
 
 class TestRegions(unittest.TestCase):
@@ -426,7 +426,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database.
+    """Persistence, against a throwaway src.core.database.
 
     The module is pointed at its own file rather than sharing the suite's,
     which several other test modules delete and recreate as they go. Sharing

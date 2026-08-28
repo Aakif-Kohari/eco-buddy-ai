@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
-from supply_chain_data import SupplyChainDataGenerator
-from supply_chain_logic import SupplyChainLogic
+from src.business.supply_chain_data import SupplyChainDataGenerator
+from src.business.supply_chain_logic import SupplyChainLogic
 
 class TestSupplyChainLogic:
     

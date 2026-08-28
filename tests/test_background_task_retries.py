@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from background_tasks import (
+from src.core.background_tasks import (
     BackgroundTask,
     BackgroundTaskStore,
     PermanentTaskError,

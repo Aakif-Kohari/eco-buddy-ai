@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from styles.theme import apply_theme
-from toxicity_characterisation import (
+from src.carbon.toxicity_characterisation import (
     COMPARTMENTS,
     ECO_UNIT,
     HUMAN_UNIT,

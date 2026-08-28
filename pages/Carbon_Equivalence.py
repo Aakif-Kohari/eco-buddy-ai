@@ -1,8 +1,8 @@
 import streamlit as st
 import json
-from carbon_equivalence import translate_footprint, EQUIVALENCE_FACTORS
-from database import save_equivalence_preferences, get_equivalence_preferences
-from api_auth import get_current_user
+from src.carbon.carbon_equivalence import translate_footprint, EQUIVALENCE_FACTORS
+from src.core.database import save_equivalence_preferences, get_equivalence_preferences
+from src.core.api_auth import get_current_user
 
 st.set_page_config(page_title="Carbon Equivalence", page_icon="⚖️", layout="wide")
 

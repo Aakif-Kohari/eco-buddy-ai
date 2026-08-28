@@ -11,7 +11,7 @@ st.set_page_config(
 
 # Initialize the RAG engine in session state so we don't reload the model on every render
 if "rag_engine" not in st.session_state:
-    with st.spinner("Initializing AI and loading embedding models..."):
+    with st.spinner("Initializing AI and loading embedding src.notifications.models..."):
         # This will download the 80MB model on first run if not cached
         st.session_state.rag_engine = EcoRAGEngine()
 

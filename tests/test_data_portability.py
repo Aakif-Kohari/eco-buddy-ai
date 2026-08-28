@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from data_portability import (
+from src.data.data_portability import (
     EXPORT_SCHEMA_VERSION,
     create_import_preview,
     export_profile,

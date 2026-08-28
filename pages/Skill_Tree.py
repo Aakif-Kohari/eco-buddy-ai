@@ -1,9 +1,9 @@
 import streamlit as st
 from streamlit_agraph import agraph, Node, Edge, Config
 
-from skill_tree_data import SKILL_TREE_NODES
-from gamification import evaluate_skill_tree, complete_skill_node
-from database import get_total_xp
+from src.utils.skill_tree_data import SKILL_TREE_NODES
+from src.community.gamification import evaluate_skill_tree, complete_skill_node
+from src.core.database import get_total_xp
 from styles.theme import apply_theme
 
 apply_theme()

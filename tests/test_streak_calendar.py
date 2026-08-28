@@ -2,19 +2,19 @@ import pytest
 from datetime import date, timedelta
 from unittest.mock import patch, MagicMock
 
-import streak_calendar
+from src.community import streak_calendar
 
 def test_get_activity_intensity():
-    assert streak_calendar.get_activity_intensity(0) == 0
-    assert streak_calendar.get_activity_intensity(1) == 1
-    assert streak_calendar.get_activity_intensity(2) == 2
-    assert streak_calendar.get_activity_intensity(3) == 3
-    assert streak_calendar.get_activity_intensity(4) == 3
-    assert streak_calendar.get_activity_intensity(5) == 4
-    assert streak_calendar.get_activity_intensity(-1) == 0
+    assert src.community.streak_calendar.get_activity_intensity(0) == 0
+    assert src.community.streak_calendar.get_activity_intensity(1) == 1
+    assert src.community.streak_calendar.get_activity_intensity(2) == 2
+    assert src.community.streak_calendar.get_activity_intensity(3) == 3
+    assert src.community.streak_calendar.get_activity_intensity(4) == 3
+    assert src.community.streak_calendar.get_activity_intensity(5) == 4
+    assert src.community.streak_calendar.get_activity_intensity(-1) == 0
 
 def test_compute_streak_stats_empty():
-    current, longest, active = streak_calendar.compute_streak_stats({})
+    current, longest, active = src.community.streak_calendar.compute_streak_stats({})
     assert current == 0
     assert longest == 0
     assert active == 0
@@ -27,7 +27,7 @@ def test_compute_streak_stats_current_active():
         today - timedelta(days=2): {"total_actions": 1},
         today - timedelta(days=4): {"total_actions": 5},
     }
-    current, longest, active = streak_calendar.compute_streak_stats(data, current_date=today)
+    current, longest, active = src.community.streak_calendar.compute_streak_stats(data, current_date=today)
     assert current == 3
     assert longest == 3
     assert active == 4
@@ -40,7 +40,7 @@ def test_compute_streak_stats_yesterday_active_today_not():
         today - timedelta(days=4): {"total_actions": 5},
         today - timedelta(days=5): {"total_actions": 1},
     }
-    current, longest, active = streak_calendar.compute_streak_stats(data, current_date=today)
+    current, longest, active = src.community.streak_calendar.compute_streak_stats(data, current_date=today)
     # Today is not active, but yesterday was, so streak is still 2
     assert current == 2
     assert longest == 2
@@ -53,7 +53,7 @@ def test_compute_streak_stats_broken_streak():
         today - timedelta(days=3): {"total_actions": 1},
         today - timedelta(days=4): {"total_actions": 5},
     }
-    current, longest, active = streak_calendar.compute_streak_stats(data, current_date=today)
+    current, longest, active = src.community.streak_calendar.compute_streak_stats(data, current_date=today)
     # Neither today nor yesterday active => current streak 0
     assert current == 0
     assert longest == 3
@@ -66,12 +66,12 @@ def test_compute_streak_stats_ignore_zero_actions():
         today - timedelta(days=1): {"total_actions": 0},
         today - timedelta(days=2): {"total_actions": 1},
     }
-    current, longest, active = streak_calendar.compute_streak_stats(data, current_date=today)
+    current, longest, active = src.community.streak_calendar.compute_streak_stats(data, current_date=today)
     assert current == 1
     assert longest == 1
     assert active == 2
 
-@patch("streak_calendar.get_connection")
+@patch("src.community.streak_calendar.get_connection")
 def test_get_daily_activity_counts(mock_get_connection):
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -84,7 +84,7 @@ def test_get_daily_activity_counts(mock_get_connection):
         {"activity_date": "2023-05-11", "assessment_count": 0, "challenge_count": 1, "xp_earned": 0, "habit_count": 1}
     ]
 
-    result = streak_calendar.get_daily_activity_counts(user_id=1, year=2023)
+    result = src.community.streak_calendar.get_daily_activity_counts(user_id=1, year=2023)
     
     date1 = date(2023, 5, 10)
     date2 = date(2023, 5, 11)

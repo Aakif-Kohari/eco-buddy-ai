@@ -2,9 +2,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from database import get_waste_analytics_history, save_waste_log
-from units import format_quantity
-from waste_analytics import get_waste_stream_metadata, process_waste_log
+from src.core.database import get_waste_analytics_history, save_waste_log
+from src.utils.units import format_quantity
+from src.environment.waste_analytics import get_waste_stream_metadata, process_waste_log
 
 st.set_page_config(page_title="Waste Analytics", page_icon="♻️", layout="wide")
 

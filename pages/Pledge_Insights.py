@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 
-from pledge_impact_engine import (
+from src.community.pledge_impact_engine import (
     init_impact_tables,
     get_weekly_impacts,
     analyse_trend,
@@ -28,7 +28,7 @@ from pledge_impact_engine import (
     MILESTONE_DEFINITIONS,
     INSIGHT_CATEGORIES,
 )
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     current_week_start,
     current_week_end,
@@ -499,7 +499,7 @@ with tab_report:
         period = st.selectbox("Report Period", [4, 8, 12, 26], index=2, format_func=lambda x: f"{x} weeks")
     with col2:
         if st.button("🚀 Generate Report", use_container_width=True):
-            with st.spinner("Generating comprehensive impact report..."):
+            with st.spinner("Generating comprehensive impact src.reporting.report..."):
                 report = generate_full_report(user_id, period_weeks=period)
                 st.session_state["generated_report"] = report
 
@@ -507,26 +507,26 @@ with tab_report:
         report = st.session_state["generated_report"]
 
         st.divider()
-        st.markdown(f"#### 📊 Report Summary — {report.period_weeks}-Week Period")
+        st.markdown(f"#### 📊 Report Summary — {src.reporting.report.period_weeks}-Week Period")
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("🌍 CO₂ Saved", f"{report.total_co2_saved_kg:.1f} kg")
-        c2.metric("⭐ XP Earned", f"{report.total_xp}")
-        c3.metric("✅ Pledges", f"{report.total_pledges_completed}")
-        c4.metric("📅 Checkins", f"{report.total_checkins}")
+        c1.metric("🌍 CO₂ Saved", f"{src.reporting.report.total_co2_saved_kg:.1f} kg")
+        c2.metric("⭐ XP Earned", f"{src.reporting.report.total_xp}")
+        c3.metric("✅ Pledges", f"{src.reporting.report.total_pledges_completed}")
+        c4.metric("📅 Checkins", f"{src.reporting.report.total_checkins}")
 
-        st.metric("📊 Avg Weekly CO₂", f"{report.avg_weekly_co2_kg:.2f} kg")
+        st.metric("📊 Avg Weekly CO₂", f"{src.reporting.report.avg_weekly_co2_kg:.2f} kg")
 
         # Best/worst week
-        if report.best_week:
-            st.markdown(f"**Best week:** {report.best_week.week_start} — {report.best_week.co2_saved_kg:.1f} kg CO₂")
-        if report.worst_week:
-            st.markdown(f"**Worst week:** {report.worst_week.week_start} — {report.worst_week.co2_saved_kg:.1f} kg CO₂")
+        if src.reporting.report.best_week:
+            st.markdown(f"**Best week:** {src.reporting.report.best_week.week_start} — {src.reporting.report.best_week.co2_saved_kg:.1f} kg CO₂")
+        if src.reporting.report.worst_week:
+            st.markdown(f"**Worst week:** {src.reporting.report.worst_week.week_start} — {src.reporting.report.worst_week.co2_saved_kg:.1f} kg CO₂")
 
         # Weekly data table
-        if report.weekly_data:
+        if src.reporting.report.weekly_data:
             with st.expander("📅 Weekly Breakdown"):
-                active = [w for w in report.weekly_data if w.pledges_enrolled > 0]
+                active = [w for w in src.reporting.report.weekly_data if w.pledges_enrolled > 0]
                 if active:
                     df = pd.DataFrame([{
                         "Week": w.week_start,
@@ -540,9 +540,9 @@ with tab_report:
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
         # Milestones from report
-        if report.milestones:
-            achieved = [m for m in report.milestones if m.achieved]
-            st.markdown(f"#### 🏆 Milestones ({len(achieved)}/{len(report.milestones)})")
+        if src.reporting.report.milestones:
+            achieved = [m for m in src.reporting.report.milestones if m.achieved]
+            st.markdown(f"#### 🏆 Milestones ({len(achieved)}/{len(src.reporting.report.milestones)})")
 
         # Download
         st.divider()

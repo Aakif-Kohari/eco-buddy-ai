@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 from styles.theme import apply_theme
-from product_carbon_footprint import (
+from src.carbon.product_carbon_footprint import (
     PRODUCT_CATALOGUE,
     LIFECYCLE_STAGES,
     PACKAGING_FACTORS,

@@ -1,8 +1,8 @@
 import pytest
 import sqlite3
-import database
+from src.core import database
 from datetime import datetime
-from eco_pledge import (
+from src.community.eco_pledge import (
     create_pledge,
     support_pledge,
     get_public_pledges,
@@ -15,8 +15,8 @@ from eco_pledge import (
 def setup_test_db(monkeypatch, tmp_path):
     """Setup a temporary database for testing."""
     test_db = tmp_path / "test_eco_buddy.db"
-    monkeypatch.setattr("database.DB_NAME", str(test_db))
-    monkeypatch.setattr("eco_pledge.DB_NAME", str(test_db))
+    monkeypatch.setattr("src.core.database.DB_NAME", str(test_db))
+    monkeypatch.setattr("src.community.eco_pledge.DB_NAME", str(test_db))
     
     # Initialize basic tables needed for foreign keys
     with sqlite3.connect(str(test_db)) as conn:

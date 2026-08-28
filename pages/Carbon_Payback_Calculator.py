@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 from styles.theme import apply_theme
-from carbon_payback import (
+from src.carbon.carbon_payback import (
     PRESET_ECO_PRODUCTS,
     calculate_carbon_payback,
     calculate_preset_payback,

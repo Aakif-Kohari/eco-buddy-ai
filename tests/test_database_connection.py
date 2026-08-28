@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from database_connection import (
+from src.core.database_connection import (
     create_connection,
     database_connection,
     execute_with_retry,

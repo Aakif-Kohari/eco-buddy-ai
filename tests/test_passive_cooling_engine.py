@@ -2,14 +2,14 @@
 """
 
 import pytest
-from passive_cooling_types import (
+from src.energy.passive_cooling_types import (
     BuildingParameters,
     ClimateZone,
     InsulationLevel,
     ShadingStrategy,
     VentilationMode,
 )
-from passive_cooling_engine import PassiveCoolingEngine
+from src.energy.passive_cooling_engine import PassiveCoolingEngine
 
 
 @pytest.fixture

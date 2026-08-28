@@ -28,9 +28,9 @@ jobs:
       - name: Compile integrity checker
         run: |
           python -m py_compile \
-            database_integrity.py \
+            src/core/database_integrity.py \
             scripts/check_database.py \
-            test_database_integrity.py
+            tests/test_database_integrity.py
 
       - name: Run database integrity tests
-        run: python -m pytest test_database_integrity.py -v
+        run: python -m pytest tests/test_database_integrity.py -v

@@ -1,8 +1,8 @@
 import pytest
 
-from config import HOURS_PER_DAY
-from device_registry import get_all_devices, get_device_by_id
-from iot_simulator import calculate_iot_savings, simulate_iot_energy_stream
+from src.core.config import HOURS_PER_DAY
+from src.utils.device_registry import get_all_devices, get_device_by_id
+from src.utils.iot_simulator import calculate_iot_savings, simulate_iot_energy_stream
 
 
 def test_get_all_devices():

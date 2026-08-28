@@ -1,8 +1,8 @@
 import streamlit as st
 
-from bill_categorizer import categorize_bill, get_available_categories
-from database import save_scanned_receipt
-from receipt_parser import mock_ocr_extraction, parse_receipt_text
+from src.utils.bill_categorizer import categorize_bill, get_available_categories
+from src.core.database import save_scanned_receipt
+from src.utils.receipt_parser import mock_ocr_extraction, parse_receipt_text
 
 st.set_page_config(page_title="Smart Scan", page_icon="📸", layout="wide")
 

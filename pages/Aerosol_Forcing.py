@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from aerosol_forcing import (
+from src.carbon.aerosol_forcing import (
     DEPOSITION_REGIONS,
     HORIZONS,
     SOURCES,

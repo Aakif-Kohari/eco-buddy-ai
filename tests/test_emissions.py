@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from emissions import calculate_footprint, calculate_eco_score, fetch_emission_factors
+from src.carbon.emissions import calculate_footprint, calculate_eco_score, fetch_emission_factors
 
 class TestEmissions(unittest.TestCase):
     
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_calculate_footprint_fallback(self, mock_env_get):
         # Mock no API key to trigger fallback
         mock_env_get.return_value = None
@@ -32,7 +32,7 @@ class TestEmissions(unittest.TestCase):
         self.assertAlmostEqual(total, 6293.0, places=1)
 
     @patch("requests.post")
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_calculate_footprint_api_success(self, mock_env_get, mock_post):
         # Provide an API key
         mock_env_get.return_value = "dummy_key"
@@ -67,7 +67,7 @@ class TestEmissions(unittest.TestCase):
         self.assertAlmostEqual(contributors["Flights"], 600.0, places=1)
 
     @patch("requests.post")
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_calculate_footprint_api_failure(self, mock_env_get, mock_post):
         # Provide an API key
         mock_env_get.return_value = "dummy_key"
@@ -127,7 +127,7 @@ class TestEmissions(unittest.TestCase):
         with self.assertRaises(ValueError):
             calculate_footprint(transport="Car", distance=20, electricity=250, diet="Non-Vegetarian", flights="many")
 
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_calculate_footprint_return_audit(self, mock_env_get):
         mock_env_get.return_value = None
         fetch_emission_factors.clear()
@@ -152,7 +152,7 @@ class TestEmissions(unittest.TestCase):
         score2, audit2 = calculate_eco_score(3000, contributors, return_audit=True)
         self.assertIn("final_weighted_score", audit2)
 
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_generate_full_audit_log(self, mock_env_get):
         from emissions import generate_full_audit_log
         mock_env_get.return_value = None
@@ -163,7 +163,7 @@ class TestEmissions(unittest.TestCase):
         self.assertIn("eco_score_audit", audit_log)
         self.assertIn("summary", audit_log)
         
-    @patch("emissions.os.environ.get")
+    @patch("src.carbon.emissions.os.environ.get")
     def test_get_factor_version(self, mock_env_get):
         from emissions import get_factor_version
         mock_env_get.return_value = None
@@ -188,7 +188,7 @@ class TestEmissions(unittest.TestCase):
         self.assertEqual(calculate_budget_progress(1000, 1500), 1.0)
         self.assertEqual(calculate_budget_progress(0, 500), 0)
 
-    @patch("emissions.datetime")
+    @patch("src.carbon.emissions.datetime")
     def test_forecast_monthly_emission(self, mock_datetime):
         from emissions import forecast_monthly_emission
         import datetime

@@ -3,8 +3,8 @@ Unit tests for Noise Pollution Tracker and Green Space Health Impact.
 """
 
 import pytest
-from noise_pollution_tracker import NoisePollutionTracker
-from green_space_health_impact import GreenSpaceHealthImpact
+from src.utils.noise_pollution_tracker import NoisePollutionTracker
+from src.utils.green_space_health_impact import GreenSpaceHealthImpact
 
 
 def test_calculate_daily_exposure():

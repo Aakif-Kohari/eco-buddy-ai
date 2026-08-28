@@ -1,6 +1,6 @@
 from datetime import datetime,timedelta,timezone
 import json,pytest
-from sustainability_insights import *
+from src.utils.sustainability_insights import *
 N=datetime(2026,8,23,12,tzinfo=timezone.utc)
 def A(a=4000,b=3600):return [{"id":1,"date":(N-timedelta(days=30)).isoformat(),"footprint":a,"transport":"Car","distance":10000,"electricity":200,"diet":"Omnivore","flights":2},{"id":2,"date":N.isoformat(),"footprint":b,"transport":"Car","distance":9000,"electricity":180,"diet":"Omnivore","flights":1}]
 def C(*a,**k):return build_insight_context(*a,now=N,**k)

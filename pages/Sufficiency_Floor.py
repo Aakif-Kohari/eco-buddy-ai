@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from styles.theme import apply_theme
-from sufficiency_floor import (
+from src.utils.sufficiency_floor import (
     AGENCY_STATES,
     BARRIERS,
     BUILDING_EFFICIENCY,
@@ -93,7 +93,7 @@ with c1:
     hdd = st.number_input(
         "Heating degree days", min_value=0.0,
         value=float(REFERENCE_CONTEXT["heating_degree_days"]), step=100.0,
-        help="From degree_days.py, or your local climate normals.",
+        help="From src.energy.degree_days.py, or your local climate normals.",
         key="sx_hdd",
     )
     cdd = st.number_input(
@@ -252,7 +252,7 @@ with tab_corridor:
     st.markdown("### The space between your floor and your ceiling")
     st.caption(
         "The ceiling comes from the fair-share allocation in "
-        "`carbon_budget_equity.py`. This page supplies the floor. The gap "
+        "`src.carbon.carbon_budget_equity.py`. This page supplies the floor. The gap "
         "between them is where you actually operate — and sometimes there "
         "isn't one."
     )

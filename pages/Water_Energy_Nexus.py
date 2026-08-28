@@ -6,9 +6,9 @@ Streamlit page featuring an interactive dashboard showing the nexus breakdown an
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
-from water_energy_nexus import WaterEnergyNexus
-from greywater_simulator import GreywaterSimulator
-from database import save_water_energy_profile
+from src.energy.water_energy_nexus import WaterEnergyNexus
+from src.environment.greywater_simulator import GreywaterSimulator
+from src.core.database import save_water_energy_profile
 
 st.set_page_config(page_title="Water-Energy Nexus", page_icon="💧", layout="wide")
 

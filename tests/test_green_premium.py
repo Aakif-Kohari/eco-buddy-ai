@@ -3,8 +3,8 @@ Unit tests for Green Premium Calculator and Substitution ROI Engine.
 """
 
 import pytest
-from green_premium_calculator import GreenPremiumCalculator
-from substitution_roi_engine import SubstitutionROIEngine
+from src.utils.green_premium_calculator import GreenPremiumCalculator
+from src.utils.substitution_roi_engine import SubstitutionROIEngine
 
 
 def test_calculator_premium():

@@ -3,7 +3,7 @@ import datetime
 from datetime import timedelta
 import uuid
 
-from sustainability_roadmap import (
+from src.utils.sustainability_roadmap import (
     init_roadmap_db,
     generate_personalized_roadmap,
     get_active_roadmap_for_user,
@@ -82,7 +82,7 @@ def main():
         if not roadmap:
             st.info("You don't have an active roadmap yet.")
             if st.button("🌱 Generate My Personalized Roadmap", type="primary"):
-                with st.spinner("Analyzing your profile, habits, and goals..."):
+                with st.spinner("Analyzing your profile, habits, and src.utils.goals..."):
                     roadmap = generate_personalized_roadmap(user_id)
                 st.success("Roadmap generated successfully!")
                 st.rerun()

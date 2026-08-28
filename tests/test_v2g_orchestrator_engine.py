@@ -2,13 +2,13 @@
 """
 
 import pytest
-from v2g_orchestrator_types import (
+from src.utils.v2g_orchestrator_types import (
     FleetVehicleConfig,
     BatteryChemistry,
     ChargingTariffScheme,
     GridServiceMode,
 )
-from v2g_orchestrator_engine import V2GOrchestratorEngine
+from src.utils.v2g_orchestrator_engine import V2GOrchestratorEngine
 
 
 @pytest.fixture

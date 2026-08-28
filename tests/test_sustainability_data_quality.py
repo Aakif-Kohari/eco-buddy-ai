@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import pytest
 
-from sustainability_data_quality import (
+from src.data.sustainability_data_quality import (
     DEFAULT_FIELDS,
     FieldDefinition,
     IssueSeverity,
@@ -248,15 +248,15 @@ def test_field_coverage():
 
 def test_quality_report():
     report = build_quality_report(history(), now=NOW)
-    assert report.assessments_checked == 2
-    assert report.completeness_pct == 100
-    assert report.status == QualityStatus.COMPLETE
+    assert src.reporting.report.assessments_checked == 2
+    assert src.reporting.report.completeness_pct == 100
+    assert src.reporting.report.status == QualityStatus.COMPLETE
 
 
 def test_empty_report():
     report = build_quality_report([], now=NOW)
-    assert report.status == QualityStatus.EMPTY
-    assert report.assessments_checked == 0
+    assert src.reporting.report.status == QualityStatus.EMPTY
+    assert src.reporting.report.assessments_checked == 0
 
 
 def test_report_invalid_data():
@@ -264,7 +264,7 @@ def test_report_invalid_data():
         [valid_record(distance=None, electricity=None)],
         now=NOW,
     )
-    assert report.assessments_with_errors == 1
+    assert src.reporting.report.assessments_with_errors == 1
 
 
 def test_report_duplicates():
@@ -272,7 +272,7 @@ def test_report_duplicates():
         [valid_record(id=1), valid_record(id=1, footprint=3200)],
         now=NOW,
     )
-    assert "1" in report.duplicate_assessment_ids
+    assert "1" in src.reporting.report.duplicate_assessment_ids
 
 
 def test_report_stale():
@@ -281,7 +281,7 @@ def test_report_stale():
         stale_days=90,
         now=NOW,
     )
-    assert report.stale_assessment_count == 1
+    assert src.reporting.report.stale_assessment_count == 1
 
 
 def test_issue_counts():
@@ -289,7 +289,7 @@ def test_issue_counts():
         [valid_record(distance=None)],
         now=NOW,
     )
-    assert report.issue_counts
+    assert src.reporting.report.issue_counts
 
 
 def test_distribution():
@@ -330,7 +330,7 @@ def test_field_quality():
 
 def test_required_field_coverage():
     report = build_quality_report(history(), now=NOW)
-    assert all(v == 100 for v in report.field_coverage.values())
+    assert all(v == 100 for v in src.reporting.report.field_coverage.values())
 
 
 def test_readiness():
@@ -424,7 +424,7 @@ def test_custom_alias():
 
 def test_report_has_recommendations():
     report = build_quality_report([valid_record(distance=None)], now=NOW)
-    assert report.recommendations
+    assert src.reporting.report.recommendations
 
 
 def test_report_input_not_mutated():
@@ -480,7 +480,7 @@ def test_large_history():
         for i in range(1, 101)
     ]
     report = build_quality_report(records, now=NOW)
-    assert report.assessments_checked == 100
+    assert src.reporting.report.assessments_checked == 100
 
 
 def test_unknown_field_is_ignored_safely():
@@ -502,7 +502,7 @@ def test_future_date_does_not_crash_report():
         [valid_record(date=(NOW + timedelta(days=2)).isoformat())],
         now=NOW,
     )
-    assert report.assessments_checked == 1
+    assert src.reporting.report.assessments_checked == 1
 
 
 def test_json_roundtrip_is_valid():

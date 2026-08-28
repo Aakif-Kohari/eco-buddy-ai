@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import os
 from unittest.mock import patch
-from monthly_report_engine import (
+from src.reporting.monthly_report_engine import (
     aggregate_monthly_data,
     compute_monthly_trends,
     generate_actionable_insights,
@@ -10,7 +10,7 @@ from monthly_report_engine import (
 )
 
 def test_aggregate_monthly_data_empty():
-    with patch('monthly_report_engine._fetch_assessments_for_month', return_value=[]):
+    with patch('src.reporting.monthly_report_engine._fetch_assessments_for_month', return_value=[]):
         result = aggregate_monthly_data(1, 2026, 8)
         assert result["user_id"] == 1
         assert result["assessments_count"] == 0
@@ -21,7 +21,7 @@ def test_aggregate_monthly_data_with_data():
         {'id': 1, 'transport': 'car', 'distance': 100, 'electricity': 50, 'diet': 'average', 'flights': 0, 'footprint': 30, 'eco_score': 80, 'created_at': '2026-08-15 10:00:00'},
         {'id': 2, 'transport': 'bus', 'distance': 50, 'electricity': 30, 'diet': 'vegan', 'flights': 1, 'footprint': 150, 'eco_score': 60, 'created_at': '2026-08-20 10:00:00'}
     ]
-    with patch('monthly_report_engine._fetch_assessments_for_month', return_value=mock_data):
+    with patch('src.reporting.monthly_report_engine._fetch_assessments_for_month', return_value=mock_data):
         result = aggregate_monthly_data(1, 2026, 8)
         assert result["assessments_count"] == 2
         assert result["total_footprint_kg"] == 180.0

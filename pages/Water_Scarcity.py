@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from styles.theme import apply_theme
-from water_scarcity import (
+from src.environment.water_scarcity import (
     DEFAULT_REGION,
     MONTHS,
     WaterScarcityError,
@@ -264,7 +264,7 @@ if diet["lines"]:
     )
     st.plotly_chart(split_figure, use_container_width=True)
     st.caption(
-        "Sorted by blue water. Note how different this order is from the "
+        "Sorted by blue src.environment.water. Note how different this order is from the "
         "order by total height."
     )
 

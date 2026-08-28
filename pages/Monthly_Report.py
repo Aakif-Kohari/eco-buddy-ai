@@ -7,14 +7,14 @@ import tempfile
 import json
 from datetime import datetime
 
-from api_auth import get_current_user
-from monthly_report_engine import (
+from src.core.api_auth import get_current_user
+from src.reporting.monthly_report_engine import (
     aggregate_monthly_data,
     compute_monthly_trends,
     generate_actionable_insights,
     generate_monthly_pdf
 )
-from database_connection import database_connection
+from src.core.database_connection import database_connection
 
 st.set_page_config(page_title="Monthly Report", page_icon="📅", layout="wide")
 
@@ -44,7 +44,7 @@ def render_monthly_report():
 
     user = get_current_user()
     if not user:
-        st.warning("Please log in to view your monthly report.")
+        st.warning("Please log in to view your monthly src.reporting.report.")
         return
 
     user_id = user["id"]

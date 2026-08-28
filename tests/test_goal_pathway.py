@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from goal_pathway import (
+from src.utils.goal_pathway import (
     STATUS_ACHIEVED,
     STATUS_AHEAD,
     STATUS_AT_RISK,

@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Eco Journal", page_icon="📔", layout="wide")
 
-from eco_journal_service import (
+from src.utils.eco_journal_service import (
     write_entry, get_calendar_data, get_mood_trend, get_tag_cloud,
     get_streak, ECO_ACTION_PRESETS,
 )
-from eco_journal_db import get_entries, get_entry_by_date, get_journal_stats, get_random_prompt, MOOD_LABELS, ENERGY_LABELS
+from src.utils.eco_journal_db import get_entries, get_entry_by_date, get_journal_stats, get_random_prompt, MOOD_LABELS, ENERGY_LABELS
 
 user_id = st.session_state.get("user_id")
 if not user_id:

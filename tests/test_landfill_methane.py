@@ -18,7 +18,7 @@ import os
 import tempfile
 import unittest
 
-import landfill_methane as lm
+import src.environment.landfill_methane as lm
 
 
 HOUSEHOLD_MIX = {"food": 0.15, "garden": 0.10, "paper": 0.08, "cardboard": 0.05}
@@ -545,7 +545,7 @@ class TestSensitivity(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database."""
+    """Persistence, against a throwaway src.core.database."""
 
     def setUp(self):
         handle, self.path = tempfile.mkstemp(suffix=".db")

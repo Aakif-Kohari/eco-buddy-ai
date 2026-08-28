@@ -1,5 +1,5 @@
-from contamination_simulator import check_contamination, get_contamination_penalty
-from waste_analytics import process_waste_log
+from src.utils.contamination_simulator import check_contamination, get_contamination_penalty
+from src.environment.waste_analytics import process_waste_log
 
 
 def test_check_contamination_pizza_box():

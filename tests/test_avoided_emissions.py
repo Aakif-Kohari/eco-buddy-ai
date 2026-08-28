@@ -3,8 +3,8 @@ Unit tests for Avoided Emissions Tracker and Remote Work Calculator.
 """
 
 import pytest
-from avoided_emissions_tracker import AvoidedEmissionsTracker
-from remote_work_calculator import RemoteWorkCalculator
+from src.carbon.avoided_emissions_tracker import AvoidedEmissionsTracker
+from src.utils.remote_work_calculator import RemoteWorkCalculator
 
 
 def test_tracker_log_activity():

@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from nutrient_footprint import (
+from src.environment.nutrient_footprint import (
     BOUNDARY_N_PER_CAPITA,
     BOUNDARY_P_PER_CAPITA,
     APPLICATION_METHODS,
@@ -499,7 +499,7 @@ with tab_balance:
             returned = st.checkbox(
                 "Returned to my own soil", value=True, key="balance_returned",
                 help="Composted and sent away is still diversion from landfill. "
-                     "It is not recovery for this household.",
+                     "It is not recovery for this src.lifestyle.household.",
             )
 
         balance = household_nutrient_balance(

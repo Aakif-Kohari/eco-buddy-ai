@@ -10,7 +10,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-from pledge_story_engine import (
+from src.community.pledge_story_engine import (
     init_story_tables,
     generate_weekly_story,
     generate_milestone_story,
@@ -31,7 +31,7 @@ from pledge_story_engine import (
     journal_to_dict,
     STORY_THEMES,
 )
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     current_week_start,
     current_week_end,

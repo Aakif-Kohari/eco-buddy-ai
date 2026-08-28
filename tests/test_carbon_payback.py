@@ -1,5 +1,5 @@
 import pytest
-from carbon_payback import (
+from src.carbon.carbon_payback import (
     calculate_carbon_payback,
     calculate_preset_payback,
     compare_multiple_products,

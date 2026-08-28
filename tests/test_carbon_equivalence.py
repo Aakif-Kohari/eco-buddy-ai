@@ -3,12 +3,12 @@ import json
 import sqlite3
 from unittest.mock import patch
 
-from carbon_equivalence import (
+from src.carbon.carbon_equivalence import (
     translate_footprint,
     get_category_equivalences,
     EQUIVALENCE_FACTORS
 )
-from database import save_equivalence_preferences, get_equivalence_preferences
+from src.core.database import save_equivalence_preferences, get_equivalence_preferences
 
 def test_translate_footprint_positive():
     # 10 kg CO2
@@ -50,17 +50,17 @@ def test_get_category_equivalences_negative():
 
 @pytest.fixture
 def temp_db():
-    import database
+    from src.core import database
     import os
     import sqlite3
     import uuid
     test_db_path = f"test_carbon_eq_{uuid.uuid4().hex}.db"
     if os.path.exists(test_db_path):
         os.remove(test_db_path)
-    original_db = database.DB_NAME
-    database.DB_NAME = test_db_path
+    original_db = src.core.database.DB_NAME
+    src.core.database.DB_NAME = test_db_path
     
-    database.init_db()
+    src.core.database.init_db()
     
     # Force table creation just to be absolutely sure
     with sqlite3.connect(test_db_path) as conn:
@@ -75,7 +75,7 @@ def temp_db():
         conn.commit()
     
     yield
-    database.DB_NAME = original_db
+    src.core.database.DB_NAME = original_db
     
     import gc
     gc.collect()

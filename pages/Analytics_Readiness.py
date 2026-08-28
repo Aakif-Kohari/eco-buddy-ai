@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from analytics_readiness import (
+from src.utils.analytics_readiness import (
     DEFAULT_REQUIREMENTS, RELIABLE, LIMITED, INSUFFICIENT,
     build_readiness_report, category_matrix, confidence_label,
     explain_confidence, export_report, persist_report, readiness_matrix,
@@ -101,16 +101,16 @@ if st.button("Analyze evidence", type="primary", use_container_width=True):
 
 report = st.session_state.get("readiness_report")
 if report:
-    label = confidence_label(report.confidence)
+    label = confidence_label(src.reporting.report.confidence)
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Overall status", report.status.replace("_", " ").title())
-    c2.metric("Confidence", f"{report.confidence:.0%}", label)
-    c3.metric("Evidence records", report.summary["record_count"])
-    c4.metric("History span", f'{report.summary["history_span_days"]} days')
+    c1.metric("Overall status", src.reporting.report.status.replace("_", " ").title())
+    c2.metric("Confidence", f"{src.reporting.report.confidence:.0%}", label)
+    c3.metric("Evidence records", src.reporting.report.summary["record_count"])
+    c4.metric("History span", f'{src.reporting.report.summary["history_span_days"]} days')
 
-    if report.status == RELIABLE:
+    if src.reporting.report.status == RELIABLE:
         st.success("The evidence base is broadly ready for analytics.")
-    elif report.status == LIMITED:
+    elif src.reporting.report.status == LIMITED:
         st.warning("Analytics are possible, but the evidence has limitations.")
     else:
         st.error("The available evidence is insufficient for reliable analytics.")
@@ -132,8 +132,8 @@ if report:
         st.dataframe(categories, use_container_width=True, hide_index=True)
 
     st.subheader("Evidence issues")
-    if report.issues:
-        issue_df = pd.DataFrame([x.to_dict() for x in report.issues])
+    if src.reporting.report.issues:
+        issue_df = pd.DataFrame([x.to_dict() for x in src.reporting.report.issues])
         st.dataframe(issue_df, use_container_width=True, hide_index=True)
     else:
         st.success("No evidence-quality issues were detected.")

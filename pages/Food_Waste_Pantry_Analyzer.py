@@ -1,16 +1,16 @@
 """
 Streamlit Page: Eco-Food Waste & Smart Pantry Analyzer
-Multi-page section in EcoBuddy AI allowing users to track pantry inventory, prevent food spoilage, and reduce greenhouse gas emissions.
+Multi-page section in EcoBuddy AI allowing users to track pantry inventory, prevent food spoilage, and reduce greenhouse gas src.carbon.emissions.
 """
 
 import streamlit as st
 import pandas as pd
 from datetime import date
 
-from eco_food_waste_pantry_service import FoodWastePantryService
-from eco_food_waste_pantry_types import FoodCategory, StorageCondition
-from eco_food_waste_pantry_cards import render_pantry_summary_header, render_pantry_item_card
-from eco_food_waste_pantry_charts import build_spoilage_risk_donut_chart, build_food_category_co2_chart
+from src.environment.eco_food_waste_pantry_service import FoodWastePantryService
+from src.environment.eco_food_waste_pantry_types import FoodCategory, StorageCondition
+from src.environment.eco_food_waste_pantry_cards import render_pantry_summary_header, render_pantry_item_card
+from src.environment.eco_food_waste_pantry_charts import build_spoilage_risk_donut_chart, build_food_category_co2_chart
 
 st.set_page_config(
     page_title="Smart Pantry & Food Waste - EcoBuddy AI",
@@ -21,7 +21,7 @@ st.set_page_config(
 st.title("🥗 Smart Pantry & Food Waste Analyzer")
 st.markdown(
     "Track perishable food inventory, receive early spoilage warnings, "
-    "prevent unnecessary food waste, and eliminate wasted household carbon emissions."
+    "prevent unnecessary food waste, and eliminate wasted household carbon src.carbon.emissions."
 )
 
 service = FoodWastePantryService()
@@ -54,7 +54,7 @@ with tab_inventory:
 
     def handle_consumed(item_id: int):
         if service.mark_consumed(item_id):
-            st.success("😋 Item marked as consumed! Great job preventing waste.")
+            st.success("😋 Item marked as consumed! Great job preventing src.environment.waste.")
             st.rerun()
 
     def handle_wasted(item_id: int):

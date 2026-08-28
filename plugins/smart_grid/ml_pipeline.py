@@ -75,7 +75,7 @@ class GridMLPipeline:
     def train_models(self):
         """Trains the Random Forest regressors."""
         if not SKLEARN_AVAILABLE:
-            logger.error("scikit-learn is not installed. Cannot train ML models.")
+            logger.error("scikit-learn is not installed. Cannot train ML src.notifications.models.")
             return False
             
         X, y_solar, y_carbon = self.generate_synthetic_training_data()

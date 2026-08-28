@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from recommendations import generate_recommendations, generate_water_recommendations
+from src.ai.recommendations import generate_recommendations, generate_water_recommendations
 
 CONTRIBUTORS = {
     "Transport": 1533,

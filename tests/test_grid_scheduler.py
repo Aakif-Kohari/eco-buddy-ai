@@ -6,8 +6,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import grid_scheduler
-from grid_scheduler import (
+import src.energy.grid_scheduler
+from src.energy.grid_scheduler import (
     DEFAULT_DAYS_PER_YEAR,
     DEFAULT_GRID_PROFILE,
     DEFAULT_TARIFF,
@@ -44,10 +44,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = grid_scheduler.DB_NAME
-    grid_scheduler.DB_NAME = db_path
+    original = src.energy.grid_scheduler.DB_NAME
+    src.energy.grid_scheduler.DB_NAME = db_path
     yield db_path
-    grid_scheduler.DB_NAME = original
+    src.energy.grid_scheduler.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:

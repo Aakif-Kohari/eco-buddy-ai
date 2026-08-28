@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from datetime import date, timedelta
 import calendar
-import streak_calendar
+from src.community import streak_calendar
 
 st.set_page_config(page_title="Streak Calendar", layout="wide")
 
@@ -14,10 +14,10 @@ user_id = st.session_state.get("user_id", 1)
 current_year = date.today().year
 
 # Fetch data
-activity_data = streak_calendar.get_daily_activity_counts(user_id, current_year)
+activity_data = src.community.streak_calendar.get_daily_activity_counts(user_id, current_year)
 
 # Compute stats
-current_streak, longest_streak, active_days = streak_calendar.compute_streak_stats(activity_data)
+current_streak, longest_streak, active_days = src.community.streak_calendar.compute_streak_stats(activity_data)
 
 # Layout Stats
 st.subheader("Your Consistency")

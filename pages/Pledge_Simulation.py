@@ -13,7 +13,7 @@ import plotly.express as px
 import math
 from datetime import datetime
 
-from pledge_simulation import (
+from src.community.pledge_simulation import (
     init_simulation_tables,
     run_what_if,
     simulate_carbon_budget,
@@ -28,7 +28,7 @@ from pledge_simulation import (
     SEASONAL_FACTORS,
     SimulationType,
 )
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     get_all_templates,
     get_user_pledge_stats,

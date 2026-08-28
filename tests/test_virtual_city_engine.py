@@ -1,5 +1,5 @@
 import pytest
-from virtual_city_engine import VirtualCityEngine
+from src.utils.virtual_city_engine import VirtualCityEngine
 
 def test_unlocked_assets_thresholds():
     engine = VirtualCityEngine(user_id=1)
@@ -26,8 +26,8 @@ from unittest.mock import patch
 
 def test_update_city_state():
     # Mock the database calls
-    with patch("virtual_city_engine.get_virtual_city_state") as mock_get, \
-         patch("virtual_city_engine.save_virtual_city_state") as mock_save:
+    with patch("src.utils.virtual_city_engine.get_virtual_city_state") as mock_get, \
+         patch("src.utils.virtual_city_engine.save_virtual_city_state") as mock_save:
         
         # Setup mock return
         mock_get.return_value = {

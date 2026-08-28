@@ -10,7 +10,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from goal_feasibility import (
+from src.utils.goal_feasibility import (
     ACHIEVED,
     AT_RISK,
     FEASIBLE,
@@ -158,18 +158,18 @@ def _render_status(report):
         ACHIEVED: "success",
     }
     message = (
-        f"**{_status_label(report.overall_status)}** — "
-        f"overall feasibility score **{report.overall_score:.0f}/100**."
+        f"**{_status_label(src.reporting.report.overall_status)}** — "
+        f"overall feasibility score **{src.reporting.report.overall_score:.0f}/100**."
     )
-    getattr(st, colors.get(report.overall_status, "info"))(message)
+    getattr(st, colors.get(src.reporting.report.overall_status, "info"))(message)
 
 
 def _render_metrics(report):
-    feasible = sum(item.status in {FEASIBLE, ACHIEVED} for item in report.goals)
-    risky = sum(item.status == AT_RISK for item in report.goals)
-    blocked = sum(item.status == UNLIKELY for item in report.goals)
+    feasible = sum(item.status in {FEASIBLE, ACHIEVED} for item in src.reporting.report.goals)
+    risky = sum(item.status == AT_RISK for item in src.reporting.report.goals)
+    blocked = sum(item.status == UNLIKELY for item in src.reporting.report.goals)
     a, b, c, d = st.columns(4)
-    a.metric("Goals analyzed", len(report.goals))
+    a.metric("Goals analyzed", len(src.reporting.report.goals))
     b.metric("Feasible / achieved", feasible)
     c.metric("At risk", risky)
     d.metric("Unlikely", blocked)
@@ -188,7 +188,7 @@ def _render_goal_table(report):
             "Actions": f"{item.completed_supporting_actions}/{item.supporting_actions}",
             "Days remaining": item.time_remaining_days,
         }
-        for item in report.goals
+        for item in src.reporting.report.goals
     ]
     if rows:
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -198,7 +198,7 @@ def _render_goal_table(report):
 
 def _render_goal_details(report):
     st.subheader("Goal-by-goal feasibility")
-    for item in report.goals:
+    for item in src.reporting.report.goals:
         with st.expander(f"{item.title} · {_status_label(item.status)} · risk {item.risk_score:.0f}/100"):
             left, right = st.columns(2)
             left.metric("Baseline", f"{item.baseline_kg:,.0f} kg")
@@ -230,7 +230,7 @@ def _render_goal_details(report):
 
 def _render_conflicts(report):
     st.subheader("Goal conflicts and interactions")
-    if not report.conflicts:
+    if not src.reporting.report.conflicts:
         st.success("No goal conflicts were detected.")
         return
     rows = [
@@ -242,14 +242,14 @@ def _render_conflicts(report):
             "Explanation": conflict.explanation,
             "Suggested action": conflict.recommendation,
         }
-        for conflict in report.conflicts
+        for conflict in src.reporting.report.conflicts
     ]
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_dependency_table(report):
     st.subheader("Goal dependencies")
-    if not report.dependencies:
+    if not src.reporting.report.dependencies:
         st.info("No explicit goal dependencies are configured.")
         return
     rows = [
@@ -259,14 +259,14 @@ def _render_dependency_table(report):
             "Satisfied": "Yes" if item.satisfied else "No",
             "Reason": item.reason,
         }
-        for item in report.dependencies
+        for item in src.reporting.report.dependencies
     ]
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_combined_reduction(report):
     st.subheader("Combined reduction — double-counting check")
-    combined = report.metadata.get("combined_reduction", {})
+    combined = src.reporting.report.metadata.get("combined_reduction", {})
     rows = combined.get("categories", [])
     if rows:
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -282,7 +282,7 @@ def _render_combined_reduction(report):
 
 def _render_recommendations(report):
     st.subheader("Recommended corrections")
-    for recommendation in report.recommendations:
+    for recommendation in src.reporting.report.recommendations:
         st.write(f"• {recommendation}")
 
 
@@ -402,9 +402,9 @@ def main():
             except Exception as exc:
                 st.error(f"Could not save the snapshot: {exc}")
 
-    if report.metadata.get("validation_warnings"):
+    if src.reporting.report.metadata.get("validation_warnings"):
         with st.expander("Validation notes"):
-            for warning in report.metadata["validation_warnings"]:
+            for warning in src.reporting.report.metadata["validation_warnings"]:
                 st.write(f"- {warning}")
 
 

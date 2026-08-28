@@ -7,10 +7,10 @@ import json
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments
-from session_state_utils import ensure_session_state
+from src.core.database import get_assessments
+from src.core.session_state_utils import ensure_session_state
 from styles.theme import apply_theme
-from sustainability_trends import (
+from src.utils.sustainability_trends import (
     DEFAULT_MOVING_AVERAGE_WINDOW,
     available_periods,
     benchmark_label,

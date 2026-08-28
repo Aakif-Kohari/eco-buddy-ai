@@ -79,6 +79,8 @@ class APIClient:
             return self._handle_response(response)
         except requests.exceptions.Timeout:
             raise TimeoutError(f'Request timed out after {timeout} seconds')
+        except requests.exceptions.SSLError as e:
+            raise e
         except requests.exceptions.ConnectionError:
             raise ConnectionError('Failed to connect to the server')
         except requests.exceptions.RequestException as e:
@@ -97,6 +99,8 @@ class APIClient:
             return self._handle_response(response)
         except requests.exceptions.Timeout:
             raise TimeoutError(f'Request timed out after {timeout} seconds')
+        except requests.exceptions.SSLError as e:
+            raise e
         except requests.exceptions.ConnectionError:
             raise ConnectionError('Failed to connect to the server')
         except requests.exceptions.RequestException as e:
@@ -105,7 +109,7 @@ class APIClient:
 
 # Custom Exceptions
 class APIError(Exception):
-    """Base exception for API errors."""
+    """Base exception for API src.core.errors."""
     def __init__(self, message: str, status_code: Optional[int] = None, 
                  details: Optional[Dict] = None):
         self.message = message
@@ -145,7 +149,7 @@ class ServerError(APIError):
 
 
 class TimeoutError(APIError):
-    """Exception for timeout errors."""
+    """Exception for timeout src.core.errors."""
     pass
 
 
@@ -181,7 +185,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_400_validation_error(self, mock_get, client, mock_response):
-        """Test handling of 400 Bad Request errors."""
+        """Test handling of 400 Bad Request src.core.errors."""
         error_data = {
             "message": "Invalid email format",
             "details": {"field": "email", "error": "must be valid email"}
@@ -200,7 +204,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_401_authentication_error(self, mock_get, client, mock_response):
-        """Test handling of 401 Unauthorized errors."""
+        """Test handling of 401 Unauthorized src.core.errors."""
         mock_get.return_value = mock_response(status_code=401)
         
         with pytest.raises(AuthenticationError) as exc_info:
@@ -211,7 +215,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_403_permission_error(self, mock_get, client, mock_response):
-        """Test handling of 403 Forbidden errors."""
+        """Test handling of 403 Forbidden src.core.errors."""
         mock_get.return_value = mock_response(status_code=403)
         
         with pytest.raises(PermissionError) as exc_info:
@@ -222,7 +226,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_404_not_found_error(self, mock_get, client, mock_response):
-        """Test handling of 404 Not Found errors."""
+        """Test handling of 404 Not Found src.core.errors."""
         mock_get.return_value = mock_response(status_code=404)
         
         with pytest.raises(ResourceNotFoundError) as exc_info:
@@ -233,7 +237,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_429_rate_limit_error(self, mock_get, client, mock_response):
-        """Test handling of 429 Too Many Requests errors."""
+        """Test handling of 429 Too Many Requests src.core.errors."""
         mock_get.return_value = mock_response(status_code=429)
         
         with pytest.raises(RateLimitError) as exc_info:
@@ -278,7 +282,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_connection_error(self, mock_get, client):
-        """Test handling of connection errors."""
+        """Test handling of connection src.core.errors."""
         mock_get.side_effect = requests.exceptions.ConnectionError(
             "Failed to establish connection"
         )
@@ -290,7 +294,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.get')
     def test_ssl_error(self, mock_get, client):
-        """Test handling of SSL certificate errors."""
+        """Test handling of SSL certificate src.core.errors."""
         mock_get.side_effect = requests.exceptions.SSLError(
             "SSL certificate verification failed"
         )
@@ -314,7 +318,7 @@ class TestAPIErrorHandling:
     
     @patch('requests.Session.post')
     def test_post_validation_error(self, mock_post, client, mock_response):
-        """Test handling of POST request validation errors."""
+        """Test handling of POST request validation src.core.errors."""
         error_data = {"message": "Missing required fields"}
         mock_post.return_value = mock_response(status_code=400, json_data=error_data)
         

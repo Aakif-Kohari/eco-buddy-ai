@@ -17,7 +17,7 @@ import os
 import tempfile
 import unittest
 
-import lca_allocation as la
+import src.utils.lca_allocation as la
 
 
 class TestProcessTable(unittest.TestCase):
@@ -501,7 +501,7 @@ class TestRecyclingAllocation(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database."""
+    """Persistence, against a throwaway src.core.database."""
 
     def setUp(self):
         handle, self.path = tempfile.mkstemp(suffix=".db")

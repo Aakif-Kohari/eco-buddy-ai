@@ -11,7 +11,7 @@ import os
 import tempfile
 import unittest
 
-import climate_metrics as cm
+import src.environment.climate_metrics as cm
 
 
 class TestGasSplits(unittest.TestCase):
@@ -406,7 +406,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a throwaway database.
+    """Persistence, against a throwaway src.core.database.
 
     The module is pointed at its own file rather than sharing the suite's,
     which several other test modules delete and recreate as they go. Sharing

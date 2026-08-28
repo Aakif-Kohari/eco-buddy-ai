@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from eco_credits_ledger import mint_credits, get_balance, transfer_credits
-from database_connection import database_connection
+from src.utils.eco_credits_ledger import mint_credits, get_balance, transfer_credits
+from src.core.database_connection import database_connection
 import os
 import time
 import json

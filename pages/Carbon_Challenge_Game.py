@@ -4,8 +4,8 @@ Streamlit page featuring an immersive, text-and-choice-based interactive game in
 """
 
 import streamlit as st
-from scenario_challenge_engine import ScenarioChallengeEngine
-from database import save_challenge_result, get_challenge_history
+from src.community.scenario_challenge_engine import ScenarioChallengeEngine
+from src.core.database import save_challenge_result, get_challenge_history
 
 st.set_page_config(page_title="Carbon Challenge", page_icon="🎮", layout="centered")
 

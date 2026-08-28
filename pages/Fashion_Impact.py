@@ -10,7 +10,7 @@ st.set_page_config(
 
 st.title("👕 Sustainable Fashion & Textile Calculator")
 st.markdown("""
-Welcome to the Fashion Impact Calculator! The fashion industry is responsible for 10% of annual global carbon emissions and is a major consumer of water.
+Welcome to the Fashion Impact Calculator! The fashion industry is responsible for 10% of annual global carbon emissions and is a major consumer of src.environment.water.
 Use this tool to evaluate the true environmental cost of your clothing purchases.
 """)
 
@@ -88,7 +88,7 @@ with col2:
                 m2.metric("Water Footprint", f"{impact['total_water_liters']} Liters")
                 
                 # Context
-                st.info(f"That's equivalent to driving a gas car for **{round(impact['total_carbon_kg'] * 4)} km** and drinking **{round(impact['total_water_liters'] / 2)} days** worth of water.")
+                st.info(f"That's equivalent to driving a gas car for **{round(impact['total_carbon_kg'] * 4)} km** and drinking **{round(impact['total_water_liters'] / 2)} days** worth of src.environment.water.")
                 
                 # Yearly
                 st.markdown(f"**Amortized Carbon:** {impact['carbon_per_year_kg']} kg CO₂e / year based on a {lifespan}-year lifespan.")

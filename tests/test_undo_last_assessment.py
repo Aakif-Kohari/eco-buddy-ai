@@ -3,7 +3,7 @@ Unit tests for Undo & Restore Last Assessment (#441).
 """
 
 import pytest
-from database import (
+from src.core.database import (
     init_db,
     save_assessment,
     get_assessments,

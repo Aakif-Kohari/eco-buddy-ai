@@ -10,21 +10,21 @@ from datetime import datetime
 
 st.set_page_config(page_title="Carbon Budget Planner", page_icon="🎯", layout="wide")
 
-from carbon_budget_service import (
+from src.carbon.carbon_budget_service import (
     setup_budget, get_budget_summary, add_spending, quick_log,
     get_projection, get_category_suggestions, get_savings_tips,
 )
-from carbon_budget_cards import (
+from src.carbon.carbon_budget_cards import (
     inject_css, render_budget_overview_card, render_stat_grid,
     render_category_card, render_alert, render_suggestion_card,
     render_spending_log_form, render_budget_setup_form,
 )
-from carbon_budget_charts import (
+from src.carbon.carbon_budget_charts import (
     render_gauge_chart, render_category_bar_chart, render_daily_trend,
     render_projection_chart, render_history_line, render_pie_chart,
     render_co2_equivalence,
 )
-from carbon_budget_db import (
+from src.carbon.carbon_budget_db import (
     seed_default_categories, ACTIVITY_CO2_DATABASE, get_unread_alerts,
     mark_alert_read, get_budget_history, get_spending_logs,
 )
@@ -40,7 +40,7 @@ st.markdown("""
 <div style="text-align:center;padding:20px 0 12px;background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(59,130,246,0.04));border-radius:16px;margin-bottom:20px;">
     <span style="font-size:36px;">🎯</span>
     <h1 style="margin:6px 0 2px;font-size:28px;font-weight:900;">Carbon Budget Planner</h1>
-    <p style="color:#6b7280;font-size:14px;">Set limits, track spending, and stay on track with your carbon goals.</p>
+    <p style="color:#6b7280;font-size:14px;">Set limits, track spending, and stay on track with your carbon src.utils.goals.</p>
 </div>""", unsafe_allow_html=True)
 
 categories = seed_default_categories()

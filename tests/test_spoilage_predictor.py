@@ -4,8 +4,8 @@ Unit tests for Spoilage Predictor and Waste Prevention Engine.
 
 import pytest
 from datetime import datetime, timedelta
-from spoilage_predictor import SpoilagePredictor
-from waste_prevention_engine import WastePreventionEngine
+from src.utils.spoilage_predictor import SpoilagePredictor
+from src.environment.waste_prevention_engine import WastePreventionEngine
 
 
 def test_get_base_shelf_life():

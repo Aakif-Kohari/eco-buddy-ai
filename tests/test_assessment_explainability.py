@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from assessment_explainability import (
+from src.utils.assessment_explainability import (
     SOURCE_UNAVAILABLE,
     AssessmentAudit,
     CalculationStep,
@@ -21,7 +21,7 @@ from assessment_explainability import (
     trace_factor,
     trace_input,
 )
-from emission_factors import DEFAULT_VERSION, get_factor_set
+from src.carbon.emission_factors import DEFAULT_VERSION, get_factor_set
 
 
 def assessment(**overrides):

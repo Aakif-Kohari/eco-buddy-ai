@@ -20,7 +20,7 @@ import os
 import tempfile
 import unittest
 
-import nutrient_footprint as nf
+import src.environment.nutrient_footprint as nf
 
 
 class TestFoodFactorTable(unittest.TestCase):
@@ -483,7 +483,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestPersistence(unittest.TestCase):
-    """Scenario storage, against a throwaway database."""
+    """Scenario storage, against a throwaway src.core.database."""
 
     def setUp(self):
         handle, self.path = tempfile.mkstemp(suffix=".db")

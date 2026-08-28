@@ -3,26 +3,26 @@ Unit tests for Relocation Impact Analyzer and City Environmental DB.
 """
 
 import pytest
-from relocation_impact_analyzer import RelocationImpactAnalyzer
-from city_environmental_db import CityEnvironmentalDB
+from src.utils.relocation_impact_analyzer import RelocationImpactAnalyzer
+from src.utils.city_environmental_db import CityEnvironmentalDB
 
 
 def test_city_db_retrieval():
     db = CityEnvironmentalDB()
-    profile = db.get_city_profile("new_york")
+    profile = src.notifications.db.get_city_profile("new_york")
     assert profile is not None
     assert profile["name"] == "New York, USA"
     assert profile["grid_intensity"] == 0.28
 
     # Test case insensitivity and spacing
-    profile_mixed = db.get_city_profile("San Francisco")
+    profile_mixed = src.notifications.db.get_city_profile("San Francisco")
     assert profile_mixed is not None
     assert profile_mixed["name"] == "San Francisco, USA"
 
 
 def test_city_db_missing():
     db = CityEnvironmentalDB()
-    assert db.get_city_profile("unknown_city_xyz") is None
+    assert src.notifications.db.get_city_profile("unknown_city_xyz") is None
 
 
 def test_relocation_analyzer_valid_cities():

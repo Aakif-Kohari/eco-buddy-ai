@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from boundary_reconciliation import (
+from src.utils.boundary_reconciliation import (
     DEFAULT_CONFIDENCE,
     DEFAULT_FRAME,
     FRAMES,

@@ -1,5 +1,5 @@
 import pytest
-import energy_audit as ea
+import src.energy.energy_audit as ea
 
 def test_calculate_appliance_energy():
     # 1000W, 4 hours active, 5W standby, quantity 1

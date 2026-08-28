@@ -7,7 +7,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from action_interactions import (
+from src.utils.action_interactions import (
     analyze_action_set,
     action_statuses,
     estimate_sequential_path,
@@ -136,21 +136,21 @@ def _render_report(report: Any, actions: list[dict[str, Any]]) -> None:
     by_id = {str(a.get("id")): a for a in actions}
     cols = st.columns(4)
     with cols[0]:
-        _render_impact("Independent estimate", report.independent_impact)
+        _render_impact("Independent estimate", src.reporting.report.independent_impact)
     with cols[1]:
-        _render_impact("Interaction-adjusted", report.combined_impact)
+        _render_impact("Interaction-adjusted", src.reporting.report.combined_impact)
     with cols[2]:
-        st.metric("Blocked actions", len(report.blocked_action_ids))
+        st.metric("Blocked actions", len(src.reporting.report.blocked_action_ids))
     with cols[3]:
-        st.metric("Interactions", len(report.interactions))
+        st.metric("Interactions", len(src.reporting.report.interactions))
 
-    if report.warnings:
-        for warning in report.warnings:
+    if src.reporting.report.warnings:
+        for warning in src.reporting.report.warnings:
             st.warning(warning)
 
     st.subheader("Recommended execution order")
     order_rows = []
-    for position, action_id in enumerate(report.execution_order, 1):
+    for position, action_id in enumerate(src.reporting.report.execution_order, 1):
         action = by_id.get(action_id, {})
         order_rows.append({"Step": position, "Action": action.get("name", action_id), "ID": action_id})
     if order_rows:
@@ -158,10 +158,10 @@ def _render_report(report: Any, actions: list[dict[str, Any]]) -> None:
     else:
         st.info("No actions are selected.")
 
-    if report.blocked_action_ids:
+    if src.reporting.report.blocked_action_ids:
         st.subheader("Prerequisites still needed")
         blocked_rows = []
-        for finding in report.dependencies:
+        for finding in src.reporting.report.dependencies:
             if not finding.satisfied:
                 blocked_rows.append(
                     {
@@ -173,10 +173,10 @@ def _render_report(report: Any, actions: list[dict[str, Any]]) -> None:
         if blocked_rows:
             st.dataframe(pd.DataFrame(blocked_rows), use_container_width=True, hide_index=True)
 
-    if report.conflicts:
+    if src.reporting.report.conflicts:
         st.subheader("Conflicting actions")
         conflict_rows = []
-        for conflict in report.conflicts:
+        for conflict in src.reporting.report.conflicts:
             conflict_rows.append(
                 {
                     "Action A": by_id.get(conflict.first_id, {}).get("name", conflict.first_id),
@@ -189,7 +189,7 @@ def _render_report(report: Any, actions: list[dict[str, Any]]) -> None:
 
     st.subheader("Impact interactions")
     interaction_rows = []
-    for item in report.interactions:
+    for item in src.reporting.report.interactions:
         interaction_rows.append(
             {
                 "Action A": by_id.get(item.first_id, {}).get("name", item.first_id),
@@ -208,13 +208,13 @@ def _render_report(report: Any, actions: list[dict[str, Any]]) -> None:
     st.subheader("Diminishing-return factors")
     dim_rows = [
         {"Action": by_id.get(action_id, {}).get("name", action_id), "Factor": factor}
-        for action_id, factor in report.diminishing_returns.items()
+        for action_id, factor in src.reporting.report.diminishing_returns.items()
     ]
     if dim_rows:
         st.dataframe(pd.DataFrame(dim_rows), use_container_width=True, hide_index=True)
 
     st.subheader("Why the result looks this way")
-    for explanation in report.explanations:
+    for explanation in src.reporting.report.explanations:
         st.markdown(f"- {explanation}")
 
 
@@ -274,7 +274,7 @@ def main() -> None:
     st.caption("Select alternatives together if you want the analyzer to surface conflicts. Select prerequisites with dependents to see the execution sequence.")
 
     if not selected:
-        st.warning("Select at least one action to generate an interaction report.")
+        st.warning("Select at least one action to generate an interaction src.reporting.report.")
         return
 
     report = analyze_action_set(selected, actions, completed_ids=completed)

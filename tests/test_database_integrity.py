@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from database_integrity import (
+from src.core.database_integrity import (
     EXPECTED_INDEXES,
     EXPECTED_TABLES,
     discover_migrations,
@@ -93,11 +93,11 @@ def test_valid_database_passes(tmp_path, migration_directory):
     )
     connection.close()
 
-    assert report.is_valid
-    assert report.errors == []
-    assert report.actual_version == CURRENT_VERSION
-    assert report.integrity_check == "ok"
-    assert report.foreign_key_violations == 0
+    assert src.reporting.report.is_valid
+    assert src.reporting.report.errors == []
+    assert src.reporting.report.actual_version == CURRENT_VERSION
+    assert src.reporting.report.integrity_check == "ok"
+    assert src.reporting.report.foreign_key_violations == 0
 
 
 def test_missing_table_is_reported(tmp_path, migration_directory):
@@ -112,7 +112,7 @@ def test_missing_table_is_reported(tmp_path, migration_directory):
     )
     connection.close()
 
-    assert "Missing table: environmental_milestones" in report.errors
+    assert "Missing table: environmental_milestones" in src.reporting.report.errors
 
 
 def test_missing_column_is_reported(tmp_path, migration_directory):
@@ -140,7 +140,7 @@ def test_missing_column_is_reported(tmp_path, migration_directory):
 
     assert (
         "Missing column: users.anonymous_leaderboard"
-        in report.errors
+        in src.reporting.report.errors
     )
 
 
@@ -176,7 +176,7 @@ def test_column_type_mismatch_is_reported(
         error.startswith(
             "Column type mismatch: market_state.price_per_tonne"
         )
-        for error in report.errors
+        for error in src.reporting.report.errors
     )
 
 
@@ -194,7 +194,7 @@ def test_missing_index_is_reported(tmp_path, migration_directory):
 
     assert (
         "Missing index: idx_assessments_factor_version"
-        in report.errors
+        in src.reporting.report.errors
     )
 
 
@@ -216,7 +216,7 @@ def test_outdated_schema_version_is_reported(
 
     assert any(
         error.startswith("Schema version mismatch:")
-        for error in report.errors
+        for error in src.reporting.report.errors
     )
 
 
@@ -244,10 +244,10 @@ def test_foreign_key_violation_is_reported(
     )
     connection.close()
 
-    assert report.foreign_key_violations == 1
+    assert src.reporting.report.foreign_key_violations == 1
     assert any(
         error.startswith("Foreign-key violation:")
-        for error in report.errors
+        for error in src.reporting.report.errors
     )
 
 
@@ -315,7 +315,7 @@ def test_read_only_inspection_does_not_modify_database(
     )
 
     after = database_path.read_bytes()
-    assert report.is_valid
+    assert src.reporting.report.is_valid
     assert after == before
 
 

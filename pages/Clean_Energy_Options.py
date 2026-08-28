@@ -46,7 +46,7 @@ ENERGY_DATA = {
     },
 
     "💧 Hydropower": {
-        "description": "Electricity generated from flowing or falling water.",
+        "description": "Electricity generated from flowing or falling src.environment.water.",
         "renewable": "Yes",
         "emissions": "Low",
         "cost": "High",

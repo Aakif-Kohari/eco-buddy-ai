@@ -1,5 +1,5 @@
 """
-Tests for llm_parser.py - LLM-based natural language parsing.
+Tests for src.ai.llm_parser.py - LLM-based natural language parsing.
 
 Tests:
 1. parse_quick_log - Parses natural language input to structured JSON
@@ -12,8 +12,8 @@ import pytest
 import json
 import time
 from unittest.mock import patch, MagicMock
-from llm_parser import parse_quick_log, LLM_COOLDOWN_SECONDS, _check_rate_limit
-from errors import ConfigurationError, RateLimitError, ExternalServiceError, ParsingError
+from src.ai.llm_parser import parse_quick_log, LLM_COOLDOWN_SECONDS, _check_rate_limit
+from src.core.errors import ConfigurationError, RateLimitError, ExternalServiceError, ParsingError
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +21,7 @@ def setup_test_environment(monkeypatch):
     """Autouse fixture to set dummy API keys and bypass rate limiting in unit tests."""
     monkeypatch.setenv("GEMINI_API_KEY", "dummy_gemini_key")
     monkeypatch.setenv("GROQ_API_KEY", "dummy_groq_key")
-    with patch('llm_parser._check_rate_limit', return_value=True):
+    with patch('src.ai.llm_parser._check_rate_limit', return_value=True):
         yield
 
 
@@ -32,7 +32,7 @@ class TestParseQuickLog:
         """Test parsing natural language with car transport."""
         text = "I drove 25 km today"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
@@ -44,7 +44,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -56,7 +56,7 @@ class TestParseQuickLog:
         """Test parsing natural language with bike transport."""
         text = "Biked 10km for lunch"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
@@ -68,7 +68,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -78,7 +78,7 @@ class TestParseQuickLog:
         """Test that miles are converted to kilometers."""
         text = "Drove 10 miles to work"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             # The LLM should return km value (10 miles = 16.0934 km)
@@ -91,7 +91,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -101,7 +101,7 @@ class TestParseQuickLog:
         """Test that default values are used when not specified."""
         text = "Just some shopping"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             # Response doesn't specify transport, so defaults should apply
@@ -114,7 +114,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -126,7 +126,7 @@ class TestParseQuickLog:
         """Test fallback to Groq API when Gemini fails."""
         text = "Drove 15 km"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             # First call (Gemini) fails
             mock_gemini_error = MagicMock()
             mock_gemini_error.status_code = 500
@@ -147,7 +147,7 @@ class TestParseQuickLog:
             calls = [mock_gemini_error, mock_groq_success]
             mock_post.side_effect = calls
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -157,14 +157,14 @@ class TestParseQuickLog:
         """Test that a clear ExternalServiceError is raised when every provider fails."""
         text = "Just walked around"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             # All API calls fail
             mock_error = MagicMock()
             mock_error.status_code = 500
             mock_error.text = "API Error"
             mock_post.return_value = mock_error
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 with pytest.raises(ExternalServiceError) as exc_info:
                     parse_quick_log(text)
 
@@ -179,7 +179,7 @@ class TestParseQuickLog:
         """Test handling of invalid JSON response."""
         text = "Test input"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             # Return invalid JSON
@@ -192,7 +192,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 with pytest.raises(ParsingError) as exc_info:
                     parse_quick_log(text)
 
@@ -203,7 +203,7 @@ class TestParseQuickLog:
         """Test parsing empty text input."""
         text = ""
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
@@ -215,7 +215,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -224,7 +224,7 @@ class TestParseQuickLog:
         """Test parsing with non-vegetarian diet specified."""
         text = "Had a burger for lunch, drove 5km"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
@@ -236,7 +236,7 @@ class TestParseQuickLog:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -254,14 +254,14 @@ class TestInvalidInputs:
     ])
     def test_invalid_input_raises_parsing_error(self, invalid_input):
         """Invalid input should raise a validation/parsing error."""
-        with patch('llm_parser.st.session_state', {}):
+        with patch('src.ai.llm_parser.st.session_state', {}):
             with pytest.raises(ParsingError):
                 parse_quick_log(invalid_input)
 
     def test_invalid_input_does_not_call_api(self):
         """Invalid input should be rejected before calling an external API."""
-        with patch('llm_parser.requests.post') as mock_post:
-            with patch('llm_parser.st.session_state', {}):
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 with pytest.raises(ParsingError):
                     parse_quick_log("")
 
@@ -279,7 +279,7 @@ class TestParseQuickLogErrorMessages:
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
         monkeypatch.delenv("GROQ_API_KEY", raising=False)
 
-        with patch('llm_parser.st.session_state', {}):
+        with patch('src.ai.llm_parser.st.session_state', {}):
             with pytest.raises(ConfigurationError) as exc_info:
                 parse_quick_log("I drove 5 km")
 
@@ -290,8 +290,8 @@ class TestParseQuickLogErrorMessages:
     def test_rate_limited_raises_rate_limit_error(self):
         """When every configured provider is on cooldown, the error should
         say so explicitly instead of behaving like an unexplained failure."""
-        with patch('llm_parser._check_rate_limit', return_value=False):
-            with patch('llm_parser.st.session_state', {}):
+        with patch('src.ai.llm_parser._check_rate_limit', return_value=False):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 with pytest.raises(RateLimitError) as exc_info:
                     parse_quick_log("I drove 5 km")
 
@@ -301,7 +301,7 @@ class TestParseQuickLogErrorMessages:
         """A 200 response that doesn't contain the fields the app needs
         should be reported as a parsing problem, not silently accepted or
         turned into a generic failure."""
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             # Valid JSON, but missing the required "diet" key.
@@ -314,7 +314,7 @@ class TestParseQuickLogErrorMessages:
             }
             mock_post.return_value = mock_response
 
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 with pytest.raises(ParsingError) as exc_info:
                     parse_quick_log("I drove 5 km")
 
@@ -330,14 +330,14 @@ class TestRateLimiting:
     def test_rate_limit_cooldown(self):
         """Test that rate limiting enforces cooldown period."""
         mock_state = {}
-        with patch('llm_parser.st.session_state', mock_state):
+        with patch('src.ai.llm_parser.st.session_state', mock_state):
             assert _check_rate_limit("test_provider") is True
             assert _check_rate_limit("test_provider") is False
 
     def test_rate_limit_allows_after_cooldown(self):
         """Test that rate limit resets after cooldown period."""
         mock_state = {"_llm_last_call_test_provider": time.time() - LLM_COOLDOWN_SECONDS - 1}
-        with patch('llm_parser.st.session_state', mock_state):
+        with patch('src.ai.llm_parser.st.session_state', mock_state):
             assert _check_rate_limit("test_provider") is True
 
 
@@ -348,7 +348,7 @@ class TestEdgeCases:
         """Test parsing when multiple transport modes are mentioned."""
         text = "Started with bike, then took public transport"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             # Return the first mentioned transport
@@ -361,7 +361,7 @@ class TestEdgeCases:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None
@@ -370,7 +370,7 @@ class TestEdgeCases:
         """Test parsing with explicit diet information."""
         text = "Ate vegan food, drove 20km"
         
-        with patch('llm_parser.requests.post') as mock_post:
+        with patch('src.ai.llm_parser.requests.post') as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = {
@@ -382,7 +382,7 @@ class TestEdgeCases:
             }
             mock_post.return_value = mock_response
             
-            with patch('llm_parser.st.session_state', {}):
+            with patch('src.ai.llm_parser.st.session_state', {}):
                 result = parse_quick_log(text)
             
             assert result is not None

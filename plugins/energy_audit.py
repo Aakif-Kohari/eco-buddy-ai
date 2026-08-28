@@ -1,5 +1,5 @@
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-import energy_audit as ea
+import src.energy.energy_audit as ea
 
 
 class EnergyAuditPlugin(CalculatorPlugin):

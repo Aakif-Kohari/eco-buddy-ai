@@ -7,8 +7,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import device_lifecycle
-from device_lifecycle import (
+import src.utils.device_lifecycle
+from src.utils.device_lifecycle import (
     DEFAULT_EFFICIENCY_GAIN,
     DEFAULT_GRID_INTENSITY,
     DEVICE_CONDITIONS,
@@ -42,12 +42,12 @@ def temp_db():
     """Throwaway database and a frozen 'today' so age maths is deterministic."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original_db = device_lifecycle.DB_NAME
-    device_lifecycle.DB_NAME = db_path
-    device_lifecycle.TODAY_OVERRIDE = FIXED_TODAY
+    original_db = src.utils.device_lifecycle.DB_NAME
+    src.utils.device_lifecycle.DB_NAME = db_path
+    src.utils.device_lifecycle.TODAY_OVERRIDE = FIXED_TODAY
     yield db_path
-    device_lifecycle.DB_NAME = original_db
-    device_lifecycle.TODAY_OVERRIDE = None
+    src.utils.device_lifecycle.DB_NAME = original_db
+    src.utils.device_lifecycle.TODAY_OVERRIDE = None
     try:
         os.unlink(db_path)
     except OSError:

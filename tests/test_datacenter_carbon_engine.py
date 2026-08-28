@@ -2,13 +2,13 @@
 """
 
 import pytest
-from datacenter_carbon_types import (
+from src.carbon.datacenter_carbon_types import (
     AIWorkloadParameters,
     GPUModel,
     CloudRegion,
     CoolingTechnology,
 )
-from datacenter_carbon_engine import DataCenterCarbonEngine
+from src.carbon.datacenter_carbon_engine import DataCenterCarbonEngine
 
 
 @pytest.fixture

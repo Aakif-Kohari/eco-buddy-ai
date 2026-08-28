@@ -14,7 +14,7 @@ import os
 import tempfile
 import unittest
 
-import boundary_reconciliation as br
+import src.utils.boundary_reconciliation as br
 
 
 def bill(kg=1200.0, **kwargs):
@@ -463,7 +463,7 @@ class TestInsights(unittest.TestCase):
 
 
 class TestStorage(unittest.TestCase):
-    """Persistence, against a temporary database."""
+    """Persistence, against a temporary src.core.database."""
 
     @classmethod
     def setUpClass(cls):

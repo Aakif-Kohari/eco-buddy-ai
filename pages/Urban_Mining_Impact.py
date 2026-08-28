@@ -6,9 +6,9 @@ Streamlit page where users can log old devices, view their "recovery value" scor
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from urban_mining_calculator import UrbanMiningCalculator
-from critical_mineral_db import CriticalMineralDB
-from database import save_urban_mining_inventory, get_urban_mining_history
+from src.utils.urban_mining_calculator import UrbanMiningCalculator
+from src.utils.critical_mineral_db import CriticalMineralDB
+from src.core.database import save_urban_mining_inventory, get_urban_mining_history
 
 st.set_page_config(page_title="Urban Mining Impact", page_icon="⛏️", layout="wide")
 
@@ -19,7 +19,7 @@ st.markdown(
 
 calculator = UrbanMiningCalculator()
 db = CriticalMineralDB()
-devices = db.get_all_devices()
+devices = src.notifications.db.get_all_devices()
 
 # --- Input Section ---
 st.subheader("📱 Log Your End-of-Life Devices")
@@ -29,7 +29,7 @@ with col1:
     selected_device = st.selectbox(
         "Device Type",
         options=devices,
-        format_func=lambda x: db.get_device_display_name(x),
+        format_func=lambda x: src.notifications.db.get_device_display_name(x),
     )
 with col2:
     quantity = st.number_input("Quantity", min_value=1, step=1, value=1)
@@ -38,7 +38,7 @@ with col3:
     st.write("")  # Spacer
     if st.button("➕ Add to Inventory"):
         calculator.add_device(selected_device, quantity)
-        st.success(f"Added {quantity}x {db.get_device_display_name(selected_device)}")
+        st.success(f"Added {quantity}x {src.notifications.db.get_device_display_name(selected_device)}")
         st.rerun()
 
 # Display current inventory

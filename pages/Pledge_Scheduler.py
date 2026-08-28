@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 
-from pledge_habit_engine import (
+from src.community.pledge_habit_engine import (
     init_habit_tables,
     build_habit_profiles,
     generate_nudges,
@@ -33,7 +33,7 @@ from pledge_habit_engine import (
     DIFFICULTY_LABELS,
     ComboStrategy,
 )
-from green_pledge_tracker import (
+from src.utils.green_pledge_tracker import (
     init_pledge_tables,
     current_week_start,
     current_week_end,

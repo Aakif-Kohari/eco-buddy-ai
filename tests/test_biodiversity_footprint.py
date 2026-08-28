@@ -24,7 +24,7 @@ import os
 import tempfile
 import unittest
 
-import biodiversity_footprint as bf
+import src.environment.biodiversity_footprint as bf
 
 
 class TestLandUseClasses(unittest.TestCase):

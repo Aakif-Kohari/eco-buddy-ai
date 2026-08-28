@@ -6,9 +6,9 @@ Streamlit page featuring a banking dashboard, historical balance charts, and int
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from carbon_banking_engine import CarbonBankingEngine
-from intertemporal_trading import IntertemporalTrading
-from database import save_carbon_banking_action, get_carbon_banking_history
+from src.carbon.carbon_banking_engine import CarbonBankingEngine
+from src.utils.intertemporal_trading import IntertemporalTrading
+from src.core.database import save_carbon_banking_action, get_carbon_banking_history
 
 st.set_page_config(page_title="Carbon Banking", page_icon="🏦", layout="wide")
 

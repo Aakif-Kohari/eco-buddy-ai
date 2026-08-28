@@ -6,10 +6,10 @@ Multi-page section in EcoBuddy AI allowing users to explore verified carbon proj
 import streamlit as st
 import pandas as pd
 
-from eco_marketplace_offsets_service import EcoMarketplaceOffsetsService
-from eco_marketplace_offsets_types import OffsetProjectType, OffsetCertificationStandard
-from eco_marketplace_offsets_cards import render_portfolio_header, render_offset_project_card
-from eco_marketplace_offsets_charts import build_offset_project_type_chart, build_portfolio_spending_chart
+from src.carbon.eco_marketplace_offsets_service import EcoMarketplaceOffsetsService
+from src.carbon.eco_marketplace_offsets_types import OffsetProjectType, OffsetCertificationStandard
+from src.carbon.eco_marketplace_offsets_cards import render_portfolio_header, render_offset_project_card
+from src.carbon.eco_marketplace_offsets_charts import build_offset_project_type_chart, build_portfolio_spending_chart
 
 st.set_page_config(
     page_title="Carbon Offsets Marketplace - EcoBuddy AI",

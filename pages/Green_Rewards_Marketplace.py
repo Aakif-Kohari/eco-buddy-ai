@@ -10,19 +10,19 @@ from datetime import datetime
 
 st.set_page_config(page_title="Green Rewards Marketplace", page_icon="🪙", layout="wide")
 
-from green_rewards_service import (
+from src.community.green_rewards_service import (
     earn_points, redeem_reward, get_user_dashboard, get_category_rewards,
     LEVEL_CONFIG, DAILY_ACTIONS,
 )
-from green_rewards_cards import (
+from src.community.green_rewards_cards import (
     inject_css, render_points_display, render_reward_card,
     render_daily_action, render_transaction_row, render_leaderboard_row,
 )
-from green_rewards_charts import (
+from src.community.green_rewards_charts import (
     render_points_history_chart, render_level_progress_gauge,
     render_category_bar, render_category_donut, render_leaderboard_chart,
 )
-from green_rewards_db import get_leaderboard
+from src.community.green_rewards_db import get_leaderboard
 
 inject_css()
 

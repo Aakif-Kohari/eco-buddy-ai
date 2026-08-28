@@ -3,9 +3,9 @@ Extended test suite for advanced environmental benchmarking features.
 """
 import unittest
 import math
-from environmental_benchmarking.advanced_math import DataNormalizer, TrendForecaster
-from environmental_benchmarking.recommendations import RecommendationEngine
-from environmental_benchmarking.models import CategoryComparison
+from src.environmental_benchmarking.advanced_math import DataNormalizer, TrendForecaster
+from src.environmental_benchmarking.recommendations import RecommendationEngine
+from src.environmental_benchmarking.models import CategoryComparison
 
 class TestDataNormalizer(unittest.TestCase):
     

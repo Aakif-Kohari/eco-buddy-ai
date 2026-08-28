@@ -1,6 +1,6 @@
 """What a household's consumption displaces, in species rather than in carbon.
 
-`local_biodiversity.py` says what lives near you. This page says what your
+`src.environment.local_biodiversity.py` says what lives near you. This page says what your
 consumption displaces elsewhere, through the land it occupies and the land it
 converts — the largest driver of terrestrial biodiversity loss, and the one the
 rest of the app has no representation of.
@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from biodiversity_footprint import (
+from src.environment.biodiversity_footprint import (
     AMORTISATION_OPTIONS,
     DEFAULT_AMORTISATION_YEARS,
     LAND_USE_CLASSES,

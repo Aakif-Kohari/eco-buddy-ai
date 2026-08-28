@@ -7,8 +7,8 @@ import pytest
 
 os.environ["ECO_BUDDY_DB"] = ":memory:"
 
-import footprint_uncertainty
-from footprint_uncertainty import (
+import src.utils.footprint_uncertainty
+from src.utils.footprint_uncertainty import (
     ACTIVITY_QUALITY,
     DEFAULT_ITERATIONS,
     DEFAULT_SEED,
@@ -45,10 +45,10 @@ def temp_db():
     """Point the module at a throwaway SQLite file for each test."""
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as handle:
         db_path = handle.name
-    original = footprint_uncertainty.DB_NAME
-    footprint_uncertainty.DB_NAME = db_path
+    original = src.utils.footprint_uncertainty.DB_NAME
+    src.utils.footprint_uncertainty.DB_NAME = db_path
     yield db_path
-    footprint_uncertainty.DB_NAME = original
+    src.utils.footprint_uncertainty.DB_NAME = original
     try:
         os.unlink(db_path)
     except OSError:
@@ -300,8 +300,8 @@ def test_propagation_requires_components():
 def test_iteration_count_is_clamped_to_a_sane_range():
     low = propagate(sample_components(), iterations=1)
     high = propagate(sample_components(), iterations=10 ** 9)
-    assert low["iterations"] == footprint_uncertainty.MIN_ITERATIONS
-    assert high["iterations"] == footprint_uncertainty.MAX_ITERATIONS
+    assert low["iterations"] == src.utils.footprint_uncertainty.MIN_ITERATIONS
+    assert high["iterations"] == src.utils.footprint_uncertainty.MAX_ITERATIONS
 
 
 def test_junk_iteration_counts_fall_back_to_the_default():

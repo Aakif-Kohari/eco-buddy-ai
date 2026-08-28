@@ -3,8 +3,8 @@ Unit tests for Water-Energy Nexus and Greywater Simulator.
 """
 
 import pytest
-from water_energy_nexus import WaterEnergyNexus
-from greywater_simulator import GreywaterSimulator
+from src.energy.water_energy_nexus import WaterEnergyNexus
+from src.environment.greywater_simulator import GreywaterSimulator
 
 
 def test_calculate_heating_energy():

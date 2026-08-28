@@ -6,10 +6,10 @@ Multi-page section enabling users to build sustainable habits, maintain daily st
 import streamlit as st
 import pandas as pd
 
-from eco_habit_streak_service import EcoHabitStreakService
-from eco_habit_streak_types import HabitCategory, HabitFrequency
-from eco_habit_streak_cards import render_streak_summary_header, render_habit_streak_card
-from eco_habit_streak_charts import build_habit_streak_bar_chart, build_habit_category_co2_chart
+from src.lifestyle.eco_habit_streak_service import EcoHabitStreakService
+from src.lifestyle.eco_habit_streak_types import HabitCategory, HabitFrequency
+from src.lifestyle.eco_habit_streak_cards import render_streak_summary_header, render_habit_streak_card
+from src.lifestyle.eco_habit_streak_charts import build_habit_streak_bar_chart, build_habit_category_co2_chart
 
 st.set_page_config(
     page_title="Eco-Habit Streak Tracker - EcoBuddy AI",

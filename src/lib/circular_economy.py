@@ -1,7 +1,7 @@
 """
 Smart Circular Economy & Upcycling Exchange Engine for EcoBuddy AI
 Provides item lifecycle tracking, circularity scoring, material value retention,
-and smart repair/upcycling recommendations.
+and smart repair/upcycling src.ai.recommendations.
 """
 
 from typing import Dict, List, Any, Optional
