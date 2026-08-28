@@ -84,7 +84,7 @@ def check_coverage_gates(
     # Check critical modules
     files = coverage_data.get("files", {})
     for file_path, file_data in files.items():
-        stem = Path(file_path).stem
+        stem = Path(file_path).stem.split(".")[-1]
         if stem in module_thresholds:
             req_thresh = module_thresholds[stem]
             module_cov = file_data.get("summary", {}).get("percent_covered", 0.0)
