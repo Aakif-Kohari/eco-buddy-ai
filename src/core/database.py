@@ -114,6 +114,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS aviation_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        distance_km REAL,
+                        cabin_class TEXT,
+                        has_layover BOOLEAN,
+                        total_emissions_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS carbon_banking_actions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8514,6 +8525,26 @@ def get_assessments_for_anomaly_detection(user_id: str) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [{"date": row[0], "carbon_kg": row[1]} for row in rows if row[1] is not None]
+
+def save_aviation_plan(distance_km: float, cabin_class: str, has_layover: bool, total_emissions_kg: float) -> None:
+    """Saves an aviation flight plan analysis to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO aviation_plans (distance_km, cabin_class, has_layover, total_emissions_kg)
+        VALUES (?, ?, ?, ?)
+    """, (distance_km, cabin_class, has_layover, total_emissions_kg))
+    conn.commit()
+    conn.close()
+
+def get_aviation_history() -> list:
+    """Retrieves historical aviation plan analyses."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT distance_km, cabin_class, has_layover, total_emissions_kg, timestamp FROM aviation_plans ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_alert_resolution(user_id: str, alert_date: str, carbon_kg: float) -> None:
     """Logs the resolution of a carbon anomaly alert."""
