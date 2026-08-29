@@ -71,8 +71,15 @@ else:
     m2.metric("Reconstructed trace", f"{audit.trace.total_result:.2f} kg" if audit.methodology_available else "Unavailable")
 m3.metric("Eco score", str(audit.stored_eco_score) if audit.stored_eco_score is not None else "Unavailable")
 m4.metric("Factor version", audit.factor_version or "Unavailable")
-st.subheader("📊 Category Contributions")
-if audit.contributions:
+
+if snapshot and snapshot.get("uncertainty_percent"):
+    st.caption(
+        f"📊 **Uncertainty Range:** {snapshot['uncertainty_range']['low_kg']:.2f}–"
+        f"{snapshot['uncertainty_range']['high_kg']:.2f} kg CO₂ "
+        f"(±{snapshot['uncertainty_percent']:.0f}%)"
+    )
+
+st.subheader("📊 Category Contributions")if audit.contributions:
     contribution_df = pd.DataFrame([
         {"Category": c.category, "kg CO2e": c.result, "% of trace": c.percentage, "Rank": c.rank}
         for c in audit.contributions
@@ -81,7 +88,23 @@ if audit.contributions:
     st.dataframe(contribution_df, use_container_width=True, hide_index=True)
 else:
     st.warning("Category contributions cannot be reconstructed because the historical methodology is unavailable.")
-
+if snapshot and snapshot.get("category_bounds"):
+    st.subheader("🔍 Uncertainty by Category")
+    uncertainty_df = pd.DataFrame([
+        {
+            "Category": cat.title(),
+            "Central (kg)": bounds["central_kg"],
+            "Range (kg)": bounds["range_kg"],
+            "Low": bounds["low_kg"],
+            "High": bounds["high_kg"],
+        }
+        for cat, bounds in snapshot["category_bounds"].items()
+    ])
+    st.dataframe(uncertainty_df, use_container_width=True, hide_index=True)
+    st.caption(
+        "The 'Range' column shows the width of the uncertainty interval for each category. "
+        "Larger ranges indicate higher uncertainty in that input or factor set."
+    )
 st.subheader("🧾 Inputs Used")
 input_df = pd.DataFrame([
     {"Input": "Transport", "Value": audit.inputs.get("transport"), "Unit": "mode"},
