@@ -102,6 +102,16 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS event_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        guest_count INTEGER,
+                        catering_type TEXT,
+                        total_emissions_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS anomaly_alerts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8646,4 +8656,24 @@ def save_alert_resolution(user_id: str, alert_date: str, carbon_kg: float) -> No
     """, (user_id, alert_date, carbon_kg))
     conn.commit()
     conn.close()
+
+def save_event_plan(guest_count: int, catering_type: str, total_emissions_kg: float) -> None:
+    """Saves an event footprint calculation to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO event_plans (guest_count, catering_type, total_emissions_kg)
+        VALUES (?, ?, ?)
+    """, (guest_count, catering_type, total_emissions_kg))
+    conn.commit()
+    conn.close()
+
+def get_event_history() -> list:
+    """Retrieves historical event plans."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT guest_count, catering_type, total_emissions_kg, timestamp FROM event_plans ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
