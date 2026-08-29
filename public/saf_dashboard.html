@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<!--
+  Enterprise Architectural Specification & Header:
+  Module: Enterprise Sustainable Aviation Fuel (SAF) Production & Lifecycle Analytics Suite (UI Tier)
+  Architecture: Micro-frontend HTML5 Real-Time Decarbonization Command Station
+  Compliance & Standards: ASTM D7566 Standard Specification for Aviation Turbine Fuel Containing Synthesized Hydrocarbons, ICAO CORSIA SAF Lifecycle Methodology, EU ReFuelEU Aviation Directive
+  Security: Content Security Policy (CSP), Zero Inline Script Execution, Strict Input Sanitation
+  Design Token Specification: Dark Mode Cyber-Aero Spectrum (Background: #0B132B, Glass Surface: rgba(28, 37, 65, 0.65), Neon Accents: #3A86FF / #00F5D4)
+  
+  System Purpose:
+  Provides enterprise-grade real-time telemetry and lifecycle assessment (LCA) for Sustainable Aviation Fuel (SAF) refinery pathways including HEFA (Hydroprocessed Esters and Fatty Acids), PtL (Power-to-Liquid e-SAF), AtJ (Alcohol-to-Jet), and Gasification FT. Tracks jet fuel blend limits, carbon intensity (gCO2e/MJ), feedstock traceability, and CORSIA compliance.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enterprise Sustainable Aviation Fuel (SAF) Production & Lifecycle Analytics Suite for real-time HEFA/PtL refining telemetry and CORSIA carbon intensity accounting.">
+  <title>Enterprise SAF Telemetry & Refinement Analytics Suite</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/saf_dashboard.css">
+</head>
+<body class="dark-theme">
+  <!-- Header & Control Bar -->
+  <header class="app-header" id="app-header-saf">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.2c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1 id="main-dashboard-heading">AERO-SAF ENTERPRISE</h1>
+        <span class="sub-title">Sustainable Aviation Fuel Refinement & CORSIA Hub v7.0</span>
+      </div>
+    </div>
+    
+    <div class="header-controls">
+      <div class="status-badge live" id="system-status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text" id="status-label">ASTM D7566 BLEND COMPLIANT</span>
+      </div>
+      <div class="facility-selector-wrapper">
+        <label for="saf-select" class="visually-hidden">Select SAF Biorefinery</label>
+        <select id="saf-select" class="styled-select" aria-label="Select SAF Plant">
+          <option value="SAF-HEFA-01">Rotterdam Bio-Refinery Alpha (HEFA-SPK 500kt/yr)</option>
+          <option value="SAF-PTL-02">Nordic Power-to-Liquid e-SAF Hub (PtL 150kt/yr)</option>
+          <option value="SAF-ATJ-03">Midwest Ethanol-to-Jet Plant (AtJ-SPK 250kt/yr)</option>
+          <option value="SAF-FT-04">Texas Municipal Solid Waste FT-SPK Biorefinery</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-trigger-refresh" aria-label="Sync Telemetry Stream">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Sync Telemetry
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Dashboard Layout -->
+  <main class="dashboard-container" id="dashboard-main-view">
+    <!-- Key Performance Indicators Row -->
+    <section class="kpi-grid" aria-label="Key SAF Production Metrics">
+      <div class="kpi-card glass-panel" id="kpi-card-saf-output">
+        <div class="kpi-icon aero-blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Daily Neat SAF Production</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-saf-output">1,420</span>
+            <span class="kpi-unit">tonnes / day</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-saf-output">▲ +5.2% UCO Feedstock Flow</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-carbon-intensity">
+        <div class="kpi-icon emerald-green">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">SAF Carbon Intensity (CI)</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-ci">18.4</span>
+            <span class="kpi-unit">gCO₂e/MJ</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-ci">▼ 79.3% Reduction vs Jet-A1</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-blend-ratio">
+        <div class="kpi-icon cyan-bright">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M16 12l-4-4-4 4M12 8v8"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Certified Blend Ratio</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-blend">48.5</span>
+            <span class="kpi-unit">% (Max 50% ASTM)</span>
+          </div>
+          <span class="kpi-trend neutral" id="kpi-trend-blend">● ASTM D7566 Passed</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-corsia-credits">
+        <div class="kpi-icon gold-aviation">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">ICAO CORSIA Abatement</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-abatement">3,618</span>
+            <span class="kpi-unit">tCO₂e / day</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-abatement">✔ Verified CORSIA Credit</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Analytics Module Grid -->
+    <div class="analytics-grid">
+      <!-- Hydroprocessing & Decarbonization Hydro-Treater Panel -->
+      <article class="panel glass-panel" id="saf-refinery-panel">
+        <div class="panel-header">
+          <h2>HEFA/PtL Hydroprocessing Reactor Matrix</h2>
+          <div class="panel-actions">
+            <button class="btn-icon" id="btn-toggle-reactors" title="Toggle Reactor View">⚙</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="reactor-status-list" id="reactor-container">
+            <!-- Dynamically Populated Reactor Cards -->
+            <div class="reactor-card" id="reactor-stage-1">
+              <div class="reactor-header">
+                <span class="reactor-title">Stage 1: Hydrodeoxygenation (HDO)</span>
+                <span class="badge badge-success">ONLINE</span>
+              </div>
+              <div class="reactor-metrics">
+                <div class="metric-item">
+                  <span class="label">Reactor Pressure:</span>
+                  <span class="value" id="reactor-1-press">85.4 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Bed Temp (Avg):</span>
+                  <span class="value" id="reactor-1-temp">365.2 °C</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">H₂ Consumption:</span>
+                  <span class="value" id="reactor-1-h2">3.8 wt%</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Deoxygenation Yield:</span>
+                  <span class="value" id="reactor-1-yield">99.8 %</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">NiMo/CoMo Catalyst Activity & Life</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 88%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="reactor-card" id="reactor-stage-2">
+              <div class="reactor-header">
+                <span class="reactor-title">Stage 2: Hydroisomerization & Dewaxing</span>
+                <span class="badge badge-success">ONLINE</span>
+              </div>
+              <div class="reactor-metrics">
+                <div class="metric-item">
+                  <span class="label">Reactor Pressure:</span>
+                  <span class="value" id="reactor-2-press">62.0 bar</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Bed Temp (Avg):</span>
+                  <span class="value" id="reactor-2-temp">340.8 °C</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Freeze Point:</span>
+                  <span class="value" id="reactor-2-freeze">-48.5 °C</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Selectivity to SPK:</span>
+                  <span class="value" id="reactor-2-selectivity">82.4 %</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">Pt-Zeolite Catalyst Life</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 93%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Lifecycle Assessment (LCA) & CORSIA CI Simulator -->
+      <article class="panel glass-panel" id="saf-lca-panel">
+        <div class="panel-header">
+          <h2>ICAO CORSIA Carbon Intensity (CI) Simulator</h2>
+          <span class="tag">ASTM D7566 / CORSIA</span>
+        </div>
+        <div class="panel-body">
+          <form id="saf-sim-form" class="sim-form" onsubmit="return false;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-feedstock-type">Feedstock Pathway</label>
+                <select id="input-feedstock-type" class="styled-select">
+                  <option value="UCO">Used Cooking Oil (HEFA-UCO)</option>
+                  <option value="TALLOW">Tallow Category 3 (HEFA-Tallow)</option>
+                  <option value="PTL_EPOWER">Power-to-Liquid e-SAF (PtL)</option>
+                  <option value="ETHANOL">Corn Stover Ethanol (AtJ-SPK)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="input-hydrogen-source">Hydroprocessing H₂ Source</label>
+                <select id="input-hydrogen-source" class="styled-select">
+                  <option value="GREEN">Green Electrolysis H₂ (0 gCO₂e/MJ)</option>
+                  <option value="BLUE">SMR H₂ with CCUS (25 gCO₂e/MJ)</option>
+                  <option value="GREY">Unabated SMR H₂ (95 gCO₂e/MJ)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-annual-production">Neat SAF Volume (tonnes/year)</label>
+                <input type="number" id="input-annual-production" class="styled-input" value="500000" min="10000" max="2000000" step="10000">
+              </div>
+              <div class="form-group">
+                <label for="input-blend-pct">Target Fuel Blend Percentage (%)</label>
+                <input type="number" id="input-blend-pct" class="styled-input" value="50.0" min="1.0" max="50.0" step="1.0">
+              </div>
+            </div>
+
+            <div class="sim-action-bar">
+              <button type="button" class="btn btn-primary" id="btn-run-saf-sim">Calculate CI & Decarbonization</button>
+              <button type="button" class="btn btn-outline" id="btn-reset-saf">Reset Parameters</button>
+            </div>
+          </form>
+
+          <div class="simulation-results-box" id="saf-results-output">
+            <h3>CORSIA Lifecycle Telemetry</h3>
+            <div class="results-grid">
+              <div class="res-item">
+                <span class="res-label">Net Carbon Intensity:</span>
+                <span class="res-val positive" id="res-net-ci">18.4 gCO₂e/MJ</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">GHG Reduction vs Jet-A1:</span>
+                <span class="res-val positive" id="res-ghg-reduction">79.3 %</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Annual Aviation CO₂ Abatement:</span>
+                <span class="res-val highlight" id="res-annual-abatement">1,320,500 tCO₂e</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">CORSIA Compliance Status:</span>
+                <span class="res-val positive" id="res-corsia-status">PASSED (ELIGIBLE)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Feedstock Traceability & ASTM Fuel Property Matrix -->
+    <section class="panel glass-panel full-width" id="saf-property-panel">
+      <div class="panel-header">
+        <h2>ASTM D7566 / D1655 Synthetic Kerosene Property Matrix</h2>
+        <div class="filter-group">
+          <input type="text" id="table-search-saf" class="styled-input search-input" placeholder="Search parameters (e.g. Density, Freeze Point)...">
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-responsive">
+          <table class="data-table" id="saf-property-table">
+            <thead>
+              <tr>
+                <th>Fuel Property / Parameter</th>
+                <th>ASTM D7566 Limit</th>
+                <th>Measured Neat SPK</th>
+                <th>Measured 50% Blend</th>
+                <th>Testing Method</th>
+                <th>Certification Status</th>
+              </tr>
+            </thead>
+            <tbody id="saf-table-body">
+              <tr>
+                <td>Density at 15 °C (kg/m³)</td>
+                <td>775.0 - 840.0</td>
+                <td>758.2 kg/m³</td>
+                <td>798.5 kg/m³</td>
+                <td>ASTM D4052</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Freeze Point (°C)</td>
+                <td>&lt; -40.0 °C</td>
+                <td>-48.5 °C</td>
+                <td>-46.2 °C</td>
+                <td>ASTM D5972</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Flash Point (°C)</td>
+                <td>&gt; 38.0 °C</td>
+                <td>42.5 °C</td>
+                <td>41.0 °C</td>
+                <td>ASTM D3828</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Aromatics Content (vol %)</td>
+                <td>8.0 - 25.0 (in Blend)</td>
+                <td>0.2 % (Neat)</td>
+                <td>11.4 % (Blend)</td>
+                <td>ASTM D1319</td>
+                <td><span class="badge badge-success">COMPLIANT</span></td>
+              </tr>
+              <tr>
+                <td>Net Heat of Combustion (MJ/kg)</td>
+                <td>&gt; 42.8 MJ/kg</td>
+                <td>44.1 MJ/kg</td>
+                <td>43.5 MJ/kg</td>
+                <td>ASTM D4809</td>
+                <td><span class="badge badge-success">OPTIMAL</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Enterprise Footer -->
+  <footer class="app-footer" id="app-footer-saf">
+    <div class="footer-content">
+      <p>&copy; 2026 Eco-Buddy-AI Enterprise Suite. ASTM D7566 SAF Telemetry Standard.</p>
+      <div class="footer-links">
+        <span class="footer-tag">Security Class: Enterprise Restricted</span>
+        <span class="footer-tag">Engine Version: v7.0.1-SAF</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script Integration -->
+  <script src="../src/services/saf_lifecycle_engine.js"></script>
+</body>
+</html>

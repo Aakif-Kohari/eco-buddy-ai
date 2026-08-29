@@ -10,15 +10,15 @@ import sys
 import json
 from typing import Optional, List, Dict, Any
 
-from emissions import calculate_footprint, calculate_eco_score
-from recommendations import generate_recommendations
-from water import (
+from src.carbon.emissions import calculate_footprint, calculate_eco_score
+from src.ai.recommendations import generate_recommendations
+from src.environment.water import (
     calculate_water_footprint,
     calculate_water_efficiency_score,
     calculate_potential_water_savings
 )
-from meal_planner import build_meal, INGREDIENTS
-from units import convert, format_quantity
+from src.lifestyle.meal_planner import build_meal, INGREDIENTS
+from src.utils.units import convert, format_quantity
 
 
 

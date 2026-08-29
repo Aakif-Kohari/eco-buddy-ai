@@ -40,7 +40,6 @@ CHALLENGE_CATEGORIES = {
 # ---------------------------------------------------------------------------
 
 def _generate_mock_challenges() -> list[dict[str, Any]]:
-    """Generate mock active and upcoming challenges."""
     challenges = [
         {"id": "CH-001", "title": "🚶 Walk or Bike to Work Week", "category": "Transport", "description": "Use zero-emission transport for your commute for 5 consecutive days.",
          "points": 150, "duration": "7 days", "difficulty": "Medium", "participants": 342, "target": 5,
@@ -54,7 +53,7 @@ def _generate_mock_challenges() -> list[dict[str, Any]]:
         {"id": "CH-004", "title": "💧 Water Conservation Quest", "category": "Water", "description": "Keep daily water usage under 100 liters for 7 days.",
          "points": 120, "duration": "7 days", "difficulty": "Easy", "participants": 523, "target": 7,
          "icon": "💧", "started": "2026-08-27", "ends": "2026-09-03", "status": "active"},
-        {"id": "CH-005", "title": "♻️ Plastic-Free July (Extended)", "category": "Waste", "description": "Go 30 days without single-use plastic. Track every avoided item.",
+        {"id": "CH-005", "title": "♻️ Plastic-Free July (Extended)", "category": "Waste", "description": "Go 30 days without single-use plastic.",
          "points": 500, "duration": "30 days", "difficulty": "Expert", "participants": 98, "target": 30,
          "icon": "♻️", "started": "2026-08-01", "ends": "2026-08-31", "status": "active"},
         {"id": "CH-006", "title": "🌳 Plant a Tree Weekend", "category": "Nature", "description": "Plant at least one tree or help with community tree planting.",
@@ -71,10 +70,8 @@ def _generate_mock_challenges() -> list[dict[str, Any]]:
 
 
 def _generate_mock_leaderboard() -> list[dict[str, Any]]:
-    """Generate mock leaderboard data."""
     import random
     random.seed(42)
-
     users = [
         {"name": "EcoWarrior99", "avatar": "🦸", "city": "Portland"},
         {"name": "GreenMachine", "avatar": "🤖", "city": "Seattle"},
@@ -92,26 +89,18 @@ def _generate_mock_leaderboard() -> list[dict[str, Any]]:
         {"name": "CarbonCutter", "avatar": "✂️", "city": "Portland"},
         {"name": "NatureLover", "avatar": "🦋", "city": "Boulder"},
     ]
-
     board = []
     for i, user in enumerate(users):
         points = random.randint(800, 5000)
-        challenges_done = random.randint(5, 25)
-        streak = random.randint(1, 45)
-        co2_saved = round(random.uniform(50, 500), 1)
-        badges_count = random.randint(3, 15)
         board.append({
-            "rank": i + 1,
-            **user,
-            "points": points,
-            "challenges_completed": challenges_done,
-            "current_streak": streak,
-            "best_streak": streak + random.randint(0, 15),
-            "co2_saved_kg": co2_saved,
-            "badges": badges_count,
+            "rank": i + 1, **user, "points": points,
+            "challenges_completed": random.randint(5, 25),
+            "current_streak": random.randint(1, 45),
+            "best_streak": random.randint(5, 60),
+            "co2_saved_kg": round(random.uniform(50, 500), 1),
+            "badges": random.randint(3, 15),
             "level": min(points // 500 + 1, 10),
         })
-
     board.sort(key=lambda x: x["points"], reverse=True)
     for i, b in enumerate(board):
         b["rank"] = i + 1
@@ -119,7 +108,6 @@ def _generate_mock_leaderboard() -> list[dict[str, Any]]:
 
 
 def _generate_mock_badges() -> list[dict[str, Any]]:
-    """Generate mock achievement badges."""
     return [
         {"name": "🌱 First Step", "desc": "Complete your first challenge", "icon": "🌱", "rarity": "Common", "unlocked": True, "date": "2026-07-15"},
         {"name": "🔥 Week Warrior", "desc": "7-day streak", "icon": "🔥", "rarity": "Uncommon", "unlocked": True, "date": "2026-07-22"},
@@ -137,18 +125,12 @@ def _generate_mock_badges() -> list[dict[str, Any]]:
 
 
 def _generate_mock_teams() -> list[dict[str, Any]]:
-    """Generate mock team competition data."""
     return [
-        {"name": "Green Hawks", "members": 12, "total_points": 4560, "avg_streak": 18, "avatar": "🦅", "captain": "EcoWarrior99",
-         "wins": 5, "category_focus": "Energy"},
-        {"name": "Eco Titans", "members": 15, "total_points": 5230, "avg_streak": 22, "avatar": "💪", "captain": "GreenMachine",
-         "wins": 7, "category_focus": "Transport"},
-        {"name": "Nature's Army", "members": 10, "total_points": 3890, "avg_streak": 15, "avatar": "🌲", "captain": "TreeHugger42",
-         "wins": 3, "category_focus": "Nature"},
-        {"name": "Zero Waste Warriors", "members": 8, "total_points": 3420, "avg_streak": 20, "avatar": "♻️", "captain": "ZeroWasteHero",
-         "wins": 4, "category_focus": "Waste"},
-        {"name": "Aqua Savers", "members": 11, "total_points": 4100, "avg_streak": 16, "avatar": "💧", "captain": "RainHarvester",
-         "wins": 2, "category_focus": "Water"},
+        {"name": "Green Hawks", "members": 12, "total_points": 4560, "avg_streak": 18, "avatar": "🦅", "captain": "EcoWarrior99", "wins": 5, "category_focus": "Energy"},
+        {"name": "Eco Titans", "members": 15, "total_points": 5230, "avg_streak": 22, "avatar": "💪", "captain": "GreenMachine", "wins": 7, "category_focus": "Transport"},
+        {"name": "Nature's Army", "members": 10, "total_points": 3890, "avg_streak": 15, "avatar": "🌲", "captain": "TreeHugger42", "wins": 3, "category_focus": "Nature"},
+        {"name": "Zero Waste Warriors", "members": 8, "total_points": 3420, "avg_streak": 20, "avatar": "♻️", "captain": "ZeroWasteHero", "wins": 4, "category_focus": "Waste"},
+        {"name": "Aqua Savers", "members": 11, "total_points": 4100, "avg_streak": 16, "avatar": "💧", "captain": "RainHarvester", "wins": 2, "category_focus": "Water"},
     ]
 
 
@@ -157,51 +139,37 @@ def _generate_mock_teams() -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 def _render_active_challenges(challenges: list[dict]):
-    """Render active and upcoming challenges."""
     st.subheader("🎯 Challenges")
-
     active = [c for c in challenges if c["status"] == "active"]
     upcoming = [c for c in challenges if c["status"] == "upcoming"]
-
     if active:
         st.markdown(f"**🟢 Active ({len(active)})**")
         for c in active:
             cat = CHALLENGE_CATEGORIES.get(c["category"], {})
             cat_color = cat.get("color", "#666")
-            cat_icon = cat.get("icon", "🎯")
-
-            # Progress simulation
             import random
             random.seed(hash(c["id"]))
             progress = random.randint(1, c["target"])
             pct = progress / c["target"] * 100
-
             with st.expander(f"{c['icon']} **{c['title']}** — {c['points']} pts | {c['participants']} joined", expanded=False):
                 st.markdown(f"{c['description']}")
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Category", f"{cat_icon} {c['category']}")
+                c1.metric("Category", f"{cat.get('icon', '🎯')} {c['category']}")
                 c2.metric("Duration", c["duration"])
                 c3.metric("Difficulty", c["difficulty"])
                 c4.metric("Points", f"🏆 {c['points']}")
-
-                # Progress bar
                 st.markdown(f"**Your Progress:** {progress}/{c['target']}")
-                color = cat_color
                 st.markdown(
                     f'<div style="background:#1e1e2e;border-radius:6px;height:20px;margin:6px 0">'
-                    f'<div style="width:{pct}%;background:{color};border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.75em;font-weight:600">{progress}/{c["target"]}</div></div>',
+                    f'<div style="width:{pct}%;background:{cat_color};border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.75em;font-weight:600">{progress}/{c["target"]}</div></div>',
                     unsafe_allow_html=True,
                 )
-
-                # Days remaining
                 end_date = datetime.strptime(c["ends"], "%Y-%m-%d")
                 days_left = (end_date - datetime.now()).days
-                st.caption(f"⏰ {max(days_left, 0)} days remaining | Started {c['started']}")
-
+                st.caption(f"⏰ {max(days_left, 0)} days remaining")
     if upcoming:
         st.markdown(f"**🔵 Upcoming ({len(upcoming)})**")
         for c in upcoming:
-            cat = CHALLENGE_CATEGORIES.get(c["category"], {})
             st.markdown(
                 f'<div style="border:1px solid #333;border-radius:8px;padding:10px;margin:6px 0;background:#f8f9fa">'
                 f'{c["icon"]} <strong>{c["title"]}</strong> — {c["points"]} pts | {c["duration"]}<br/>'
@@ -211,19 +179,13 @@ def _render_active_challenges(challenges: list[dict]):
 
 
 def _render_leaderboard(board: list[dict]):
-    """Render community leaderboard."""
     st.subheader("🏆 Leaderboard")
-
-    # Top 3 podium
     if len(board) >= 3:
-        podium = [board[1], board[0], board[2]]  # 2nd, 1st, 3rd
-        podium_heights = [160, 200, 140]
+        podium = [board[1], board[0], board[2]]
         medals = ["🥈", "🥇", "🥉"]
         cols = st.columns(3)
-        for i, (user, height) in enumerate(zip(podium, podium_heights)):
+        for i, (user, medal) in enumerate(zip(podium, medals)):
             with cols[i]:
-                medal = medals[i]
-                rank = user["rank"]
                 st.markdown(
                     f'<div style="text-align:center;padding:16px;background:#f8f9fa;border-radius:12px;margin:8px 0">'
                     f'<div style="font-size:2.5em">{medal}</div>'
@@ -232,34 +194,20 @@ def _render_leaderboard(board: list[dict]):
                     f'<div style="color:#666">{user["city"]}</div>'
                     f'<div style="color:#ffc107;font-weight:700;font-size:1.2em">{user["points"]:,} pts</div>'
                     f'<div style="font-size:0.82em;color:#888">Level {user["level"]} | 🔥 {user["current_streak"]} streak</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
+                    f'</div>', unsafe_allow_html=True,
                 )
-
-    # Full table
     st.markdown("**Full Rankings:**")
     rows = []
     for b in board:
         medal = "🥇" if b["rank"] == 1 else "🥈" if b["rank"] == 2 else "🥉" if b["rank"] == 3 else f"#{b['rank']}"
-        rows.append({
-            "Rank": medal,
-            "Player": f"{b['avatar']} {b['name']}",
-            "City": b["city"],
-            "Points": f"{b['points']:,}",
-            "Level": b["level"],
-            "Challenges": b["challenges_completed"],
-            "Streak": f"🔥 {b['current_streak']}",
-            "CO₂ Saved": f"{b['co2_saved_kg']} kg",
-            "Badges": b["badges"],
-        })
+        rows.append({"Rank": medal, "Player": f"{b['avatar']} {b['name']}", "City": b["city"],
+                     "Points": f"{b['points']:,}", "Level": b["level"], "Challenges": b["challenges_completed"],
+                     "Streak": f"🔥 {b['current_streak']}", "CO₂ Saved": f"{b['co2_saved_kg']} kg", "Badges": b["badges"]})
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
 def _render_streak_tracker():
-    """Render streak and progress tracking."""
     st.subheader("🔥 Streak Tracker")
-
-    # Streak calendar simulation
     import random
     random.seed(88)
     streak_days = 22
@@ -268,48 +216,30 @@ def _render_streak_tracker():
     for i in range(30):
         day = today - timedelta(days=29 - i)
         if i < streak_days:
-            if random.random() < 0.15:
-                color = "#ffc107"  # partial day
-                icon = "🟡"
-            else:
-                color = "#28a745"  # full day
-                icon = "🟢"
+            icon = "🟡" if random.random() < 0.15 else "🟢"
+            color = "#ffc107" if icon == "🟡" else "#28a745"
         elif i == streak_days:
-            color = "#fd7e14"
-            icon = "🔥"
+            color, icon = "#fd7e14", "🔥"
         else:
-            color = "#1e1e2e"
-            icon = "⬛"
-
-        cal_html += (
-            f'<div style="width:28px;height:28px;background:{color};border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6em" title="{day.strftime("%b %d")}">{icon}</div>'
-        )
+            color, icon = "#1e1e2e", "⬛"
+        cal_html += f'<div style="width:28px;height:28px;background:{color};border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6em" title="{day.strftime("%b %d")}">{icon}</div>'
     cal_html += '</div>'
     st.markdown("**Last 30 Days:**")
     st.markdown(cal_html, unsafe_allow_html=True)
-
-    # Streak stats
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Current Streak", "🔥 22 days")
     c2.metric("Best Streak", "38 days")
     c3.metric("Total Active Days", "156")
     c4.metric("Streak Rank", "Top 15%")
-
-    st.markdown(
-        "You're on a **22-day streak** — your second longest! Your best was **38 days**. "
-        "Keep going to unlock the **🔥 Month Master** badge at 30 days!"
-    )
-
-    # Streak leaderboard
+    st.markdown("You're on a **22-day streak** — keep going to unlock the **🔥 Month Master** badge at 30 days!")
     st.markdown("**Streak Champions:**")
-    streak_champs = [
+    for champ in [
         {"name": "🔥 CompostKing", "streak": 45, "city": "Portland"},
         {"name": "🔥 GreenMachine", "streak": 38, "city": "Seattle"},
         {"name": "🔥 EcoWarrior99", "streak": 35, "city": "Portland"},
         {"name": "🔥 BikeRider", "streak": 32, "city": "Amsterdam"},
         {"name": "🔥 OceanDefender", "streak": 28, "city": "Miami"},
-    ]
-    for champ in streak_champs:
+    ]:
         st.markdown(
             f'<div style="display:flex;align-items:center;margin:3px 0">'
             f'<span style="width:180px;font-size:0.88em">{champ["name"]}</span>'
@@ -321,14 +251,10 @@ def _render_streak_tracker():
 
 
 def _render_badges(badges: list[dict]):
-    """Render achievement badges."""
     st.subheader("🎖️ Achievement Badges")
-
     unlocked = [b for b in badges if b["unlocked"]]
     locked = [b for b in badges if not b["unlocked"]]
-
     rarity_colors = {"Common": "#6c757d", "Uncommon": "#28a745", "Rare": "#4a90d9", "Epic": "#6f42c1", "Legendary": "#ffc107"}
-
     st.markdown(f"**Unlocked ({len(unlocked)}/{len(badges)})**")
     cols = st.columns(4)
     for i, badge in enumerate(unlocked):
@@ -342,15 +268,12 @@ def _render_badges(badges: list[dict]):
                 f'<div style="font-size:0.72em;color:#888">{badge["date"]}</div></div>',
                 unsafe_allow_html=True,
             )
-
     st.markdown(f"**Locked ({len(locked)})**")
     cols = st.columns(4)
     for i, badge in enumerate(locked):
         with cols[i % 4]:
             color = rarity_colors.get(badge["rarity"], "#666")
-            progress_html = ""
-            if badge.get("progress") is not None:
-                progress_html = f'<div style="font-size:0.72em;color:#888">Progress: {badge["progress"]}</div>'
+            progress_html = f'<div style="font-size:0.72em;color:#888">Progress: {badge["progress"]}</div>' if badge.get("progress") else ""
             st.markdown(
                 f'<div style="border:1px solid #333;border-radius:10px;padding:10px;margin:6px 0;text-align:center;background:#1e1e2e;opacity:0.7">'
                 f'<div style="font-size:2em;filter:grayscale(1)">{badge["icon"]}</div>'
@@ -362,44 +285,26 @@ def _render_badges(badges: list[dict]):
 
 
 def _render_team_competition(teams: list[dict]):
-    """Render team vs team competition."""
     st.subheader("👥 Team Competition")
-
     teams.sort(key=lambda x: x["total_points"], reverse=True)
-
     for i, team in enumerate(teams):
         medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"#{i+1}"
         color = "#ffc107" if i == 0 else "#c0c0c0" if i == 1 else "#cd7f32" if i == 2 else "#666"
         cat = CHALLENGE_CATEGORIES.get(team["category_focus"], {})
-        cat_icon = cat.get("icon", "🎯")
-
         with st.expander(f"{team['avatar']} **{team['name']}** — {medal} {team['total_points']:,} pts | {team['members']} members", expanded=(i < 3)):
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Members", team["members"])
             c2.metric("Total Points", f"{team['total_points']:,}")
             c3.metric("Avg Streak", f"🔥 {team['avg_streak']}")
             c4.metric("Challenge Wins", team["wins"])
-
-            st.markdown(f"**Captain:** {team['captain']} | **Focus:** {cat_icon} {team['category_focus']}")
-
-            # Points bar
+            st.markdown(f"**Captain:** {team['captain']} | **Focus:** {cat.get('icon', '🎯')} {team['category_focus']}")
             max_pts = teams[0]["total_points"]
             pct = team["total_points"] / max_pts * 100
-            st.markdown(
-                f'<div style="background:#1e1e2e;border-radius:4px;height:16px;margin:8px 0">'
-                f'<div style="width:{pct}%;background:{color};border-radius:4px;height:100%"></div></div>',
-                unsafe_allow_html=True,
-            )
-
-    # Team join CTA
-    st.markdown("---")
-    st.info("💡 **Create or join a team** to compete together! Team members earn bonus points when completing challenges as a group.")
+            st.markdown(f'<div style="background:#1e1e2e;border-radius:4px;height:16px;margin:8px 0"><div style="width:{pct}%;background:{color};border-radius:4px;height:100%"></div></div>', unsafe_allow_html=True)
 
 
 def _render_category_progress():
-    """Render progress across challenge categories."""
     st.subheader("📊 Category Progress")
-
     import random
     random.seed(55)
     for cat_name, cat_data in CHALLENGE_CATEGORIES.items():
@@ -421,18 +326,12 @@ def _render_category_progress():
 # ---------------------------------------------------------------------------
 
 def render_community_eco_challenges():
-    """Render the Community Eco Challenges page."""
     st.title("🏆 Community Eco Challenges")
-    st.markdown(
-        "Join sustainability challenges, compete on leaderboards, track streaks, and earn badges."
-    )
-
+    st.markdown("Join sustainability challenges, compete on leaderboards, track streaks, and earn badges.")
     challenges = _generate_mock_challenges()
     board = _generate_mock_leaderboard()
     badges = _generate_mock_badges()
     teams = _generate_mock_teams()
-
-    # Sidebar
     with st.sidebar:
         st.header("⚙️ Settings")
         show_challenges = st.checkbox("Active Challenges", True)
@@ -441,34 +340,26 @@ def render_community_eco_challenges():
         show_badges = st.checkbox("Achievement Badges", True)
         show_teams = st.checkbox("Team Competition", True)
         show_categories = st.checkbox("Category Progress", True)
-
     if show_challenges:
         _render_active_challenges(challenges)
-
     if show_leaderboard:
         st.markdown("---")
         _render_leaderboard(board)
-
     if show_streaks:
         st.markdown("---")
         _render_streak_tracker()
-
     if show_badges:
         st.markdown("---")
         _render_badges(badges)
-
     if show_teams:
         st.markdown("---")
         _render_team_competition(teams)
-
     if show_categories:
         st.markdown("---")
         _render_category_progress()
-
     st.markdown("---")
     st.caption(f"Community Eco Challenges | {len(challenges)} challenges | {len(board)} players | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
 
-# Entry point
 if __name__ == "__main__" or True:
     render_community_eco_challenges()

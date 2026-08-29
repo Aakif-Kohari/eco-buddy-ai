@@ -455,7 +455,7 @@ def _load_theme():
     return DEFAULT_THEME
 
 
-from session_state_utils import ensure_session_state
+from src.core.session_state_utils import ensure_session_state
 
 
 def _ensure_theme_state():

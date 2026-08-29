@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from digital_footprint import (
+from src.utils.digital_footprint import (
     DIGITAL_ACTIVITIES,
     GRID_INTENSITY_BY_REGION,
     STREAMING_QUALITY_FACTORS,

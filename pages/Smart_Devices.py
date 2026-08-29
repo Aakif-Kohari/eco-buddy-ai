@@ -2,10 +2,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from database import save_iot_device, save_iot_reading_batch
-from device_registry import get_all_devices, get_device_by_id
-from iot_simulator import calculate_iot_savings, simulate_iot_energy_stream
-from units import format_quantity
+from src.core.database import save_iot_device, save_iot_reading_batch
+from src.utils.device_registry import get_all_devices, get_device_by_id
+from src.utils.iot_simulator import calculate_iot_savings, simulate_iot_energy_stream
+from src.utils.units import format_quantity
 
 st.set_page_config(page_title="Smart Devices", page_icon="📱", layout="wide")
 

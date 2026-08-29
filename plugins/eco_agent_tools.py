@@ -109,7 +109,7 @@ class EcoAgentTools:
     # --- Tool Logic Methods ---
     
     def _calc_flight(self, distance_km: float, class_type: str = "economy") -> Dict[str, Any]:
-        """Mock calculation for flight emissions."""
+        """Mock calculation for flight src.carbon.emissions."""
         # Standard factors: 0.15 kg CO2/km for economy, 0.30 for business
         multiplier = 1.0 if class_type == "economy" else 2.0
         emissions = distance_km * 0.15 * multiplier

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from eco_teams import (
+from src.community.eco_teams import (
     TEAM_CHALLENGE_TYPES,
     create_team,
     join_team,

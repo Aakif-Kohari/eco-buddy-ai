@@ -5,9 +5,9 @@ Streamlit page featuring interactive sliders to visualize the trade-off between 
 
 import streamlit as st
 import plotly.graph_objects as go
-from noise_pollution_tracker import NoisePollutionTracker
-from green_space_health_impact import GreenSpaceHealthImpact
-from database import save_urban_health_profile
+from src.utils.noise_pollution_tracker import NoisePollutionTracker
+from src.utils.green_space_health_impact import GreenSpaceHealthImpact
+from src.core.database import save_urban_health_profile
 
 st.set_page_config(page_title="Urban Health Impact", page_icon="🌳", layout="wide")
 

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import datetime
-from carpooling import (
+from src.lifestyle.carpooling import (
     SAFETY_PREFERENCES,
     match_commuters,
     save_commute_profile,
@@ -128,7 +128,7 @@ else:
             st.dataframe(pd.DataFrame(match_rows), use_container_width=True, hide_index=True)
 
             st.markdown("#### 🤝 Log a Shared Trip")
-            st.caption("Logging a shared trip credits both you and your passenger with the avoided emissions.")
+            st.caption("Logging a shared trip credits both you and your passenger with the avoided src.carbon.emissions.")
 
             with st.form("log_trip"):
                 t1, t2, t3 = st.columns(3)

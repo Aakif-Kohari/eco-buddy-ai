@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from eeio_spend import (
+from src.business.eeio_spend import (
     BASE_PRICE_YEAR,
     DEFLATORS,
     DIRECT_INTENSITY,
@@ -401,7 +401,7 @@ with tab_table:
     st.subheader("The table underneath")
     st.markdown(
         "Nothing here is a black box, so here is the table. Multipliers say how "
-        "much the supply chain adds to each sector's own emissions."
+        "much the supply chain adds to each sector's own src.carbon.emissions."
     )
 
     totals = total_intensities()

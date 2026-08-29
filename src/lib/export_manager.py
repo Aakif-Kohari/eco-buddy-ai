@@ -870,7 +870,7 @@ class ExportManager:
         return self._export_history
     
     def clear_cache(self) -> None:
-        """Clear export cache."""
+        """Clear export src.core.cache."""
         self._cache.clear()
         
     def get_supported_formats(self) -> List[str]:

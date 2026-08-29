@@ -3,7 +3,7 @@ Streamlit Page for Enterprise Landfill Methane Recovery & Telemetry Studio
 """
 
 import streamlit as st
-from landfill_methane_engine import LandfillMethaneEngine, GasWellheadSensor
+from src.environment.landfill_methane_engine import LandfillMethaneEngine, GasWellheadSensor
 
 st.set_page_config(
     page_title="Landfill Methane Recovery Studio",

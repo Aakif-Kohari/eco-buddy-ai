@@ -1,15 +1,15 @@
 """
 Offset Portfolio Dashboard.
-Streamlit page featuring a portfolio dashboard, risk heatmaps, and rebalancing recommendations.
+Streamlit page featuring a portfolio dashboard, risk heatmaps, and rebalancing src.ai.recommendations.
 """
 
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
-from offset_portfolio_manager import OffsetPortfolioManager
-from carbon_risk_analyzer import CarbonRiskAnalyzer
-from database import save_offset_portfolio, get_offset_portfolio
+from src.carbon.offset_portfolio_manager import OffsetPortfolioManager
+from src.carbon.carbon_risk_analyzer import CarbonRiskAnalyzer
+from src.core.database import save_offset_portfolio, get_offset_portfolio
 
 st.set_page_config(page_title="Offset Portfolio", page_icon="📊", layout="wide")
 

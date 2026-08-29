@@ -12,14 +12,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from database_integrity import inspect_database
+from src.core.database_integrity import inspect_database
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Validate EcoBuddy's SQLite schema, migrations, indexes, "
-            "foreign keys, and integrity without modifying the database."
+            "foreign keys, and integrity without modifying the src.core.database."
         )
     )
     parser.add_argument(

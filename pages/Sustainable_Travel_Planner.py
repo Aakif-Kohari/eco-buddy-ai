@@ -6,8 +6,8 @@ Streamlit page allowing users to input multi-city trips and view side-by-side co
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from multimodal_router import MultimodalRouter
-from database import save_travel_itinerary
+from src.utils.multimodal_router import MultimodalRouter
+from src.core.database import save_travel_itinerary
 
 st.set_page_config(page_title="Sustainable Travel", page_icon="✈️", layout="wide")
 

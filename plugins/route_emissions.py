@@ -1,5 +1,5 @@
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from marketplace import calculate_trip_emissions, compare_transit_modes, EMISSION_FACTORS
+from src.utils.marketplace import calculate_trip_emissions, compare_transit_modes, EMISSION_FACTORS
 
 
 class RouteEmissionsPlugin(CalculatorPlugin):

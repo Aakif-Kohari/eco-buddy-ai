@@ -2,8 +2,8 @@ import streamlit as st
 import json
 import streamlit.components.v1 as components
 from styles.theme import apply_theme
-from api_auth import generate_api_key, list_api_keys, revoke_api_key
-from sustainability_api import OPENAPI_SPEC, SWAGGER_UI_HTML, process_api_request
+from src.core.api_auth import generate_api_key, list_api_keys, revoke_api_key
+from src.business.sustainability_api import OPENAPI_SPEC, SWAGGER_UI_HTML, process_api_request
 
 apply_theme()
 

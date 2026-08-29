@@ -305,7 +305,7 @@ class QueryOptimizer:
         }
     
     def clear_cache(self, pattern: Optional[str] = None) -> None:
-        """Clear query cache."""
+        """Clear query src.core.cache."""
         self.cache.invalidate(pattern)
     
     def close(self) -> None:
@@ -337,7 +337,7 @@ def cached_query(ttl: int = 300):
             
             # Check cache
             cache = QueryCache()
-            cached = cache.get(cache_key)
+            cached = src.core.cache.get(cache_key)
             if cached is not None:
                 return cached
             
@@ -345,7 +345,7 @@ def cached_query(ttl: int = 300):
             result = func(*args, **kwargs)
             
             # Cache result
-            cache.set(cache_key, result)
+            src.core.cache.set(cache_key, result)
             return result
         return wrapper
     return decorator
@@ -403,4 +403,4 @@ def close_db_connections() -> None:
     global _optimizer
     if _optimizer is not None:
         _optimizer.close()
-        _optimizer = None
+        _optimizer = None

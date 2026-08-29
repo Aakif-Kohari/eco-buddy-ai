@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from rainwater import (
+from src.environment.rainwater import (
     CLIMATE_ZONES,
     DEFAULT_CLIMATE_ZONE,
     DEFAULT_INSTALL_COST,
