@@ -6,9 +6,9 @@ Streamlit page where users can input financial allocations and view their "finan
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
-from green_investment_tracker import GreenInvestmentTracker
-from banking_impact_analyzer import BankingImpactAnalyzer
-from database import save_green_finance_profile
+from src.utils.green_investment_tracker import GreenInvestmentTracker
+from src.utils.banking_impact_analyzer import BankingImpactAnalyzer
+from src.core.database import save_green_finance_profile
 
 st.set_page_config(page_title="Green Finance", page_icon="💰", layout="wide")
 

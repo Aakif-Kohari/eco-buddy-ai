@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import streamlit as st
 
-from action_plan import (
+from src.utils.action_plan import (
     Action, build_action_plan, calculate_plan_cost, calculate_plan_impact,
     estimate_time_to_complete, load_plan_progress, mark_action_complete,
     save_action_plan,
 )
-from recommendations import generate_recommendations
-from database import get_assessments
-from emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
 
 
 def _assessment(row):
@@ -59,7 +59,7 @@ def main():
     latest = _assessment(rows[-1])
     total, contributors = calculate_footprint(latest.get("transport"), latest.get("distance", 0), latest.get("electricity", 0), latest.get("diet"), latest.get("flights", 0), latest.get("region", "Global"))
     st.metric("Current annual footprint", f"{total:,.0f} kg CO₂e")
-    st.caption("Actions are prioritized from your existing EcoBuddy recommendations. Savings are never invented when supporting data is unavailable.")
+    st.caption("Actions are prioritized from your existing EcoBuddy src.ai.recommendations. Savings are never invented when supporting data is unavailable.")
 
     _, recommendations = generate_recommendations(latest.get("transport"), latest.get("electricity", 0), latest.get("diet"), latest.get("flights", 0), contributors)
     actions = _recommendation_actions(recommendations, contributors)

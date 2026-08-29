@@ -2,7 +2,7 @@ import html
 import time
 import logging
 import streamlit as st
-from logging_config import setup_logging
+from src.core.logging_config import setup_logging
 from styles.skeleton import show_card_skeleton, show_chart_skeleton
 
 setup_logging()
@@ -13,64 +13,74 @@ st.set_page_config(    page_title="EcoBuddy",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-from eco_school import render_eco_school_hub
+from src.utils.eco_school import render_eco_school_hub
 import tempfile
 import uuid
 import os
 from src.lib.routes import quizes_bp
-from global_search import render_global_search
+from src.utils.global_search import render_global_search
 from dotenv import load_dotenv
-from green_business import render_business_hub
-from eco_gamification import render_gamification_hub
+from src.business.green_business import render_business_hub
+from src.community.eco_gamification import render_gamification_hub
 from styles.theme import apply_theme
-from smart_automation import render_automation_hub
-from eco_mindfulness import render_mindfulness_hub
-from achievement_showcase import render_achievement_showcase
-from garden_Assistant import render_garden_hub
-from habit_tracker import render_habit_hub
-from event_calendar import render_event_hub
-from eco_creative import render_creative_hub
-from voice_assistant import render_voice_assessment
+from src.utils.smart_automation import render_automation_hub
+from src.utils.eco_mindfulness import render_mindfulness_hub
+from src.utils.achievement_showcase import render_achievement_showcase
+from src.utils.garden_Assistant import render_garden_hub
+from src.lifestyle.habit_tracker import render_habit_hub
+from src.utils.event_calendar import render_event_hub
+from src.utils.eco_creative import render_creative_hub
+from src.ai.voice_assistant import render_voice_assessment
 from components.header import render_header
 #from components.profile import render_profile
-from community_marketplace import render_marketplace_hub
-from sustainability_hub import (
+from src.community.community_marketplace import render_marketplace_hub
+from src.utils.sustainability_hub import (
     render_sustainability_hub  
 )
-from eco_dream_incubation import render_dream_hub
-from eco_synesthesia import render_synesthesia_hub
-from community_resilience import render_resilience_hub
-from eco_synchronization import render_synchronization_hub
-from eco_heritage import render_heritage_hub
-from eco_temporal import render_temporal_hub
-from eco_parenting import render_parenting_hub
-from mindset_coach import render_coach_hub
-from smart_home import render_smart_home_hub
-from fashion_guide import render_fashion_hub
-from certification_system import render_certification_hub
-from eco_news import render_news_hub
-from pet_care import render_pet_hub
-from community_dashboard import render_community_analytics
-from home_guide import render_home_hub
-from wellness_center import render_wellness_hub
-from learning_center import render_learning_hub
-from travel_planner import render_travel_hub
-from weather_alerts import render_weather_hub
-from eco_social import render_eco_social, render_eco_tip
-from volunteer_platform import render_volunteer_hub
+from src.utils.eco_dream_incubation import render_dream_hub
+from src.utils.eco_synesthesia import render_synesthesia_hub
+from src.community.community_resilience import render_resilience_hub
+from src.utils.eco_synchronization import render_synchronization_hub
+from src.utils.eco_heritage import render_heritage_hub
+from src.utils.eco_temporal import render_temporal_hub
+from src.lifestyle.eco_parenting import render_parenting_hub
+from src.utils.mindset_coach import render_coach_hub
+from src.energy.smart_home import render_smart_home_hub
+from src.lifestyle.fashion_guide import render_fashion_hub
+from src.business.certification_system import render_certification_hub
+from src.utils.eco_news import render_news_hub
+from src.lifestyle.pet_care import render_pet_hub
+from src.community.community_dashboard import render_community_analytics
+from src.lifestyle.home_guide import render_home_hub
+from src.lifestyle.wellness_center import render_wellness_hub
+from src.utils.learning_center import render_learning_hub
+from src.lifestyle.travel_planner import render_travel_hub
+from src.utils.weather_alerts import render_weather_hub
+from src.community.eco_social import render_eco_social, render_eco_tip
+from src.community.volunteer_platform import render_volunteer_hub
+import src.lifestyle.travel_tracker
 load_dotenv()
-from shopping_assistant import render_shopping_hub
-from impact_dashboard import render_impact_dashboard
-from database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference
-import gamification as gf
-from emissions import calculate_footprint, calculate_eco_score
+import src.energy.energy_tracker
+from src.lifestyle.shopping_assistant import render_shopping_hub
+from components.chat import render_chat_ui
+from components.email_digest_ui import render_email_digest_ui
+import src.energy.energy_tracker
+import src.lifestyle.travel_tracker
+from src.reporting.impact_dashboard import render_impact_dashboard
+from src.core.database import init_db, save_assessment, get_assessments, init_gamification_db, init_freeze_tokens_db, save_assessment_draft, verify_user, create_user, get_leaderboard, update_user_leaderboard_preference, init_marketplace_db, init_energy_tracker_db
+import src.community.gamification as gf
+import src.energy.energy_tracker
+import src.lifestyle.travel_tracker
+from src.carbon.emissions import calculate_footprint, calculate_eco_score
 
-from recommendations import generate_recommendations
-from what_changed import generate_what_changed_analysis, render_what_changed_ui
+from src.ai.recommendations import generate_recommendations
+from src.utils.what_changed import generate_what_changed_analysis, render_what_changed_ui
 
 from datetime import datetime
 from src.lib.db_optimizer import get_query_optimizer, close_db_connections
 import time
+from src.lib.digest_scheduler import start_digest_scheduler
+from src.reporting.report import generate_pdf
 
 
 # Start the digest scheduler on app load
@@ -184,8 +194,10 @@ def render_top_auth():
         st.sidebar.markdown("---")
         st.sidebar.subheader("🧭 Navigation")
         st.sidebar.page_link("pages/04_Quiz.py", label="📝 Quiz")
-        st.sidebar.page_link('pages/Sustainable_Food_Planner.py', label='🥗 Sustainable Food Planner')
-
+        st.sidebar.page_link("pages/Sustainability_Roadmap.py", label="🗺️ Roadmap")
+        st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
+        st.sidebar.page_link("pages/Eco_Data_Import_Hub.py", label="📥 Data Import Hub")
+        st.sidebar.page_link("pages/26_Health_Environment.py", label="🏃 Health & Environment")
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
             st.divider()
@@ -233,7 +245,7 @@ st.markdown(
     """
     Welcome to **EcoBuddy AI**, an intelligent sustainability platform designed
     to help users understand their environmental impact through AI-powered
-    insights, carbon footprint analysis, and eco-friendly recommendations.
+    insights, carbon footprint analysis, and eco-friendly src.ai.recommendations.
     """
 )
 
@@ -324,7 +336,7 @@ with form:
         discard_current_draft,
         render_draft_recovery_prompt,
     )
-    from session_state_utils import (
+    from src.core.session_state_utils import (
         ensure_session_state,
         set_session_state_if_changed,
         check_session_timeout,
@@ -386,7 +398,7 @@ with form:
         init_gamification_db()
         init_freeze_tokens_db()
         init_marketplace_db()
-        init_energy_tracker_db()
+        # init_energy_tracker_db()
 
     run_db_initializations()
     if user_id is None:
@@ -1181,8 +1193,8 @@ tab1, tab2, tab3, tab4 = st.tabs(["🌍 Carbon Footprint", "⚡ Home Energy Audi
 
 
 # -------------------------
-from green_mobility import render_mobility_hub
-tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33 = st.tabs([
+from src.lifestyle.green_mobility import render_mobility_hub
+tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,tab36, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22, tab23, tab24,tab34,tab35, tab25,tab26,tab27,tab28,tab29,tab30,tab31,tab32,tab33, tab39, tab40, tab41 = st.tabs([
     "🌍 Carbon Footprint",
     "⚡ Home Energy Audit",
     "🎮 Gamification",
@@ -1207,7 +1219,7 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "🤝 Volunteer",
     "👗 Fashion",
     "🏅 Certification",
-    "🛒 Shopping" ,
+    "🛒 Shopping",
     "Eco-Impact",
     "Habit-Tracker",
     "Event-Planner",
@@ -1218,28 +1230,28 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "Eco-Heritage",
     "Eco-Parenting",
     "Eco-Resillence",
-    "green_business.py"
-    "📧 Email Digest"
+    "src.business.green_business.py",
+    "📧 Email Digest",
     "💬 Eco Chat",
+    "🎨 Eco-Art",
+    "🛒 Ethical Shopping",
+    "🌾 Urban Farming"
 ])
 # Import
-from urban_farming import render_urban_hub
-
-# Add as a new tab
-with tab41:
-    render_urban_hub()
-# Import
-from ethical_shopping import render_consumer_hub
-
-# Add as a new tab
-with tab40:
-    render_consumer_hub()
-# Import
-from eco_art import render_art_hub
-
-# Add as a new tab
-with tab39:
-    render_art_hub()
+# from urban_farming import render_urban_hub
+# # Add as a new tab
+# with tab41:
+#     render_urban_hub()
+# # Import
+# from ethical_shopping import render_consumer_hub
+# # Add as a new tab
+# with tab40:
+#     render_consumer_hub()
+# # Import
+# from eco_art import render_art_hub
+# # Add as a new tab
+# with tab39:
+#     render_art_hub()
 with tab38:
     render_mobility_hub()
 with tab37:
@@ -1311,10 +1323,10 @@ with tab14:
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
-with tab32:
-    render_chat_ui()
-with tab_email:
-    render_email_digest_ui(user_id)
+# with tab32:
+#     render_chat_ui()
+# with tab_email:
+#     render_email_digest_ui(user_id)
 # Existing analysis code here
 
 placeholder.empty()
@@ -1647,7 +1659,7 @@ with tab1:
 
         if electricity_emission > 5:
             cross_module_suggestions.append(
-                "⚡ Open the Home Energy Audit section for personalized electricity-saving recommendations."
+                "⚡ Open the Home Energy Audit section for personalized electricity-saving src.ai.recommendations."
             )
 
         if flight_emission > 2:
@@ -1779,7 +1791,7 @@ with tab1:
 
             st.info(
                 "Providing more complete information will improve the accuracy "
-                "of your carbon footprint calculations and recommendations."
+                "of your carbon footprint calculations and src.ai.recommendations."
             )
 
         st.markdown("#### 💡 Improvement Suggestions")
@@ -1813,7 +1825,7 @@ with tab1:
 
         if contributors.get("transport", 0) > 0:
             feature_suggestions.append(
-                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport emissions."
+                "🚗 Try the Route Planning & Offsets tab to compare greener travel options and reduce transport src.carbon.emissions."
             )
 
         if electricity > 150:
@@ -2019,12 +2031,12 @@ with tab1:
             improvements.append("⚡ Try lowering monthly electricity usage.")
 
         if diet == "Vegetarian":
-            strengths.append("🥗 Plant-based diet reduces emissions.")
+            strengths.append("🥗 Plant-based diet reduces src.carbon.emissions.")
         else:
             improvements.append("🥩 Consider reducing meat consumption.")
 
         if flights == 0:
-            strengths.append("✈ Minimal flight emissions.")
+            strengths.append("✈ Minimal flight src.carbon.emissions.")
         else:
             improvements.append("✈ Reduce unnecessary air travel.")
 
@@ -2278,7 +2290,7 @@ with tab1:
                     col_exp1, col_exp2 = st.columns(2)
         
                     # Export PNG (High Quality Scale = 3)
-                    png_bytes = breakdown_fig.to_image(format="png", width=1200, height=700, scale=3)
+                    png_bytes = fig.to_image(format="png", width=1200, height=700, scale=3)
                     col_exp1.download_button(
                         label="📥 Export Chart as PNG",
                         data=png_bytes,
@@ -2288,7 +2300,7 @@ with tab1:
                     )
         
                     # Export SVG (Vector Quality)
-                    svg_bytes = breakdown_fig.to_image(format="svg", width=1200, height=700)
+                    svg_bytes = fig.to_image(format="svg", width=1200, height=700)
                     col_exp2.download_button(
                         label="📥 Export Chart as SVG",
                         data=svg_bytes,
@@ -2488,13 +2500,13 @@ with tab1:
         if electricity_emission > 5:
             learning_cards.append(
                 ("💡 Energy Saving",
-                "Turning off unused appliances and using LED bulbs helps lower electricity emissions.")
+                "Turning off unused appliances and using LED bulbs helps lower electricity src.carbon.emissions.")
             )
 
         if flight_emission > 0:
             learning_cards.append(
                 ("✈️ Sustainable Travel",
-                "Consider trains or virtual meetings whenever possible to reduce travel emissions.")
+                "Consider trains or virtual meetings whenever possible to reduce travel src.carbon.emissions.")
             )
 
         if diet_emission > 2:
@@ -2640,7 +2652,7 @@ with tab1:
             bad.append("Try including more plant-based meals.")
         
         if flights > 2:
-            bad.append("Reduce air travel or offset flight emissions.")
+            bad.append("Reduce air travel or offset flight src.carbon.emissions.")
         
         if len(bad) == 0:
             st.success("Excellent! No major improvement areas found.")
@@ -2928,7 +2940,7 @@ with tab1:
         You are below the average citizen.
 
         Small improvements in transportation or electricity
-        usage can further reduce your emissions.
+        usage can further reduce your src.carbon.emissions.
         """
             )
 
@@ -3216,7 +3228,7 @@ with tab1:
         elif eco_score >= 75:
             st.info("You are close to becoming an Eco Champion.")
         elif eco_score >= 60:
-            st.warning("A few improvements will significantly reduce your emissions.")
+            st.warning("A few improvements will significantly reduce your src.carbon.emissions.")
         else:
             st.error("Your action plan should focus on high-priority improvements first.")
 
@@ -3232,19 +3244,19 @@ with tab1:
         )
 
 
-        if not report_validation.is_valid:
+        if not src.reporting.report_validation.is_valid:
             st.error(
                 "The report could not be generated because the assessment "
                 "contains invalid or incomplete data."
             )
-            for validation_error in report_validation.errors:
+            for validation_error in src.reporting.report_validation.errors:
                 st.warning(f"• {validation_error}")
         else:
             from report import generate_pdf
             report = generate_pdf(
-                report_validation.cleaned_data["total"],
-                report_validation.cleaned_data["eco_score"],
-                report_validation.cleaned_data["insight"],
+                src.reporting.report_validation.cleaned_data["total"],
+                src.reporting.report_validation.cleaned_data["eco_score"],
+                src.reporting.report_validation.cleaned_data["insight"],
             )
 
             if report:
@@ -3694,7 +3706,7 @@ with tab1:
             alerts.append("Electricity consumption is above the recommended range.")
 
         if flights > 3:
-            alerts.append("Frequent air travel greatly increases emissions.")
+            alerts.append("Frequent air travel greatly increases src.carbon.emissions.")
 
         if eco_score < 60:
             alerts.append("Your Eco Score indicates room for improvement.")
@@ -3748,7 +3760,7 @@ with tab1:
 
         elif highest == "Diet":
         
-            st.write("🥗 Dietary changes can noticeably reduce emissions.")
+            st.write("🥗 Dietary changes can noticeably reduce src.carbon.emissions.")
 
         elif highest == "Flights":
         
@@ -3771,7 +3783,7 @@ with tab1:
         elif used_percent < 80:
         
             st.info(
-                "Minor lifestyle improvements can further reduce emissions."
+                "Minor lifestyle improvements can further reduce src.carbon.emissions."
             )
 
         else:
@@ -4105,7 +4117,7 @@ with tab1:
 
         if transport == "Car":
             notifications.append(
-                "🚗 Transportation is a major contributor to your emissions."
+                "🚗 Transportation is a major contributor to your src.carbon.emissions."
             )
 
         if electricity > 250:
@@ -4142,7 +4154,7 @@ with tab1:
 
         if transport == "Car":
             advice.append(
-                "Switching to public transport a few days each week could noticeably reduce your monthly emissions."
+                "Switching to public transport a few days each week could noticeably reduce your monthly src.carbon.emissions."
             )
 
         if electricity > 200:
@@ -4152,7 +4164,7 @@ with tab1:
 
         if diet == "Non-Vegetarian":
             advice.append(
-                "Increasing plant-based meals can reduce food-related emissions."
+                "Increasing plant-based meals can reduce food-related src.carbon.emissions."
             )
 
         if flights > 2:
@@ -4405,7 +4417,7 @@ with tab2:
     st.markdown("<div class='section-header'>⚡ Home Energy Audit</div>", unsafe_allow_html=True)
 
     # Init energy db
-    db.init_energy_db()
+    src.notifications.db.init_energy_db()
 
     st.markdown("### 🔌 Appliance Registry")
     with st.expander("➕ Add New Appliance", expanded=False):
@@ -4430,11 +4442,11 @@ with tab2:
 
             submit_app = st.form_submit_button("Add Appliance")
             if submit_app and app_name:
-                db.add_appliance(user_id, app_name, app_cat, app_qty, app_power, app_hours, app_standby)
+                src.notifications.db.add_appliance(user_id, app_name, app_cat, app_qty, app_power, app_hours, app_standby)
                 st.success(f"Added {app_name}")
                 st.rerun()
 
-    appliances = db.get_appliances(user_id)
+    appliances = src.notifications.db.get_appliances(user_id)
     if appliances:
         # Build a styled HTML table instead of st.dataframe
         category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
@@ -4485,7 +4497,7 @@ with tab2:
                 key="del_app",
                 help="Remove the selected appliance."
             ):
-                db.delete_appliance(del_id[0])
+                src.notifications.db.delete_appliance(del_id[0])
                 st.rerun()
 
         # Calculate summaries
@@ -4549,7 +4561,8 @@ with tab2:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-    energy_tracker.render_energy_tracker(user_id)
+    import energy_tracker
+    src.energy.energy_tracker.render_energy_tracker(user_id)
 
 with tab3:
     st.markdown("<div class='section-header'>🎮 Your Eco Journey</div>", unsafe_allow_html=True)
@@ -4840,7 +4853,7 @@ with tab4:
 
         <div class="empty-subtitle">
             Complete your lifestyle profile above and click
-            <b>"Analyze My Impact"</b> to generate your first carbon footprint report.
+            <b>"Analyze My Impact"</b> to generate your first carbon footprint src.reporting.report.
         </div>
 
         <div class="empty-checklist">
@@ -4859,7 +4872,8 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
     
-    travel_tracker.render_travel_tracker(user_id)
+    import travel_tracker
+    src.lifestyle.travel_tracker.render_travel_tracker(user_id)
 
 with tab6:
     import plotly.graph_objects as go
@@ -4876,7 +4890,7 @@ with tab6:
             <div style='font-size:22px; font-weight:700; color:#e5e7eb; margin-bottom:12px;'>No Assessment History Yet</div>
             <div style='font-size:15px; color:#94a3b8; max-width:500px; margin:0 auto; line-height:1.8;'>
                 Complete your first carbon footprint assessment in the
-                <b>🌍 Carbon Footprint</b> tab to unlock your Future Self report.
+                <b>🌍 Carbon Footprint</b> tab to unlock your Future Self src.reporting.report.
                 <br><br>
                 Once you have at least one assessment recorded, this dashboard will
                 project your environmental impact 1, 5, and 10 years from now.
@@ -4887,13 +4901,13 @@ with tab6:
         scenario_labels = {1: "1 Year", 5: "5 Years", 10: "10 Years"}
 
         metrics_cols = st.columns(4)
-        metrics_cols[0].metric("Current Footprint", f"{report.current_footprint:.0f} kg")
-        metrics_cols[1].metric("Current Eco Score", f"{report.current_eco_score}/100")
-        metrics_cols[2].metric("Assessments Logged", str(report.num_assessments))
-        trend_str = f"{abs(report.trend_slope):.1f} kg/assessment"
-        if report.trend_slope < 0:
+        metrics_cols[0].metric("Current Footprint", f"{src.reporting.report.current_footprint:.0f} kg")
+        metrics_cols[1].metric("Current Eco Score", f"{src.reporting.report.current_eco_score}/100")
+        metrics_cols[2].metric("Assessments Logged", str(src.reporting.report.num_assessments))
+        trend_str = f"{abs(src.reporting.report.trend_slope):.1f} kg/assessment"
+        if src.reporting.report.trend_slope < 0:
             trend_str = f"↓ {trend_str}"
-        elif report.trend_slope > 0:
+        elif src.reporting.report.trend_slope > 0:
             trend_str = f"↑ {trend_str}"
         else:
             trend_str = "→ Stable"
@@ -4905,7 +4919,7 @@ with tab6:
 
         scenario_rows = []
         for year in (1, 5, 10):
-            s = report.scenarios[year]
+            s = src.reporting.report.scenarios[year]
             scenario_rows.append({
                 "Horizon": scenario_labels[year],
                 "Annual Footprint (kg)": f"{s.annual_footprint:.0f}",
@@ -4984,15 +4998,15 @@ with tab6:
         st.markdown("<div class='section-header'>📊 Contributors Over Time</div>", unsafe_allow_html=True)
 
         cat_fig = go.Figure()
-        categories = list(report.current_contributors.keys())
+        categories = list(src.reporting.report.current_contributors.keys())
         colors = {"Transport": "#4ade80", "Electricity": "#60a5fa", "Diet": "#fbbf24", "Flights": "#f87171"}
 
         x_labels = ["Current"] + [scenario_labels[y] for y in (1, 5, 10)]
 
         for cat in categories:
-            values = [report.current_contributors.get(cat, 0)]
+            values = [src.reporting.report.current_contributors.get(cat, 0)]
             for year in (1, 5, 10):
-                values.append(report.scenarios[year].contributors.get(cat, 0))
+                values.append(src.reporting.report.scenarios[year].contributors.get(cat, 0))
             cat_fig.add_trace(go.Bar(
                 name=cat,
                 x=x_labels,
@@ -5144,7 +5158,7 @@ function scrollToTop() {
 
         st.markdown("<div class='section-header'>🌍 What This Means</div>", unsafe_allow_html=True)
 
-        ten_yr = report.scenarios[10]
+        ten_yr = src.reporting.report.scenarios[10]
         avg_person_annual = 4700
         trees_per_kg = 0.0005
         offset_trees_10yr = int(ten_yr.cumulative_emissions * trees_per_kg)
@@ -5175,7 +5189,7 @@ function scrollToTop() {
                     that each absorb ~48 lbs of CO₂ per year.
                     <br><br>
                     Your current footprint is
-                    <b>{'above' if report.current_footprint > avg_person_annual else 'below'}</b>
+                    <b>{'above' if src.reporting.report.current_footprint > avg_person_annual else 'below'}</b>
                     the global average of {avg_person_annual:,} kg CO₂/year.
                 </div>
             </div>
@@ -5186,10 +5200,10 @@ function scrollToTop() {
         st.markdown("<div class='section-header'>📋 Scenario Details</div>", unsafe_allow_html=True)
 
         for year in (1, 5, 10):
-            s = report.scenarios[year]
-            direction = "increasing" if s.annual_footprint > report.current_footprint else "decreasing" if s.annual_footprint < report.current_footprint else "stable"
+            s = src.reporting.report.scenarios[year]
+            direction = "increasing" if s.annual_footprint > src.reporting.report.current_footprint else "decreasing" if s.annual_footprint < src.reporting.report.current_footprint else "stable"
             emoji = "📈" if direction == "increasing" else "📉" if direction == "decreasing" else "➡️"
-            score_change = s.eco_score - report.current_eco_score
+            score_change = s.eco_score - src.reporting.report.current_eco_score
             score_dir = "improving" if score_change > 0 else "declining" if score_change < 0 else "stable"
             score_emoji = "✅" if score_change > 0 else "⚠️" if score_change < 0 else "➡️"
 
@@ -5238,7 +5252,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.success("📊 Carbon Footprint Dashboard")
-    st.caption("Track your yearly emissions.")
+    st.caption("Track your yearly src.carbon.emissions.")
 
 with col2:
     st.success("🤖 AI Insights")

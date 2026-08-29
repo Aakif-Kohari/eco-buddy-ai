@@ -5,6 +5,7 @@ and unauthorized access prevention.
 """
 
 import pytest
+flask = pytest.importorskip("flask")
 from flask import Flask, session
 from datetime import datetime, timedelta
 import json
@@ -13,10 +14,10 @@ import json
 # Check components folder to find the correct module names
 try:
     from app import app, db, User  # Try common pattern
-except ImportError:
+except Exception:
     try:
         from components.app import app, db, User
-    except ImportError:
+    except Exception:
         # Adjust based on what you find in the components folder
         pass
 
@@ -25,22 +26,22 @@ class TestAuthentication:
 
     @pytest.fixture
     def client(self):
-        """Set up test client with in-memory database."""
+        """Set up test client with in-memory src.core.database."""
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         with app.test_client() as client:
             with app.app_context():
-                db.create_all()
+                src.notifications.db.create_all()
                 # Create test user
                 test_user = User(
                     username='testuser',
                     email='test@example.com'
                 )
                 test_user.set_password('ValidPass123!')
-                db.session.add(test_user)
-                db.session.commit()
+                src.notifications.db.session.add(test_user)
+                src.notifications.db.session.commit()
                 yield client
-            db.drop_all()
+            src.notifications.db.drop_all()
 
     @pytest.fixture
     def auth_headers(self, client):
@@ -129,8 +130,8 @@ class TestAuthentication:
             role='viewer'  # Assuming role-based access
         )
         limited_user.set_password('LimitedPass123!')
-        db.session.add(limited_user)
-        db.session.commit()
+        src.notifications.db.session.add(limited_user)
+        src.notifications.db.session.commit()
 
         # Login as limited user
         response = client.post('/api/auth/login', json={
@@ -204,8 +205,8 @@ class TestAuthentication:
                 role=role["role"]
             )
             user.set_password('TestPass123!')
-            db.session.add(user)
-            db.session.commit()
+            src.notifications.db.session.add(user)
+            src.notifications.db.session.commit()
 
             # Login and test access to each endpoint
             response = client.post('/api/auth/login', json={

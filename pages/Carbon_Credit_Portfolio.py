@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from carbon_marketplace import PROJECTS
-from carbon_credit_ledger import (
+from src.carbon.carbon_marketplace import PROJECTS
+from src.carbon.carbon_credit_ledger import (
     CREDIT_STANDARDS,
     issue_credit,
     retire_credit,

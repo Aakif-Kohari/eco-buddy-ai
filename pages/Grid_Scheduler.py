@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from grid_scheduler import (
+from src.energy.grid_scheduler import (
     DEFAULT_DAYS_PER_YEAR,
     DEFAULT_GRID_PROFILE,
     DEFAULT_TARIFF,

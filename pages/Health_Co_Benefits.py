@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from health_cobenefits import (
+from src.utils.health_cobenefits import (
     DEFAULT_DENSITY,
     OUTCOME_LABELS,
     POLLUTANT_LABELS,

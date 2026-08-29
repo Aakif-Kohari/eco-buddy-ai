@@ -8,8 +8,8 @@ st.set_page_config(
     layout="wide",
 )
 
-from achievement_showcase import render_achievement_showcase
-from database import migrate
+from src.utils.achievement_showcase import render_achievement_showcase
+from src.core.database import migrate
 from styles.theme import apply_theme
 
 

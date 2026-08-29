@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from degree_days import (
+from src.energy.degree_days import (
     DEFAULT_BASE_TEMPERATURE,
     DEFAULT_CLIMATE_ZONE,
     MIN_READINGS,

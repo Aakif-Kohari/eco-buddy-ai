@@ -49,7 +49,7 @@ class SQLiteVectorStore:
 
     def insert(self, doc_id: str, text: str, embedding: np.ndarray, metadata: Dict[str, Any] = None):
         """
-        Inserts or updates a document and its embedding in the database.
+        Inserts or updates a document and its embedding in the src.core.database.
         """
         if metadata is None:
             metadata = {}

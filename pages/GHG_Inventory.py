@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from ghg_inventory import (
+from src.carbon.ghg_inventory import (
     CONSOLIDATION_APPROACHES,
     DEFAULT_CONSOLIDATION,
     DEFAULT_GRID_INTENSITY,

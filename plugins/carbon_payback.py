@@ -3,7 +3,7 @@ Carbon Payback Plugin for EcoBuddy AI Calculator Plugin System.
 """
 
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from carbon_payback import calculate_carbon_payback, PRESET_ECO_PRODUCTS
+from src.carbon.carbon_payback import calculate_carbon_payback, PRESET_ECO_PRODUCTS
 
 
 class CarbonPaybackPlugin(CalculatorPlugin):
@@ -14,7 +14,7 @@ class CarbonPaybackPlugin(CalculatorPlugin):
 
     @property
     def description(self) -> str:
-        return "Estimates how long it takes for an eco-friendly purchase to offset its manufacturing carbon emissions."
+        return "Estimates how long it takes for an eco-friendly purchase to offset its manufacturing carbon src.carbon.emissions."
 
     @property
     def category(self) -> str:

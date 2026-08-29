@@ -67,7 +67,7 @@ ENERGY_SOURCES = {
         ),
         "why_it_matters": (
             "When responsibly sourced, biomass can make productive use of "
-            "organic materials that might otherwise become waste."
+            "organic materials that might otherwise become src.environment.waste."
         ),
         "best_for": "Areas with sustainable organic-material resources",
         "highlights": [

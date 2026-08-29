@@ -3,9 +3,9 @@ Carbon Footprint Calculator Plugin
 """
 
 from plugins.base import CalculatorPlugin, InputField, CalcResult
-from emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
-from recommendations import generate_recommendations
-from config import DIET_TYPES, TRANSPORT_EMISSION_FACTORS, VALID_REGIONS
+from src.carbon.emissions import calculate_footprint, calculate_eco_score, generate_full_audit_log
+from src.ai.recommendations import generate_recommendations
+from src.core.config import DIET_TYPES, TRANSPORT_EMISSION_FACTORS, VALID_REGIONS
 from typing import Any
 
 

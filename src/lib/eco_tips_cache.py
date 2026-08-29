@@ -37,7 +37,7 @@ class EcoTipsCache:
         }
     
     def clear(self) -> None:
-        """Clear all cache."""
+        """Clear all src.core.cache."""
         self._cache.clear()
     
     def get_stats(self) -> Dict[str, Any]:
@@ -54,7 +54,7 @@ _eco_tips_cache = None
 
 
 def get_eco_tips_cache() -> EcoTipsCache:
-    """Get global eco-tips cache."""
+    """Get global eco-tips src.core.cache."""
     global _eco_tips_cache
     if _eco_tips_cache is None:
         _eco_tips_cache = EcoTipsCache()

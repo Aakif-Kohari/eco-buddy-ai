@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments, migrate
+from src.core.database import get_assessments, migrate
 from styles.theme import apply_theme
 
 
@@ -388,7 +388,7 @@ st.markdown("### 💡 Tips for Your Next Step")
 tips = [
     "🌱 Choose walking, cycling, or public transport for shorter journeys.",
     "⚡ Switch off unnecessary lights and standby appliances.",
-    "🍽️ Plan meals carefully to reduce food waste.",
+    "🍽️ Plan meals carefully to reduce food src.environment.waste.",
     "✈️ Consider reducing unnecessary flights where possible.",
 ]
 

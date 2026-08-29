@@ -3,7 +3,7 @@ import streamlit as st
 
 # Lazy import - only load when user interacts
 def get_engine():
-    from alternative_question_engine import AlternativeQuestionEngine
+    from src.utils.alternative_question_engine import AlternativeQuestionEngine
     return AlternativeQuestionEngine()
 
 if "seen_question_ids" not in st.session_state:

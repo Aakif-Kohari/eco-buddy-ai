@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from meal_planner import (
+from src.lifestyle.meal_planner import (
     DAYS_OF_WEEK,
     DIET_DAILY_BASELINE_KG,
     MEAL_SLOTS,

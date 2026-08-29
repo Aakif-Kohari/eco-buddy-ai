@@ -1,4 +1,4 @@
-"""Benchmarks for emissions.py – footprint calc, eco score, diet normalisation."""
+"""Benchmarks for src.carbon.emissions.py – footprint calc, eco score, diet normalisation."""
 import os, sys
 from unittest.mock import patch
 

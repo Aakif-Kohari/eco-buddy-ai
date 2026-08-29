@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<!--
+  Enterprise Architectural Specification & Header:
+  Module: Enterprise Green Hydrogen Production & Electrolyzer Analytics Suite (UI Tier)
+  Architecture: Micro-frontend HTML5 Real-Time Decarbonization Command Station
+  Compliance & Standards: ISO 22734 Hydrogen Generators, IEC 60079 Explosive Atmospheres, RED II Renewable Hydrogen Directives
+  Security: Strict Content Security Policy (CSP), Zero Inline Execution, Input Sanitization Protocol
+  Design Token Specification: Dark Mode Cyber-Hydrogen Palette (Background: #0A111E, Glass Surface: rgba(16, 26, 45, 0.65), Neon Accents: #00FF87 / #60EFFF)
+  
+  System Purpose:
+  Provides enterprise-grade real-time monitoring and predictive control for Proton Exchange Membrane (PEM) and Alkaline Water Electrolyzers (AWE). Integrates renewable energy (solar/wind) power curve matching, Specific Power Consumption (kWh/kg H2), stack degradation telemetry, thermal management loops, and carbon abatement analytics.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enterprise Green Hydrogen Production & Electrolyzer Analytics Suite for real-time stack monitoring, power matching, and carbon abatement.">
+  <title>Enterprise Green Hydrogen Telemetry & Electrolyzer Suite</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/hydrogen_dashboard.css">
+</head>
+<body class="dark-theme">
+  <!-- Header & Control Station Bar -->
+  <header class="app-header" id="app-header-hydrogen">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="brand-titles">
+        <h1 id="main-dashboard-heading">HYDRO-NEXUS ENTERPRISE</h1>
+        <span class="sub-title">Green Hydrogen Telemetry & Stack Analytics v5.0</span>
+      </div>
+    </div>
+    
+    <div class="header-controls">
+      <div class="status-badge live" id="system-status-indicator">
+        <span class="pulse-dot"></span>
+        <span class="status-text" id="status-label">GRID POWER MATCHED</span>
+      </div>
+      <div class="facility-selector-wrapper">
+        <label for="electrolyzer-select" class="visually-hidden">Select Electrolyzer Plant</label>
+        <select id="electrolyzer-select" class="styled-select" aria-label="Select Hydrogen Plant">
+          <option value="PLANT-PEM-100">Gigawatt Plant Alpha (100MW PEM Stack)</option>
+          <option value="PLANT-AWE-250">Nordic Offshore Wind (250MW AWE Array)</option>
+          <option value="PLANT-SOEC-50">Solar-Thermal Industrial (50MW SOEC Stack)</option>
+          <option value="PLANT-HYBRID-150">Bavaria Refinery Green Blend (150MW Hybrid)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btn-trigger-refresh" aria-label="Sync Telemetry Stream">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Sync Telemetry
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Dashboard Layout -->
+  <main class="dashboard-container" id="dashboard-main-view">
+    <!-- Key Performance Indicators Row -->
+    <section class="kpi-grid" aria-label="Key Green Hydrogen Metrics">
+      <div class="kpi-card glass-panel" id="kpi-card-h2-output">
+        <div class="kpi-icon hydrogen-green">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v12M6 12h12"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Hourly Green H₂ Production</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-h2-output">1,840</span>
+            <span class="kpi-unit">kg/h</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-h2-output">▲ +6.4% Wind Surge</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-specific-power">
+        <div class="kpi-icon energy-neon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Specific Power Cons. (SEC)</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-sec">51.2</span>
+            <span class="kpi-unit">kWh/kg H₂</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-sec">▼ -1.4 kWh Stack Efficiency</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-stack-efficiency">
+        <div class="kpi-icon cyan-electric">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Stack LHV Efficiency</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-efficiency">65.1</span>
+            <span class="kpi-unit">%</span>
+          </div>
+          <span class="kpi-trend neutral" id="kpi-trend-efficiency">● Optimal Thermal Loop</span>
+        </div>
+      </div>
+
+      <div class="kpi-card glass-panel" id="kpi-card-co2-abatement">
+        <div class="kpi-icon emerald-dark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Daily CO₂ Abatement</span>
+          <div class="kpi-value-group">
+            <span class="kpi-value" id="kpi-val-abatement">441.6</span>
+            <span class="kpi-unit">tCO₂e/day</span>
+          </div>
+          <span class="kpi-trend positive" id="kpi-trend-abatement">✔ Replaces Grey Steam Methane</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Analytics Module Grid -->
+    <div class="analytics-grid">
+      <!-- Stack Array Telemetry & Thermal Health Panel -->
+      <article class="panel glass-panel" id="stack-telemetry-panel">
+        <div class="panel-header">
+          <h2>Electrolyzer Stack Telemetry Matrix</h2>
+          <div class="panel-actions">
+            <button class="btn-icon" id="btn-toggle-stacks" title="Toggle Stack Details">⚙</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="stack-status-list" id="stack-container">
+            <!-- Dynamically Rendered Stack Telemetry Cards -->
+            <div class="stack-card" id="stack-pem-1">
+              <div class="stack-header">
+                <span class="stack-title">Stack Module 01 (PEM)</span>
+                <span class="badge badge-success">ONLINE</span>
+              </div>
+              <div class="stack-metrics">
+                <div class="metric-item">
+                  <span class="label">Current Density:</span>
+                  <span class="value" id="stack-1-cd">2.45 A/cm²</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Cell Voltage (Avg):</span>
+                  <span class="value" id="stack-1-volts">1.82 V</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Coolant Temp:</span>
+                  <span class="value" id="stack-1-temp">68.4 °C</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">H₂ Purity:</span>
+                  <span class="value" id="stack-1-purity">99.999 %</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">Membrane Electrode Assembly (MEA) Health</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 91%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stack-card" id="stack-pem-2">
+              <div class="stack-header">
+                <span class="stack-title">Stack Module 02 (PEM)</span>
+                <span class="badge badge-success">ONLINE</span>
+              </div>
+              <div class="stack-metrics">
+                <div class="metric-item">
+                  <span class="label">Current Density:</span>
+                  <span class="value" id="stack-2-cd">2.38 A/cm²</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Cell Voltage (Avg):</span>
+                  <span class="value warning" id="stack-2-volts">1.94 V</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">Coolant Temp:</span>
+                  <span class="value" id="stack-2-temp">71.2 °C</span>
+                </div>
+                <div class="metric-item">
+                  <span class="label">H₂ Purity:</span>
+                  <span class="value" id="stack-2-purity">99.998 %</span>
+                </div>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-label">Membrane Electrode Assembly (MEA) Health</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 84%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Renewable Energy Power Curve Matching & LCOH Simulator -->
+      <article class="panel glass-panel" id="lcoh-simulator-panel">
+        <div class="panel-header">
+          <h2>Power Matching & LCOH Optimization Model</h2>
+          <span class="tag">RED II Compliant</span>
+        </div>
+        <div class="panel-body">
+          <form id="lcoh-sim-form" class="sim-form" onsubmit="return false;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-power-input">Renewable Power Input (MW)</label>
+                <input type="number" id="input-power-input" class="styled-input" value="100.0" min="5.0" max="1000.0" step="5.0">
+              </div>
+              <div class="form-group">
+                <label for="input-stack-efficiency">Stack Efficiency LHV (%)</label>
+                <input type="number" id="input-stack-efficiency" class="styled-input" value="66.5" min="50.0" max="85.0" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="input-electricity-cost">Power Tariff ($/MWh)</label>
+                <input type="number" id="input-electricity-cost" class="styled-input" value="38.50" min="0.0" max="200.0" step="0.50">
+              </div>
+              <div class="form-group">
+                <label for="input-deionised-water">Deionised Water Rate (L/kg H₂)</label>
+                <input type="number" id="input-deionised-water" class="styled-input" value="9.8" min="9.0" max="15.0" step="0.1">
+              </div>
+            </div>
+
+            <div class="sim-action-bar">
+              <button type="button" class="btn btn-primary" id="btn-run-lcoh-sim">Calculate LCOH & Yield</button>
+              <button type="button" class="btn btn-outline" id="btn-reset-lcoh">Reset Defaults</button>
+            </div>
+          </form>
+
+          <div class="simulation-results-box" id="lcoh-results-output">
+            <h3>LCOH Optimization Telemetry</h3>
+            <div class="results-grid">
+              <div class="res-item">
+                <span class="res-label">Net Hydrogen Output:</span>
+                <span class="res-val" id="res-h2-output">1,997 kg/h</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Specific Energy (SEC):</span>
+                <span class="res-val" id="res-sec-val">50.08 kWh/kg</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Levelized Cost of H₂ (LCOH):</span>
+                <span class="res-val highlight" id="res-lcoh-val">$2.68 / kg</span>
+              </div>
+              <div class="res-item">
+                <span class="res-label">Annual CO₂ Abatement:</span>
+                <span class="res-val positive" id="res-annual-abatement">161,158 tCO₂e</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Gas Purification & Storage Telemetry Table -->
+    <section class="panel glass-panel full-width" id="storage-telemetry-panel">
+      <div class="panel-header">
+        <h2>Buffer Storage & Deoxo Gas Purification Telemetry</h2>
+        <div class="filter-group">
+          <input type="text" id="table-search-hydrogen" class="styled-input search-input" placeholder="Search parameters (e.g. Deoxo, 350 bar)...">
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="table-responsive">
+          <table class="data-table" id="hydrogen-telemetry-table">
+            <thead>
+              <tr>
+                <th>Subsystem / Node</th>
+                <th>Operating Pressure</th>
+                <th>Temperature</th>
+                <th>Gas Purity (O₂ Content)</th>
+                <th>Moisture Dew Point</th>
+                <th>Safety Venting Threshold</th>
+                <th>Status Code</th>
+              </tr>
+            </thead>
+            <tbody id="hydrogen-table-body">
+              <tr>
+                <td>Deoxo Catalytic Dryer Unit</td>
+                <td>30.5 bar</td>
+                <td>42.1 °C</td>
+                <td>&lt; 1.2 ppm O₂</td>
+                <td>-72.5 °C</td>
+                <td>35.0 bar</td>
+                <td><span class="badge badge-success">OPTIMAL</span></td>
+              </tr>
+              <tr>
+                <td>Low-Pressure Buffer Vessel 01</td>
+                <td>28.4 bar</td>
+                <td>22.0 °C</td>
+                <td>99.999 % H₂</td>
+                <td>-68.0 °C</td>
+                <td>32.0 bar</td>
+                <td><span class="badge badge-success">NORMAL</span></td>
+              </tr>
+              <tr>
+                <td>High-Pressure Compressor Stage 1</td>
+                <td>180.0 bar</td>
+                <td>85.4 °C</td>
+                <td>99.999 % H₂</td>
+                <td>-70.0 °C</td>
+                <td>220.0 bar</td>
+                <td><span class="badge badge-success">NORMAL</span></td>
+              </tr>
+              <tr>
+                <td>High-Pressure Tube Trailer (350 Bar)</td>
+                <td>342.0 bar</td>
+                <td>18.5 °C</td>
+                <td>99.999 % H₂</td>
+                <td>-75.0 °C</td>
+                <td>380.0 bar</td>
+                <td><span class="badge badge-success">READY FOR DISPATCH</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Enterprise Footer -->
+  <footer class="app-footer" id="app-footer-hydrogen">
+    <div class="footer-content">
+      <p>&copy; 2026 Eco-Buddy-AI Enterprise Suite. ISO 22734 Green Hydrogen Telemetry Engine Standard.</p>
+      <div class="footer-links">
+        <span class="footer-tag">Security Class: Enterprise Restricted</span>
+        <span class="footer-tag">Engine Version: v5.0.1-HYDROGEN</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Script Integration -->
+  <script src="../src/services/hydrogen_electrolyzer_engine.js"></script>
+</body>
+</html>

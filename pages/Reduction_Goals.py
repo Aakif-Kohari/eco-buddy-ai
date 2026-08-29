@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from database import (
+from src.core.database import (
     archive_goal,
     complete_goal,
     get_active_goal,
@@ -12,7 +12,7 @@ from database import (
     get_goal_history,
     save_reduction_goal,
 )
-from goals import (
+from src.utils.goals import (
     GOAL_ACTIVE,
     STATUS_ACHIEVED,
     GoalValidationError,

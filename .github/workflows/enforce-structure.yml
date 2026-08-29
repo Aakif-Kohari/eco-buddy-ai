@@ -1,0 +1,30 @@
+name: Enforce File Structure
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  check-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure no Python files are in the root directory
+        run: |
+          # Find all .py files in the root directory (maxdepth 1)
+          # We expect only app.py to be in the root directory.
+          root_py_files=$(find . -maxdepth 1 -name "*.py" -not -name "app.py")
+          
+          if [ -n "$root_py_files" ]; then
+            echo "::error::Found unauthorized Python files in the root directory:"
+            echo "$root_py_files"
+            echo ""
+            echo "As part of Phase 3 restructuring, all Python source code MUST go into the 'src/' directory (or 'tests/', 'pages/', etc.)."
+            echo "Please move these files into the appropriate domain directory within 'src/'."
+            exit 1
+          fi
+          
+          echo "Structure check passed. No unauthorized .py files found in root."

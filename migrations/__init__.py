@@ -9,12 +9,12 @@ schema changes and sets the database version.
 import importlib
 import os
 import sqlite3
-from database_connection import database_connection
+from src.core.database_connection import database_connection
 
 
 def get_db_name() -> str:
     """Get the current database name (read at runtime to support test DB switching)."""
-    import database
+    import src.core.database as database
     return database.DB_NAME
 
 
@@ -32,7 +32,7 @@ def set_version(conn: sqlite3.Connection, version: int) -> None:
     conn.commit()
 
 
-CURRENT_VERSION = 9
+CURRENT_VERSION = 15
 
 
 def migrate() -> tuple[bool, str]:

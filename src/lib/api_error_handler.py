@@ -23,7 +23,7 @@ class ErrorSeverity(Enum):
 
 
 class ErrorType(Enum):
-    """Types of API errors."""
+    """Types of API src.core.errors."""
     NETWORK = "network"
     TIMEOUT = "timeout"
     AUTH = "authentication"
