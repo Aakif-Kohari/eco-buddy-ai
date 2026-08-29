@@ -18,7 +18,8 @@ from src.core.config import (
 from src.core.cache import cached
 from src.core.cache_config import TTL_EXTERNAL_API, CACHE_CATEGORY_API
 from src.carbon.emission_factors import provenance_block, resolve_factor_set, factor_uncertainty_percent
-
+from src.core.dependency_graph import DependencyGraph
+from src.core.incremental_calculator import IncrementalCalculator
 @cached(ttl=TTL_EXTERNAL_API, category=CACHE_CATEGORY_API)
 def fetch_emission_factors(region: str) -> dict:
     """
@@ -189,6 +190,12 @@ def calculate_category_emissions(transport: str, distance: float, electricity: f
         "diet", diet_factor, "kg CO2/year", "static-v1", "EcoBuddy-builtin",
         f"Annual {diet} diet emissions"
     )
+        # Track calculation state if provided
+    if assessment_state:
+        assessment_state.set_input("input_distance", distance)
+        assessment_state.set_input("input_electricity", electricity)
+        assessment_state.set_input("input_flights", flights)
+        assessment_state.set_input("input_diet", diet)
     diet_lineage = lineage_builder.build_category_lineage(
         "diet", 1.0, "year", diet_factor,
         diet_factor, "kg CO2/year", "static-v1", "EcoBuddy-builtin",
@@ -249,8 +256,21 @@ def calculate_category_emissions(transport: str, distance: float, electricity: f
     for lineage in category_lineages.values():
         lineage_builder.lineage_graph.add_category_lineage(lineage)
     
-    return contributors, raw_emissions, factors, confidence_data, category_lineages
+    # Store calculation metadata for dependency tracking
+    calc_metadata = {
+        "transport_result": contributors.get("Transport", 0),
+        "electricity_result": contributors.get("Electricity", 0),
+        "diet_result": contributors.get("Diet", 0),
+        "flights_result": contributors.get("Flights", 0),
+    }
 
+    return contributors, raw_emissions, factors, confidence_data, category_lineages, calc_metadata
+    # Store results in assessment state
+    if assessment_state:
+        assessment_state.put_result("calc_transport", contributors.get("Transport", 0))
+        assessment_state.put_result("calc_electricity", contributors.get("Electricity", 0))
+        assessment_state.put_result("calc_diet", contributors.get("Diet", 0))
+        assessment_state.put_result("calc_flights", contributors.get("Flights", 0))
 def calculate_footprint(
     transport: str,
     distance: float,
@@ -259,7 +279,8 @@ def calculate_footprint(
     flights: int,
     region: str = "Global",
     return_audit: bool = False,
-    return_lineage: bool = False
+    return_lineage: bool = False,
+    assessment_state: Any = None
 ) -> tuple[float, dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any], Any]:
     """
     Calculates annual carbon footprint (in kg CO2) across user activities.
