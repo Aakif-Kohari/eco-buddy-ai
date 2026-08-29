@@ -202,6 +202,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS regeneration_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        garden_area_sqm REAL,
+                        crop_count INTEGER,
+                        regeneration_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS eco_community_funds (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         project_name TEXT,
@@ -8498,6 +8508,26 @@ def save_commute_log(user_id: str, log_date: str, distance_km: float, chosen_mod
     """, (user_id, log_date, distance_km, chosen_mode, baseline_mode, carbon_saved_kg))
     conn.commit()
     conn.close()
+
+def save_regeneration_log(garden_area_sqm: float, crop_count: int, regeneration_score: float) -> None:
+    """Saves a backyard regeneration impact log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO regeneration_logs (garden_area_sqm, crop_count, regeneration_score)
+        VALUES (?, ?, ?)
+    """, (garden_area_sqm, crop_count, regeneration_score))
+    conn.commit()
+    conn.close()
+
+def get_regeneration_history() -> list:
+    """Retrieves historical backyard regeneration logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT garden_area_sqm, crop_count, regeneration_score, timestamp FROM regeneration_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def get_commute_history(user_id: str) -> list:
     """Retrieves historical commute logs for a user."""
