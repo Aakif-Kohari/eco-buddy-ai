@@ -36,8 +36,8 @@ def build_assessment_snapshot(
     contributors: dict[str, Any],
     total: float,
     eco_score: int,
-) -> dict[str, Any]:
-    """
+    uncertainty_range: dict[str, Any] | None = None,
+) -> dict[str, Any]:     """
     Freeze everything needed to reproduce an assessment later:
 
     - the original normalized user inputs
@@ -48,12 +48,15 @@ def build_assessment_snapshot(
     - the resulting category-level emissions
     - the final total footprint and Eco Score
     - the exact calculation timestamp
+    - uncertainty bounds and confidence per category (if available)
 
     `footprint_audit` is the audit log dict already returned by
     `calculate_footprint(..., return_audit=True)`; `contributors` is the
     per-category emissions dict returned alongside it.
+    `uncertainty_range` is the dict returned by `calculate_footprint_range()`
+    if available, containing category_bounds and uncertainty_percent.
     """
-    return {
+    snapshot = {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "engine_version": ENGINE_VERSION,
         "calculated_at": datetime.now(timezone.utc).isoformat(),
@@ -69,7 +72,19 @@ def build_assessment_snapshot(
         "total_kg": total,
         "eco_score": eco_score,
     }
-
+    
+    # Add uncertainty metadata if available, so historical assessments
+    # remain reproducible even after emission factors change.
+    if uncertainty_range:
+        snapshot["uncertainty_percent"] = uncertainty_range.get("uncertainty_percent")
+        snapshot["category_bounds"] = uncertainty_range.get("category_bounds", {})
+        snapshot["uncertainty_range"] = {
+            "low_kg": uncertainty_range.get("low_kg"),
+            "central_kg": uncertainty_range.get("central_kg"),
+            "high_kg": uncertainty_range.get("high_kg"),
+        }
+    
+    return snapshot
 
 def serialize_snapshot(snapshot: dict[str, Any]) -> str:
     """JSON-encode a snapshot for storage."""

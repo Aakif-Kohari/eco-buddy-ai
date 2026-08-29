@@ -568,13 +568,13 @@ with tab_assess:
             contributors=contributors,
             total=total,
             eco_score=eco_score,
+            uncertainty_range=footprint_range,
         )
         save_assessment(
             user_id, transport, distance, electricity, diet, flights, total, eco_score,
             factor_version=footprint_audit.get("factor_version"),
             snapshot_json=serialize_snapshot(snapshot),
-        )
-        if user_id:            delete_assessment_draft(user_id)
+        )        if user_id:            delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
