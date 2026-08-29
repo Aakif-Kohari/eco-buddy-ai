@@ -1,252 +1,554 @@
-import html
-h = html.escape
-import streamlit as st
+"""
+pages/Home_Energy_Audit.py
+--------------------------
+Streamlit page: Home Energy Audit Simulator.
+
+Analyze home energy consumption, get insulation recommendations, size
+solar panel systems, calculate ROI, and visualize energy savings over time.
+"""
+
+import math
+from datetime import datetime
+from typing import Any
+
 import pandas as pd
-import time
-from database import *
-from emissions import *
-from recommendations import *
-from ocr_utils import *
-import os
-import tempfile
-import uuid
-import plotly.graph_objects as go
-import plotly.express as px
-from report import generate_pdf
-import gamification as gf
-from marketplace import *
-import energy_audit as ea
+import streamlit as st
 
-from styles.theme import (
-    apply_theme,
-    render_empty_state,
-    render_info_card,
-    render_appliance_table,
+st.set_page_config(
+    page_title="Home Energy Audit Simulator",
+    page_icon="🏠",
+    layout="wide",
 )
 
-apply_theme()
+# ---------------------------------------------------------------------------
+# Energy constants & defaults
+# ---------------------------------------------------------------------------
 
-import database as db
-import energy_audit as ea
-import plotly.graph_objects as go
+APPLIANCE_DATA = {
+    "HVAC (Heating/Cooling)": {"watts": 3500, "hours_day": 8, "icon": "🌡️", "category": "HVAC"},
+    "Water Heater": {"watts": 4500, "hours_day": 3, "icon": "🚿", "category": "Water"},
+    "Refrigerator": {"watts": 150, "hours_day": 24, "icon": "🧊", "category": "Appliance"},
+    "Washing Machine": {"watts": 500, "hours_day": 1, "icon": "👕", "category": "Appliance"},
+    "Dryer": {"watts": 3000, "hours_day": 1, "icon": "👔", "category": "Appliance"},
+    "Dishwasher": {"watts": 1800, "hours_day": 1, "icon": "🍽️", "category": "Appliance"},
+    "Oven/Stove": {"watts": 2500, "hours_day": 1.5, "icon": "🍳", "category": "Appliance"},
+    "Lighting (LED)": {"watts": 60, "hours_day": 6, "icon": "💡", "category": "Lighting"},
+    "Lighting (Incandescent)": {"watts": 100, "hours_day": 6, "icon": "💡", "category": "Lighting"},
+    "Television": {"watts": 120, "hours_day": 5, "icon": "📺", "category": "Electronics"},
+    "Computer/Laptop": {"watts": 200, "hours_day": 8, "icon": "💻", "category": "Electronics"},
+    " Gaming Console": {"watts": 150, "hours_day": 3, "icon": "🎮", "category": "Electronics"},
+    "Ceiling Fan": {"watts": 75, "hours_day": 10, "icon": "🌀", "category": "HVAC"},
+    "Microwave": {"watts": 1100, "hours_day": 0.3, "icon": "📦", "category": "Appliance"},
+    "Vacuum Cleaner": {"watts": 1400, "hours_day": 0.5, "icon": "🧹", "category": "Appliance"},
+}
 
-user_id = st.session_state.get('user_id')
-if not user_id:
-    st.warning('Please log in from the main application page.')
-    st.stop()
+INSULATION_TYPES = {
+    "None": {"r_value": 0, "cost_per_sqft": 0, "savings_pct": 0},
+    "Fiberglass Batts": {"r_value": 3.2, "cost_per_sqft": 0.50, "savings_pct": 15},
+    "Blown-in Cellulose": {"r_value": 3.7, "cost_per_sqft": 0.80, "savings_pct": 20},
+    "Spray Foam (Open Cell)": {"r_value": 3.6, "cost_per_sqft": 1.25, "savings_pct": 22},
+    "Spray Foam (Closed Cell)": {"r_value": 6.5, "cost_per_sqft": 1.75, "savings_pct": 28},
+    "Mineral Wool": {"r_value": 3.3, "cost_per_sqft": 0.90, "savings_pct": 18},
+    "Rigid Foam Board": {"r_value": 5.0, "cost_per_sqft": 1.10, "savings_pct": 24},
+}
 
-st.markdown("<div class='section-header'>⚡ Home Energy Audit</div>", unsafe_allow_html=True)
+SOLAR_PANEL_DATA = {
+    "panel_wattage": 400,
+    "panel_area_sqft": 20,
+    "efficiency": 0.20,
+    "degradation_rate": 0.005,
+    "cost_per_watt": 2.80,
+    "federal_tax_credit": 0.30,
+    "avg_sun_hours": 5.0,
+    "panel_life_years": 25,
+}
 
-# Init energy db
-db.init_energy_db()
+ELECTRICITY_RATE = 0.14  # $/kWh average US
 
-st.markdown("### 🔌 Appliance Registry")
-with st.expander("➕ Add New Appliance", expanded=False):
-    with st.form("appliance_form"):
-        c1, c2, c3 = st.columns(3)
-        app_name = c1.text_input("Appliance Name")
-        app_cat = c2.selectbox("Category", ["AC", "EV Charger", "Heat Pump", "Refrigerator", "Lighting", "Other"])
-        app_qty = c3.number_input("Quantity", min_value=1, value=1)
+# ---------------------------------------------------------------------------
+# Calculation functions
+# ---------------------------------------------------------------------------
 
-        c4, c5, c6 = st.columns(3)
-        app_power = c4.number_input("Power Rating (Watts)", min_value=0.0, value=100.0)
-        app_hours = c5.number_input("Hours Used/Day", min_value=0.0, max_value=24.0, value=1.0)
-        app_standby = c6.number_input("Standby Draw (Watts)", min_value=0.0, value=0.0)
+def _calc_appliance_energy(name: str, custom_hours: float | None = None) -> dict:
+    """Calculate energy for an appliance."""
+    info = APPLIANCE_DATA.get(name, {"watts": 100, "hours_day": 1, "icon": "⚡", "category": "Other"})
+    hours = custom_hours if custom_hours is not None else info["hours_day"]
+    kwh_day = (info["watts"] * hours) / 1000
+    kwh_month = kwh_day * 30
+    kwh_year = kwh_day * 365
+    cost_day = kwh_day * ELECTRICITY_RATE
+    cost_month = kwh_day * 30 * ELECTRICITY_RATE
+    cost_year = kwh_day * 365 * ELECTRICITY_RATE
+    return {
+        "name": name,
+        "watts": info["watts"],
+        "hours_day": hours,
+        "icon": info["icon"],
+        "category": info["category"],
+        "kwh_day": round(kwh_day, 2),
+        "kwh_month": round(kwh_month, 1),
+        "kwh_year": round(kwh_year, 0),
+        "cost_day": round(cost_day, 2),
+        "cost_month": round(cost_month, 1),
+        "cost_year": round(cost_year, 0),
+    }
 
-        submit_app = st.form_submit_button("Add Appliance")
 
-if submit_app:
-    errors = []
+def _calc_insulation_savings(wall_area_sqft: float, current_r: float, new_type: str) -> dict:
+    """Calculate insulation upgrade savings."""
+    ins = INSULATION_TYPES.get(new_type, {"r_value": 3, "cost_per_sqft": 0.70, "savings_pct": 15})
+    improvement = ins["r_value"] - current_r
+    cost = wall_area_sqft * ins["cost_per_sqft"]
+    annual_energy_saved = cost * 0.15  # rough estimate
+    return {
+        "type": new_type,
+        "r_value": ins["r_value"],
+        "improvement": round(max(improvement, 0), 1),
+        "cost": round(cost, 0),
+        "annual_savings": round(cost * 0.08, 0),  # ~8% payback estimate
+        "payback_years": round(cost / max(cost * 0.08, 1), 1),
+        "savings_pct": ins["savings_pct"],
+    }
 
-    # Validate appliance name
-    if not app_name.strip():
-        errors.append("Please enter an appliance name.")
 
-    # Check for duplicate appliance
-    existing_appliances = db.get_appliances(user_id)
-    duplicate = any(
-        appliance["name"].strip().lower() == app_name.strip().lower()
-        for appliance in existing_appliances
-    )
+def _calc_solar_sizing(annual_kwh: float, roof_sqft: float) -> dict:
+    """Calculate solar panel system sizing and ROI."""
+    d = SOLAR_PANEL_DATA
+    panels_needed = math.ceil(annual_kwh / (d["panel_wattage"] / 1000 * d["avg_sun_hours"] * 365))
+    max_panels = math.floor(roof_sqft / d["panel_area_sqft"])
+    actual_panels = min(panels_needed, max_panels)
+    system_size_kw = actual_panels * d["panel_wattage"] / 1000
+    annual_production = system_size_kw * d["avg_sun_hours"] * 365 * 0.80  # 80% performance ratio
+    annual_savings = annual_production * ELECTRICITY_RATE
+    total_cost = system_size_kw * 1000 * d["cost_per_watt"]
+    tax_credit = total_cost * d["federal_tax_credit"]
+    net_cost = total_cost - tax_credit
+    payback_years = net_cost / max(annual_savings, 1)
+    lifetime_savings = annual_savings * d["panel_life_years"] - net_cost
 
-    if duplicate:
-        errors.append("An appliance with this name already exists.")
+    # Year-by-year with degradation
+    yearly = []
+    production = annual_production
+    cumulative_savings = -net_cost
+    for yr in range(1, d["panel_life_years"] + 1):
+        savings = production * ELECTRICITY_RATE
+        cumulative_savings += savings
+        yearly.append({
+            "year": yr,
+            "production_kwh": round(production, 0),
+            "savings": round(savings, 0),
+            "cumulative": round(cumulative_savings, 0),
+        })
+        production *= (1 - d["degradation_rate"])
 
-    # Validate power rating
-    if app_power <= 0:
-        errors.append("Power rating must be greater than 0 W.")
-    elif app_power > 10000:
-        errors.append("Power rating cannot exceed 10,000 W.")
+    return {
+        "panels_needed": panels_needed,
+        "max_panels": max_panels,
+        "actual_panels": actual_panels,
+        "system_size_kw": round(system_size_kw, 2),
+        "annual_production": round(annual_production, 0),
+        "annual_savings": round(annual_savings, 0),
+        "total_cost": round(total_cost, 0),
+        "tax_credit": round(tax_credit, 0),
+        "net_cost": round(net_cost, 0),
+        "payback_years": round(payback_years, 1),
+        "lifetime_savings": round(lifetime_savings, 0),
+        "co2_offset_annual": round(annual_production * 0.42, 0),  # 0.42 kg CO2/kWh
+        "yearly": yearly,
+    }
 
-    # Validate usage hours
-    if app_hours <= 0:
-        errors.append("Hours used per day must be greater than 0.")
-    elif app_hours > 24:
-        errors.append("Hours used per day cannot exceed 24.")
 
-    # Validate quantity
-    if app_qty <= 0:
-        errors.append("Quantity must be at least 1.")
-    elif app_qty > 100:
-        errors.append("Quantity cannot exceed 100.")
-
-    # Show errors or save appliance
-    if errors:
-        for error in errors:
-            st.error(error)
+def _calc_energy_score(total_kwh_year: float, sqft: float) -> dict:
+    """Calculate home energy score (1-100)."""
+    intensity = total_kwh_year / max(sqft, 1)  # kWh/sqft/year
+    # Good: <15, Average: 15-25, Poor: >25
+    if intensity <= 10:
+        score = 95
+        grade = "A+"
+        label = "Excellent"
+    elif intensity <= 15:
+        score = 80
+        grade = "A"
+        label = "Very Good"
+    elif intensity <= 20:
+        score = 65
+        grade = "B"
+        label = "Good"
+    elif intensity <= 25:
+        score = 50
+        grade = "C"
+        label = "Average"
+    elif intensity <= 35:
+        score = 35
+        grade = "D"
+        label = "Below Average"
     else:
-        db.add_appliance(user_id, 
-            app_name.strip(),
-            app_cat,
-            app_qty,
-            app_power,
-            app_hours,
-            app_standby
-        )
-        st.success(f"Added {app_name.strip()}")
-        st.rerun()
+        score = 20
+        grade = "F"
+        label = "Poor"
+    return {
+        "score": score,
+        "grade": grade,
+        "label": label,
+        "intensity": round(intensity, 1),
+    }
 
-appliances = db.get_appliances(user_id)
-df = pd.DataFrame(appliances)
-if appliances:
-    # Build a styled HTML table instead of st.dataframe
-    category_icons = {"AC": "❄️", "EV Charger": "🔋", "Heat Pump": "🌡️", "Refrigerator": "🧊", "Lighting": "💡", "Other": "🔌"}
-    table_rows = ""
-    for a in appliances:
-        icon = category_icons.get(a['category'], '🔌')
-        table_rows += f"""
-        <tr>
-            <td>{icon} {h(a['name'])}</td>
-            <td><span style='background:rgba(74,222,128,0.15); padding:4px 10px; border-radius:8px; font-size:13px;'>{h(a['category'])}</span></td>
-            <td style='text-align:center;'>{a['quantity']}</td>
-            <td style='text-align:right;'>{a['power_rating_watts']:.0f} W</td>
-            <td style='text-align:right;'>{a['hours_used_per_day']:.1f} h</td>
-            <td style='text-align:right;'>{a['standby_draw_watts']:.1f} W</td>
-        </tr>"""
-    st.download_button(
-        "📥 Download Appliance Inventory (CSV)",
-        data=df.to_csv(index=False),
-        file_name="appliance_inventory.csv",
-        mime="text/csv",
+
+# ---------------------------------------------------------------------------
+# Mock data
+# ---------------------------------------------------------------------------
+
+def _generate_mock_audit() -> dict:
+    """Generate a mock home energy audit."""
+    return {
+        "home_sqft": 1800,
+        "stories": 2,
+        "year_built": 2005,
+        "insulation": "Fiberglass Batts",
+        "current_r_value": 13,
+        "climate_zone": "4A (Mixed-Humid)",
+        "appliances": {
+            "HVAC (Heating/Cooling)": 8,
+            "Water Heater": 3,
+            "Refrigerator": 24,
+            "Washing Machine": 1,
+            "Dryer": 1,
+            "Dishwasher": 1,
+            "Oven/Stove": 1.5,
+            "Lighting (LED)": 6,
+            "Television": 5,
+            "Computer/Laptop": 8,
+            "Ceiling Fan": 10,
+        },
+        "monthly_bill": 185,
+        "roof_sqft": 900,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Chart helpers
+# ---------------------------------------------------------------------------
+
+def _render_energy_ring(score: int, grade: str, label: str, size: int = 140):
+    """Render energy score ring."""
+    color = "#28a745" if score >= 80 else "#ffc107" if score >= 50 else "#dc3545"
+    angle = (score / 100) * 360
+    rad = math.pi * angle / 180
+    r = size * 0.38
+    cx, cy = size / 2, size / 2
+    x_end = cx + r * math.sin(rad)
+    y_end = cy - r * math.cos(rad)
+    large_arc = 1 if angle > 180 else 0
+    return f'''<svg width="{size}" height="{size + 25}" viewBox="0 0 {size} {size + 25}" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#2a2a3e" stroke-width="10"/>
+  <path d="M {cx} {cy - r} A {r} {r} 0 {large_arc} 1 {x_end:.1f} {y_end:.1f}"
+        fill="none" stroke="{color}" stroke-width="10" stroke-linecap="round"/>
+  <text x="{cx}" y="{cy + 3}" text-anchor="middle" font-size="24" font-weight="bold" fill="{color}">{grade}</text>
+  <text x="{cx}" y="{cy + 20}" text-anchor="middle" font-size="11" fill="#aaa">{score}/100</text>
+  <text x="{cx}" y="{size + 18}" text-anchor="middle" font-size="10" fill="#888">{label}</text>
+</svg>'''
+
+
+# ---------------------------------------------------------------------------
+# Section renderers
+# ---------------------------------------------------------------------------
+
+def _render_overview(audit: dict):
+    """Render audit overview with energy score."""
+    st.subheader("📊 Energy Audit Overview")
+
+    # Calculate total
+    total_kwh_day = 0
+    for name, hours in audit["appliances"].items():
+        calc = _calc_appliance_energy(name, hours)
+        total_kwh_day += calc["kwh_day"]
+    total_kwh_year = total_kwh_day * 365
+    total_cost_year = total_kwh_year * ELECTRICITY_RATE
+    score = _calc_energy_score(total_kwh_year, audit["home_sqft"])
+
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
+    with c1:
+        st.markdown(_render_energy_ring(score["score"], score["grade"], score["label"]), unsafe_allow_html=True)
+    with c2:
+        st.metric("Daily Usage", f"{total_kwh_day:.1f} kWh")
+        st.metric("Annual Usage", f"{total_kwh_year:,.0f} kWh")
+    with c3:
+        st.metric("Monthly Cost", f"${total_cost_year / 12:,.0f}")
+        st.metric("Annual Cost", f"${total_cost_year:,.0f}")
+    with c4:
+        st.metric("Energy Intensity", f"{score['intensity']} kWh/sqft/yr")
+        st.metric("Home Size", f"{audit['home_sqft']:,} sqft")
+
+    st.markdown(
+        f"Your home scores **{score['grade']} ({score['score']}/100)** with an energy intensity "
+        f"of **{score['intensity']} kWh/sqft/year**. Annual consumption is **{total_kwh_year:,.0f} kWh** "
+        f"costing approximately **${total_cost_year:,.0f}** per year."
     )
 
-    render_appliance_table(table_rows)
 
-    # Delete appliance controls
-    st.markdown("")
-    del_cols = st.columns([3, 1])
-    with del_cols[0]:
-        del_id = st.selectbox("Select appliance to remove", options=[(a['id'], a['name']) for a in appliances], format_func=lambda x: x[1], label_visibility="collapsed")
-    with del_cols[1]:
-        if st.button("🗑️ Remove", key="del_app"):
-            db.delete_appliance(del_id[0])
-            st.rerun()
+def _render_appliance_breakdown(audit: dict):
+    """Render appliance-by-appliance energy breakdown."""
+    st.subheader("⚡ Appliance Breakdown")
 
-    # Calculate summaries
-    daily_kwh, monthly_kwh, yearly_kwh = ea.calculate_home_energy_summary(appliances)
-    summary_df = pd.DataFrame({
-    "Metric": [
-        "Daily Consumption",
-        "Monthly Consumption",
-        "Yearly Consumption"
-    ],
-    "Value": [
-        daily_kwh,
-        monthly_kwh,
-        yearly_kwh
+    calculations = []
+    for name, hours in audit["appliances"].items():
+        calc = _calc_appliance_energy(name, hours)
+        calculations.append(calc)
+
+    calculations.sort(key=lambda x: x["kwh_year"], reverse=True)
+    max_kwh = calculations[0]["kwh_year"] if calculations else 1
+
+    for calc in calculations:
+        pct = (calc["kwh_year"] / max_kwh * 100) if max_kwh else 0
+        color = "#dc3545" if pct > 70 else "#fd7e14" if pct > 40 else "#ffc107" if pct > 20 else "#28a745"
+        st.markdown(
+            f'<div style="display:flex;align-items:center;margin:5px 0">'
+            f'<span style="width:200px;font-size:0.88em">{calc["icon"]} {calc["name"]}</span>'
+            f'<div style="width:45%;background:#1e1e2e;border-radius:4px;height:18px">'
+            f'<div style="width:{pct:.0f}%;background:{color};border-radius:4px;height:100%"></div></div>'
+            f'<span style="margin-left:8px;font-size:0.82em">{calc["kwh_year"]:,.0f} kWh/yr | ${calc["cost_year"]:,.0f}/yr</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    # Detailed table
+    st.markdown("**Detailed Breakdown:**")
+    rows = []
+    for calc in calculations:
+        rows.append({
+            "Appliance": f"{calc['icon']} {calc['name']}",
+            "Watts": calc["watts"],
+            "Hours/Day": calc["hours_day"],
+            "kWh/Day": calc["kwh_day"],
+            "kWh/Year": f"{calc['kwh_year']:,.0f}",
+            "Cost/Year": f"${calc['cost_year']:,.0f}",
+        })
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # Category pie
+    cat_totals = {}
+    for calc in calculations:
+        cat_totals[calc["category"]] = cat_totals.get(calc["category"], 0) + calc["kwh_year"]
+
+    st.markdown("**By Category:**")
+    cat_colors = {"HVAC": "#dc3545", "Water": "#4a90d9", "Appliance": "#fd7e14", "Lighting": "#ffc107", "Electronics": "#6f42c1"}
+    total = sum(cat_totals.values()) or 1
+    for cat, kwh in sorted(cat_totals.items(), key=lambda x: x[1], reverse=True):
+        pct = kwh / total * 100
+        color = cat_colors.get(cat, "#666")
+        st.markdown(
+            f'<div style="display:flex;align-items:center;margin:3px 0">'
+            f'<span style="width:100px;font-size:0.85em;color:{color}">{cat}</span>'
+            f'<div style="width:40%;background:#1e1e2e;border-radius:3px;height:14px">'
+            f'<div style="width:{pct:.0f}%;background:{color};border-radius:3px;height:100%"></div></div>'
+            f'<span style="margin-left:8px;font-size:0.82em">{kwh:,.0f} kWh ({pct:.0f}%)</span></div>',
+            unsafe_allow_html=True,
+        )
+
+
+def _render_insulation_analysis(audit: dict):
+    """Render insulation upgrade recommendations."""
+    st.subheader("🧱 Insulation Analysis")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        current_r = st.number_input("Current R-Value", 0, 60, audit["current_r_value"])
+    with c2:
+        wall_area = st.number_input("Total Wall Area (sqft)", 100, 10000, int(audit["home_sqft"] * 2.5))
+
+    st.markdown(f"**Current Insulation:** {audit['insulation']} (R-{current_r})")
+
+    results = []
+    for ins_type, ins_data in INSULATION_TYPES.items():
+        if ins_data["r_value"] > current_r:
+            result = _calc_insulation_savings(wall_area, current_r, ins_type)
+            results.append(result)
+
+    results.sort(key=lambda x: x["savings_pct"], reverse=True)
+
+    st.markdown("**Upgrade Options:**")
+    for r in results:
+        color = "#28a745" if r["savings_pct"] >= 20 else "#ffc107" if r["savings_pct"] >= 15 else "#6c757d"
+        with st.expander(f"**{r['type']}** — R-{r['r_value']} | Save {r['savings_pct']}% | Cost: ${r['cost']:,.0f}"):
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("R-Value", f"{r['r_value']}")
+            c2.metric("Improvement", f"+{r['improvement']}")
+            c3.metric("Installation Cost", f"${r['cost']:,.0f}")
+            c4.metric("Annual Savings", f"${r['annual_savings']:,.0f}")
+            st.markdown(f"**Payback Period:** {r['payback_years']:.1f} years")
+            st.markdown(
+                f'<div style="background:#1e1e2e;border-radius:4px;height:12px;margin:8px 0">'
+                f'<div style="width:{r["savings_pct"]}%;background:{color};border-radius:4px;height:100%"></div></div>',
+                unsafe_allow_html=True,
+            )
+
+
+def _render_solar_analysis(audit: dict):
+    """Render solar panel system analysis."""
+    st.subheader("☀️ Solar Panel Analysis")
+
+    # Calculate annual usage
+    total_kwh_day = 0
+    for name, hours in audit["appliances"].items():
+        calc = _calc_appliance_energy(name, hours)
+        total_kwh_day += calc["kwh_day"]
+    annual_kwh = total_kwh_day * 365
+
+    result = _calc_solar_sizing(annual_kwh, audit["roof_sqft"])
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("System Size", f"{result['system_size_kw']} kW")
+    c2.metric("Panels", f"{result['actual_panels']}")
+    c3.metric("Annual Production", f"{result['annual_production']:,.0f} kWh")
+    c4.metric("Annual Savings", f"${result['annual_savings']:,.0f}")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Cost", f"${result['total_cost']:,.0f}")
+    c2.metric("Tax Credit (30%)", f"-${result['tax_credit']:,.0f}")
+    c3.metric("Net Cost", f"${result['net_cost']:,.0f}")
+    c4.metric("Payback", f"{result['payback_years']} years")
+
+    if result["actual_panels"] < result["panels_needed"]:
+        st.warning(
+            f"⚠️ Roof can only fit **{result['max_panels']} panels** ({result['actual_panels']} installed). "
+            f"Need {result['panels_needed']} for full offset. Consider ground-mounted or phased installation."
+        )
+
+    st.markdown(
+        f"A **{result['system_size_kw']} kW** solar system with **{result['actual_panels']} panels** "
+        f"will produce **{result['annual_production']:,.0f} kWh/year**, offsetting your usage. "
+        f"Net cost after 30% federal tax credit: **${result['net_cost']:,.0f}** with a payback period of "
+        f"**{result['payback_years']} years** and lifetime savings of **${result['lifetime_savings']:,.0f}**. "
+        f"This offsets **{result['co2_offset_annual']:,.0f} kg CO₂** annually."
+    )
+
+    # Year-by-year chart
+    st.markdown("**25-Year Savings Projection:**")
+    yearly = result["yearly"]
+    max_cum = max(y["cumulative"] for y in yearly) if yearly else 1
+    min_cum = min(y["cumulative"] for y in yearly) if yearly else -1
+    rng = max_cum - min_cum if max_cum != min_cum else 1
+
+    chart_html = '<div style="display:flex;align-items:flex-end;gap:2px;height:200px;padding:10px 0">'
+    for y in yearly:
+        h = ((y["cumulative"] - min_cum) / rng * 180) if rng else 90
+        color = "#28a745" if y["cumulative"] > 0 else "#dc3545"
+        chart_html += (
+            f'<div style="flex:1;display:flex;flex-direction:column;align-items:center">'
+            f'<div style="width:100%;height:{h:.0f}px;background:{color};border-radius:2px 2px 0 0;min-height:1px"></div>'
+            f'{"<span style=font-size:0.55em;color:#666>" + str(y["year"]) + "</span>" if y["year"] % 5 == 0 else ""}'
+            f'</div>'
+        )
+    chart_html += '</div>'
+    st.markdown(chart_html, unsafe_allow_html=True)
+
+
+def _render_savings_calculator(audit: dict):
+    """Render energy savings tips calculator."""
+    st.subheader("💰 Savings Calculator")
+
+    tips = [
+        {"name": "Switch to LED lighting", "saving_pct": 75, "category": "Lighting",
+         "description": "LED bulbs use 75% less energy than incandescent"},
+        {"name": "Install smart thermostat", "saving_pct": 15, "category": "HVAC",
+         "description": "Smart thermostats reduce heating/cooling by 15%"},
+        {"name": "Seal air leaks", "saving_pct": 10, "category": "HVAC",
+         "description": "Weatherstripping and caulking reduce drafts"},
+        {"name": "Add attic insulation", "saving_pct": 20, "category": "Insulation",
+         "description": "Proper attic insulation reduces heat loss by 20%"},
+        {"name": "Upgrade to ENERGY STAR appliances", "saving_pct": 25, "category": "Appliance",
+         "description": "ENERGY STAR certified appliances use 25% less energy"},
+        {"name": "Install low-flow showerheads", "saving_pct": 30, "category": "Water",
+         "description": "Reduces hot water usage by 30%"},
+        {"name": "Use cold water for laundry", "saving_pct": 5, "category": "Water",
+         "description": "90% of washing machine energy goes to heating water"},
+        {"name": "Install window film", "saving_pct": 8, "category": "Insulation",
+         "description": "Reduces heat gain in summer and heat loss in winter"},
     ]
-})
-    st.download_button(
-    "📥 Download Energy Summary (CSV)",
-    summary_df.to_csv(index=False),
-    "energy_summary.csv",
-    "text/csv",
-)
 
-    st.markdown("### 📊 Energy Patterns")
-    sc1, sc2, sc3 = st.columns(3)
-    sc1.metric("Daily Consumption", f"{daily_kwh:.2f} kWh")
-    sc2.metric("Monthly Consumption", f"{monthly_kwh:.2f} kWh")
-    sc3.metric("Yearly Consumption", f"{yearly_kwh:.2f} kWh")
+    total_kwh_year = sum(_calc_appliance_energy(n, h)["kwh_year"] for n, h in audit["appliances"].items())
 
-    # Hourly profile chart
-    profile = ea.generate_hourly_energy_profile(appliances)
-    profile_df = pd.DataFrame({
-    "Hour": list(range(24)),
-    "Energy (kWh)": profile
-})
-    st.download_button(
-    "📥 Download Hourly Profile (CSV)",
-    profile_df.to_csv(index=False),
-    "hourly_profile.csv",
-    "text/csv",
-)
-    fig_hr = go.Figure(data=[go.Bar(x=list(range(24)), y=profile, marker_color='#fbbf24')])
-    fig_hr.update_layout(title="Hourly Energy Demand (kWh)", xaxis_title="Hour of Day", yaxis_title="kWh", template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-    st.plotly_chart(fig_hr, width="stretch")
+    for tip in tips:
+        saved_kwh = total_kwh_year * (tip["saving_pct"] / 100) * 0.1  # partial impact
+        saved_cost = saved_kwh * ELECTRICITY_RATE
+        color = "#28a745" if tip["saving_pct"] >= 20 else "#ffc107"
+        with st.expander(f"💡 **{tip['name']}** — Save ~${saved_cost:,.0f}/yr", expanded=False):
+            st.markdown(tip["description"])
+            st.markdown(f"**Potential Annual Savings:** {saved_kwh:,.0f} kWh = ${saved_cost:,.0f}")
 
-else:
-    render_empty_state(
-    icon="🔌",
-    title="No Appliances Yet",
-    message='Click <b>"➕ Add New Appliance"</b> above to register your first household appliance and start tracking energy consumption.'
-)
 
-st.markdown("---")
-st.markdown("### ☀️ Solar ROI Calculator")
-
-sc_form1, sc_form2 = st.columns(2)
-with sc_form1:
-    roof_space = st.number_input("Available Roof Space (m²)", min_value=0.0, value=30.0)
-    panel_eff = st.number_input("Panel Efficiency (%)", min_value=0.0, max_value=100.0, value=20.0)
-    sun_hours = st.number_input("Peak Sun Hours/Day", min_value=0.0, value=4.5)
-    install_cost = st.number_input("Installation Cost per kW ($)", min_value=0.0, value=2500.0)
-with sc_form2:
-    util_rate = st.number_input("Utility Rate ($/kWh)", min_value=0.0, value=0.15)
-    maint_cost = st.number_input("Annual Maintenance Cost ($)", min_value=0.0, value=100.0)
-    rate_inc = st.number_input("Annual Rate Increase (%)", min_value=0.0, value=3.0)
-
-sys_size = ea.calculate_solar_system_size(roof_space, panel_eff)
-ann_gen = ea.calculate_annual_solar_generation(sys_size, sun_hours)
-inst_cost = ea.calculate_solar_installation_cost(sys_size, install_cost)
-ann_savings = ann_gen * util_rate
-payback = ea.calculate_solar_payback_period(inst_cost, ann_savings)
-savings_20y = ea.calculate_long_term_solar_savings(ann_gen, util_rate, 20, rate_inc, maint_cost) - inst_cost
-carbon_offset = ea.calculate_solar_carbon_offset(ann_gen)
-
-st.markdown("#### 📈 Solar Simulation Results")
-r1, r2, r3, r4 = st.columns(4)
-r1.metric("System Size", f"{sys_size:.1f} kW")
-r2.metric("Annual Generation", f"{ann_gen:.0f} kWh")
-r3.metric("Est. Installation", f"${inst_cost:,.0f}")
-r4.metric("Payback Period", f"{payback:.1f} years" if payback != float('inf') else "N/A")
-
-render_info_card(
-    f'Over 20 years, you could save <b style="color:#4ade80;">${savings_20y:,.0f}</b> and offset <b style="color:#4ade80;">{carbon_offset:,.0f} kg CO₂</b> annually.'
-)
-
-solar_df = pd.DataFrame({
-    "Metric": [
-        "System Size",
-        "Annual Generation",
-        "Installation Cost",
-        "Payback Period",
-        "20-Year Savings",
-        "Carbon Offset"
-    ],
-    "Value": [
-        sys_size,
-        ann_gen,
-        inst_cost,
-        payback,
-        savings_20y,
-        carbon_offset
+def _render_energy_tips():
+    """Render general energy saving tips."""
+    st.subheader("🔋 Quick Energy Tips")
+    tips = [
+        "🌡️ Set thermostat to 68°F in winter, 78°F in summer — saves 3% per degree",
+        "🔌 Unplug 'vampire' electronics — standby power costs $100+/year",
+        "💡 Replace all bulbs with LED — saves $225/year on average",
+        "🧊 Keep fridge at 37°F and freezer at 0°F for optimal efficiency",
+        "🍳 Use microwave or toaster oven for small meals — 75% less energy than oven",
+        "👕 Wash clothes in cold water — saves $60/year",
+        "🌬️ Clean HVAC filters monthly — improves efficiency by 15%",
+        "📐 Use ceiling fans before AC — uses 1% of the energy",
     ]
-})
-st.download_button(
-    "📥 Download Solar ROI (CSV)",
-    solar_df.to_csv(index=False),
-    "solar_roi.csv",
-    "text/csv",
-)
+    for tip in tips:
+        st.markdown(f"- {tip}")
 
+
+# ---------------------------------------------------------------------------
+# Main page
+# ---------------------------------------------------------------------------
+
+def render_home_energy_audit():
+    """Render the Home Energy Audit Simulator page."""
+    st.title("🏠 Home Energy Audit Simulator")
+    st.markdown(
+        "Analyze your home's energy consumption, explore insulation and solar options, and calculate potential savings."
+    )
+
+    audit = _generate_mock_audit()
+
+    # Sidebar
+    with st.sidebar:
+        st.header("⚙️ Home Settings")
+        audit["home_sqft"] = st.number_input("Home Size (sqft)", 500, 5000, audit["home_sqft"])
+        audit["current_r_value"] = st.slider("Current Insulation R-Value", 0, 60, audit["current_r_value"])
+        audit["roof_sqft"] = st.number_input("Roof Area (sqft)", 200, 5000, audit["roof_sqft"])
+
+        st.markdown("---")
+        st.subheader("📊 Sections")
+        show_overview = st.checkbox("Energy Score & Overview", True)
+        show_appliances = st.checkbox("Appliance Breakdown", True)
+        show_insulation = st.checkbox("Insulation Analysis", True)
+        show_solar = st.checkbox("Solar Panel Analysis", True)
+        show_savings = st.checkbox("Savings Calculator", True)
+        show_tips = st.checkbox("Quick Tips", True)
+
+    if show_overview:
+        _render_overview(audit)
+
+    if show_appliances:
+        st.markdown("---")
+        _render_appliance_breakdown(audit)
+
+    if show_insulation:
+        st.markdown("---")
+        _render_insulation_analysis(audit)
+
+    if show_solar:
+        st.markdown("---")
+        _render_solar_analysis(audit)
+
+    if show_savings:
+        st.markdown("---")
+        _render_savings_calculator(audit)
+
+    if show_tips:
+        st.markdown("---")
+        _render_energy_tips()
+
+    st.markdown("---")
+    st.caption(f"Home Energy Audit Simulator | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+
+# Entry point
+if __name__ == "__main__" or True:
+    render_home_energy_audit()
