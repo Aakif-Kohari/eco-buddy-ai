@@ -274,6 +274,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS renovation_estimates (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        material_key TEXT,
+                        volume_m3 REAL,
+                        total_carbon_kg REAL,
+                        low_carbon_score REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS offset_portfolios (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8152,6 +8163,26 @@ def save_relocation_analysis(current_city: str, target_city: str, result_data: d
     """, (current_city, target_city, result_data.get("annual_delta_kg_co2e", 0.0), json.dumps(result_data)))
     conn.commit()
     conn.close()
+
+def save_renovation_estimate(material_key: str, volume_m3: float, total_carbon_kg: float, low_carbon_score: float) -> None:
+    """Saves a renovation embodied carbon estimate to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO renovation_estimates (material_key, volume_m3, total_carbon_kg, low_carbon_score)
+        VALUES (?, ?, ?, ?)
+    """, (material_key, volume_m3, total_carbon_kg, low_carbon_score))
+    conn.commit()
+    conn.close()
+
+def get_renovation_history() -> list:
+    """Retrieves historical renovation carbon estimates."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT material_key, volume_m3, total_carbon_kg, low_carbon_score, timestamp FROM renovation_estimates ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def get_relocation_history() -> list:
     """Retrieves historical relocation analyses."""
