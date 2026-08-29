@@ -135,6 +135,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS biodiversity_projects (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        baseline_condition TEXT,
+                        total_area_sqm REAL,
+                        bng_percentage REAL,
+                        total_bu_gained REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS carbon_banking_actions (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8656,6 +8667,26 @@ def save_alert_resolution(user_id: str, alert_date: str, carbon_kg: float) -> No
     """, (user_id, alert_date, carbon_kg))
     conn.commit()
     conn.close()
+
+def save_biodiversity_project(baseline_condition: str, total_area_sqm: float, bng_percentage: float, total_bu_gained: float) -> None:
+    """Saves a biodiversity net gain project assessment to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO biodiversity_projects (baseline_condition, total_area_sqm, bng_percentage, total_bu_gained)
+        VALUES (?, ?, ?, ?)
+    """, (baseline_condition, total_area_sqm, bng_percentage, total_bu_gained))
+    conn.commit()
+    conn.close()
+
+def get_biodiversity_history() -> list:
+    """Retrieves historical biodiversity project assessments."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT baseline_condition, total_area_sqm, bng_percentage, total_bu_gained, timestamp FROM biodiversity_projects ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def save_event_plan(guest_count: int, catering_type: str, total_emissions_kg: float) -> None:
     """Saves an event footprint calculation to the database."""
