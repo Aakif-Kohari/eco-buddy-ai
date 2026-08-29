@@ -130,6 +130,16 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS policy_simulations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        footprint_tonnes REAL,
+                        tax_rate REAL,
+                        net_impact_usd REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS commute_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8557,6 +8567,25 @@ def get_carbon_banking_history(user_id: str) -> list:
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
+def save_policy_simulation(footprint_tonnes: float, tax_rate: float, net_impact_usd: float) -> None:
+    """Saves a carbon policy simulation result to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO policy_simulations (footprint_tonnes, tax_rate, net_impact_usd)
+        VALUES (?, ?, ?)
+    """, (footprint_tonnes, tax_rate, net_impact_usd))
+    conn.commit()
+    conn.close()
+
+def get_policy_history() -> list:
+    """Retrieves historical carbon policy simulations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT footprint_tonnes, tax_rate, net_impact_usd, timestamp FROM policy_simulations ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 import json
 
