@@ -565,10 +565,23 @@ def _indices_from_samples(
     combined = sub_a + sub_b
     variance = _variance(combined)
 
+    # Centre the outputs before estimating. The Saltelli first-order estimator
+    # is unbiased either way, but the variance of the estimator itself scales
+    # with E[f^2] rather than Var[f]. A footprint model with a mean of 5,000
+    # and a standard deviation of 700 therefore converges roughly fifty times
+    # slower uncentred than centred, purely because of where zero happens to
+    # sit — and the symptom is first-order indices that sum to 0.8 on a model
+    # that is provably additive. Subtracting the sample mean costs nothing and
+    # removes that entirely. The total-effect estimator is a difference and is
+    # unaffected, but it is centred too so both read from the same series.
+    centre = statistics.fmean(combined) if combined else 0.0
+    sub_a = [value - centre for value in sub_a]
+    sub_b = [value - centre for value in sub_b]
+
     first: list[float] = []
     total: list[float] = []
     for column in f_ab_columns:
-        sub_ab = [column[i] for i in order]
+        sub_ab = [column[i] - centre for i in order]
         first.append(first_order_index(sub_a, sub_b, sub_ab, variance))
         total.append(total_effect_index(sub_a, sub_ab, variance))
     return first, total, variance

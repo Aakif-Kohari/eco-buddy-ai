@@ -461,6 +461,39 @@ class TestAdditivityDetection:
         assert rows["b"]["is_negligible"] is True
         assert rows["a"]["total_effect"] > 0.9
 
+    def test_large_offset_does_not_destroy_convergence(self):
+        """A constant added to an additive model must not make it look
+        interacting.
+
+        The uncentred Saltelli estimator has a variance proportional to E[f^2],
+        so shifting a model's mean away from zero — which every footprint model
+        does, they are all large positive numbers — slows convergence by
+        orders of magnitude and shows up as first-order indices that sum to
+        well under one on a provably additive model. Centring the outputs
+        removes it. This test is the regression guard for that.
+        """
+        def offset_sum(row):
+            return 50_000.0 + row["a"] + row["b"]
+
+        result = analyse(offset_sum, _unit_pair(), base_samples=1024, bootstrap=25)
+        assert result["sum_first_order"] == pytest.approx(1.0, abs=0.15)
+        assert result["interaction_share"] <= ADDITIVE_INTERACTION_CEILING
+
+    def test_offset_does_not_change_the_indices(self):
+        """The decomposition is a statement about variance, so adding a
+        constant to the output must leave every index alone."""
+        plain = analyse(_sum_model, _unit_pair(), base_samples=1024, bootstrap=25)
+        shifted = analyse(
+            lambda row: _sum_model(row) + 1_000.0,
+            _unit_pair(),
+            base_samples=1024,
+            bootstrap=25,
+        )
+        for left, right in zip(plain["rows"], shifted["rows"]):
+            assert left["name"] == right["name"]
+            assert left["total_effect"] == pytest.approx(right["total_effect"], abs=1e-9)
+            assert left["first_order"] == pytest.approx(right["first_order"], abs=1e-9)
+
     def test_additivity_verdict_bands(self):
         assert additivity_verdict(1.0, 0.0)["verdict"] == "additive"
         assert additivity_verdict(0.9, 0.10)["verdict"] == "mildly_interacting"
