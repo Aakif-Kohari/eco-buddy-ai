@@ -319,6 +319,29 @@ def process_api_request(
             "application/json",
         )
 
+    # Inbound Webhooks
+    if method == "POST" and path.startswith(_route("/webhooks/")):
+        secure_token = path.split("/")[-1]
+        raw_payload = json.dumps(body) if body else ""
+        if not raw_payload:
+            return (
+                400,
+                {"error": "Bad Request", "message": "JSON body is required for webhooks."},
+                "application/json",
+            )
+        from src.integrations.webhook_engine import process_webhook_payload
+        
+        # In a real system, you might queue this for background processing here.
+        # For this implementation, we'll process synchronously.
+        success, msg = process_webhook_payload(secure_token, raw_payload)
+        
+        if success:
+            return 200, {"success": True, "message": msg}, "application/json"
+        else:
+            # 400 Bad Request or 401 Unauthorized depending on error
+            status_code = 401 if "token" in msg.lower() else 400
+            return status_code, {"success": False, "error": msg}, "application/json"
+
     # ------------------------------------------------------------------ #
     # Protected endpoints — authentication required
     # ------------------------------------------------------------------ #
