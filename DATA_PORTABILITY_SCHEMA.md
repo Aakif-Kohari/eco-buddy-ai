@@ -50,6 +50,27 @@ The importer supports three explicit strategies:
 
 The complete import runs inside one SQLite transaction. Any validation or insertion exception rolls back the entire import; there is no partial-import success state.
 
+## Conflict-aware assessment merge
+
+Assessment records carry stable metadata so they can be matched across devices instead of relying on the local autoincrement `id`:
+
+| Field | Description |
+|---|---|
+| `client_uuid` | Stable identifier assigned on the device the assessment was created on. Used to match a record across exports/imports. |
+| `updated_at` | Last-modification timestamp for the record. |
+| `source_device` | Identifier of the device/client the record was created or last modified on. |
+
+During import, each assessment with a `client_uuid` is classified as one of:
+
+- **new** — no local assessment shares this `client_uuid`; it is added.
+- **unchanged** — content is identical to the local record; the import is a no-op, which keeps re-importing the same backup idempotent.
+- **updated** — content differs and the incoming record's `updated_at` is not older than the local one; it is applied automatically.
+- **conflicting** — content differs and the local record is newer than the incoming one; the local copy is kept unless the caller explicitly resolves the conflict (see below).
+- **duplicate** — the same `client_uuid` appears more than once within the same import; only the first occurrence is considered.
+
+Assessment records without a `client_uuid` (older exports) fall back to the original `id`-based strategy behavior for backward compatibility.
+
+`merge_imported_data()` / `import_user_profile()` accept an optional `resolutions` mapping of `client_uuid -> "keep_incoming"` to let a user pick the imported version for a specific conflicting record; any conflict without an explicit `"keep_incoming"` resolution keeps the local (newer) copy rather than being silently overwritten. `create_import_preview()` reports counts per status under `assessment_status_counts` so a UI can show conflicts before anything is written.
 ## Migration architecture
 
 `migrate_export()` is the single migration entry point. Future schema versions should add functions such as `migrate_v1_to_v2()` and register a migration path before accepting that version. Unsupported future versions are rejected safely rather than guessed at.
