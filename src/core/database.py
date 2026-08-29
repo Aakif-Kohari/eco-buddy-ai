@@ -112,6 +112,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS p2p_simulations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        grid_price REAL,
+                        p2p_price REAL,
+                        total_volume_kwh REAL,
+                        carbon_avoided_kg REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS anomaly_alerts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8667,6 +8678,26 @@ def save_event_plan(guest_count: int, catering_type: str, total_emissions_kg: fl
     """, (guest_count, catering_type, total_emissions_kg))
     conn.commit()
     conn.close()
+
+def save_p2p_simulation(grid_price: float, p2p_price: float, total_volume_kwh: float, carbon_avoided_kg: float) -> None:
+    """Saves a P2P energy simulation result to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO p2p_simulations (grid_price, p2p_price, total_volume_kwh, carbon_avoided_kg)
+        VALUES (?, ?, ?, ?)
+    """, (grid_price, p2p_price, total_volume_kwh, carbon_avoided_kg))
+    conn.commit()
+    conn.close()
+
+def get_p2p_history() -> list:
+    """Retrieves historical P2P energy simulations."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT grid_price, p2p_price, total_volume_kwh, carbon_avoided_kg, timestamp FROM p2p_simulations ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
 
 def get_event_history() -> list:
     """Retrieves historical event plans."""
