@@ -4,10 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 
-from database import get_assessments
-from emissions import calculate_footprint
-from waste import calculate_waste_footprint, WASTE_CATEGORIES
-from water import calculate_water_footprint
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
+from src.environment.waste import calculate_waste_footprint, WASTE_CATEGORIES
+from src.environment.water import calculate_water_footprint
 from styles.theme import apply_theme
 
 apply_theme()
@@ -141,7 +141,7 @@ if sim_distance > 80:
 if sim_electricity > 1500:
     validation_warnings.append("High electricity consumption detected. A home energy audit might be beneficial.")
 if sim_flights > 10:
-    validation_warnings.append("Frequent flying contributes significantly to emissions. Explore train travel or virtual meetings.")
+    validation_warnings.append("Frequent flying contributes significantly to src.carbon.emissions. Explore train travel or virtual meetings.")
 
 if validation_warnings:
     for w in validation_warnings:
@@ -269,7 +269,7 @@ if improvements:
     saved = improvements[best_cat]
     st.info(f"**Top Impact Area:** Your changes in **{best_cat}** provided the largest reduction, saving **{saved:,.0f} kg CO₂**!")
 else:
-    st.info("Try adjusting the controls to see how lifestyle changes can reduce your emissions.")
+    st.info("Try adjusting the controls to see how lifestyle changes can reduce your src.carbon.emissions.")
 
 if st.session_state.scenario_history:
     st.markdown("---")

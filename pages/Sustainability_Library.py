@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from sustainability_library import (
+from src.utils.sustainability_library import (
     RESOURCE_TYPES, CATEGORIES, TAGS, search_resources,
     save_favorite, remove_favorite, get_favorites,
     mark_completed, get_completed,
@@ -29,7 +29,7 @@ c1, c2 = st.columns([1, 2])
 with c1:
     category = st.selectbox("Category", CATEGORIES)
 with c2:
-    query = st.text_input("Search", placeholder="e.g., climate, fashion, energy, waste...")
+    query = st.text_input("Search", placeholder="e.g., climate, fashion, energy, src.environment.waste...")
 
 st.markdown("---")
 

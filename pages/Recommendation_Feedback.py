@@ -1,7 +1,7 @@
 """Recommendation feedback and personalization page.
 
 This page is deliberately an adapter around the existing recommendation
-engine. The ranking/persistence layer lives in recommendation_feedback.py so
+engine. The ranking/persistence layer lives in src.ai.recommendation_feedback.py so
 it can be tested without Streamlit and reused elsewhere.
 """
 from __future__ import annotations
@@ -11,10 +11,10 @@ import hashlib
 import pandas as pd
 import streamlit as st
 
-from database import get_assessments
-from emissions import calculate_footprint
-from recommendations import generate_recommendations
-from recommendation_feedback import (
+from src.core.database import get_assessments
+from src.carbon.emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.ai.recommendation_feedback import (
     FEEDBACK_TYPES,
     DIFFICULTIES,
     RecommendationFeedbackStore,
@@ -60,7 +60,7 @@ def _latest_assessment(user: int):
 
 assessment = _latest_assessment(user_id)
 if not assessment:
-    st.info("Complete a carbon-footprint assessment before personalizing recommendations.")
+    st.info("Complete a carbon-footprint assessment before personalizing src.ai.recommendations.")
     st.stop()
 
 transport = assessment.get("transport") or "Walking"

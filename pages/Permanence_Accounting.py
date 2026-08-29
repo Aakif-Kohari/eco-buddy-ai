@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from permanence_accounting import (
+from src.utils.permanence_accounting import (
     DEFAULT_EQUIVALENCE_TIME,
     DEFAULT_HORIZON_YEARS,
     HORIZON_RANGE,

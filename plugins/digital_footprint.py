@@ -356,71 +356,71 @@ class DigitalFootprintPlugin(CalculatorPlugin):
         
         # 1. Total-based recommendations
         if result.total > 1000:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Your digital footprint is quite high ({result.total} kg CO2). Consider a 'digital detox' day once a month to offset this."
             )
             
         # 2. Embodied Carbon (Hardware) Tips
         if top_category == "Embodied Carbon (Hardware)":
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Your highest footprint comes from manufacturing your {device}. The best thing you can do is hold onto your device for an extra year instead of upgrading!"
             )
             if device in ["Desktop_PC", "Smart_TV_4K"]:
-                recommendations.append(
+                src.ai.recommendations.append(
                     "Large devices contain massive amounts of embodied carbon and toxic rare earth metals. Consider buying refurbished for your next purchase."
                 )
 
         # 3. Grid & Region Tips
         if grid_int > 0.5:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"Because the power grid in {region} relies heavily on fossil fuels, reducing your screen time has an amplified positive effect on the environment."
             )
             
         # 4. Network Tips
         if network in ["4G", "5G"]:
-            recommendations.append(
+            src.ai.recommendations.append(
                 f"You primarily use a cellular ({network}) network. Cellular data uses 2-4x more energy than WiFi. Connect to WiFi when streaming video or downloading large files."
             )
             
         # 5. Activity Specific Tips
         if top_category == "Video Streaming":
             if meta.get("is_high_res"):
-                recommendations.append(
+                src.ai.recommendations.append(
                     "Downgrading your default streaming resolution from 4K to 1080p can reduce data transmission energy by over 50%."
                 )
             else:
-                recommendations.append(
+                src.ai.recommendations.append(
                     "Try downloading your favorite shows or podcasts over WiFi instead of continuously streaming them."
                 )
                 
         elif top_category == "Social Media":
-            recommendations.append(
+            src.ai.recommendations.append(
                 "Social media apps infinitely preload video streams. Turn off 'autoplay' and 'background app refresh' to save massive amounts of data and carbon."
             )
             
         elif top_category == "Video Calls":
-            recommendations.append(
+            src.ai.recommendations.append(
                 "For casual or long video calls, turning off your camera when you aren't speaking cuts the environmental impact by 96%."
             )
             
         # 6. Static backend tips
         if meta.get("cloud_heavy"):
-            recommendations.append(
+            src.ai.recommendations.append(
                 "Cloud servers run 24/7. Do a spring cleaning of your cloud drive: delete duplicates, old backups, and giant video files."
             )
             
         if meta.get("crypto_heavy"):
-            recommendations.append(
+            src.ai.recommendations.append(
                 "Bitcoin transactions are notoriously energy-intensive due to Proof-of-Work. Consider supporting green blockchains (Proof-of-Stake) which use 99.9% less energy."
             )
             
         if meta.get("ai_heavy"):
-            recommendations.append(
+            src.ai.recommendations.append(
                 "Generative AI queries take up to 10x more computing power than standard Google searches. Use them mindfully for complex tasks rather than simple searches."
             )
             
         # 7. Generic tip
-        recommendations.append(
+        src.ai.recommendations.append(
             "E-waste is a massive global issue. Always recycle old electronics at certified centers rather than throwing them in the trash."
         )
 

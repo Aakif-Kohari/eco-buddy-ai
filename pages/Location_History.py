@@ -3,11 +3,11 @@ import hashlib
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from location_parser import parse_and_segment_file_bytes
-from emissions import calculate_footprint
-from database import save_assessment
-from background_tasks import submit_background_task, render_task_progress, clear_background_task
-import gamification as gf
+from src.utils.location_parser import parse_and_segment_file_bytes
+from src.carbon.emissions import calculate_footprint
+from src.core.database import save_assessment
+from src.core.background_tasks import submit_background_task, render_task_progress, clear_background_task
+from src.community import gamification as gf
 
 st.set_page_config(page_title="Location History", page_icon="🗺️", layout="wide")
 

@@ -99,13 +99,12 @@ def _calc_insulation_savings(wall_area_sqft: float, current_r: float, new_type: 
     ins = INSULATION_TYPES.get(new_type, {"r_value": 3, "cost_per_sqft": 0.70, "savings_pct": 15})
     improvement = ins["r_value"] - current_r
     cost = wall_area_sqft * ins["cost_per_sqft"]
-    annual_energy_saved = cost * 0.15  # rough estimate
     return {
         "type": new_type,
         "r_value": ins["r_value"],
         "improvement": round(max(improvement, 0), 1),
         "cost": round(cost, 0),
-        "annual_savings": round(cost * 0.08, 0),  # ~8% payback estimate
+        "annual_savings": round(cost * 0.08, 0),
         "payback_years": round(cost / max(cost * 0.08, 1), 1),
         "savings_pct": ins["savings_pct"],
     }
@@ -118,7 +117,7 @@ def _calc_solar_sizing(annual_kwh: float, roof_sqft: float) -> dict:
     max_panels = math.floor(roof_sqft / d["panel_area_sqft"])
     actual_panels = min(panels_needed, max_panels)
     system_size_kw = actual_panels * d["panel_wattage"] / 1000
-    annual_production = system_size_kw * d["avg_sun_hours"] * 365 * 0.80  # 80% performance ratio
+    annual_production = system_size_kw * d["avg_sun_hours"] * 365 * 0.80
     annual_savings = annual_production * ELECTRICITY_RATE
     total_cost = system_size_kw * 1000 * d["cost_per_watt"]
     tax_credit = total_cost * d["federal_tax_credit"]
@@ -126,7 +125,6 @@ def _calc_solar_sizing(annual_kwh: float, roof_sqft: float) -> dict:
     payback_years = net_cost / max(annual_savings, 1)
     lifetime_savings = annual_savings * d["panel_life_years"] - net_cost
 
-    # Year-by-year with degradation
     yearly = []
     production = annual_production
     cumulative_savings = -net_cost
@@ -153,45 +151,27 @@ def _calc_solar_sizing(annual_kwh: float, roof_sqft: float) -> dict:
         "net_cost": round(net_cost, 0),
         "payback_years": round(payback_years, 1),
         "lifetime_savings": round(lifetime_savings, 0),
-        "co2_offset_annual": round(annual_production * 0.42, 0),  # 0.42 kg CO2/kWh
+        "co2_offset_annual": round(annual_production * 0.42, 0),
         "yearly": yearly,
     }
 
 
 def _calc_energy_score(total_kwh_year: float, sqft: float) -> dict:
     """Calculate home energy score (1-100)."""
-    intensity = total_kwh_year / max(sqft, 1)  # kWh/sqft/year
-    # Good: <15, Average: 15-25, Poor: >25
+    intensity = total_kwh_year / max(sqft, 1)
     if intensity <= 10:
-        score = 95
-        grade = "A+"
-        label = "Excellent"
+        score, grade, label = 95, "A+", "Excellent"
     elif intensity <= 15:
-        score = 80
-        grade = "A"
-        label = "Very Good"
+        score, grade, label = 80, "A", "Very Good"
     elif intensity <= 20:
-        score = 65
-        grade = "B"
-        label = "Good"
+        score, grade, label = 65, "B", "Good"
     elif intensity <= 25:
-        score = 50
-        grade = "C"
-        label = "Average"
+        score, grade, label = 50, "C", "Average"
     elif intensity <= 35:
-        score = 35
-        grade = "D"
-        label = "Below Average"
+        score, grade, label = 35, "D", "Below Average"
     else:
-        score = 20
-        grade = "F"
-        label = "Poor"
-    return {
-        "score": score,
-        "grade": grade,
-        "label": label,
-        "intensity": round(intensity, 1),
-    }
+        score, grade, label = 20, "F", "Poor"
+    return {"score": score, "grade": grade, "label": label, "intensity": round(intensity, 1)}
 
 
 # ---------------------------------------------------------------------------
@@ -201,27 +181,15 @@ def _calc_energy_score(total_kwh_year: float, sqft: float) -> dict:
 def _generate_mock_audit() -> dict:
     """Generate a mock home energy audit."""
     return {
-        "home_sqft": 1800,
-        "stories": 2,
-        "year_built": 2005,
-        "insulation": "Fiberglass Batts",
-        "current_r_value": 13,
+        "home_sqft": 1800, "stories": 2, "year_built": 2005,
+        "insulation": "Fiberglass Batts", "current_r_value": 13,
         "climate_zone": "4A (Mixed-Humid)",
         "appliances": {
-            "HVAC (Heating/Cooling)": 8,
-            "Water Heater": 3,
-            "Refrigerator": 24,
-            "Washing Machine": 1,
-            "Dryer": 1,
-            "Dishwasher": 1,
-            "Oven/Stove": 1.5,
-            "Lighting (LED)": 6,
-            "Television": 5,
-            "Computer/Laptop": 8,
-            "Ceiling Fan": 10,
+            "HVAC (Heating/Cooling)": 8, "Water Heater": 3, "Refrigerator": 24,
+            "Washing Machine": 1, "Dryer": 1, "Dishwasher": 1, "Oven/Stove": 1.5,
+            "Lighting (LED)": 6, "Television": 5, "Computer/Laptop": 8, "Ceiling Fan": 10,
         },
-        "monthly_bill": 185,
-        "roof_sqft": 900,
+        "monthly_bill": 185, "roof_sqft": 900,
     }
 
 
@@ -256,12 +224,7 @@ def _render_energy_ring(score: int, grade: str, label: str, size: int = 140):
 def _render_overview(audit: dict):
     """Render audit overview with energy score."""
     st.subheader("📊 Energy Audit Overview")
-
-    # Calculate total
-    total_kwh_day = 0
-    for name, hours in audit["appliances"].items():
-        calc = _calc_appliance_energy(name, hours)
-        total_kwh_day += calc["kwh_day"]
+    total_kwh_day = sum(_calc_appliance_energy(n, h)["kwh_day"] for n, h in audit["appliances"].items())
     total_kwh_year = total_kwh_day * 365
     total_cost_year = total_kwh_year * ELECTRICITY_RATE
     score = _calc_energy_score(total_kwh_year, audit["home_sqft"])
@@ -289,13 +252,8 @@ def _render_overview(audit: dict):
 def _render_appliance_breakdown(audit: dict):
     """Render appliance-by-appliance energy breakdown."""
     st.subheader("⚡ Appliance Breakdown")
-
-    calculations = []
-    for name, hours in audit["appliances"].items():
-        calc = _calc_appliance_energy(name, hours)
-        calculations.append(calc)
-
-    calculations.sort(key=lambda x: x["kwh_year"], reverse=True)
+    calculations = sorted([_calc_appliance_energy(n, h) for n, h in audit["appliances"].items()],
+                          key=lambda x: x["kwh_year"], reverse=True)
     max_kwh = calculations[0]["kwh_year"] if calculations else 1
 
     for calc in calculations:
@@ -310,28 +268,16 @@ def _render_appliance_breakdown(audit: dict):
             unsafe_allow_html=True,
         )
 
-    # Detailed table
-    st.markdown("**Detailed Breakdown:**")
-    rows = []
-    for calc in calculations:
-        rows.append({
-            "Appliance": f"{calc['icon']} {calc['name']}",
-            "Watts": calc["watts"],
-            "Hours/Day": calc["hours_day"],
-            "kWh/Day": calc["kwh_day"],
-            "kWh/Year": f"{calc['kwh_year']:,.0f}",
-            "Cost/Year": f"${calc['cost_year']:,.0f}",
-        })
+    rows = [{"Appliance": f"{c['icon']} {c['name']}", "Watts": c["watts"], "Hours/Day": c["hours_day"],
+             "kWh/Day": c["kwh_day"], "kWh/Year": f"{c['kwh_year']:,.0f}", "Cost/Year": f"${c['cost_year']:,.0f}"} for c in calculations]
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-    # Category pie
     cat_totals = {}
     for calc in calculations:
         cat_totals[calc["category"]] = cat_totals.get(calc["category"], 0) + calc["kwh_year"]
-
-    st.markdown("**By Category:**")
-    cat_colors = {"HVAC": "#dc3545", "Water": "#4a90d9", "Appliance": "#fd7e14", "Lighting": "#ffc107", "Electronics": "#6f42c1"}
     total = sum(cat_totals.values()) or 1
+    cat_colors = {"HVAC": "#dc3545", "Water": "#4a90d9", "Appliance": "#fd7e14", "Lighting": "#ffc107", "Electronics": "#6f42c1"}
+    st.markdown("**By Category:**")
     for cat, kwh in sorted(cat_totals.items(), key=lambda x: x[1], reverse=True):
         pct = kwh / total * 100
         color = cat_colors.get(cat, "#666")
@@ -348,7 +294,6 @@ def _render_appliance_breakdown(audit: dict):
 def _render_insulation_analysis(audit: dict):
     """Render insulation upgrade recommendations."""
     st.subheader("🧱 Insulation Analysis")
-
     c1, c2 = st.columns(2)
     with c1:
         current_r = st.number_input("Current R-Value", 0, 60, audit["current_r_value"])
@@ -356,16 +301,11 @@ def _render_insulation_analysis(audit: dict):
         wall_area = st.number_input("Total Wall Area (sqft)", 100, 10000, int(audit["home_sqft"] * 2.5))
 
     st.markdown(f"**Current Insulation:** {audit['insulation']} (R-{current_r})")
+    results = sorted(
+        [_calc_insulation_savings(wall_area, current_r, t) for t, d in INSULATION_TYPES.items() if d["r_value"] > current_r],
+        key=lambda x: x["savings_pct"], reverse=True,
+    )
 
-    results = []
-    for ins_type, ins_data in INSULATION_TYPES.items():
-        if ins_data["r_value"] > current_r:
-            result = _calc_insulation_savings(wall_area, current_r, ins_type)
-            results.append(result)
-
-    results.sort(key=lambda x: x["savings_pct"], reverse=True)
-
-    st.markdown("**Upgrade Options:**")
     for r in results:
         color = "#28a745" if r["savings_pct"] >= 20 else "#ffc107" if r["savings_pct"] >= 15 else "#6c757d"
         with st.expander(f"**{r['type']}** — R-{r['r_value']} | Save {r['savings_pct']}% | Cost: ${r['cost']:,.0f}"):
@@ -375,24 +315,13 @@ def _render_insulation_analysis(audit: dict):
             c3.metric("Installation Cost", f"${r['cost']:,.0f}")
             c4.metric("Annual Savings", f"${r['annual_savings']:,.0f}")
             st.markdown(f"**Payback Period:** {r['payback_years']:.1f} years")
-            st.markdown(
-                f'<div style="background:#1e1e2e;border-radius:4px;height:12px;margin:8px 0">'
-                f'<div style="width:{r["savings_pct"]}%;background:{color};border-radius:4px;height:100%"></div></div>',
-                unsafe_allow_html=True,
-            )
 
 
 def _render_solar_analysis(audit: dict):
     """Render solar panel system analysis."""
     st.subheader("☀️ Solar Panel Analysis")
-
-    # Calculate annual usage
-    total_kwh_day = 0
-    for name, hours in audit["appliances"].items():
-        calc = _calc_appliance_energy(name, hours)
-        total_kwh_day += calc["kwh_day"]
+    total_kwh_day = sum(_calc_appliance_energy(n, h)["kwh_day"] for n, h in audit["appliances"].items())
     annual_kwh = total_kwh_day * 365
-
     result = _calc_solar_sizing(annual_kwh, audit["roof_sqft"])
 
     c1, c2, c3, c4 = st.columns(4)
@@ -408,26 +337,19 @@ def _render_solar_analysis(audit: dict):
     c4.metric("Payback", f"{result['payback_years']} years")
 
     if result["actual_panels"] < result["panels_needed"]:
-        st.warning(
-            f"⚠️ Roof can only fit **{result['max_panels']} panels** ({result['actual_panels']} installed). "
-            f"Need {result['panels_needed']} for full offset. Consider ground-mounted or phased installation."
-        )
+        st.warning(f"⚠️ Roof fits **{result['max_panels']} panels** — need {result['panels_needed']} for full offset.")
 
     st.markdown(
-        f"A **{result['system_size_kw']} kW** solar system with **{result['actual_panels']} panels** "
-        f"will produce **{result['annual_production']:,.0f} kWh/year**, offsetting your usage. "
-        f"Net cost after 30% federal tax credit: **${result['net_cost']:,.0f}** with a payback period of "
-        f"**{result['payback_years']} years** and lifetime savings of **${result['lifetime_savings']:,.0f}**. "
-        f"This offsets **{result['co2_offset_annual']:,.0f} kg CO₂** annually."
+        f"**{result['system_size_kw']} kW** system with **{result['actual_panels']} panels** produces "
+        f"**{result['annual_production']:,.0f} kWh/yr**. Net cost **${result['net_cost']:,.0f}**, payback "
+        f"**{result['payback_years']} years**, lifetime savings **${result['lifetime_savings']:,.0f}**. "
+        f"Offsets **{result['co2_offset_annual']:,.0f} kg CO₂/yr**."
     )
 
-    # Year-by-year chart
-    st.markdown("**25-Year Savings Projection:**")
     yearly = result["yearly"]
     max_cum = max(y["cumulative"] for y in yearly) if yearly else 1
     min_cum = min(y["cumulative"] for y in yearly) if yearly else -1
     rng = max_cum - min_cum if max_cum != min_cum else 1
-
     chart_html = '<div style="display:flex;align-items:flex-end;gap:2px;height:200px;padding:10px 0">'
     for y in yearly:
         h = ((y["cumulative"] - min_cum) / rng * 180) if rng else 90
@@ -445,32 +367,20 @@ def _render_solar_analysis(audit: dict):
 def _render_savings_calculator(audit: dict):
     """Render energy savings tips calculator."""
     st.subheader("💰 Savings Calculator")
-
     tips = [
-        {"name": "Switch to LED lighting", "saving_pct": 75, "category": "Lighting",
-         "description": "LED bulbs use 75% less energy than incandescent"},
-        {"name": "Install smart thermostat", "saving_pct": 15, "category": "HVAC",
-         "description": "Smart thermostats reduce heating/cooling by 15%"},
-        {"name": "Seal air leaks", "saving_pct": 10, "category": "HVAC",
-         "description": "Weatherstripping and caulking reduce drafts"},
-        {"name": "Add attic insulation", "saving_pct": 20, "category": "Insulation",
-         "description": "Proper attic insulation reduces heat loss by 20%"},
-        {"name": "Upgrade to ENERGY STAR appliances", "saving_pct": 25, "category": "Appliance",
-         "description": "ENERGY STAR certified appliances use 25% less energy"},
-        {"name": "Install low-flow showerheads", "saving_pct": 30, "category": "Water",
-         "description": "Reduces hot water usage by 30%"},
-        {"name": "Use cold water for laundry", "saving_pct": 5, "category": "Water",
-         "description": "90% of washing machine energy goes to heating water"},
-        {"name": "Install window film", "saving_pct": 8, "category": "Insulation",
-         "description": "Reduces heat gain in summer and heat loss in winter"},
+        {"name": "Switch to LED lighting", "saving_pct": 75, "description": "LED bulbs use 75% less energy than incandescent"},
+        {"name": "Install smart thermostat", "saving_pct": 15, "description": "Smart thermostats reduce heating/cooling by 15%"},
+        {"name": "Seal air leaks", "saving_pct": 10, "description": "Weatherstripping and caulking reduce drafts"},
+        {"name": "Add attic insulation", "saving_pct": 20, "description": "Proper attic insulation reduces heat loss by 20%"},
+        {"name": "Upgrade to ENERGY STAR appliances", "saving_pct": 25, "description": "ENERGY STAR certified appliances use 25% less energy"},
+        {"name": "Install low-flow showerheads", "saving_pct": 30, "description": "Reduces hot water usage by 30%"},
+        {"name": "Use cold water for laundry", "saving_pct": 5, "description": "90% of washing machine energy goes to heating water"},
+        {"name": "Install window film", "saving_pct": 8, "description": "Reduces heat gain in summer and heat loss in winter"},
     ]
-
     total_kwh_year = sum(_calc_appliance_energy(n, h)["kwh_year"] for n, h in audit["appliances"].items())
-
     for tip in tips:
-        saved_kwh = total_kwh_year * (tip["saving_pct"] / 100) * 0.1  # partial impact
+        saved_kwh = total_kwh_year * (tip["saving_pct"] / 100) * 0.1
         saved_cost = saved_kwh * ELECTRICITY_RATE
-        color = "#28a745" if tip["saving_pct"] >= 20 else "#ffc107"
         with st.expander(f"💡 **{tip['name']}** — Save ~${saved_cost:,.0f}/yr", expanded=False):
             st.markdown(tip["description"])
             st.markdown(f"**Potential Annual Savings:** {saved_kwh:,.0f} kWh = ${saved_cost:,.0f}")
@@ -479,7 +389,7 @@ def _render_savings_calculator(audit: dict):
 def _render_energy_tips():
     """Render general energy saving tips."""
     st.subheader("🔋 Quick Energy Tips")
-    tips = [
+    for tip in [
         "🌡️ Set thermostat to 68°F in winter, 78°F in summer — saves 3% per degree",
         "🔌 Unplug 'vampire' electronics — standby power costs $100+/year",
         "💡 Replace all bulbs with LED — saves $225/year on average",
@@ -488,8 +398,7 @@ def _render_energy_tips():
         "👕 Wash clothes in cold water — saves $60/year",
         "🌬️ Clean HVAC filters monthly — improves efficiency by 15%",
         "📐 Use ceiling fans before AC — uses 1% of the energy",
-    ]
-    for tip in tips:
+    ]:
         st.markdown(f"- {tip}")
 
 
@@ -500,21 +409,16 @@ def _render_energy_tips():
 def render_home_energy_audit():
     """Render the Home Energy Audit Simulator page."""
     st.title("🏠 Home Energy Audit Simulator")
-    st.markdown(
-        "Analyze your home's energy consumption, explore insulation and solar options, and calculate potential savings."
-    )
+    st.markdown("Analyze your home's energy consumption, explore insulation and solar options, and calculate potential savings.")
 
     audit = _generate_mock_audit()
 
-    # Sidebar
     with st.sidebar:
         st.header("⚙️ Home Settings")
         audit["home_sqft"] = st.number_input("Home Size (sqft)", 500, 5000, audit["home_sqft"])
         audit["current_r_value"] = st.slider("Current Insulation R-Value", 0, 60, audit["current_r_value"])
         audit["roof_sqft"] = st.number_input("Roof Area (sqft)", 200, 5000, audit["roof_sqft"])
-
         st.markdown("---")
-        st.subheader("📊 Sections")
         show_overview = st.checkbox("Energy Score & Overview", True)
         show_appliances = st.checkbox("Appliance Breakdown", True)
         show_insulation = st.checkbox("Insulation Analysis", True)
@@ -524,23 +428,18 @@ def render_home_energy_audit():
 
     if show_overview:
         _render_overview(audit)
-
     if show_appliances:
         st.markdown("---")
         _render_appliance_breakdown(audit)
-
     if show_insulation:
         st.markdown("---")
         _render_insulation_analysis(audit)
-
     if show_solar:
         st.markdown("---")
         _render_solar_analysis(audit)
-
     if show_savings:
         st.markdown("---")
         _render_savings_calculator(audit)
-
     if show_tips:
         st.markdown("---")
         _render_energy_tips()
@@ -549,6 +448,5 @@ def render_home_energy_audit():
     st.caption(f"Home Energy Audit Simulator | Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
 
-# Entry point
 if __name__ == "__main__" or True:
     render_home_energy_audit()

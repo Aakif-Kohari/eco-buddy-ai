@@ -2,38 +2,38 @@ import streamlit as st
 import pandas as pd
 import random
 import time
-from database import save_carbon_budget,get_carbon_budget
-from database import *
-from emissions import *
-from emissions import (
+from src.core.database import save_carbon_budget,get_carbon_budget
+from src.core.database import *
+from src.carbon.emissions import *
+from src.carbon.emissions import (
     calculate_remaining_budget,
     calculate_budget_progress,
     forecast_monthly_emission,
     budget_status,
 )
-from recommendations import *
-from impact_analyzer import analyze_minimal_change
+from src.core.assessment_snapshot import build_assessment_snapshot, serialize_snapshot
+from src.ai.recommendations import *from src.utils.impact_analyzer import analyze_minimal_change
 import os
 import tempfile
 import uuid
 import plotly.graph_objects as go
 import plotly.express as px
-from report import generate_pdf
-from treemap_chart import create_emission_treemap
-from sankey_chart import create_emission_sankey
-import gamification as gf
-from marketplace import *
-from llm_parser import parse_quick_log
-from ocr_utils import extract_text_from_bytes, parse_energy_consumption
-from background_tasks import submit_background_task, render_task_progress, clear_background_task
-import energy_audit as ea
+from src.reporting.report import generate_pdf
+from src.reporting.treemap_chart import create_emission_treemap
+from src.reporting.sankey_chart import create_emission_sankey
+from src.community import gamification as gf
+from src.utils.marketplace import *
+from src.ai.llm_parser import parse_quick_log
+from src.utils.ocr_utils import extract_text_from_bytes, parse_energy_consumption
+from src.core.background_tasks import submit_background_task, render_task_progress, clear_background_task
+from src.energy import energy_audit as ea
 
 from styles.theme import apply_theme
 apply_theme()
 
 
-from cache import cached
-from cache_config import TTL_LLM_RESPONSE
+from src.core.cache import cached
+from src.core.cache_config import TTL_LLM_RESPONSE
 GLOBAL_POPULATION = 8_200_000_000
 
 CURRENT_GLOBAL_EMISSIONS = 37_400_000_000
@@ -146,7 +146,7 @@ their per-category contributors, so it can only run once those exist.
 
     elif largest == "Diet":
 
-        st.info("🥗 Try adding more plant-based meals to reduce emissions.")
+        st.info("🥗 Try adding more plant-based meals to reduce src.carbon.emissions.")
 
     elif largest == "Flights":
 
@@ -204,7 +204,7 @@ If everyone adopted similar habits:
 
 ✅ Global emissions would reduce dramatically.
 
-🌍 This would contribute positively toward climate goals.
+🌍 This would contribute positively toward climate src.utils.goals.
 """)
 
     elif percentage < 0:
@@ -224,7 +224,7 @@ Small improvements in transportation and electricity usage could create an even 
 
 Your lifestyle is close to the current global average.
 
-A few sustainable changes could noticeably reduce global emissions.
+A few sustainable changes could noticeably reduce global src.carbon.emissions.
 """)
 
     else:
@@ -259,7 +259,7 @@ Consider reducing:
     facts = [
         "🌱 Walking instead of driving for short trips can significantly reduce emissions over time.",
         "💡 LED bulbs use much less electricity than traditional bulbs.",
-        "🚲 Cycling produces almost zero direct carbon emissions.",
+        "🚲 Cycling produces almost zero direct carbon src.carbon.emissions.",
         "🥗 Plant-based meals generally have a lower carbon footprint than meat-heavy diets."
     ]
 
@@ -324,8 +324,8 @@ if not user_id:
 # -------------------------
 # DRAFT RECOVERY & DEFAULT FORM VALUES
 # -------------------------
-from database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
-from session_state_utils import ensure_session_state
+from src.core.database import save_assessment_draft, get_assessment_draft, delete_assessment_draft
+from src.core.session_state_utils import ensure_session_state
 
 DEFAULT_VALUES = {
     "region": "Global",
@@ -435,7 +435,7 @@ with tab_assess:
         uploaded_bill = st.file_uploader("Upload Utility Bill (PDF/Image)", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_bill is not None:
             # Reject oversize bills up front so the user gets feedback before
-            # the background task even starts. `ocr_utils.extract_text_from_bytes`
+            # the background task even starts. `src.utils.ocr_utils.extract_text_from_bytes`
             # enforces the same cap and is the authoritative gate, but doing it
             # here too means the OCR button never even becomes clickable for a
             # multi-hundred-MB phone dump that would have OOM-ed the worker.
@@ -556,24 +556,32 @@ with tab_assess:
         with st.spinner("🌍 Analyzing your carbon footprint..."):
             total, contributors, footprint_audit = calculate_footprint(transport, distance, electricity, diet, flights, region, return_audit=True)
         eco_score = calculate_eco_score(total, contributors)
+        footprint_range = calculate_footprint_range(transport, distance, electricity, diet, flights, region)
         audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
-        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        # Stamp the assessment with the factor set that produced it, so the
-        # result stays reproducible and comparable after factors change.
+        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)        # Stamp the assessment with the factor set that produced it, and
+        # freeze the full calculation context into an immutable snapshot, so
+        # the result stays reproducible even after factors, category
+        # weights, or the eco-score formula change later.
+        snapshot = build_assessment_snapshot(
+            inputs=footprint_audit.get("inputs", {}),
+            footprint_audit=footprint_audit,
+            contributors=contributors,
+            total=total,
+            eco_score=eco_score,
+        )
         save_assessment(
             user_id, transport, distance, electricity, diet, flights, total, eco_score,
             factor_version=footprint_audit.get("factor_version"),
+            snapshot_json=serialize_snapshot(snapshot),
         )
-        if user_id:
-            delete_assessment_draft(user_id)
+        if user_id:            delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
             "diet": diet, "flights": flights, "total": total, "eco_score": eco_score,
             "contributors": contributors, "insight": insight, "recommendations": recommendations,
-            "audit_log": audit_log,
+            "audit_log": audit_log, "footprint_range": footprint_range,
         }
-
 if "analysis" in st.session_state:
     data = st.session_state.analysis
 
@@ -601,8 +609,24 @@ if "analysis" in st.session_state:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
-
+        fr = data.get("footprint_range")
+        if fr:
+            st.metric(
+                "🌍 Total Footprint (estimated)",
+                f"{fr['central_kg']:.2f} kg CO₂",
+                help=(
+                    f"Estimated range: {fr['low_kg']:.2f}–{fr['high_kg']:.2f} kg CO₂ "
+                    f"(±{fr['uncertainty_percent']:.0f}%, factor set {fr['factor_version']})"
+                ),
+            )
+            st.caption(f"📊 Estimated range: {fr['low_kg']:.2f}–{fr['high_kg']:.2f} kg CO₂")
+            top = fr["top_uncertainty_contributors"][0]
+            st.caption(
+                f"🔍 Biggest uncertainty driver: {top['category'].title()} "
+                f"({top['share_percent']:.0f}% of the range)"
+            )
+        else:
+            st.metric("🌍 Total Footprint", f"{data['total']:.2f} kg CO₂")
     with col2:
         st.metric("🌱 Eco Score", f"{data['eco_score']}/100")
 
@@ -860,7 +884,7 @@ else:
 
             <div class="empty-subtitle">
                 Complete your lifestyle profile above and click
-                <b>"Analyze My Impact"</b> to generate your first carbon footprint report.
+                <b>"Analyze My Impact"</b> to generate your first carbon footprint src.reporting.report.
             </div>
 
             <div class="empty-checklist">
@@ -888,7 +912,7 @@ else:
 
     with col1:
         st.success("📊 Carbon Footprint Dashboard")
-        st.caption("Track your yearly emissions.")
+        st.caption("Track your yearly src.carbon.emissions.")
 
     with col2:
         st.success("🤖 AI Insights")
@@ -1035,7 +1059,7 @@ with tab_clone:
 
     st.write(
         "Imagine if everyone on Earth lived exactly like you. "
-        "This simulator estimates the impact on global carbon emissions."
+        "This simulator estimates the impact on global carbon src.carbon.emissions."
     )
 
     if "analysis" not in st.session_state:

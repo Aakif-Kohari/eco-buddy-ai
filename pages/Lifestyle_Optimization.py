@@ -2,8 +2,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import json
 from styles.theme import apply_theme
-from lifestyle_optimizer import generate_optimized_lifestyle_plan, LIFESTYLE_ACTIONS_CATALOG
-from database import get_assessments
+from src.lifestyle.lifestyle_optimizer import generate_optimized_lifestyle_plan, LIFESTYLE_ACTIONS_CATALOG
+from src.core.database import get_assessments
 
 apply_theme()
 
@@ -23,7 +23,7 @@ default_footprint = 3500.0
 user_context = {"transport": "Car", "electricity": 250.0, "diet": "Non-Vegetarian", "flights": 2}
 
 if not latest_assessment:
-    st.warning("No assessment data found. Using default profile values. Please complete an assessment for truly personalized recommendations.")
+    st.warning("No assessment data found. Using default profile values. Please complete an assessment for truly personalized src.ai.recommendations.")
 else:
     if isinstance(latest_assessment, (list, tuple)) and len(latest_assessment) >= 9:
         user_context["transport"] = str(latest_assessment[3])

@@ -18,7 +18,7 @@ def display_form_errors(errors: Dict[str, List[str]]) -> None:
         return
     
     error_messages = []
-    for field, field_errors in errors.items():
+    for field, field_errors in src.core.errors.items():
         for error in field_errors:
             error_messages.append(f"❌ **{field.replace('_', ' ').title()}**: {error}")
     

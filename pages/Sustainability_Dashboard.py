@@ -4,20 +4,20 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
-from database import (
+from src.core.database import (
     get_assessments,
     get_appliances,
     get_water_assessments,
     get_waste_assessments,
     get_active_goal
 )
-from recommendations import generate_recommendations
-from emissions import calculate_footprint
+from src.ai.recommendations import generate_recommendations
+from src.carbon.emissions import calculate_footprint
 
 st.set_page_config(page_title="Sustainability Dashboard", page_icon="📊", layout="wide")
 
 st.title("📊 Personal Sustainability Dashboard")
-st.write("Monitor your comprehensive environmental footprint across transportation, diet, home energy, water, and waste. Compare your impact against your historical records and active reduction goals.")
+st.write("Monitor your comprehensive environmental footprint across transportation, diet, home energy, water, and src.environment.waste. Compare your impact against your historical records and active reduction src.utils.goals.")
 
 user_id = st.session_state.get('user_id', 1)
 

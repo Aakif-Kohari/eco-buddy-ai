@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from database import get_leaderboard
+from src.core.database import get_leaderboard
 
 # Local user ID fallback
 user_id = st.session_state.get("user_id", 1)

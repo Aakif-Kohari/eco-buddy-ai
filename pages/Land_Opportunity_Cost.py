@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from land_opportunity_cost import (
+from src.environment.land_opportunity_cost import (
     AMORTISATION_RANGE,
     DEFAULT_AMORTISATION_YEARS,
     DEFAULT_BIOME,

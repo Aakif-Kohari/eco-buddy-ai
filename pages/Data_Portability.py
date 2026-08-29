@@ -2,7 +2,7 @@
 import json
 import streamlit as st
 
-from data_portability import (
+from src.data.data_portability import (
     CONFLICT_STRATEGIES,
     EXPORT_SCHEMA_VERSION,
     create_import_preview,

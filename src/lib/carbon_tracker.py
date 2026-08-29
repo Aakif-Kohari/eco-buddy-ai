@@ -73,7 +73,7 @@ class CarbonTracker:
         Returns:
             Updated CarbonFootprintData
         """
-        from emissions import calculate_footprint, calculate_eco_score
+        from src.carbon.emissions import calculate_footprint, calculate_eco_score
         
         try:
             # Extract values

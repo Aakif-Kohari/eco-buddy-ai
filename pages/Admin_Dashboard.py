@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from admin_analytics import get_admin_platform_stats
+from src.business.admin_analytics import get_admin_platform_stats
 from styles.theme import apply_theme, render_theme_selector
 
 user_id = st.session_state.get('user_id')
@@ -14,7 +14,7 @@ apply_theme()
 render_theme_selector()
 
 st.markdown("<div class='section-header'>📊 Admin Dashboard — Platform Statistics</div>", unsafe_allow_html=True)
-st.markdown("Anonymized, aggregate insights into platform usage, carbon score benchmarks, and popular recommendations.")
+st.markdown("Anonymized, aggregate insights into platform usage, carbon score benchmarks, and popular src.ai.recommendations.")
 
 # Fetch anonymized stats
 stats = get_admin_platform_stats()

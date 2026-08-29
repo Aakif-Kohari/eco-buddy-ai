@@ -6,8 +6,8 @@ Streamlit page allowing users to input garment details and compare environmental
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from fashion_impact_comparator import FashionImpactComparator
-from database import save_textile_comparison
+from src.lifestyle.fashion_impact_comparator import FashionImpactComparator
+from src.core.database import save_textile_comparison
 
 st.set_page_config(page_title="Textile Impact", page_icon="👕", layout="wide")
 

@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from climate_metrics import (
+from src.environment.climate_metrics import (
     GAS_LABELS,
     GAS_LIFETIMES,
     GAS_NOTES,
@@ -451,6 +451,6 @@ else:
     st.download_button(
         "📥 Download as JSON",
         json.dumps(saved, indent=2, default=str),
-        file_name="climate_metrics.json",
+        file_name="src.environment.climate_metrics.json",
         mime="application/json",
     )

@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from hourly_matching import (
+from src.energy.hourly_matching import (
     DEFAULT_GRID_PROFILE,
     DEFAULT_LOAD_PROFILE,
     MatchingError,
@@ -169,7 +169,7 @@ with annual_col:
     st.metric(
         "Annual matching",
         f"{result['annual_match_pct']:.0f}%",
-        help="The figure a tariff or a solar quote would report.",
+        help="The figure a tariff or a solar quote would src.reporting.report.",
     )
 with hourly_col:
     st.metric(

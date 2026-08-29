@@ -142,6 +142,6 @@ class EcoRAGEngine:
         elif "digital" in user_query.lower() or "stream" in user_query.lower():
             response += "📱 **Recommendation:** Lowering your streaming resolution from 4K to 1080p on cellular networks saves massive amounts of energy."
         else:
-            response += "💡 **Recommendation:** Small incremental changes are the best way to reach your sustainability goals. Keep it up!"
+            response += "💡 **Recommendation:** Small incremental changes are the best way to reach your sustainability src.utils.goals. Keep it up!"
             
         return response
