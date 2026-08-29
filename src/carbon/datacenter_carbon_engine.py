@@ -21,19 +21,25 @@ from src.carbon.datacenter_carbon_types import (
 
 class DataCenterCarbonEngine:
     GPU_SPECS = {
+        GPUModel.NVIDIA_B200: {"tdp_w": 1000.0, "embodied_kg": 210.0, "flops_fp16_tflops": 4500.0},
         GPUModel.NVIDIA_H100: {"tdp_w": 700.0, "embodied_kg": 150.0, "flops_fp16_tflops": 1979.0},
         GPUModel.NVIDIA_A100: {"tdp_w": 400.0, "embodied_kg": 110.0, "flops_fp16_tflops": 312.0},
         GPUModel.NVIDIA_L40S: {"tdp_w": 350.0, "embodied_kg": 95.0, "flops_fp16_tflops": 366.0},
+        GPUModel.GOOGLE_TPU_V5P: {"tdp_w": 300.0, "embodied_kg": 85.0, "flops_fp16_tflops": 459.0},
         GPUModel.GOOGLE_TPU_V5E: {"tdp_w": 250.0, "embodied_kg": 75.0, "flops_fp16_tflops": 197.0},
         GPUModel.AMD_MI300X: {"tdp_w": 750.0, "embodied_kg": 160.0, "flops_fp16_tflops": 2614.0},
+        GPUModel.AWS_TRAINIUM2: {"tdp_w": 450.0, "embodied_kg": 105.0, "flops_fp16_tflops": 520.0},
     }
 
     REGION_GRID_DATA = {
         CloudRegion.US_EAST_VIRGINIA: {"intensity_g_kwh": 370.0, "base_pue": 1.20, "cost_kwh": 0.11},
         CloudRegion.US_WEST_OREGON: {"intensity_g_kwh": 95.0, "base_pue": 1.12, "cost_kwh": 0.09},
+        CloudRegion.US_CENTRAL_IOWA: {"intensity_g_kwh": 180.0, "base_pue": 1.14, "cost_kwh": 0.095},
         CloudRegion.EU_WEST_IRELAND: {"intensity_g_kwh": 280.0, "base_pue": 1.18, "cost_kwh": 0.16},
         CloudRegion.EU_NORTH_SWEDEN: {"intensity_g_kwh": 25.0, "base_pue": 1.08, "cost_kwh": 0.08},
+        CloudRegion.EU_CENTRAL_FRANKFURT: {"intensity_g_kwh": 310.0, "base_pue": 1.19, "cost_kwh": 0.17},
         CloudRegion.AP_SOUTH_MUMBAI: {"intensity_g_kwh": 680.0, "base_pue": 1.30, "cost_kwh": 0.12},
+        CloudRegion.AP_NORTHEAST_TOKYO: {"intensity_g_kwh": 450.0, "base_pue": 1.22, "cost_kwh": 0.18},
     }
 
     COOLING_FACTORS = {

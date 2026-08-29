@@ -7,19 +7,25 @@ from typing import Dict, List, Optional
 
 
 class GPUModel(str, Enum):
+    NVIDIA_B200 = "NVIDIA Blackwell B200 (1000W TDP, 4.5 kg CO₂e embodied/hr)"
     NVIDIA_H100 = "NVIDIA H100 SXM (700W TDP, 3.2 kg CO₂e embodied/hr)"
     NVIDIA_A100 = "NVIDIA A100 SXM (400W TDP, 2.1 kg CO₂e embodied/hr)"
     NVIDIA_L40S = "NVIDIA L40S (350W TDP, 1.8 kg CO₂e embodied/hr)"
+    GOOGLE_TPU_V5P = "Google TPU v5p (300W TDP, 1.5 kg CO₂e embodied/hr)"
     GOOGLE_TPU_V5E = "Google TPU v5e (250W TDP, 1.2 kg CO₂e embodied/hr)"
     AMD_MI300X = "AMD Instinct MI300X (750W TDP, 3.4 kg CO₂e embodied/hr)"
+    AWS_TRAINIUM2 = "AWS Trainium2 (450W TDP, 2.0 kg CO₂e embodied/hr)"
 
 
 class CloudRegion(str, Enum):
     US_EAST_VIRGINIA = "us-east-1 (N. Virginia, 370 g CO₂e/kWh, PUE 1.20)"
     US_WEST_OREGON = "us-west-2 (Oregon Hydro, 95 g CO₂e/kWh, PUE 1.12)"
+    US_CENTRAL_IOWA = "us-central-1 (Iowa Wind/Solar, 180 g CO₂e/kWh, PUE 1.14)"
     EU_WEST_IRELAND = "eu-west-1 (Ireland Wind, 280 g CO₂e/kWh, PUE 1.18)"
     EU_NORTH_SWEDEN = "eu-north-1 (Stockholm Hydro/Nuclear, 25 g CO₂e/kWh, PUE 1.08)"
+    EU_CENTRAL_FRANKFURT = "eu-central-1 (Frankfurt Grid Mix, 310 g CO₂e/kWh, PUE 1.19)"
     AP_SOUTH_MUMBAI = "ap-south-1 (Mumbai Coal/Solar, 680 g CO₂e/kWh, PUE 1.30)"
+    AP_NORTHEAST_TOKYO = "ap-northeast-1 (Tokyo Grid Mix, 450 g CO₂e/kWh, PUE 1.22)"
 
 
 class CoolingTechnology(str, Enum):
