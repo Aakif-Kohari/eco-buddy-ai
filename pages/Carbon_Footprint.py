@@ -11,8 +11,8 @@ from src.carbon.emissions import (
     forecast_monthly_emission,
     budget_status,
 )
-from src.core.assessment_snapshot import build_assessment_snapshot, serialize_snapshotfrom src.ai.recommendations import *
-from src.utils.impact_analyzer import analyze_minimal_change
+from src.core.assessment_snapshot import build_assessment_snapshot, serialize_snapshot
+from src.ai.recommendations import *from src.utils.impact_analyzer import analyze_minimal_change
 import os
 import tempfile
 import uuid
@@ -557,8 +557,8 @@ with tab_assess:
             total, contributors, footprint_audit = calculate_footprint(transport, distance, electricity, diet, flights, region, return_audit=True)
         eco_score = calculate_eco_score(total, contributors)
         footprint_range = calculate_footprint_range(transport, distance, electricity, diet, flights, region)
-        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)
-        # Stamp the assessment with the factor set that produced it, and
+        audit_log = generate_full_audit_log(transport, distance, electricity, diet, flights, region)
+        insight, recommendations = generate_recommendations(transport, electricity, diet, flights, contributors)        # Stamp the assessment with the factor set that produced it, and
         # freeze the full calculation context into an immutable snapshot, so
         # the result stays reproducible even after factors, category
         # weights, or the eco-score formula change later.
@@ -573,8 +573,8 @@ with tab_assess:
             user_id, transport, distance, electricity, diet, flights, total, eco_score,
             factor_version=footprint_audit.get("factor_version"),
             snapshot_json=serialize_snapshot(snapshot),
-        )        if user_id:
-            delete_assessment_draft(user_id)
+        )
+        if user_id:            delete_assessment_draft(user_id)
         gf.check_badge_eligibility(user_id)
         st.session_state.analysis = {
             "transport": transport, "distance": distance, "electricity": electricity,
