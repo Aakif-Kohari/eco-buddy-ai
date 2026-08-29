@@ -12,8 +12,8 @@ from src.utils.assessment_explainability import (
     compare_audit_traces,
     serialize_audit,
 )
-from src.core.database import get_assessments_with_factors, get_assessment_snapshotfrom src.carbon.emissions import get_factor_version
-from styles.theme import apply_theme
+from src.core.database import get_assessments_with_factors, get_assessment_snapshot
+from src.carbon.emissions import get_factor_versionfrom styles.theme import apply_theme
 
 
 st.set_page_config(page_title="Assessment Audit", page_icon="🔎", layout="wide")
