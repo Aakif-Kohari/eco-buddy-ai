@@ -19,6 +19,7 @@ from src.ai.recommendations import generate_recommendations
 from src.core.database import get_assessments, get_active_goal
 from src.utils.goals import evaluate_progress
 from src.core.api_auth import authenticate_request, generate_api_key, init_api_keys_db
+from src.core.rate_limiter import CompositeRateLimiter
 
 # ---------------------------------------------------------------------------
 # Version prefix — single source of truth for the API version segment.
@@ -327,6 +328,15 @@ def process_api_request(
         return 401, {"error": "Unauthorized", "message": auth_res}, "application/json"
 
     user_id = auth_res.get("user_id", "default_user")
+    key_id = auth_res.get("id")
+    rate_limit = auth_res.get("rate_limit", 100)
+    
+    # ------------------------------------------------------------------ #
+    # Rate Limiting
+    # ------------------------------------------------------------------ #
+    is_allowed, status_code, rl_headers = CompositeRateLimiter.check_limit(key_id, rate_limit, path)
+    if not is_allowed:
+        return status_code, {"error": "Too Many Requests", "message": "Rate limit exceeded."}, "application/json", rl_headers
 
     # POST /api/v1/insights/calculate
     if method == "POST" and path == _route("/insights/calculate"):
@@ -550,14 +560,16 @@ class SustainabilityAPIRequestHandler(http.server.BaseHTTPRequestHandler):
                 except json.JSONDecodeError:
                     body = {}
 
-        status_code, response_data, content_type = process_api_request(
-            method, path, headers, body=body, query_params=query_params
-        )
+        res = process_api_request(method, path, headers, body=body, query_params=query_params)
+        status_code, response_data, content_type = res[0], res[1], res[2]
+        extra_headers = res[3] if len(res) > 3 else {}
 
         self.send_response(status_code)
         self.send_header("Content-Type", content_type)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
+        for k, v in extra_headers.items():
+            self.send_header(k, v)
         self.end_headers()
 
         if content_type == "application/json" and isinstance(response_data, (dict, list)):
