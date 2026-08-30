@@ -33,6 +33,24 @@ def init_api_keys_db() -> None:
                 last_used_at TIMESTAMP
             )
         """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS rate_limit_buckets (
+                key_id INTEGER PRIMARY KEY,
+                tokens REAL NOT NULL,
+                last_refill REAL NOT NULL,
+                FOREIGN KEY (key_id) REFERENCES api_keys (id)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS rate_limit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_id INTEGER NOT NULL,
+                endpoint TEXT NOT NULL,
+                timestamp REAL NOT NULL,
+                status_code INTEGER NOT NULL,
+                FOREIGN KEY (key_id) REFERENCES api_keys (id)
+            )
+        """)
         conn.commit()
 
 
