@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Water Recycling & Industrial Effluent Reclamation Telemetry Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --border-color: #334155;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-blue);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--accent-blue);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .badge-success {
+            background-color: rgba(74, 222, 128, 0.2);
+            color: var(--accent-green);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>💧 Smart Water Recycling & Effluent Reclamation Dashboard</h1>
+            <div class="subtitle">Real-time MBR/RO filtration efficiency, EPA reuse compliance, and ZLD energy balance analytics.</div>
+        </div>
+        <div>
+            <span class="badge-success">SYSTEM ONLINE</span>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="kpi-card" style="border-left-color: var(--accent-blue);">
+            <div class="kpi-title">Reclaimed Water Output</div>
+            <div class="kpi-value" id="kpi-reclaimed-flow">32,560 m³/d</div>
+            <div class="kpi-sub">88.4% Overall Facility Recovery</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-green);">
+            <div class="kpi-title">Overall Removal Efficiency</div>
+            <div class="kpi-value">98.3%</div>
+            <div class="kpi-sub">COD / BOD / TSS Aggregate</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-amber);">
+            <div class="kpi-title">ZLD Distillate Yield</div>
+            <div class="kpi-value">4,750 m³/d</div>
+            <div class="kpi-sub">95.0% Brine Distillate Recovery</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: #a855f7;">
+            <div class="kpi-title">EPA Reuse Status</div>
+            <div class="kpi-value" style="color: var(--accent-green);">COMPLIANT</div>
+            <div class="kpi-sub">Class A Industrial Standards</div>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        <div class="card">
+            <h2>🧫 Industrial Effluent Telemetry Streams</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Stream ID</th>
+                        <th>Source Type</th>
+                        <th>Influent (m³/d)</th>
+                        <th>COD (mg/L)</th>
+                        <th>BOD (mg/L)</th>
+                        <th>EPA Compliance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>STREAM-TEXTILE-01</strong></td>
+                        <td>Textile Dyeing</td>
+                        <td>12,000</td>
+                        <td>15.75</td>
+                        <td>3.24</td>
+                        <td><span class="badge-success">PASS</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>STREAM-SEMI-02</strong></td>
+                        <td>Fab Rinse Water</td>
+                        <td>25,000</td>
+                        <td>2.80</td>
+                        <td>0.36</td>
+                        <td><span class="badge-success">PASS</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>⚡ Zero Liquid Discharge (ZLD) Energy Balance</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Mechanical Vapor Recompression (MVR) crystallizer performance metrics for high-salinity brine management.
+            </p>
+            <div style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                    <span>Input Brine Volume:</span>
+                    <strong>5,000 m³/day</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                    <span>Recovered Distillate:</span>
+                    <strong style="color: var(--accent-green);">4,750 m³/day</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                    <span>Solid Salt Recovered:</span>
+                    <strong>225,000 kg/day</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>Specific Energy Consumption:</span>
+                    <strong style="color: var(--accent-blue);">24.5 kWh/m³</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../src/services/water_recycling_telemetry_engine.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const engine = new WaterRecyclingTelemetryEngine();
+            console.log('Water Recycling Telemetry Engine Initialized');
+        });
+    </script>
+</body>
+</html>
