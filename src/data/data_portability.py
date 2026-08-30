@@ -19,12 +19,15 @@ SUPPORTED_SCHEMA_VERSIONS = (EXPORT_SCHEMA_VERSION,)
 CONFLICT_STRATEGIES = ("skip", "replace", "merge")
 
 USER_COLUMNS = ("id", "username", "email", "anonymous_leaderboard", "created_at")
+# Fields that describe an assessment's actual content (used to tell an
+# "unchanged" re-import apart from a genuine "updated" record).
+ASSESSMENT_CONTENT_FIELDS = ("transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score", "date", "trip_id")
+ASSESSMENT_STATUSES = ("new", "unchanged", "updated", "conflicting", "duplicate", "legacy")
 TABLES = {
     "assessments": {
-        "columns": ("id", "user_id", "date", "created_at", "transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score", "trip_id"),
+        "columns": ("id", "user_id", "date", "created_at", "updated_at", "client_uuid", "source_device", "transport", "distance", "electricity", "diet", "flights", "footprint", "eco_score", "trip_id"),
         "id": "id",
-    },
-    "goals": {
+    },    "goals": {
         "table": "reduction_goals",
         "columns": ("id", "user_id", "baseline_kg", "target_kg", "start_date", "target_date", "status", "created_at"),
         "id": "id",
@@ -153,26 +156,26 @@ def _validate_record_list(name: str, records: Any, numeric_ranges: dict[str, tup
     for index, record in enumerate(records):
         prefix = f"{name}[{index}]"
         if not isinstance(record, dict):
-            src.core.errors.append(f"{prefix} must be an object")
+            errors.append(f"{prefix} must be an object")
             continue
         if "id" in record:
             rid = str(record["id"])
             if rid in ids:
-                src.core.errors.append(f"{prefix}.id is duplicated")
+                errors.append(f"{prefix}.id is duplicated")
             ids.add(rid)
         for key in ("date", "created_at", "updated_at"):
             if key in record and record[key] is not None:
                 try:
                     _parse_iso(record[key], f"{prefix}.{key}")
                 except ValueError as exc:
-                    src.core.errors.append(str(exc))
+                    errors.append(str(exc))
         if numeric_ranges:
             for key, (minimum, maximum) in numeric_ranges.items():
                 if key in record and record[key] is not None:
                     if isinstance(record[key], bool) or not isinstance(record[key], (int, float)):
-                        src.core.errors.append(f"{prefix}.{key} must be numeric")
+                        errors.append(f"{prefix}.{key} must be numeric")
                     elif not minimum <= record[key] <= maximum:
-                        src.core.errors.append(f"{prefix}.{key} must be between {minimum} and {maximum}")
+                        errors.append(f"{prefix}.{key} must be between {minimum} and {maximum}")
     return errors
 
 
@@ -182,30 +185,30 @@ def validate_export_document(document: Any) -> tuple[bool, list[str]]:
     if not isinstance(document, dict):
         return False, ["Export document must be a JSON object"]
     required = ("schema_version", "exported_at", "application", "profile", "assessments", "goals", "habits", "recommendations", "metadata")
-    src.core.errors.extend(f"Missing required field: {key}" for key in required if key not in document)
+    errors.extend(f"Missing required field: {key}" for key in required if key not in document)
     if "schema_version" in document and document["schema_version"] not in SUPPORTED_SCHEMA_VERSIONS:
-        src.core.errors.append(f"Unsupported schema version: {document.get('schema_version')}")
+        errors.append(f"Unsupported schema version: {document.get('schema_version')}")
     if "exported_at" in document:
         try:
             _parse_iso(document["exported_at"], "exported_at")
         except ValueError as exc:
-            src.core.errors.append(str(exc))
+            errors.append(str(exc))
     if document.get("application") != APPLICATION_NAME:
-        src.core.errors.append("application must be 'EcoBuddy AI'")
+        errors.append("application must be 'EcoBuddy AI'")
     if not isinstance(document.get("profile"), dict):
-        src.core.errors.append("profile must be an object")
+       errors.append("profile must be an object")
     if isinstance(document.get("metadata"), dict) and "exported_user_id" in document["metadata"]:
         uid = document["metadata"]["exported_user_id"]
         if isinstance(uid, bool) or not isinstance(uid, int) or uid < 1:
-            src.core.errors.append("metadata.exported_user_id must be a positive integer")
-    src.core.errors.extend(_validate_record_list("assessments", document.get("assessments", []), {
+            errors.append("metadata.exported_user_id must be a positive integer")
+errors.extend(_validate_record_list("assessments", document.get("assessments", []), {
         "distance": (0, 10_000_000), "electricity": (0, 10_000_000), "flights": (0, 10_000), "footprint": (0, 10_000_000), "eco_score": (0, 100),
     }))
-    src.core.errors.extend(_validate_record_list("goals", document.get("goals", []), {"baseline_kg": (0, 10_000_000), "target_kg": (0, 10_000_000)}))
-    src.core.errors.extend(_validate_record_list("habits", document.get("habits", [])))
-    src.core.errors.extend(_validate_record_list("recommendations", document.get("recommendations", [])))
+    errors.extend(_validate_record_list("goals", document.get("goals", []), {"baseline_kg": (0, 10_000_000), "target_kg": (0, 10_000_000)}))
+    errors.extend(_validate_record_list("habits", document.get("habits", [])))
+    errors.extend(_validate_record_list("recommendations", document.get("recommendations", [])))
     if not isinstance(document.get("profile", {}), dict):
-        src.core.errors.append("profile must be an object")
+       errors.append("profile must be an object")
     return not errors, errors
 
 
@@ -228,6 +231,85 @@ def _stable_key(table: str, record: dict[str, Any]) -> str:
     raw = json.dumps(record, sort_keys=True, default=str, separators=(",", ":"))
     return hashlib.sha256(f"{table}:{raw}".encode()).hexdigest()
 
+
+def _assessment_content_hash(record: dict[str, Any]) -> str:
+    """Hash only the fields that represent the assessment's content, ignoring
+    bookkeeping columns (id/created_at/updated_at/client_uuid/source_device)."""
+    payload = {k: record.get(k) for k in ASSESSMENT_CONTENT_FIELDS}
+    raw = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def classify_assessments(document: dict[str, Any], user_id: int, db_name: str | None = None) -> list[str]:
+    """Classify each assessment in document['assessments'] using its stable
+    client_uuid. Returned list is aligned 1:1 with document['assessments'].
+
+    Statuses:
+      - "legacy": no client_uuid on the record; handled by the old id-based path.
+      - "new": no local assessment shares this client_uuid.
+      - "unchanged": local content is identical (safe to skip; keeps re-imports idempotent).
+      - "updated": content differs and the incoming record is not older than local.
+      - "conflicting": content differs and the local record is newer than the incoming one.
+      - "duplicate": this client_uuid already appeared earlier in the same import.
+    """
+    db_name = db_name or os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
+    records = document.get("assessments", [])
+    statuses: list[str] = []
+    seen_uuids: set[str] = set()
+    with sqlite3.connect(db_name) as conn:
+        available = _existing_columns(conn, "assessments")
+        for record in records:
+            client_uuid = record.get("client_uuid")
+            if client_uuid is None:
+                statuses.append("legacy")
+                continue
+            if client_uuid in seen_uuids:
+                statuses.append("duplicate")
+                continue
+            seen_uuids.add(client_uuid)
+            local = None
+            if "client_uuid" in available:
+                columns = [c[0] for c in conn.execute('SELECT * FROM "assessments" WHERE 1=0').description]
+                row = conn.execute(
+                    'SELECT * FROM "assessments" WHERE client_uuid = ? AND user_id = ?', (client_uuid, user_id)
+                ).fetchone()
+                if row:
+                    local = {k: _json_safe(v) for k, v in zip(columns, row)}
+            if local is None:
+                statuses.append("new")
+                continue
+            if _assessment_content_hash(local) == _assessment_content_hash(record):
+                statuses.append("unchanged")
+                continue
+            local_updated = str(local.get("updated_at") or local.get("created_at") or "")
+            incoming_updated = str(record.get("updated_at") or record.get("created_at") or "")
+            statuses.append("conflicting" if local_updated > incoming_updated else "updated")
+    return statuses
+
+
+def _upsert_assessment(conn: sqlite3.Connection, record: dict[str, Any], user_id: int, replace: bool) -> str:
+    """Insert or update an assessment matched by its stable client_uuid (not the
+    local autoincrement id, which is not stable across devices)."""
+    available = _existing_columns(conn, "assessments")
+    payload = {k: v for k, v in record.items() if k in available and k != "id"}
+    payload["user_id"] = user_id
+    client_uuid = record.get("client_uuid")
+    if client_uuid and "client_uuid" in available:
+        existing = conn.execute(
+            'SELECT id FROM "assessments" WHERE client_uuid = ? AND user_id = ?', (client_uuid, user_id)
+        ).fetchone()
+        if existing:
+            if not replace:
+                return "skipped"
+            assignments = ", ".join(f'"{k}" = ?' for k in payload if k != "user_id")
+            values = [payload[k] for k in payload if k != "user_id"]
+            if assignments:
+                conn.execute(f'UPDATE "assessments" SET {assignments} WHERE id = ?', (*values, existing[0]))
+            return "merged"
+    columns = list(payload)
+    placeholders = ", ".join("?" for _ in columns)
+    conn.execute(f'INSERT INTO "assessments" ({", ".join(columns)}) VALUES ({placeholders})', [payload[c] for c in columns])
+    return "imported"
 
 def detect_conflicts(document: dict[str, Any], user_id: int, db_name: str | None = None) -> dict[str, list[dict[str, Any]]]:
     db_name = db_name or os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
@@ -260,8 +342,10 @@ def create_import_preview(document: dict[str, Any], user_id: int, db_name: str |
     counts = {name: len(document.get(name, [])) for name in ("assessments", "goals", "habits", "recommendations")}
     conflict_counts = {name: len(records) for name, records in conflicts.items()}
     new_counts = {name: counts[name] - conflict_counts[name] for name in counts}
-    return {"valid": True, "records_found": counts, "new_records": new_counts, "conflicts": conflict_counts, "skipped_records": {name: 0 for name in counts}, "invalid_records": 0, "errors": []}
-
+    assessment_status_counts = dict.fromkeys(ASSESSMENT_STATUSES, 0)
+    for status in classify_assessments(document, user_id, db_name):
+        assessment_status_counts[status] += 1
+    return {"valid": True, "records_found": counts, "new_records": new_counts, "conflicts": conflict_counts, "skipped_records": {name: 0 for name in counts}, "invalid_records": 0, "errors": [], "assessment_status_counts": assessment_status_counts}
 
 def _validate_user_target(conn: sqlite3.Connection, user_id: int) -> None:
     if not conn.execute("SELECT 1 FROM users WHERE id = ?", (user_id,)).fetchone():
@@ -308,8 +392,20 @@ def _insert_record(conn: sqlite3.Connection, table: str, record: dict[str, Any],
     return "imported"
 
 
-def merge_imported_data(document: dict[str, Any], user_id: int, strategy: str = "skip", db_name: str | None = None) -> dict[str, Any]:
-    """Atomically import a validated document. Any exception rolls back all writes."""
+def merge_imported_data(
+    document: dict[str, Any],
+    user_id: int,
+    strategy: str = "skip",
+    db_name: str | None = None,
+    resolutions: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Atomically import a validated document. Any exception rolls back all writes.
+
+    `resolutions` lets the caller pick a winner for individual conflicting
+    assessments: map an assessment's `client_uuid` to "keep_incoming" to accept
+    the imported version, or leave it out (or "keep_local") to keep the newer
+    local copy. Records without a resolution are never silently overwritten.
+    """
     if strategy not in CONFLICT_STRATEGIES:
         raise ValueError(f"Unknown conflict strategy: {strategy}")
     valid, errors = validate_export_document(document)
@@ -317,6 +413,7 @@ def merge_imported_data(document: dict[str, Any], user_id: int, strategy: str = 
         raise ValueError("Import validation failed: " + "; ".join(errors))
     document = migrate_export(document)
     db_name = db_name or os.getenv("ECO_BUDDY_DB", "eco_buddy.db")
+    resolutions = resolutions or {}
     summary = {"imported": 0, "merged": 0, "skipped": 0, "conflicts": 0, "invalid": 0}
     with sqlite3.connect(db_name) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -325,12 +422,32 @@ def merge_imported_data(document: dict[str, Any], user_id: int, strategy: str = 
             conn.execute("BEGIN")
             conflicts = detect_conflicts(document, user_id, db_name)
             summary["conflicts"] = sum(len(v) for v in conflicts.values())
+            assessment_statuses = classify_assessments(document, user_id, db_name)
             for name in ("assessments", "goals", "habits", "recommendations"):
                 table = TABLES[name].get("table", name)
-                for record in document.get(name, []):
+                for index, record in enumerate(document.get(name, [])):
                     if name == "habits" and "data_json" in record:
                         # Never import a second user_habits row; strategy controls update/skip.
                         pass
+                    if name == "assessments":
+                        status = assessment_statuses[index]
+                        if status == "legacy":
+                            outcome = _insert_record(conn, table, record, user_id, strategy)
+                            summary[outcome] += 1
+                            continue
+                        if status in ("unchanged", "duplicate"):
+                            summary["skipped"] += 1
+                            continue
+                        if status == "conflicting":
+                            choice = resolutions.get(record.get("client_uuid"), "keep_local")
+                            if choice != "keep_incoming":
+                                summary["skipped"] += 1
+                                continue
+                            summary[_upsert_assessment(conn, record, user_id, replace=True)] += 1
+                            continue
+                        # status is "new" or "updated": safe to apply without user input.
+                        summary[_upsert_assessment(conn, record, user_id, replace=True)] += 1
+                        continue
                     outcome = _insert_record(conn, table, record, user_id, strategy)
                     summary[outcome] += 1
             conn.commit()
@@ -340,7 +457,13 @@ def merge_imported_data(document: dict[str, Any], user_id: int, strategy: str = 
     return summary
 
 
-def import_user_profile(source: str | dict[str, Any], user_id: int, strategy: str = "skip", db_name: str | None = None) -> dict[str, Any]:
+def import_user_profile(
+    source: str | dict[str, Any],
+    user_id: int,
+    strategy: str = "skip",
+    db_name: str | None = None,
+    resolutions: dict[str, str] | None = None,
+) -> dict[str, Any]:
     if isinstance(source, str):
         try:
             document = json.loads(source)
@@ -351,4 +474,4 @@ def import_user_profile(source: str | dict[str, Any], user_id: int, strategy: st
     valid, errors = validate_export_document(document)
     if not valid:
         raise ValueError("Import validation failed: " + "; ".join(errors))
-    return merge_imported_data(document, user_id, strategy=strategy, db_name=db_name)
+    return merge_imported_data(document, user_id, strategy=strategy, db_name=db_name, resolutions=resolutions)

@@ -585,6 +585,22 @@ def init_db() -> bool:
                     if "duplicate column name" not in str(exc).lower():
                         raise
 
+                # Conflict-aware import/export support (#1311): a stable
+                # cross-device identifier plus last-modified/source metadata,
+                # so an import can tell new, unchanged, updated and
+                # conflicting assessments apart instead of matching on the
+                # local autoincrement id.
+                for column_sql in (
+                    "ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                    "ADD COLUMN client_uuid TEXT",
+                    "ADD COLUMN source_device TEXT",
+                ):
+                    try:
+                        cursor.execute(f"ALTER TABLE assessments {column_sql}")
+                    except sqlite3.OperationalError as exc:
+                        if "duplicate column name" not in str(exc).lower():
+                            raise
+
                 cursor.execute(
                     """
                     CREATE UNIQUE INDEX IF NOT EXISTS
@@ -594,6 +610,14 @@ def init_db() -> bool:
                     """
                 )
 
+                cursor.execute(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS
+                    idx_assessments_client_uuid
+                    ON assessments(user_id, client_uuid)
+                    WHERE client_uuid IS NOT NULL
+                    """
+                )
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS scanned_receipts (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -4755,6 +4779,22 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     if "duplicate column name" not in str(exc).lower():
                         raise
 
+                # Conflict-aware import/export support (#1311): a stable
+                # cross-device identifier plus last-modified/source metadata,
+                # so an import can tell new, unchanged, updated and
+                # conflicting assessments apart instead of matching on the
+                # local autoincrement id.
+                for column_sql in (
+                    "ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                    "ADD COLUMN client_uuid TEXT",
+                    "ADD COLUMN source_device TEXT",
+                ):
+                    try:
+                        cursor.execute(f"ALTER TABLE assessments {column_sql}")
+                    except sqlite3.OperationalError as exc:
+                        if "duplicate column name" not in str(exc).lower():
+                            raise
+
                 cursor.execute(
                     """
                     CREATE UNIQUE INDEX IF NOT EXISTS
@@ -4764,6 +4804,14 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
                     """
                 )
 
+                cursor.execute(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS
+                    idx_assessments_client_uuid
+                    ON assessments(user_id, client_uuid)
+                    WHERE client_uuid IS NOT NULL
+                    """
+                )
                 # Immutable calculation-context snapshots. One row per
                 # assessment (UNIQUE assessment_id), written once at
                 # calculation time and never updated afterwards, so a
