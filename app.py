@@ -17,6 +17,7 @@ from src.utils.eco_school import render_eco_school_hub
 import tempfile
 import uuid
 import os
+from pages.analytics_dashboard import render_analytics_dashboard
 from src.lib.routes import quizes_bp
 from src.utils.global_search import render_global_search
 from dotenv import load_dotenv
@@ -37,6 +38,10 @@ from src.community.community_marketplace import render_marketplace_hub
 from src.utils.sustainability_hub import (
     render_sustainability_hub  
 )
+from src.lib.analytics_engine import get_analysis_summary
+from src.lib.predictive_model import generate_predictions, train_predictive_model
+from src.lib.trend_analyzer import analyze_trends
+from src.lib.insight_generator import generate_insights
 from src.utils.eco_dream_incubation import render_dream_hub
 from src.utils.eco_synesthesia import render_synesthesia_hub
 from src.community.community_resilience import render_resilience_hub
@@ -1241,6 +1246,7 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "🎨 Eco-Art",
     "🛒 Ethical Shopping",
     "🌾 Urban Farming"
+    "📊 Analytics Dashboard" 
     "🏆 Community Challenges"
 ])
 # Import
@@ -1328,6 +1334,8 @@ with tab13:
     render_home_hub()
 with tab14:
     render_pet_hub()
+with tab42:
+    render_analytics_dashboard()
 with placeholder.container():
     show_card_skeleton()
     show_chart_skeleton()
@@ -4261,7 +4269,71 @@ with tab1:
         )        
         render_sustainability_hub()
         render_eco_tip()
-        
+
+        # ── Quick Analytics Stats ──────────────────────────────────────────────────────
+        st.markdown("---")
+        st.markdown("### 📊 Quick Analytics")
+
+        try:
+            from src.lib.analytics_engine import get_analysis_summary
+            from src.core.database import get_assessments
+            
+            assessments = get_assessments(user_id)
+            if assessments and len(assessments) >= 3:
+                summary = get_analysis_summary(assessments)
+                
+                if summary.get('success'):
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric(
+                            "📝 Total Assessments",
+                            summary.get('total_assessments', 0)
+                        )
+                    with col2:
+                        st.metric(
+                            "🌍 Avg Footprint",
+                            f"{summary.get('average_footprint', 0):.1f} kg"
+                        )
+                    with col3:
+                        trend = summary.get('trend', 'stable')
+                        trend_icon = "📉" if trend == "decreasing" else "📈" if trend == "increasing" else "➡️"
+                        st.metric(
+                            "📊 Trend",
+                            f"{trend_icon} {trend.title()}"
+                        )
+                    with col4:
+                        improvement = summary.get('improvement', 0)
+                        st.metric(
+                            "📈 Improvement",
+                            f"{improvement:+.1f}%"
+                        )
+                    
+                    # Quick insights preview
+                    if summary.get('insights_count', 0) > 0:
+                        st.info(f"💡 You have {summary.get('insights_count', 0)} new insights available! Click the Analytics Dashboard tab to view them.")
+                    
+                    # Quick link to analytics
+                    if st.button("📊 Go to Analytics Dashboard", use_container_width=True):
+                        # Switch to analytics tab - we'll use JavaScript to switch tabs
+                        st.markdown("""
+                        <script>
+                            // Find the analytics tab and click it
+                            const tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                            for (let tab of tabs) {
+                                if (tab.textContent.includes('Analytics Dashboard')) {
+                                    tab.click();
+                                    break;
+                                }
+                            }
+                        </script>
+                        """, unsafe_allow_html=True)
+            else:
+                st.info("🌱 Complete 3+ assessments to unlock the Analytics Dashboard with AI-powered insights and predictive forecasts!")
+                
+        except ImportError:
+            st.info("📊 Analytics module will be available soon!")
+        except Exception as e:
+            logger.warning(f"Analytics quick stats unavailable: {e}")
         # ── Assessment History with Pagination ──────────────────────────────────────
         from src.lib.history_manager import (
             HistoryManager,
