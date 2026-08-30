@@ -194,6 +194,17 @@ def init_db() -> bool:
                 """)
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS load_shifting_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        appliances TEXT,
+                        preference TEXT,
+                        carbon_saved_kg REAL,
+                        money_saved_usd REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS commute_logs (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT,
@@ -8685,6 +8696,28 @@ def get_policy_history() -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT footprint_tonnes, tax_rate, net_impact_usd, timestamp FROM policy_simulations ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+import json
+
+def save_load_shifting_plan(appliances: list, preference: str, carbon_saved_kg: float, money_saved_usd: float) -> None:
+    """Saves a load shifting optimization plan to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO load_shifting_plans (appliances, preference, carbon_saved_kg, money_saved_usd)
+        VALUES (?, ?, ?, ?)
+    """, (json.dumps(appliances), preference, carbon_saved_kg, money_saved_usd))
+    conn.commit()
+    conn.close()
+
+def get_load_shifting_history() -> list:
+    """Retrieves historical load shifting plans."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT appliances, preference, carbon_saved_kg, money_saved_usd, timestamp FROM load_shifting_plans ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
