@@ -264,6 +264,18 @@ def init_db() -> bool:
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS urban_cooling_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        baseline_temp REAL,
+                        hvac_cost REAL,
+                        cooling_effect_c REAL,
+                        twenty_year_net_savings REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS fitness_oauth_tokens (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -8648,6 +8660,26 @@ def get_regeneration_history() -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT garden_area_sqm, crop_count, regeneration_score, timestamp FROM regeneration_logs ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def save_urban_cooling_plan(baseline_temp: float, hvac_cost: float, cooling_effect_c: float, twenty_year_net_savings: float) -> None:
+    """Saves an urban cooling mitigation plan to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO urban_cooling_plans (baseline_temp, hvac_cost, cooling_effect_c, twenty_year_net_savings)
+        VALUES (?, ?, ?, ?)
+    """, (baseline_temp, hvac_cost, cooling_effect_c, twenty_year_net_savings))
+    conn.commit()
+    conn.close()
+
+def get_urban_cooling_history() -> list:
+    """Retrieves historical urban cooling mitigation plans."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT baseline_temp, hvac_cost, cooling_effect_c, twenty_year_net_savings, timestamp FROM urban_cooling_plans ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
