@@ -59,6 +59,8 @@ from src.community.community_dashboard import render_community_analytics
 from src.lifestyle.home_guide import render_home_hub
 from src.lifestyle.wellness_center import render_wellness_hub
 from src.utils.learning_center import render_learning_hub
+from components.team_widget import render_community_widgets
+from pages.11_Community_Challenges import render_community_challenges
 from src.lifestyle.travel_planner import render_travel_hub
 from src.utils.weather_alerts import render_weather_hub
 from src.community.eco_social import render_eco_social, render_eco_tip
@@ -203,6 +205,9 @@ def render_top_auth():
         st.sidebar.page_link("pages/25_Environmental_Benchmarking.py", label="📊 Benchmarking")
         st.sidebar.page_link("pages/Eco_Data_Import_Hub.py", label="📥 Data Import Hub")
         st.sidebar.page_link("pages/26_Health_Environment.py", label="🏃 Health & Environment")
+        st.sidebar.markdown("---")
+        with st.sidebar.expander("👥 Community", expanded=False):
+            render_community_widgets(user_id)
         from src.lib.carbon_tracker import get_carbon_tracker, update_carbon_tracker, render_carbon_widget
         with st.sidebar:
             st.divider()
@@ -1242,6 +1247,7 @@ tab1, tab2, tab3, tab4, tab5,tab38, tab6, tab37,tab7, tab8, tab9, tab10, tab11,t
     "🛒 Ethical Shopping",
     "🌾 Urban Farming"
     "📊 Analytics Dashboard" 
+    "🏆 Community Challenges"
 ])
 # Import
 # from urban_farming import render_urban_hub
@@ -1286,6 +1292,8 @@ with tab26:
     render_impact_dashboard()
 with tab25:
     render_shopping_hub()
+with tab43:
+    render_community_challenges(user_id)
 
 with tab24:
     render_certification_hub()

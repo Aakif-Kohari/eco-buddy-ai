@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adiabatic Compressed Air Energy Storage (A-CAES) Telemetry Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --border-color: #334155;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-cyan);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+        }
+
+        .badge-success {
+            background-color: rgba(74, 222, 128, 0.2);
+            color: var(--accent-green);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>🕳️ Adiabatic Compressed Air Energy Storage (A-CAES) Hub</h1>
+            <div class="subtitle">Multi-stage intercooled air compression, cavern pressure dynamics (bar), and Thermal Energy Storage (TES) balance.</div>
+        </div>
+        <div>
+            <span class="badge-success">CAVERN ONLINE (CHARGING)</span>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="kpi-card" style="border-left-color: var(--accent-cyan);">
+            <div class="kpi-title">Cavern Air Pressure</div>
+            <div class="kpi-value">52.0 bar</div>
+            <div class="kpi-sub">Operating Range: 45 - 75 bar</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-amber);">
+            <div class="kpi-title">Compressor Power</div>
+            <div class="kpi-value">124.5 MW</div>
+            <div class="kpi-sub">4-Stage Intercooled Array</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-green);">
+            <div class="kpi-title">Round-Trip Efficiency</div>
+            <div class="kpi-value">71.8%</div>
+            <div class="kpi-sub">Adiabatic TES Thermal Recovery</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: #a855f7;">
+            <div class="kpi-title">Storage Capacity</div>
+            <div class="kpi-value">1.2 GWh</div>
+            <div class="kpi-sub">Solution-Mined Salt Cavern</div>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        <div class="card">
+            <h2>🌡️ Compression & Thermal Energy Storage (TES)</h2>
+            <div class="metric-row">
+                <span>Air Mass Flow Rate:</span>
+                <strong>150.0 kg/sec</strong>
+            </div>
+            <div class="metric-row">
+                <span>Compression Stages:</span>
+                <strong>4 Intercooled Stages</strong>
+            </div>
+            <div class="metric-row">
+                <span>Pressure Ratio per Stage:</span>
+                <strong style="color: var(--accent-amber);">2.94 : 1</strong>
+            </div>
+            <div class="metric-row">
+                <span>TES Thermal Energy Captured:</span>
+                <strong style="color: var(--accent-green);">48.1 MWth</strong>
+            </div>
+            <div class="metric-row">
+                <span>TES Heat Exchanger Efficiency:</span>
+                <strong>92.0%</strong>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🌍 Cavern Dynamics & Grid Decarbonization</h2>
+            <div class="metric-row">
+                <span>Salt Cavern Volume:</span>
+                <strong>300,000 m³</strong>
+            </div>
+            <div class="metric-row">
+                <span>Current Air Mass Stored:</span>
+                <strong style="color: var(--accent-cyan);">17,320 Tonnes</strong>
+            </div>
+            <div class="metric-row">
+                <span>Discharge Turbine Potential Output:</span>
+                <strong style="color: var(--accent-green);">110.0 MW</strong>
+            </div>
+            <div class="metric-row">
+                <span>Grid Integration Grade:</span>
+                <strong style="color: var(--accent-green);">A+ (High-Flexibility Grid Balancing)</strong>
+            </div>
+        </div>
+    </div>
+
+    <script src="../src/services/caes_storage_engine.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const engine = new CaesStorageEngine();
+            console.log('CAES Storage Engine Initialized');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Temperature Industrial Heat Pump Decarbonization Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-orange: #fb923c;
+            --border-color: #334155;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--accent-orange);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-orange);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--accent-orange);
+        }
+
+        .badge-success {
+            background-color: rgba(74, 222, 128, 0.2);
+            color: var(--accent-green);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>🔥 High-Temperature Industrial Heat Pump (HTHP) Decarbonization Hub</h1>
+            <div class="subtitle">Waste heat recovery thermodynamic modeling, COP optimization, and natural gas boiler replacement analytics.</div>
+        </div>
+        <div>
+            <span class="badge-success">HTHP OPERATIONAL (120°C STEAM)</span>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="kpi-card" style="border-left-color: var(--accent-orange);">
+            <div class="kpi-title">Operating COP</div>
+            <div class="kpi-value">2.73</div>
+            <div class="kpi-sub">Carnot Efficiency: 55.0%</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-blue);">
+            <div class="kpi-title">Thermal Output</div>
+            <div class="kpi-value">5,000 kW</div>
+            <div class="kpi-sub">Process Steam Load (120°C)</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: var(--accent-green);">
+            <div class="kpi-title">Annual CO2 Offset</div>
+            <div class="kpi-value">3,450 tCO2e</div>
+            <div class="kpi-sub">vs. Legacy Natural Gas Boiler</div>
+        </div>
+
+        <div class="kpi-card" style="border-left-color: #a855f7;">
+            <div class="kpi-title">Refrigerant Standard</div>
+            <div class="kpi-value">R-1233zd(E)</div>
+            <div class="kpi-sub">GWP = 1 | Safety Class A1</div>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        <div class="card">
+            <h2>⚡ Thermodynamic Energy Balance</h2>
+            <div class="metric-row">
+                <span>Waste Heat Source Temp (Intake):</span>
+                <strong>45.0 °C</strong>
+            </div>
+            <div class="metric-row">
+                <span>Required Delivery Temp (Sink):</span>
+                <strong style="color: var(--accent-orange);">120.0 °C</strong>
+            </div>
+            <div class="metric-row">
+                <span>Temperature Lift (ΔT):</span>
+                <strong>75.0 °C</strong>
+            </div>
+            <div class="metric-row">
+                <span>Compressor Electrical Input:</span>
+                <strong style="color: var(--accent-blue);">1,832 kW</strong>
+            </div>
+            <div class="metric-row">
+                <span>Waste Heat Absorbed (Free Thermal):</span>
+                <strong style="color: var(--accent-green);">3,168 kW</strong>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🌍 Boiler Electrification & Decarbonization</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Comparison between 85% efficient natural gas steam boiler and high-temperature heat pump.
+            </p>
+            <div class="metric-row">
+                <span>Legacy Gas Boiler Baseline Emissions:</span>
+                <strong style="color: #ef4444;">9,506 tCO2e/year</strong>
+            </div>
+            <div class="metric-row">
+                <span>Electrified HTHP Grid Emissions:</span>
+                <strong style="color: var(--accent-blue);">6,155 tCO2e/year</strong>
+            </div>
+            <div class="metric-row">
+                <span>Net Annual Carbon Reduction:</span>
+                <strong style="color: var(--accent-green);">-3,351 tCO2e (-35.3%)</strong>
+            </div>
+        </div>
+    </div>
+
+    <script src="../src/services/industrial_heat_pump_engine.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const engine = new IndustrialHeatPumpEngine();
+            console.log('Industrial Heat Pump Engine Initialized');
+        });
+    </script>
+</body>
+</html>
