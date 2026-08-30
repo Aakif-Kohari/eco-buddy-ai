@@ -477,4 +477,5 @@ __all__ = [
     'get_budget_alert_manager',
     'create_budget_alert',
     'get_user_alerts'
+    'get_user_items'
 ]
