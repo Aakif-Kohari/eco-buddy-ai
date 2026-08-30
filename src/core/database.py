@@ -102,6 +102,17 @@ def init_db() -> bool:
                 cursor = conn.cursor()
 
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS virtual_water_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product TEXT,
+                        quantity REAL,
+                        region TEXT,
+                        scarcity_weighted_l REAL,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                cursor.execute("""
                     CREATE TABLE IF NOT EXISTS event_plans (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         guest_count INTEGER,
@@ -8721,6 +8732,26 @@ def get_event_history() -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT guest_count, catering_type, total_emissions_kg, timestamp FROM event_plans ORDER BY timestamp DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
+
+def save_virtual_water_log(product: str, quantity: float, region: str, scarcity_weighted_l: float) -> None:
+    """Saves a virtual water footprint log to the database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO virtual_water_logs (product, quantity, region, scarcity_weighted_l)
+        VALUES (?, ?, ?, ?)
+    """, (product, quantity, region, scarcity_weighted_l))
+    conn.commit()
+    conn.close()
+
+def get_virtual_water_history() -> list:
+    """Retrieves historical virtual water logs."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT product, quantity, region, scarcity_weighted_l, timestamp FROM virtual_water_logs ORDER BY timestamp DESC")
     rows = cursor.fetchall()
     conn.close()
     return [dict(zip([column[0] for column in cursor.description], row)) for row in rows]
