@@ -7,7 +7,7 @@ import calendar
 from typing import Any
 
 logger = logging.getLogger(__name__)
-
+from src.carbon.data_lineage import LineageBuilder, CategoryLineage
 from src.core.config import (
     ECO_SCORE_BASELINE, ECO_SCORE_SENSITIVITY, CATEGORY_WEIGHTS,
     VALID_TRANSPORT, VALID_DIET, VALID_REGIONS,
@@ -121,23 +121,108 @@ def validate_footprint_inputs(transport: str, distance: float, electricity: floa
 
 def calculate_category_emissions(transport: str, distance: float, electricity: float, diet: str,
                                  flights: int,
-                                 dynamic_factors: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    """
+                                 dynamic_factors: dict[str, Any],
+                                 confidence_tracker: Any = None,
+                                 lineage_builder: Any = None) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:    """
     Calculates carbon emissions per activity category (Transport, Electricity, Diet, Flights).
 
     Returns:
         tuple: (contributors_dict, raw_emissions_dict, emission_factors_dict)
     """
     transport_factor = TRANSPORT_EMISSION_FACTORS[transport]
+    
+    # Build lineage for transport
+    transport_input_node = lineage_builder.create_input_node(
+        "transport", distance, "km/day", f"Daily distance by {transport}"
+    )
+    transport_factor_node = lineage_builder.create_factor_lookup_node(
+        "transport", transport_factor, "kg CO2/km", "static-v1", "EcoBuddy-builtin",
+        f"Transport factor for {transport}"
+    )
+    transport_calc_node = lineage_builder.create_calculation_node(
+        "transport", transport_factor * distance * 365, "daily_km * factor * 365",
+        [transport_input_node, transport_factor_node],
+        f"{distance} km/day * {transport_factor} * 365 days"
+    )
+    transport_lineage = lineage_builder.build_category_lineage(
+        "transport", distance, "km/day", transport_factor * distance * 365,
+        transport_factor, "kg CO2/km", "static-v1", "EcoBuddy-builtin",
+        [transport_input_node, transport_factor_node, transport_calc_node]
+    )
+    category_lineages["transport"] = transport_lineage
+    
     transport_emission = transport_factor * distance * 365
-
     elec_factor = dynamic_factors["electricity"]
+    
+    # Build lineage for electricity
+    elec_input_node = lineage_builder.create_input_node(
+        "electricity", electricity, "kWh/month", "Monthly electricity consumption"
+    )
+    elec_factor_node = lineage_builder.create_factor_lookup_node(
+        "electricity", elec_factor, "kg CO2/kWh", dynamic_factors.get("factor_version", "static-v1"),
+        "Climatiq API" if dynamic_factors.get("is_dynamic") else "EcoBuddy-builtin",
+        f"Electricity emission factor"
+    )
+    elec_calc_node = lineage_builder.create_calculation_node(
+        "electricity", electricity * elec_factor * 12, "monthly_kWh * factor * 12",
+        [elec_input_node, elec_factor_node],
+        f"{electricity} kWh/month * {elec_factor} * 12 months"
+    )
+    elec_lineage = lineage_builder.build_category_lineage(
+        "electricity", electricity, "kWh/month", electricity * elec_factor * 12,
+        elec_factor, "kg CO2/kWh", 
+        dynamic_factors.get("factor_version", "static-v1"),
+        "Climatiq API" if dynamic_factors.get("is_dynamic") else "EcoBuddy-builtin",
+        [elec_input_node, elec_factor_node, elec_calc_node]
+    )
+    category_lineages["electricity"] = elec_lineage
+    
     electricity_emission = electricity * elec_factor * 12
 
     diet_factor = DIET_EMISSION_FACTORS[diet]
+    
+    # Build lineage for diet
+    diet_input_node = lineage_builder.create_input_node(
+        "diet", 1.0, "year", f"Diet type: {diet}"
+    )
+    diet_factor_node = lineage_builder.create_factor_lookup_node(
+        "diet", diet_factor, "kg CO2/year", "static-v1", "EcoBuddy-builtin",
+        f"Annual {diet} diet emissions"
+    )
+    diet_lineage = lineage_builder.build_category_lineage(
+        "diet", 1.0, "year", diet_factor,
+        diet_factor, "kg CO2/year", "static-v1", "EcoBuddy-builtin",
+        [diet_input_node, diet_factor_node]
+    )
+    category_lineages["diet"] = diet_lineage
+    
     diet_emission = diet_factor
 
     flight_factor = dynamic_factors["flight"]
+    
+    # Build lineage for flights
+    flight_input_node = lineage_builder.create_input_node(
+        "flights", flights, "flights/year", "Annual number of flights"
+    )
+    flight_factor_node = lineage_builder.create_factor_lookup_node(
+        "flights", flight_factor, "kg CO2/flight", dynamic_factors.get("factor_version", "static-v1"),
+        "Climatiq API" if dynamic_factors.get("is_dynamic") else "EcoBuddy-builtin",
+        "Flight emission factor"
+    )
+    flight_calc_node = lineage_builder.create_calculation_node(
+        "flights", flights * flight_factor, "flights * factor",
+        [flight_input_node, flight_factor_node],
+        f"{flights} flights * {flight_factor} kg CO2/flight"
+    )
+    flight_lineage = lineage_builder.build_category_lineage(
+        "flights", flights, "flights/year", flights * flight_factor,
+        flight_factor, "kg CO2/flight",
+        dynamic_factors.get("factor_version", "static-v1"),
+        "Climatiq API" if dynamic_factors.get("is_dynamic") else "EcoBuddy-builtin",
+        [flight_input_node, flight_factor_node, flight_calc_node]
+    )
+    category_lineages["flights"] = flight_lineage
+    
     flight_emission = flights * flight_factor
 
     contributors = {
@@ -161,8 +246,10 @@ def calculate_category_emissions(transport: str, distance: float, electricity: f
         "flights": flight_factor,
     }
 
-    return contributors, raw_emissions, factors
-
+    for lineage in category_lineages.values():
+        lineage_builder.lineage_graph.add_category_lineage(lineage)
+    
+    return contributors, raw_emissions, factors, confidence_data, category_lineages
 
 def calculate_footprint(
     transport: str,
@@ -171,8 +258,9 @@ def calculate_footprint(
     diet: str,
     flights: int,
     region: str = "Global",
-    return_audit: bool = False
-) -> tuple[float, dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any]]:
+    return_audit: bool = False,
+    return_lineage: bool = False
+) -> tuple[float, dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any]] | tuple[float, dict[str, Any], dict[str, Any], Any]:
     """
     Calculates annual carbon footprint (in kg CO2) across user activities.
     
@@ -185,10 +273,13 @@ def calculate_footprint(
     dynamic_factors = fetch_emission_factors(region)
     factor_version = resolve_factor_set(region=region, api_factors=dynamic_factors)
 
-    contributors, raw_emissions, factors = calculate_category_emissions(
-        transport, distance, electricity, diet, flights, dynamic_factors
+    lineage_builder = LineageBuilder(f"footprint_{datetime.now().timestamp()}")
+    
+    contributors, raw_emissions, factors, confidence_data, category_lineages = calculate_category_emissions(
+        transport, distance, electricity, diet, flights, dynamic_factors, confidence_tracker, lineage_builder
     )
-
+    
+    lineage_builder.lineage_graph.total_emissions = sum(contributors.values())
     total = sum(contributors.values())
     total_rounded = round(total, 2)
 
@@ -287,7 +378,8 @@ def rank_uncertainty_contributors(category_bounds: dict[str, dict[str, float]]) 
     ranked.sort(key=lambda item: item["range_kg"], reverse=True)
     return ranked
 
-
+    if return_lineage:
+        return total_rounded, contributors, lineage_builder.lineage_graph
 def calculate_footprint_range(
     transport: str,
     distance: float,
@@ -379,7 +471,9 @@ def calculate_eco_score(total_footprint: float, contributors: dict[str, Any] | N
         return final_score, audit
     return final_score
 
-
+    category_lineages = {}
+    if lineage_builder is None:
+        lineage_builder = LineageBuilder("standalone_calculation")
 def generate_full_audit_log(transport: str, distance: float, electricity: float, diet: str,
                             flights: int, region: str = "Global") -> dict:
     """
