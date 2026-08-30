@@ -215,6 +215,53 @@ from .reward_catalog import (
     get_user_items
 )
 
+# Budget Manager
+from .budget_manager import (
+    BudgetManager,
+    CarbonBudget,
+    BudgetTransaction,
+    BudgetPeriod,
+    BudgetStatus,
+    get_budget_manager,
+    create_budget,
+    get_user_budgets,
+    get_active_budget,
+    update_budget_usage,
+    get_budget_progress
+)
+
+# Goal Tracker
+from .goal_tracker import (
+    GoalTracker,
+    Goal,
+    GoalProgress,
+    GoalType,
+    GoalStatus,
+    get_goal_tracker,
+    create_goal,
+    get_user_goals,
+    update_goal_progress,
+    get_goal_recommendations
+)
+
+# Carbon Forecaster
+from .carbon_forecaster import (
+    CarbonForecaster,
+    ForecastResult,
+    get_carbon_forecaster,
+    forecast_carbon,
+    forecast_goal
+)
+
+# Budget Alerts
+from .budget_alerts import (
+    BudgetAlertManager,
+    BudgetAlert,
+    get_budget_alert_manager,
+    create_budget_alert,
+    get_user_alerts
+)
+
 __all__ = [
     # Export Manager
     'ExportManager',
@@ -390,5 +437,45 @@ __all__ = [
     'purchase_item',
     'use_item',
     'get_user_inventory',
+    'get_user_items',
+    
+    # Budget Manager
+    'BudgetManager',
+    'CarbonBudget',
+    'BudgetTransaction',
+    'BudgetPeriod',
+    'BudgetStatus',
+    'get_budget_manager',
+    'create_budget',
+    'get_user_budgets',
+    'get_active_budget',
+    'update_budget_usage',
+    'get_budget_progress',
+    
+    # Goal Tracker
+    'GoalTracker',
+    'Goal',
+    'GoalProgress',
+    'GoalType',
+    'GoalStatus',
+    'get_goal_tracker',
+    'create_goal',
+    'get_user_goals',
+    'update_goal_progress',
+    'get_goal_recommendations',
+    
+    # Carbon Forecaster
+    'CarbonForecaster',
+    'ForecastResult',
+    'get_carbon_forecaster',
+    'forecast_carbon',
+    'forecast_goal',
+    
+    # Budget Alerts
+    'BudgetAlertManager',
+    'BudgetAlert',
+    'get_budget_alert_manager',
+    'create_budget_alert',
+    'get_user_alerts'
     'get_user_items'
 ]
