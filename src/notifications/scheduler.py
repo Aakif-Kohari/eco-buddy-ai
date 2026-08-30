@@ -125,11 +125,111 @@ class NotificationScheduler:
             logger.error(f"Error checking goal reminders: {e}")
         finally:
             conn.close()
+
+    def check_collaborative_goal_reminders(self):
+        """
+        Scans collaborative household goals and dispatches alerts for 'At Risk' status 
+        or if specific members drag the group off-track.
+        """
+        try:
+            # Import inline to avoid circular imports if any
+            from src.utils.collaborative_goals import (
+                get_goals_for_household,
+                get_allocations_for_goal,
+                evaluate_household_progress
+            )
+            from src.lifestyle.household import get_households_for_user, get_members
+            from src.database import get_user_assessments
+            from src.utils.goals import GOAL_ACTIVE, STATUS_AT_RISK, STATUS_OFF_TRACK
+            
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Fetch all active collaborative goals
+            cursor.execute("SELECT id, household_id FROM collaborative_goals WHERE status = ?", (GOAL_ACTIVE,))
+            active_goals = cursor.fetchall()
+            
+            for goal_id, household_id in active_goals:
+                # We need the full goal dict, so we can fetch it via get_goal
+                from src.utils.collaborative_goals import get_goal
+                goal = get_goal(goal_id)
+                if not goal:
+                    continue
+                    
+                members = get_members(household_id)
+                if not members:
+                    continue
+                    
+                # Evaluate household overall progress
+                household_assessments = []
+                for m in members:
+                    if m["user_id"] is not None:
+                        member_assessments = get_user_assessments(m["user_id"])
+                        for a in member_assessments:
+                            household_assessments.append({
+                                "date": a.created_at.date() if isinstance(a.created_at, datetime) else a.created_at,
+                                "footprint": a.score,
+                                "user_id": a.user_id
+                            })
+                            
+                aggregated = []
+                if household_assessments:
+                    import pandas as pd
+                    df = pd.DataFrame(household_assessments)
+                    df['date'] = pd.to_datetime(df['date']).dt.date
+                    grouped = df.groupby('date')['footprint'].sum().reset_index()
+                    aggregated = grouped.to_dict('records')
+                    
+                progress = evaluate_household_progress(goal, aggregated)
+                
+                # Check overall household status
+                if progress["status"] in [STATUS_AT_RISK, STATUS_OFF_TRACK]:
+                    for m in members:
+                        if m["user_id"] is not None:
+                            self.dispatcher.dispatch(
+                                user_id=m["user_id"],
+                                category="goals",
+                                title="Household Goal At Risk",
+                                message=f"Your household is currently {progress['status_label'].lower()} for its collaborative goal. Team up to get back on track!",
+                                priority="high",
+                                icon="⚠️",
+                                dedupe_key=f"collab_goal_risk_{goal_id}_{progress['status']}"
+                            )
+                
+                # Check individual allocations
+                allocations = get_allocations_for_goal(goal_id)
+                if allocations:
+                    for m in members:
+                        if m["user_id"] is not None:
+                            allocated_target = allocations.get(m["id"], 0.0)
+                            latest_actual = 0.0
+                            ma = get_user_assessments(m["user_id"])
+                            if ma:
+                                latest_actual = sorted(ma, key=lambda x: x.created_at)[-1].score
+                            
+                            variance = latest_actual - allocated_target
+                            # Arbitrary threshold: if variance is > 20% of their allocation or > 100kg
+                            if allocated_target > 0 and (variance / allocated_target > 0.20 or variance > 100):
+                                self.dispatcher.dispatch(
+                                    user_id=m["user_id"],
+                                    category="goals",
+                                    title="You're Dragging the Household Behind!",
+                                    message=f"You are exceeding your allocated target of {allocated_target:.0f} kg CO2 by {variance:.0f} kg. Try to reduce your personal footprint to help the household succeed.",
+                                    priority="medium",
+                                    icon="📉",
+                                    dedupe_key=f"collab_goal_drag_{goal_id}_{m['id']}"
+                                )
+                                
+        except sqlite3.OperationalError:
+            logger.info("Collaborative goals tables not found, skipping.")
+        except Exception as e:
+            logger.error(f"Error checking collaborative goal reminders: {e}")
             
     def run_all_jobs(self):
         """Runs all scheduled jobs. Designed to be called by a cron trigger."""
         self.generate_weekly_digests()
         self.check_goal_reminders()
+        self.check_collaborative_goal_reminders()
         
         # Finally process the queue to actually send things
         self.dispatcher.process_queue()
